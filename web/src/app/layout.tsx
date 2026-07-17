@@ -1,9 +1,21 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Lexend_Giga, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
+import {
+  BIZ_UDPGothic,
+  Lexend_Giga,
+  Noto_Sans_JP,
+  Noto_Serif_JP,
+} from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactNode } from "react";
 import { env } from "@/lib/env";
+
+// BIZ UDPGothic は 400/700 のみ提供
+const bizUDPGothic = BIZ_UDPGothic({
+  variable: "--font-biz-udp-gothic",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+});
 
 const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
@@ -82,7 +94,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#2aa693",
+  themeColor: "#1b7742",
 };
 
 export default function RootLayout({
@@ -93,9 +105,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${notoSansJP.variable} ${lexendGiga.variable} ${notoSerifJP.variable} font-sans antialiased bg-mirai-surface-light`}
+        className={`${bizUDPGothic.variable} ${notoSansJP.variable} ${lexendGiga.variable} ${notoSerifJP.variable} font-sans antialiased bg-mirai-surface-light`}
       >
-        <NextTopLoader showSpinner={false} color="#2aa693" />
+        <NextTopLoader showSpinner={false} color="#1b7742" />
         {children}
       </body>
     </html>
