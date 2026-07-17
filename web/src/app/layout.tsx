@@ -1,6 +1,11 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { Lexend_Giga, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
+import {
+  Lexend_Giga,
+  Noto_Sans_JP,
+  Noto_Serif_JP,
+  Zen_Maru_Gothic,
+} from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactNode } from "react";
 import { env } from "@/lib/env";
@@ -22,6 +27,13 @@ const notoSerifJP = Noto_Serif_JP({
   variable: "--font-noto-serif-jp",
   subsets: ["latin"],
   weight: ["500", "600"],
+});
+
+// 見出し用の丸ゴシック（LINE Seed JPはGoogle Fonts未提供のため代替）
+const zenMaruGothic = Zen_Maru_Gothic({
+  variable: "--font-zen-maru-gothic",
+  subsets: ["latin"],
+  weight: ["500", "700"],
 });
 
 const isDev = process.env.NODE_ENV === "development";
@@ -82,7 +94,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#2aa693",
+  themeColor: "#00b98d",
 };
 
 export default function RootLayout({
@@ -93,9 +105,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${notoSansJP.variable} ${lexendGiga.variable} ${notoSerifJP.variable} font-sans antialiased bg-mirai-surface-light`}
+        className={`${notoSansJP.variable} ${lexendGiga.variable} ${notoSerifJP.variable} ${zenMaruGothic.variable} font-sans antialiased bg-mirai-surface-light`}
       >
-        <NextTopLoader showSpinner={false} color="#2aa693" />
+        <NextTopLoader showSpinner={false} color="#00b98d" />
         {children}
       </body>
     </html>
