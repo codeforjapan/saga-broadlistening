@@ -6,7 +6,7 @@ export function Hero() {
     <div className="relative w-full h-[80vh] min-h-[400px] md:h-[70vh]">
       <Image
         src="/img/hero_background.png"
-        alt="国会議事堂"
+        alt="佐賀インターナショナルバルーンフェスタの熱気球"
         fill
         priority
         className="object-cover"
