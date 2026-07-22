@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import type { BillWithContent } from "@/features/bills/shared/types";
+import { generateSessionId } from "../../shared/utils/generate-session-id";
 import { ChatWindow } from "./chat-window";
 
 // アニメーション定数
@@ -53,7 +54,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
     // pathname が変わるたびに新しいセッションIDを発行
     // ページ遷移時にチャットセッションをリセット
     // biome-ignore lint/correctness/useExhaustiveDependencies: pathnameが変わるたびに新しいIDを生成するため意図的に依存配列に含めている
-    const sessionId = useMemo(() => crypto.randomUUID(), [pathname]);
+    const sessionId = useMemo(() => generateSessionId(), [pathname]);
 
     useImperativeHandle(ref, () => ({
       openWithText: (selectedText: string) => {
