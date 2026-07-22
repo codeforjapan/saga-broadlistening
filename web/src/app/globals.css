@@ -124,6 +124,13 @@
 }
 
 :root {
+  /* セルフホストフォント（Fontsource）の font-family を割り当てる。
+     以前は next/font の `variable` が設定していた値をここで定義する。 */
+  --font-inter: "Inter";
+  --font-noto-sans-jp: "Noto Sans JP";
+  --font-lexend-giga: "Lexend Giga";
+  --font-noto-serif-jp: "Noto Serif JP";
+
   --radius: 0.625rem;
   --background: #f6f9f8;
   --foreground: oklch(0.145 0 0);
