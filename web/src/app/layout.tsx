@@ -79,7 +79,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#00b98d",
+  themeColor: "#7b6cf6",
 };
 
 export default function RootLayout({
@@ -90,7 +90,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="font-sans antialiased bg-mirai-surface-light">
-        <NextTopLoader showSpinner={false} color="#00b98d" />
+        <NextTopLoader showSpinner={false} color="#7b6cf6" />
         {children}
       </body>
     </html>

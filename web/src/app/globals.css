@@ -66,14 +66,14 @@
   --color-mirai-text-subtle: #666666;
   --color-mirai-text-close: #9f9b9b;
 
-  /* Surface / Background */
-  --color-mirai-surface: #f7f4f0;
-  --color-mirai-surface-light: #eeeeee;
-  --color-mirai-surface-grouped: #f2f2f7;
-  --color-mirai-surface-muted: #e5e5ea;
-  --color-mirai-surface-tag: #e8e8e8;
-  --color-mirai-surface-warm: #eae6dd;
-  --color-mirai-surface-gray: #f6f6f6;
+  /* Surface / Background（プライマリのラベンダーに合わせて薄く色づけ） */
+  --color-mirai-surface: #f4f2fc;
+  --color-mirai-surface-light: #ebe9f7;
+  --color-mirai-surface-grouped: #eeedfa;
+  --color-mirai-surface-muted: #e4e1f3;
+  --color-mirai-surface-tag: #e7e4f5;
+  --color-mirai-surface-warm: #eae7f4;
+  --color-mirai-surface-gray: #f3f2fc;
 
   /* Border */
   --color-mirai-border: #d2d2d2;
@@ -103,11 +103,11 @@
 
   /* Progress */
   --color-mirai-progress-track: #d9d9d9;
-  --color-mirai-progress-fill: #a9e89d;
+  --color-mirai-progress-fill: #b3a6f7;
 
-  /* Gradient endpoints */
-  --color-mirai-gradient-start: #3fd6ae;
-  --color-mirai-gradient-end: #c8f3e4;
+  /* Gradient endpoints（プライマリのラベンダー→スカイ。ヒーロー/完了画面等） */
+  --color-mirai-gradient-start: #7b6cf6;
+  --color-mirai-gradient-end: #55c1ff;
 
   /* Topic analysis */
   --color-topic-info-bg: #e9e6fd;
@@ -135,14 +135,14 @@
   --font-zen-maru-gothic: "Zen Maru Gothic";
 
   --radius: 0.625rem;
-  --background: #fafaf7;
+  --background: #f9f8fe;
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: #00b98d;
-  --primary-accent: #007a5d;
+  --primary: #7b6cf6;
+  --primary-accent: #5b4ce0;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -272,7 +272,7 @@
   }
 
   .bg-mirai-light-gradient {
-    background-image: linear-gradient(to bottom, #dcf5ed, #eaf8e2);
+    background-image: linear-gradient(to bottom, #ece9fe, #f4f2ff);
   }
 
   .bg-mirai-white-fade {
