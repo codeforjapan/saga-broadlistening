@@ -17,6 +17,10 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.1",
     "@ai-sdk/react": "^3.0.3",
+    "@fontsource/lexend-giga": "^5.2.10",
+    "@fontsource/noto-sans-jp": "^5.2.9",
+    "@fontsource/noto-serif-jp": "^5.2.8",
+    "@fontsource/zen-maru-gothic": "^5.2.6",
     "@mirai-gikai/shared": "workspace:*",
     "@mirai-gikai/supabase": "workspace:*",
     "@mirai-gikai/topic-analysis-core": "workspace:*",
