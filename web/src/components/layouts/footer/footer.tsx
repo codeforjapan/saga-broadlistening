@@ -93,8 +93,20 @@ function FooterPolicies() {
 
 function FooterCopyright() {
   return (
-    <div className="text-center text-sm font-medium text-slate-800">
-      © 2025 Team Mirai All rights Reserved
+    <div className="flex flex-col gap-2 text-center text-xs font-medium text-slate-800">
+      <p className="text-[11px] opacity-80">
+        これは政党チームみらいが運営しているものではありません（本家「
+        <a
+          href="https://gikai.team-mir.ai/"
+          target="_blank"
+          rel="noreferrer"
+          className="underline hover:opacity-100"
+        >
+          みらい議会
+        </a>
+        」）
+      </p>
+      <div>© 2025 Team Mirai All rights Reserved</div>
     </div>
   );
 }
