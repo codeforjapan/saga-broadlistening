@@ -15,7 +15,7 @@ export function DesktopMenuLogo() {
       <div className="relative w-[116px] h-[98.38px]">
         <Image
           src="/img/logo.svg"
-          alt="みらい議会ロゴ"
+          alt="佐賀市公聴システム（仮）ロゴ"
           fill
           className="object-contain"
           priority
@@ -27,21 +27,21 @@ export function DesktopMenuLogo() {
         <h1
           className="font-extrabold text-black"
           style={{
-            fontSize: "36px",
-            lineHeight: "1em",
-            letterSpacing: "0.1em",
+            fontSize: "28px",
+            lineHeight: "1.1em",
+            letterSpacing: "0.05em",
           }}
         >
-          みらい議会
+          佐賀市公聴システム（仮）
         </h1>
         <p
           className="font-bold text-black"
           style={{
-            fontSize: "16px",
-            lineHeight: "2em",
+            fontSize: "15px",
+            lineHeight: "1.5em",
           }}
         >
-          国会の議論をわかりやすく
+          市議会の議論をわかりやすく
         </p>
       </div>
     </Link>
