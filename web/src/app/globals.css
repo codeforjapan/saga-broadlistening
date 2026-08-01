@@ -106,8 +106,8 @@
   --color-mirai-progress-fill: #a9e89d;
 
   /* Gradient endpoints */
-  --color-mirai-gradient-start: #64d8c6;
-  --color-mirai-gradient-end: #bcecd3;
+  --color-mirai-gradient-start: #3b82f6;
+  --color-mirai-gradient-end: #93c5fd;
 
   /* Topic analysis */
   --color-topic-info-bg: #e5f3f0;
@@ -116,7 +116,7 @@
   --color-topic-label: #909090;
   --color-topic-affected: #c8642a;
   --color-topic-industry: #2563a8;
-  --color-topic-expert: #0f8472;
+  --color-topic-expert: #1e40af;
   --color-topic-citizen: #909090;
 
   /* 引用文の明朝体（Noto Serif JP） */
@@ -131,8 +131,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: #2aa693;
-  --primary-accent: #0f8472;
+  --primary: #1d4ed8;
+  --primary-accent: #1e40af;
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
