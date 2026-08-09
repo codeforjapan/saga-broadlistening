@@ -1,4 +1,4 @@
-name: CDK Deploy (Bedrock/Lambda)
+name: CDK Deploy [prd] (Bedrock/Lambda)
 
 # main へのマージ（push）で infra/aws-cdk に変更があるとき、prd環境へ cdk deploy する。
 on:

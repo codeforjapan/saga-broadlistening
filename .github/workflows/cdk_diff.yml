@@ -1,4 +1,4 @@
-name: CDK Diff (Bedrock/Lambda)
+name: CDK Diff [prd] (Bedrock/Lambda)
 
 # main への PR で infra/aws-cdk に変更があるとき、prd環境に対する cdk diff を実行し、
 # 結果を PR コメントに表示する（実際のデプロイは行わない）。
