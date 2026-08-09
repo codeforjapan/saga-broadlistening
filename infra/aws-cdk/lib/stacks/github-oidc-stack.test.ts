@@ -32,7 +32,10 @@ describe("GitHubOidcStack", () => {
               },
               StringLike: {
                 "token.actions.githubusercontent.com:sub": [
-                  "repo:codeforjapan/saga-broadlistening:*",
+                  "repo:codeforjapan/saga-broadlistening:ref:refs/heads/main",
+                  "repo:codeforjapan/saga-broadlistening:environment:production",
+                  "repo:codeforjapan/saga-broadlistening:pull_request",
+                  "repo:codeforjapan/saga-broadlistening:ref:refs/pull/*",
                 ],
               },
             },
