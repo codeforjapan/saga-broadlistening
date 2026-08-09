@@ -68,8 +68,8 @@ GitHub ActionsのOIDC Roleは「CDKが作成するbootstrapロール群を引き
 
 ```bash
 cd infra/aws-cdk
-AWS_PROFILE=<devアカウント用admin権限プロファイル> npx cdk bootstrap aws://826784631888/ap-northeast-1
-AWS_PROFILE=<prdアカウント用admin権限プロファイル> npx cdk bootstrap aws://085350497655/ap-northeast-1
+AWS_PROFILE=<devアカウント用admin権限プロファイル> npx cdk bootstrap aws://826784631888/ap-northeast-1 --context env=dev
+AWS_PROFILE=<prdアカウント用admin権限プロファイル> npx cdk bootstrap aws://085350497655/ap-northeast-1 --context env=prd
 ```
 
 これにより各アカウント・リージョンに `cdk-hnb659fds-*` の一連のIAMロール・S3バケット等が作成される

@@ -59,8 +59,8 @@ AWS認証情報は環境ごとに異なるアカウントを使うため、環�
 各AWSアカウント・リージョンごとに一度だけ実行が必要です。
 
 ```bash
-AWS_PROFILE=<devアカウント用プロファイル> npx cdk bootstrap aws://826784631888/ap-northeast-1
-AWS_PROFILE=<prdアカウント用プロファイル> npx cdk bootstrap aws://085350497655/ap-northeast-1
+AWS_PROFILE=<devアカウント用プロファイル> npx cdk bootstrap aws://826784631888/ap-northeast-1 --context env=dev
+AWS_PROFILE=<prdアカウント用プロファイル> npx cdk bootstrap aws://085350497655/ap-northeast-1 --context env=prd
 ```
 
 ## コマンド
