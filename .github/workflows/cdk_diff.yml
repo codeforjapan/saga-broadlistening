@@ -1,0 +1,101 @@
+name: CDK Diff (Bedrock/Lambda)
+
+# main への PR で infra/aws-cdk に変更があるとき、prd環境に対する cdk diff を実行し、
+# 結果を PR コメントに表示する（実際のデプロイは行わない）。
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/aws-cdk/**"
+      - ".github/workflows/cdk_diff.yml"
+
+concurrency:
+  group: cdk-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  cdk-diff:
+    runs-on: ubuntu-latest
+    # fork からの PR は OIDC で本番アカウントの認証情報を取得できてしまうと危険なため対象外
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    environment: production
+    env:
+      AWS_CDK_PRD_DEPLOY_ROLE_ARN: ${{ secrets.AWS_CDK_PRD_DEPLOY_ROLE_ARN }}
+    steps:
+      # Environment の Secret は job 開始後のステップでしか参照できない
+      # （job-level if からは Environment スコープの vars/secrets が見えない）。
+      # AWS側の設定（README参照）が未完了でも赤にせず、green skip にする。
+      - name: Check AWS configuration
+        id: cfg
+        run: |
+          if [ -z "$AWS_CDK_PRD_DEPLOY_ROLE_ARN" ]; then
+            echo "AWS_CDK_PRD_DEPLOY_ROLE_ARN secret is not set — skipping cdk diff (see infra/aws-cdk/README.md)."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout code
+        if: steps.cfg.outputs.configured == 'true'
+        uses: actions/checkout@v5
+
+      - name: Install pnpm
+        if: steps.cfg.outputs.configured == 'true'
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+
+      - name: Setup Node.js
+        if: steps.cfg.outputs.configured == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        if: steps.cfg.outputs.configured == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Configure AWS credentials (prd)
+        if: steps.cfg.outputs.configured == 'true'
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ env.AWS_CDK_PRD_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Run cdk diff
+        if: steps.cfg.outputs.configured == 'true'
+        id: diff
+        working-directory: infra/aws-cdk
+        env:
+          NO_COLOR: "1"
+        run: |
+          set +e
+          pnpm exec cdk diff --context env=prd > diff_output.txt 2>&1
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          cat diff_output.txt
+
+      - name: Build PR comment
+        if: steps.cfg.outputs.configured == 'true'
+        run: |
+          {
+            echo "## CDK Diff (prd)"
+            echo
+            echo "\`infra/aws-cdk\` の変更による本番環境(prd)への影響差分です。"
+            echo
+            echo "\`\`\`diff"
+            cat infra/aws-cdk/diff_output.txt
+            echo "\`\`\`"
+          } > comment.md
+
+      - name: Post/update PR comment
+        if: steps.cfg.outputs.configured == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.number }}" \
+            --edit-last --create-if-none --body-file comment.md
