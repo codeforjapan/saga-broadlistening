@@ -102,76 +102,28 @@ prd環境（AWSアカウント `085350497655`）に対して以下を自動実�
   **承認ゲートなし**でマージ直後に本番デプロイされるため、mainへのマージ自体を変更管理の最終ゲートとして扱ってください。
 
 認証は長期のAWSアクセスキーを使わず、GitHub ActionsのOIDCとAWS IAM Roleの信頼関係で行います。
-以下はAWSアカウント `085350497655`（prd）側で一度だけ必要な手動セットアップです。
+OIDC IDプロバイダーおよびデプロイ用IAM Roleは CDK スタック（`MiraiGikaiGitHubOidcStack`）としてコード管理されているため、手元の管理者権限プロファイルから事前作成します。
 
-### 1. GitHub用OIDC IDプロバイダーの作成（未作成の場合のみ）
+### 1. CDKによるOIDCスタックのデプロイ
 
 ```bash
-aws iam create-open-id-connect-provider \
-  --url https://token.actions.githubusercontent.com \
-  --client-id-list sts.amazonaws.com
+AWS_PROFILE=<prdアカウント用プロファイル> npx cdk deploy MiraiGikaiGitHubOidcStack-prd --context env=prd
 ```
 
-（thumbprintの指定は現在不要です。指定しても無視されます）
+このスタックにより以下が作成されます：
 
-（すでに同一AWSアカウントで別リポジトリ用にGitHub OIDCプロバイダーを作成済みの場合はスキップ）
+- **OIDC IDプロバイダー**: `https://token.actions.githubusercontent.com`
+- **デプロイ用IAM Role**: `MiraiGikaiGitHubActionsDeployRole-prd`
+  - **信頼関係**: リポジトリ `codeforjapan/saga-broadlistening` の `main` ブランチおよび `pull_request` のみ許可 (`sts:AssumeRoleWithWebIdentity`)
+  - **権限**: CDK Bootstrap が作成する既定のロール群（`cdk-hnb659fds-*-085350497655-ap-northeast-1`）への `sts:AssumeRole` のみ許可
 
-### 2. デプロイ用IAM Roleの作成
-
-信頼ポリシー（このリポジトリの `main` ブランチへのpush、および `main` 向けPRからのみ引き受け可能にする）:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Federated": "arn:aws:iam::085350497655:oidc-provider/token.actions.githubusercontent.com"
-      },
-      "Action": "sts:AssumeRoleWithWebIdentity",
-      "Condition": {
-        "StringEquals": {
-          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
-        },
-        "StringLike": {
-          "token.actions.githubusercontent.com:sub": [
-            "repo:codeforjapan/saga-broadlistening:ref:refs/heads/main",
-            "repo:codeforjapan/saga-broadlistening:pull_request"
-          ]
-        }
-      }
-    }
-  ]
-}
-```
-
-権限ポリシー（`cdk bootstrap` が作成する既定のブートストラップロール群を引き受けられればよく、
-このRole自体に広い権限を直接付与する必要はありません。`hnb659fds` は既定のqualifier）:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "sts:AssumeRole",
-      "Resource": [
-        "arn:aws:iam::085350497655:role/cdk-hnb659fds-deploy-role-085350497655-ap-northeast-1",
-        "arn:aws:iam::085350497655:role/cdk-hnb659fds-file-publishing-role-085350497655-ap-northeast-1",
-        "arn:aws:iam::085350497655:role/cdk-hnb659fds-lookup-role-085350497655-ap-northeast-1"
-      ]
-    }
-  ]
-}
-```
-
-### 3. GitHub側の設定
+### 2. GitHub側の設定
 
 - リポジトリに `production` という名前のGitHub Environmentを作成する
   （承認ゲートは設けない方針のため、protection ruleは追加不要）。
 - `production` EnvironmentのSecretに `AWS_CDK_PRD_DEPLOY_ROLE_ARN` を追加し、
-  作成したIAM RoleのARNを設定する。
+  CDKデプロイ時の CloudFormation Output (`GitHubActionsDeployRoleArn`) または以下のRole ARNを設定する。
+  `arn:aws:iam::085350497655:role/MiraiGikaiGitHubActionsDeployRole-prd`
 
 ### 補足
 

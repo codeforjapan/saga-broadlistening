@@ -4,6 +4,8 @@ import type { EnvName } from "../config/types";
 import { BedrockStack } from "./bedrock-stack";
 import { LambdaStack } from "./lambda-stack";
 
+import { GitHubOidcStack } from "./github-oidc-stack";
+
 /**
  * テスト用にBedrockStackを組み立てるヘルパー。
  * 各テストで同じセットアップコードを重複させないために使う。
@@ -17,6 +19,20 @@ export function createTestBedrockStack(idPrefix: string, envName: EnvName) {
   });
 
   return { app, envConfig, bedrockStack };
+}
+
+/**
+ * テスト用にGitHubOidcStackを組み立てるヘルパー。
+ */
+export function createTestGitHubOidcStack(idPrefix: string, envName: EnvName) {
+  const app = new App();
+  const envConfig = resolveEnvConfig(envName);
+  const githubOidcStack = new GitHubOidcStack(app, `${idPrefix}GitHubOidc`, {
+    env: { account: envConfig.account, region: envConfig.region },
+    envConfig,
+  });
+
+  return { app, envConfig, githubOidcStack };
 }
 
 /**
@@ -37,3 +53,4 @@ export function createTestStacks(idPrefix: string, envName: EnvName) {
 
   return { app, envConfig, bedrockStack, lambdaStack };
 }
+

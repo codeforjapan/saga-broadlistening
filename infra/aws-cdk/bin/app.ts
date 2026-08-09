@@ -2,6 +2,7 @@
 import { App } from "aws-cdk-lib";
 import { resolveEnvConfig } from "../lib/config/environments";
 import { BedrockStack } from "../lib/stacks/bedrock-stack";
+import { GitHubOidcStack } from "../lib/stacks/github-oidc-stack";
 import { LambdaStack } from "../lib/stacks/lambda-stack";
 
 const app = new App();
@@ -15,6 +16,11 @@ if (!envName) {
 
 const envConfig = resolveEnvConfig(envName);
 const env = { account: envConfig.account, region: envConfig.region };
+
+new GitHubOidcStack(app, `MiraiGikaiGitHubOidcStack-${envConfig.envName}`, {
+  env,
+  envConfig,
+});
 
 const bedrockStack = new BedrockStack(
   app,

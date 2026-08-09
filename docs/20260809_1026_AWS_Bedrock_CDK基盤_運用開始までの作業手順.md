@@ -78,21 +78,22 @@ AWS_PROFILE=<prdアカウント用admin権限プロファイル> npx cdk bootstr
 ## ③ prd自動デプロイ用のOIDC連携セットアップ（本番のみ）
 
 `main` へのマージで自動的に `cdk deploy` が走る（承認ゲートなし）ため、事前にこのセットアップが
-完了していないとワークフローは "green skip"（何もせず成功扱い）になるだけで、実デプロイはされない
-（`infra/aws-cdk/README.md` の該当セクションと同じ内容。手順の全文はそちらを参照）。
+完了していないとワークフローは "green skip"（何もせず成功扱い）になるだけで、実デプロイはされない。
+
+OIDCプロバイダーおよびGitHub Actions用IAMロールは CDK（`MiraiGikaiGitHubOidcStack-prd`）としてコード管理されているため、
+ローカルの管理者権限プロファイルから一度デプロイする。
+
+```bash
+cd infra/aws-cdk
+AWS_PROFILE=<prdアカウント用admin権限プロファイル> npx cdk deploy MiraiGikaiGitHubOidcStack-prd --context env=prd
+```
 
 チェックリスト:
 
-- [ ] prdアカウント（`085350497655`）にGitHub用OIDC IDプロバイダーを作成
-      （`aws iam create-open-id-connect-provider --url https://token.actions.githubusercontent.com --client-id-list sts.amazonaws.com`。thumbprint指定は現在不要）
-- [ ] デプロイ用IAM Roleを作成
-      - 信頼ポリシー: `repo:codeforjapan/saga-broadlistening:ref:refs/heads/main` と
-        `repo:codeforjapan/saga-broadlistening:pull_request` からの `AssumeRoleWithWebIdentity` のみ許可
-      - 権限ポリシー: ②-2で作成された `cdk-hnb659fds-{deploy,file-publishing,lookup}-role-085350497655-ap-northeast-1`
-        への `sts:AssumeRole` のみ（このRole自体に広い権限を直接持たせない）
+- [ ] ローカルから `MiraiGikaiGitHubOidcStack-prd` をデプロイし、OIDCプロバイダーとデプロイ用IAM Roleを作成
 - [ ] GitHubリポジトリに Environment `production` を作成（protection ruleは追加しない方針）
 - [ ] `production` Environmentの Secret に `AWS_CDK_PRD_DEPLOY_ROLE_ARN` を登録
-      （作成したIAM RoleのARN）
+      （CDKデプロイ時の CloudFormation Output `GitHubActionsDeployRoleArn` または ARN: `arn:aws:iam::085350497655:role/MiraiGikaiGitHubActionsDeployRole-prd`）
 
 ## ④ 動作確認
 
