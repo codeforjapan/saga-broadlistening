@@ -1,0 +1,32 @@
+{
+  "name": "@mirai-gikai/aws-cdk",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "synth:dev": "cdk synth --context env=dev",
+    "synth:stg": "cdk synth --context env=stg",
+    "synth:prd": "cdk synth --context env=prd",
+    "diff:dev": "cdk diff --context env=dev",
+    "diff:stg": "cdk diff --context env=stg",
+    "diff:prd": "cdk diff --context env=prd",
+    "deploy:dev": "cdk deploy --all --context env=dev",
+    "deploy:stg": "cdk deploy --all --context env=stg",
+    "deploy:prd": "cdk deploy --all --context env=prd"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1104.0",
+    "aws-cdk-lib": "^2.263.0",
+    "constructs": "^10.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.18.8",
+    "aws-cdk": "^2.1135.0",
+    "esbuild": "^0.28.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
