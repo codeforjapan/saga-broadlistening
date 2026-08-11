@@ -7,6 +7,7 @@ on:
     paths:
       - "infra/aws-cdk/**"
       - ".github/workflows/cdk_deploy.yml"
+      - ".github/workflows/_cdk_deploy.yml"
 
 concurrency:
   group: cdk-deploy-prd
@@ -18,50 +19,9 @@ permissions:
 
 jobs:
   cdk-deploy:
-    runs-on: ubuntu-latest
-    environment: production
-    env:
-      AWS_CDK_PRD_DEPLOY_ROLE_ARN: ${{ secrets.AWS_CDK_PRD_DEPLOY_ROLE_ARN }}
-    steps:
-      # Environment の Secret は job 開始後のステップでしか参照できない。
-      # AWS側の設定（README参照）が未完了でも赤にせず、green skip にする。
-      - name: Check AWS configuration
-        id: cfg
-        run: |
-          if [ -z "$AWS_CDK_PRD_DEPLOY_ROLE_ARN" ]; then
-            echo "AWS_CDK_PRD_DEPLOY_ROLE_ARN secret is not set — skipping cdk deploy (see infra/aws-cdk/README.md)."
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Checkout code
-        if: steps.cfg.outputs.configured == 'true'
-        uses: actions/checkout@v5
-
-      - name: Install pnpm
-        if: steps.cfg.outputs.configured == 'true'
-        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
-
-      - name: Setup Node.js
-        if: steps.cfg.outputs.configured == 'true'
-        uses: actions/setup-node@v6
-        with:
-          node-version: "20"
-          cache: "pnpm"
-
-      - name: Install dependencies
-        if: steps.cfg.outputs.configured == 'true'
-        run: pnpm install --frozen-lockfile
-
-      - name: Configure AWS credentials (prd)
-        if: steps.cfg.outputs.configured == 'true'
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
-        with:
-          role-to-assume: ${{ env.AWS_CDK_PRD_DEPLOY_ROLE_ARN }}
-          aws-region: ap-northeast-1
-
-      - name: Run cdk deploy
-        if: steps.cfg.outputs.configured == 'true'
-        working-directory: infra/aws-cdk
-        run: pnpm exec cdk deploy --all --context env=prd --require-approval never
+    uses: ./.github/workflows/_cdk_deploy.yml
+    with:
+      environment: production
+      context_env: prd
+    secrets:
+      role_arn: ${{ secrets.AWS_CDK_PRD_DEPLOY_ROLE_ARN }}
