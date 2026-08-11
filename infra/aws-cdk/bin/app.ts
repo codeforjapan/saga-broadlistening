@@ -4,6 +4,7 @@ import { resolveEnvConfig } from "../lib/config/environments";
 import { BedrockStack } from "../lib/stacks/bedrock-stack";
 import { GitHubOidcStack } from "../lib/stacks/github-oidc-stack";
 import { LambdaStack } from "../lib/stacks/lambda-stack";
+import { VercelOidcStack } from "../lib/stacks/vercel-oidc-stack";
 
 const app = new App();
 
@@ -29,6 +30,12 @@ const bedrockStack = new BedrockStack(
 );
 
 new LambdaStack(app, `MiraiGikaiLambdaStack-${envConfig.envName}`, {
+  env,
+  envConfig,
+  bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
+});
+
+new VercelOidcStack(app, `MiraiGikaiVercelOidcStack-${envConfig.envName}`, {
   env,
   envConfig,
   bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
