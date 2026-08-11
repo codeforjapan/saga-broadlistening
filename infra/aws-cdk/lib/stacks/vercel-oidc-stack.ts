@@ -9,10 +9,10 @@ export interface VercelOidcStackProps extends cdk.StackProps {
 }
 
 const VERCEL_TEAM_SLUG = "c4j";
-const VERCEL_PROJECT_NAMES = ["web", "admin"];
+const VERCEL_PROJECT_NAMES = ["saga-kocho-web", "saga-kocho-admin"];
 
 /**
- * Vercel (web/admin) からBedrockをOIDC Federationで呼び出すためのIAMロールを管理するスタック。
+ * Vercel (saga-kocho-web/saga-kocho-admin) からBedrockをOIDC Federationで呼び出すためのIAMロールを管理するスタック。
  * Vercelが発行するOIDCトークンをsts:AssumeRoleWithWebIdentityで交換する構成にすることで、
  * 静的なAWSアクセスキーをVercel側の環境変数に置かずに済む。
  * Vercel側では @vercel/oidc-aws-credentials-provider の awsCredentialsProvider({ roleArn, audience: "sts.amazonaws.com" })

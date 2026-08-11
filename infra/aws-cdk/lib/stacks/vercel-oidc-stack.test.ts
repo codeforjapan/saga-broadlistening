@@ -35,10 +35,10 @@ describe("VercelOidcStack", () => {
               },
               StringLike: {
                 "oidc.vercel.com/c4j:sub": [
-                  "owner:c4j:project:web:environment:production",
-                  "owner:c4j:project:web:environment:preview",
-                  "owner:c4j:project:admin:environment:production",
-                  "owner:c4j:project:admin:environment:preview",
+                  "owner:c4j:project:saga-kocho-web:environment:production",
+                  "owner:c4j:project:saga-kocho-web:environment:preview",
+                  "owner:c4j:project:saga-kocho-admin:environment:production",
+                  "owner:c4j:project:saga-kocho-admin:environment:preview",
                 ],
               },
             },
