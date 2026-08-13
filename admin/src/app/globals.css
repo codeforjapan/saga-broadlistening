@@ -53,25 +53,65 @@
 }
 
 :root {
+  /* --- プリミティブパレット（案3-1 水色基調） ---
+     D-14 により庁内向け管理ツールも市民向けと同一トークンを使う。
+     web/src/app/globals.css と同じ値を保つこと。
+     面に使う sky/400・green/400・yellow/400 の上に白文字は載せない（黒文字 #2b2b2b を使う）。 */
+
+  /* Base */
+  --base-white: #ffffff;
+  --base-ink: #2b2b2b; /* 15.3:1 */
+  --base-ink-muted: #5a6570; /* 6.0:1 */
+  --base-surface: #f4f7fa;
+
+  /* Sky（プライマリ・優先度1） */
+  --sky-50: #eaf7ff;
+  --sky-100: #d6efff;
+  --sky-200: #aedfff;
+  --sky-400: #55c1ff; /* 2.0:1 面専用 */
+  --sky-500: #2fb0ff;
+  --sky-700: #0077c8; /* 4.7:1 文字・アイコン・フォーカスリング専用 */
+
+  /* Green ＝ 黄緑（差し色・優先度2。イエローと隣接させない） */
+  --green-100: #edf7dc;
+  --green-400: #8cc63f; /* 2.0:1 面専用 */
+  --green-500: #7ab32f;
+  --green-700: #55801a; /* 4.7:1 文字専用 */
+
+  /* Yellow（差し色・優先度3。装飾用アクセントに限定） */
+  --yellow-400: #ffd644; /* 2.3:1 */
+  --yellow-700: #8a6a00; /* 5.4:1 */
+
+  /* Lavender（差し色・優先度4） */
+  --lavender-300: #e6e3fe;
+  --lavender-500: #7b6cf6; /* 4.0:1 白文字不可 */
+  --lavender-600: #5f4fd9; /* 5.8:1 */
+
+  /* System（赤は緊急停止・削除など取り返しのつかない操作に限定する） */
+  --system-destructive: #d7263d;
+  --system-success: var(--green-700);
+  --system-warning: #b26a00;
+
+  /* --- shadcn/ui セマンティックトークン（要求仕様3.3のマッピング） --- */
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: var(--base-white);
+  --foreground: var(--base-ink);
+  --card: var(--base-white);
+  --card-foreground: var(--base-ink);
+  --popover: var(--base-white);
+  --popover-foreground: var(--base-ink);
+  --primary: var(--sky-400);
+  --primary-foreground: var(--base-ink); /* 白ではない（sky/400 は対白2.0:1） */
+  --secondary: var(--sky-50);
+  --secondary-foreground: var(--base-ink);
+  --muted: var(--base-surface);
+  --muted-foreground: var(--base-ink-muted);
+  --accent: var(--lavender-300);
+  --accent-foreground: var(--base-ink);
+  --destructive: var(--system-destructive);
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: var(--sky-700);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);

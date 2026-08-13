@@ -55,25 +55,25 @@
 
   --color-gray-300: #c7c7cc;
 
-  /* --- Mirai Design System Color Tokens --- */
+  /* --- Design System Color Tokens（案3-1 水色基調） --- */
 
-  /* Text */
-  --color-mirai-text: #2b2b2b;
-  --color-mirai-text-secondary: #404040;
-  --color-mirai-text-muted: #8e8e93;
-  --color-mirai-text-placeholder: #aeaeb2;
-  --color-mirai-text-note: #4c4c4c;
-  --color-mirai-text-subtle: #666666;
-  --color-mirai-text-close: #9f9b9b;
+  /* Text（薄いグレー文字は使わず base/ink と base/ink-muted の2階調のみ） */
+  --color-mirai-text: var(--base-ink);
+  --color-mirai-text-secondary: var(--base-ink-muted);
+  --color-mirai-text-muted: var(--base-ink-muted);
+  --color-mirai-text-placeholder: var(--base-ink-muted);
+  --color-mirai-text-note: var(--base-ink-muted);
+  --color-mirai-text-subtle: var(--base-ink-muted);
+  --color-mirai-text-close: var(--base-ink-muted);
 
-  /* Surface / Background（プライマリのラベンダーに合わせて薄く色づけ） */
-  --color-mirai-surface: #f4f2fc;
-  --color-mirai-surface-light: #ebe9f7;
-  --color-mirai-surface-grouped: #eeedfa;
-  --color-mirai-surface-muted: #e4e1f3;
-  --color-mirai-surface-tag: #e7e4f5;
-  --color-mirai-surface-warm: #eae7f4;
-  --color-mirai-surface-gray: #f3f2fc;
+  /* Surface / Background（面の差は sky の薄い階調で作る） */
+  --color-mirai-surface: var(--base-surface);
+  --color-mirai-surface-light: var(--sky-50);
+  --color-mirai-surface-grouped: var(--base-surface);
+  --color-mirai-surface-muted: var(--sky-100);
+  --color-mirai-surface-tag: var(--sky-100);
+  --color-mirai-surface-warm: var(--base-surface);
+  --color-mirai-surface-gray: var(--base-surface);
 
   /* Border */
   --color-mirai-border: #d2d2d2;
@@ -81,11 +81,11 @@
   --color-mirai-border-muted: #bebcbc;
 
   /* Stance semantic colors */
-  --color-stance-for-bg: #ecfcf1;
-  --color-stance-for-badge-start: #e2f6f3;
-  --color-stance-for-badge-end: #eef6e2;
-  --color-stance-against: #c9272a;
-  --color-stance-against-light: #d23c3f;
+  --color-stance-for-bg: var(--green-100);
+  --color-stance-for-badge-start: var(--green-100);
+  --color-stance-for-badge-end: var(--green-100);
+  --color-stance-against: var(--system-destructive);
+  --color-stance-against-light: var(--system-destructive);
   --color-stance-against-bg: #fff1f1;
   --color-stance-against-badge-bg: #ffeaea;
   --color-stance-neutral: #805f34;
@@ -97,20 +97,20 @@
 
   /* Accent */
   --color-mirai-star: #ff9500;
-  --color-mirai-highlight: #ffd644;
+  --color-mirai-highlight: var(--yellow-400);
   --color-mirai-badge-yellow: #fffd96;
-  --color-mirai-info-blue: #cdecff;
+  --color-mirai-info-blue: var(--sky-100);
 
   /* Progress */
   --color-mirai-progress-track: #d9d9d9;
-  --color-mirai-progress-fill: #b3a6f7;
+  --color-mirai-progress-fill: var(--sky-400);
 
-  /* Gradient endpoints（プライマリのラベンダー→スカイ。ヒーロー/完了画面等） */
-  --color-mirai-gradient-start: #7b6cf6;
-  --color-mirai-gradient-end: #55c1ff;
+  /* Gradient endpoints（sky の同系グラデーション。黒文字を載せる前提の面） */
+  --color-mirai-gradient-start: var(--sky-400);
+  --color-mirai-gradient-end: var(--sky-200);
 
   /* Topic analysis */
-  --color-topic-info-bg: #e9e6fd;
+  --color-topic-info-bg: var(--sky-50);
   --color-topic-chip-bg: #f1f1f1;
   --color-topic-count: #6b7775;
   --color-topic-label: #909090;
@@ -134,26 +134,65 @@
   --font-noto-serif-jp: "Noto Serif JP";
   --font-zen-maru-gothic: "Zen Maru Gothic";
 
+  /* --- プリミティブパレット（案3-1 水色基調） ---
+     対白コントラスト比は要求仕様3.1の早見表に対応する。
+     面に使う sky/400・green/400・yellow/400 の上に白文字は載せない（黒文字 #2b2b2b を使う）。 */
+
+  /* Base */
+  --base-white: #ffffff;
+  --base-ink: #2b2b2b; /* 15.3:1 */
+  --base-ink-muted: #5a6570; /* 6.0:1 */
+  --base-surface: #f4f7fa;
+
+  /* Sky（プライマリ・優先度1） */
+  --sky-50: #eaf7ff;
+  --sky-100: #d6efff;
+  --sky-200: #aedfff;
+  --sky-400: #55c1ff; /* 2.0:1 面専用 */
+  --sky-500: #2fb0ff;
+  --sky-700: #0077c8; /* 4.7:1 文字・アイコン・フォーカスリング専用 */
+
+  /* Green ＝ 黄緑（差し色・優先度2。イエローと隣接させない） */
+  --green-100: #edf7dc;
+  --green-400: #8cc63f; /* 2.0:1 面専用 */
+  --green-500: #7ab32f;
+  --green-700: #55801a; /* 4.7:1 文字専用 */
+
+  /* Yellow（差し色・優先度3。装飾用アクセントに限定） */
+  --yellow-400: #ffd644; /* 2.3:1 */
+  --yellow-700: #8a6a00; /* 5.4:1 */
+
+  /* Lavender（差し色・優先度4） */
+  --lavender-300: #e6e3fe;
+  --lavender-500: #7b6cf6; /* 4.0:1 白文字不可 */
+  --lavender-600: #5f4fd9; /* 5.8:1 */
+
+  /* System */
+  --system-destructive: #d7263d;
+  --system-success: var(--green-700);
+  --system-warning: #b26a00;
+
+  /* --- shadcn/ui セマンティックトークン（要求仕様3.3のマッピング） --- */
   --radius: 0.625rem;
-  --background: #f9f8fe;
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #7b6cf6;
-  --primary-accent: #5b4ce0;
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.656 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --background: var(--base-white);
+  --foreground: var(--base-ink);
+  --card: var(--base-white);
+  --card-foreground: var(--base-ink);
+  --popover: var(--base-white);
+  --popover-foreground: var(--base-ink);
+  --primary: var(--sky-400);
+  --primary-accent: var(--sky-700); /* 文字・アイコン用。面には使わない */
+  --primary-foreground: var(--base-ink); /* 白ではない（sky/400 は対白2.0:1） */
+  --secondary: var(--sky-50);
+  --secondary-foreground: var(--base-ink);
+  --muted: var(--base-surface);
+  --muted-foreground: var(--base-ink-muted);
+  --accent: var(--lavender-300);
+  --accent-foreground: var(--base-ink);
+  --destructive: var(--system-destructive);
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: var(--sky-700);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -215,7 +254,7 @@
   }
 
   *:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
@@ -225,7 +264,7 @@
   }
 
   button:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
@@ -235,7 +274,7 @@
   }
 
   a:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
@@ -245,7 +284,7 @@
   }
 
   table:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
@@ -272,7 +311,7 @@
   }
 
   .bg-mirai-light-gradient {
-    background-image: linear-gradient(to bottom, #ece9fe, #f4f2ff);
+    background-image: linear-gradient(to bottom, var(--sky-100), var(--sky-50));
   }
 
   .bg-mirai-white-fade {
