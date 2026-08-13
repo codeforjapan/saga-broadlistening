@@ -49,6 +49,8 @@ export function createTestStacks(idPrefix: string, envName: EnvName) {
     env: { account: envConfig.account, region: envConfig.region },
     envConfig,
     bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
+    guardrailId: bedrockStack.guardrail.attrGuardrailId,
+    guardrailVersion: bedrockStack.guardrailVersion.attrVersion,
   });
 
   return { app, envConfig, bedrockStack, lambdaStack };

@@ -9,6 +9,8 @@ import type { EnvConfig } from "../config/types";
 export interface LambdaStackProps extends StackProps {
   readonly envConfig: EnvConfig;
   readonly bedrockInvokeModelPolicy: iam.IManagedPolicy;
+  readonly guardrailId: string;
+  readonly guardrailVersion: string;
 }
 
 /**
@@ -23,6 +25,7 @@ export class LambdaStack extends Stack {
     super(scope, id, props);
 
     const { envName, bedrockModelId } = props.envConfig;
+    const { guardrailId, guardrailVersion } = props;
 
     this.bedrockHealthCheckFunction = new NodejsFunction(
       this,
@@ -38,6 +41,8 @@ export class LambdaStack extends Stack {
         timeout: Duration.seconds(30),
         environment: {
           BEDROCK_MODEL_ID: bedrockModelId,
+          BEDROCK_GUARDRAIL_ID: guardrailId,
+          BEDROCK_GUARDRAIL_VERSION: guardrailVersion,
         },
       }
     );
