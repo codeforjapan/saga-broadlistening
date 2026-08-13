@@ -13,6 +13,8 @@ export function Hero() {
         sizes="100vw"
         quality={85}
       />
+      {/* 背景画像に白のスモークをかけてテキストを読みやすくする */}
+      <div className="absolute inset-0 bg-white/70" />
       <div className="absolute bottom-[30vh] left-0 right-0 py-4">
         <Container>
           <p className="font-bold text-xl md:text-2xl leading-relaxed">
