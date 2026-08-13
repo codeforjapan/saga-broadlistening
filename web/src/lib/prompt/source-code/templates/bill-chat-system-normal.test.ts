@@ -22,11 +22,10 @@ describe("buildBillChatSystemNormalPrompt", () => {
     expect(result).toContain("回答の難易度：ふつう");
   });
 
-  it("みらい議会の説明が含まれる", () => {
+  it("チカットの説明が含まれる", () => {
     const result = buildBillChatSystemNormalPrompt("a", "b", "c", "d");
 
-    expect(result).toContain("みらい議会");
-    expect(result).toContain("チームみらい");
+    expect(result).toContain("チカット");
   });
 
   it("knowledgeSource を渡すと <knowledge_source> セクションが含まれる", () => {

@@ -37,7 +37,7 @@ export async function TopicListPage({ billId }: TopicListPageProps) {
   const respondentCount = reportsResult.totalCount;
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "法案詳細", href: routes.billDetail(billId) },
+    { label: "施策詳細", href: routes.billDetail(billId) },
     { label: "トピック一覧" },
   ];
 
@@ -60,7 +60,7 @@ export async function TopicListPage({ billId }: TopicListPageProps) {
           {/* タイトル + 件数 + 回答ピル + 説明 */}
           <div className="flex flex-col gap-4">
             <h1 className="flex items-center gap-4 font-bold leading-9 text-mirai-text">
-              <span className="text-[22px]">💬法案のトピック一覧</span>
+              <span className="text-[22px]">💬施策のトピック一覧</span>
               <span className="text-[20px]">{topics.length}件</span>
             </h1>
 

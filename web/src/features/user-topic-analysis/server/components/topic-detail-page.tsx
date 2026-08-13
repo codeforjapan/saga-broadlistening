@@ -106,7 +106,7 @@ export async function TopicDetailPage({
 
   const filterLabel = topicFilterLabel(filter);
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "法案詳細", href: routes.billDetail(billId) },
+    { label: "施策詳細", href: routes.billDetail(billId) },
     {
       label: filterLabel ? `トピック一覧（${filterLabel}）` : "トピック一覧",
       href: routes.billTopics(billId),

@@ -21,6 +21,7 @@ import {
 import { ChatError, ChatErrorCode } from "@/features/chat/shared/types/errors";
 import { pickChatKnowledgeSource } from "@/features/chat/shared/utils/pick-chat-knowledge-source";
 import { findPublicInterviewConfigByBillId } from "@/features/interview-config/server/repositories/interview-config-repository";
+import { SITE_NAME } from "@/config/site";
 import { env } from "@/lib/env";
 import {
   type CompiledPrompt,
@@ -293,27 +294,27 @@ function extractGatewayCost(event: {
 const INTERVIEW_AWARENESS_BASE = `
 
 ## AIインタビュー機能について
-みらい議会には「AIインタビュー」機能があります。これは法案ごとに提供される機能で、ユーザーがAIインタビュアーと対話形式で法案に対する意見や知見を共有できる仕組みです。インタビュー結果は分析・レポート化され、政策議論に活用されます。
+${SITE_NAME}には「AIインタビュー」機能があります。これは施策ごとに提供される機能で、ユーザーがAIインタビュアーと対話形式で施策に対する意見や知見を共有できる仕組みです。インタビュー結果は分析・レポート化され、政策議論に活用されます。
 `;
 
 const INTERVIEW_AWARENESS_PROMPT_BILL = `${INTERVIEW_AWARENESS_BASE}
-この法案のインタビュー機能が現在利用可能かどうかは状況によって異なります。インタビューについて質問された場合は、この機能の存在を説明した上で、法案詳細ページでインタビューへの案内が表示されているか確認するよう案内してください。
+この施策のインタビュー機能が現在利用可能かどうかは状況によって異なります。インタビューについて質問された場合は、この機能の存在を説明した上で、施策詳細ページでインタビューへの案内が表示されているか確認するよう案内してください。
 `;
 
 const INTERVIEW_AWARENESS_PROMPT_HOME = `${INTERVIEW_AWARENESS_BASE}
-インタビューについて質問された場合は、この機能の存在を説明した上で、利用可否は法案ごとに異なるため、興味のある法案の詳細ページでインタビューへの案内が表示されているか確認するよう案内してください。
+インタビューについて質問された場合は、この機能の存在を説明した上で、利用可否は施策ごとに異なるため、興味のある施策の詳細ページでインタビューへの案内が表示されているか確認するよう案内してください。
 `;
 
 const INTERVIEW_SUGGESTION_PROMPT = `
 
 ## AIインタビュー提案について
-この法案にはAIインタビュー機能があります。以下の条件に該当する場合、通常のテキスト応答と併せて suggest_interview ツールを呼び出してください。
+この施策にはAIインタビュー機能があります。以下の条件に該当する場合、通常のテキスト応答と併せて suggest_interview ツールを呼び出してください。
 ただし、1つの会話の中で suggest_interview ツールを呼び出すのは1回のみとしてください。
 
 ### suggest_interview を呼び出す条件:
-- ユーザーがこの法案の当事者や関係者であることがわかった場合
-- ユーザーがこの法案について専門的な知識を持っていると判断できる場合
-- ユーザーがこの法案に対して具体的な提言や意見を述べた場合
+- ユーザーがこの施策の当事者や関係者であることがわかった場合
+- ユーザーがこの施策について専門的な知識を持っていると判断できる場合
+- ユーザーがこの施策に対して具体的な提言や意見を述べた場合
 - ユーザーがインタビューや意見提出について質問した場合
 - ユーザーが自分の意見を共有したい、政策に反映してほしいと表明した場合
 
@@ -400,7 +401,7 @@ function buildTools(shouldSuggestInterview: boolean) {
   if (shouldSuggestInterview) {
     tools[SUGGEST_INTERVIEW_TOOL_NAME] = tool({
       description:
-        "ユーザーが法案の当事者・有識者であると判断された場合、またはインタビューについて聞かれた場合に呼び出す。通常のテキスト応答と同時に呼び出すこと。",
+        "ユーザーが施策の当事者・有識者であると判断された場合、またはインタビューについて聞かれた場合に呼び出す。通常のテキスト応答と同時に呼び出すこと。",
       inputSchema: z.object({}),
       execute: async () => ({ suggested: true }),
     });

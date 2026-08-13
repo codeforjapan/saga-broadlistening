@@ -33,7 +33,7 @@ export async function BillOpinionsPage({ billId }: BillOpinionsPageProps) {
   const nowMs = Date.now();
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "法案詳細", href: routes.billDetail(billId) },
+    { label: "施策詳細", href: routes.billDetail(billId) },
     { label: "インタビュー回答一覧" },
   ];
 

@@ -3,6 +3,7 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SITE_NAME } from "@/config/site";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import { formatEstimatedDuration } from "@/features/interview-config/shared/utils/format-estimated-duration";
 import {
@@ -38,12 +39,12 @@ const FEATURES: {
   {
     iconSrc: "/icons/interview-messages.svg",
     iconSize: { w: 33, h: 26 },
-    text: "寄せられた回答はチームみらいの政策検討に活用します",
+    text: "寄せられた回答は市の政策検討に活用します",
   },
   {
     iconSrc: "/icons/interview-landmark.svg",
     iconSize: { w: 30, h: 29 },
-    text: "ご意見はチームみらいを通じて国会に届けられる可能性があります",
+    text: "ご意見は市の施策に届けられる可能性があります",
   },
 ];
 
@@ -88,7 +89,7 @@ function _InterviewLPHero({
           </span>
         </div>
         <h1 className="text-2xl font-bold text-center leading-[1.5]">
-          法案についてのAIインタビュー
+          施策についてのAIインタビュー
         </h1>
         <Link href={billLink as Route}>
           <div className="inline-flex items-center justify-center gap-2.5 px-4 py-2 bg-white rounded-xl hover:bg-gray-50 transition-opacity cursor-pointer">
@@ -149,7 +150,7 @@ function _InterviewOverviewSection({
       </h2>
       <div className="space-y-4 text-[15px] font-normal text-black leading-[1.87]">
         <p>
-          国会で検討されている
+          市で検討されている
           <Link
             href={billLink as Route}
             className="text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
@@ -159,7 +160,8 @@ function _InterviewOverviewSection({
           について、AIがあなたの考えを深掘りするチャット型インタビューです
         </p>
         <p>
-          いただいたご意見は、政策研究や国会での審議に活用し、みらい議会上に公開される可能性があります。
+          いただいたご意見は、政策研究や市での検討に活用し、{SITE_NAME}
+          上に公開される可能性があります。
         </p>
       </div>
       <div>
@@ -168,7 +170,7 @@ function _InterviewOverviewSection({
             variant="outline"
             className="w-full border border-black rounded-[100px] h-[48px] px-6 font-bold text-[15px] hover:opacity-90 transition-opacity flex items-center justify-center gap-4"
           >
-            <span>法案詳細はこちら</span>
+            <span>施策詳細はこちら</span>
             <ArrowRight className="size-4" />
           </Button>
         </Link>
@@ -297,7 +299,7 @@ function _InterviewFooterActions({
       <Link href={billLink as Route}>
         <Button variant="outline" className="w-full">
           <Undo2 className="size-5" />
-          <span>法案詳細に戻る</span>
+          <span>施策詳細に戻る</span>
         </Button>
       </Link>
     </div>

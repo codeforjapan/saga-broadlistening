@@ -23,7 +23,7 @@ export async function generateMetadata({
     getBillById(id),
     getPublicTopicDetail(id, topicId),
   ]);
-  const billName = bill?.bill_content?.title || bill?.name || "法案";
+  const billName = bill?.bill_content?.title || bill?.name || "施策";
   const topic = location?.topic;
 
   const title = topic

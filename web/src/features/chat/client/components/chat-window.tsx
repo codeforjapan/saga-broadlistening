@@ -19,6 +19,7 @@ import {
   type PromptInputMessage,
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
+import { SITE_NAME } from "@/config/site";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { useViewportHeight } from "@/hooks/use-viewport-height";
@@ -85,7 +86,7 @@ function ChatMessages({
         {/* 初期メッセージ */}
         <div className="flex flex-col gap-1">
           <p className="text-sm font-bold leading-[1.8] text-mirai-text">
-            国会や法案について、気になることをAIに質問してください。
+            自治体の施策について、気になることをAIに質問してください。
           </p>
           {billContext && (
             <p className="text-sm font-bold leading-[1.8] text-mirai-text">
@@ -97,11 +98,11 @@ function ChatMessages({
         {/* サンプル質問チップ */}
         <div className="flex flex-wrap gap-3">
           {(billContext
-            ? [`この法案のポイントは？`, "この法案は私にどんな影響がある？"]
+            ? [`この施策のポイントは？`, "この施策は私にどんな影響がある？"]
             : [
-                "みらい議会って何？",
-                "国会って何をするところ？",
-                "注目の法案について教えて",
+                `${SITE_NAME}って何？`,
+                "市はどんな施策を検討しているの？",
+                "注目の施策について教えて",
               ]
           ).map((question) => {
             return (

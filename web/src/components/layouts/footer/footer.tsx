@@ -4,6 +4,7 @@ import Image from "next/image";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SITE_NAME } from "@/config/site";
 import { isInterviewPage } from "@/lib/page-layout-utils";
 import { routes } from "@/lib/routes";
 import { policyLinks, primaryLinks } from "./footer.config";
@@ -30,10 +31,10 @@ export function Footer() {
 function FooterLogoSection() {
   return (
     <div className="flex flex-col items-center text-center mb-9">
-      <Link href={routes.home()} aria-label="みらい議会 トップページ">
+      <Link href={routes.home()} aria-label={`${SITE_NAME} トップページ`}>
         <Image
           src="/img/logo.svg"
-          alt="みらい議会"
+          alt={SITE_NAME}
           width={150}
           height={128}
           className="h-auto"
@@ -94,7 +95,7 @@ function FooterPolicies() {
 function FooterCopyright() {
   return (
     <div className="text-center text-sm font-medium text-slate-800">
-      © 2025 Team Mirai All rights Reserved
+      © 2026 {SITE_NAME} All rights Reserved
     </div>
   );
 }
