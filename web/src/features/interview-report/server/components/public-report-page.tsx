@@ -48,7 +48,7 @@ export async function PublicReportPage({
   const ogImageUrl = `${origin}/api/og/report?id=${reportId}`;
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "法案詳細", href: routes.billDetail(data.bill_id) },
+    { label: "施策詳細", href: routes.billDetail(data.bill_id) },
     { label: "レポート詳細" },
   ];
 

@@ -23,11 +23,10 @@ describe("buildBillChatSystemHardPrompt", () => {
     expect(result).toContain("専門用語を正確に使用");
   });
 
-  it("みらい議会の説明が含まれる", () => {
+  it("チカットの説明が含まれる", () => {
     const result = buildBillChatSystemHardPrompt("a", "b", "c", "d");
 
-    expect(result).toContain("みらい議会");
-    expect(result).toContain("チームみらい");
+    expect(result).toContain("チカット");
   });
 
   it("knowledgeSource を渡すと <knowledge_source> セクションが含まれる", () => {

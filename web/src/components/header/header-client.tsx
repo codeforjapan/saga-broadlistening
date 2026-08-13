@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SITE_NAME } from "@/config/site";
 import { DifficultySelector } from "@/features/bill-difficulty/client/components/difficulty-selector";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
 import { InterviewHeaderActions } from "@/features/interview-session/client/components/interview-header-actions";
@@ -32,16 +33,13 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
             >
               <Image
                 src="/img/logo.svg"
-                alt="みらい議会"
+                alt={SITE_NAME}
                 width={42}
                 height={36}
               />
-              <Image
-                src="/img/service-logo.svg"
-                alt="みらい議会"
-                width={115}
-                height={21}
-              />
+              <span className="font-lexend text-lg font-bold tracking-wide text-black">
+                {SITE_NAME}
+              </span>
             </Link>
           </div>
 

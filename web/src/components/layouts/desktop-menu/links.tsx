@@ -1,6 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { EXTERNAL_LINKS } from "@/config/external-links";
+import { SITE_NAME } from "@/config/site";
 import { routes } from "@/lib/routes";
 
 type FooterLinkItem = {
@@ -11,11 +11,6 @@ type FooterLinkItem = {
 
 const links: FooterLinkItem[] = [
   {
-    label: "チームみらいについて",
-    href: EXTERNAL_LINKS.TEAM_MIRAI_ABOUT,
-    external: true,
-  },
-  {
     label: "利用規約",
     href: routes.terms(),
     external: false,
@@ -24,16 +19,6 @@ const links: FooterLinkItem[] = [
     label: "プライバシーポリシー",
     href: routes.privacy(),
     external: false,
-  },
-  {
-    label: "よくあるご質問",
-    href: EXTERNAL_LINKS.FAQ,
-    external: true,
-  },
-  {
-    label: "自主制作ガイドライン",
-    href: EXTERNAL_LINKS.FORK_GUIDELINES_NOTE,
-    external: true,
   },
 ];
 
@@ -63,7 +48,7 @@ export function DesktopMenuLinks() {
           lineHeight: "1.48em",
         }}
       >
-        © 2025 Team Mirai
+        © 2026 {SITE_NAME}
       </p>
     </div>
   );
