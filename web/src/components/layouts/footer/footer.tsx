@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,7 +18,7 @@ export function Footer() {
   return (
     <footer className="bg-mirai-gradient text-slate-900">
       <div className="mx-auto flex w-full max-w-[500px] flex-col items-center px-6 py-14 pb-20 text-center">
-        <FooterLogoSection />
+        <FooterSiteNameSection />
         <FooterPrimaryLinks />
         <FooterPolicies />
         <FooterCopyright />
@@ -28,17 +27,17 @@ export function Footer() {
   );
 }
 
-function FooterLogoSection() {
+function FooterSiteNameSection() {
   return (
     <div className="flex flex-col items-center text-center mb-9">
-      <Link href={routes.home()} aria-label={`${SITE_NAME} トップページ`}>
-        <Image
-          src="/img/logo.svg"
-          alt={SITE_NAME}
-          width={150}
-          height={128}
-          className="h-auto"
-        />
+      <Link
+        href={routes.home()}
+        aria-label={`${SITE_NAME} トップページ`}
+        className="transition-opacity hover:opacity-90"
+      >
+        <span className="font-heading text-2xl font-bold tracking-wide text-mirai-text">
+          {SITE_NAME}
+        </span>
       </Link>
     </div>
   );
