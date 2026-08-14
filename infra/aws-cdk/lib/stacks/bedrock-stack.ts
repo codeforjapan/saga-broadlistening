@@ -8,13 +8,14 @@ export interface BedrockStackProps extends StackProps {
   readonly envConfig: EnvConfig;
 }
 
-const CONTENT_FILTER_TYPES = [
+// PROMPT_ATTACKはモデルの応答(output)には適用できず、Bedrock側がoutputStrength: "NONE"を
+// 要求するため、他のフィルタ種別（input/output共にMEDIUM）とは別に定義する。
+const BIDIRECTIONAL_CONTENT_FILTER_TYPES = [
   "HATE",
   "INSULTS",
   "SEXUAL",
   "VIOLENCE",
   "MISCONDUCT",
-  "PROMPT_ATTACK",
 ];
 
 /**
@@ -42,11 +43,18 @@ export class BedrockStack extends Stack {
       blockedOutputsMessaging:
         "生成結果に不適切な内容が含まれる可能性があるため出力をブロックしました。",
       contentPolicyConfig: {
-        filtersConfig: CONTENT_FILTER_TYPES.map((type) => ({
-          type,
-          inputStrength: "MEDIUM",
-          outputStrength: "MEDIUM",
-        })),
+        filtersConfig: [
+          ...BIDIRECTIONAL_CONTENT_FILTER_TYPES.map((type) => ({
+            type,
+            inputStrength: "MEDIUM",
+            outputStrength: "MEDIUM",
+          })),
+          {
+            type: "PROMPT_ATTACK",
+            inputStrength: "MEDIUM",
+            outputStrength: "NONE",
+          },
+        ],
       },
     });
 
