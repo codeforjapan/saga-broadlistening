@@ -74,9 +74,27 @@ describe("BedrockStack", () => {
       ContentPolicyConfig: {
         FiltersConfig: Match.arrayWith([
           Match.objectLike({
-            Type: "PROMPT_ATTACK",
+            Type: "HATE",
             InputStrength: "MEDIUM",
             OutputStrength: "MEDIUM",
+          }),
+        ]),
+      },
+    });
+  });
+
+  it("PROMPT_ATTACKフィルタはoutputStrengthをNONEにする（Bedrock APIの制約）", () => {
+    const { bedrockStack } = createTestBedrockStack("Test9", "dev");
+
+    const template = Template.fromStack(bedrockStack);
+
+    template.hasResourceProperties("AWS::Bedrock::Guardrail", {
+      ContentPolicyConfig: {
+        FiltersConfig: Match.arrayWith([
+          Match.objectLike({
+            Type: "PROMPT_ATTACK",
+            InputStrength: "MEDIUM",
+            OutputStrength: "NONE",
           }),
         ]),
       },
