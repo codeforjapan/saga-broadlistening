@@ -32,4 +32,6 @@ new LambdaStack(app, `MiraiGikaiLambdaStack-${envConfig.envName}`, {
   env,
   envConfig,
   bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
+  guardrailId: bedrockStack.guardrail.attrGuardrailId,
+  guardrailVersion: bedrockStack.guardrailVersion.attrVersion,
 });

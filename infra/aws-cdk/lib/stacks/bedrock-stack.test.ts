@@ -63,4 +63,59 @@ describe("BedrockStack", () => {
 
     expect(bedrockStack.invokeModelPolicy).toBeDefined();
   });
+
+  it("有害コンテンツを検知・ブロックするGuardrailを作成する", () => {
+    const { bedrockStack } = createTestBedrockStack("Test5", "dev");
+
+    const template = Template.fromStack(bedrockStack);
+
+    template.hasResourceProperties("AWS::Bedrock::Guardrail", {
+      Name: "mirai-gikai-guardrail-dev",
+      ContentPolicyConfig: {
+        FiltersConfig: Match.arrayWith([
+          Match.objectLike({
+            Type: "PROMPT_ATTACK",
+            InputStrength: "MEDIUM",
+            OutputStrength: "MEDIUM",
+          }),
+        ]),
+      },
+    });
+  });
+
+  it("Guardrailの発行済みバージョンを作成する", () => {
+    const { bedrockStack } = createTestBedrockStack("Test6", "dev");
+
+    const template = Template.fromStack(bedrockStack);
+
+    template.resourceCountIs("AWS::Bedrock::GuardrailVersion", 1);
+  });
+
+  it("ApplyGuardrail権限をGuardrail ARNに限定して付与する", () => {
+    const { bedrockStack } = createTestBedrockStack("Test7", "dev");
+
+    const template = Template.fromStack(bedrockStack);
+
+    template.hasResourceProperties("AWS::IAM::ManagedPolicy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: "ApplyGuardrail",
+            Effect: "Allow",
+            Action: "bedrock:ApplyGuardrail",
+            Resource: Match.objectLike({
+              "Fn::GetAtt": Match.arrayWith(["Guardrail"]),
+            }),
+          }),
+        ]),
+      },
+    });
+  });
+
+  it("guardrail/guardrailVersionプロパティを公開する", () => {
+    const { bedrockStack } = createTestBedrockStack("Test8", "dev");
+
+    expect(bedrockStack.guardrail).toBeDefined();
+    expect(bedrockStack.guardrailVersion).toBeDefined();
+  });
 });

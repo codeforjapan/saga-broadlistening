@@ -2,7 +2,10 @@ import {
   BedrockRuntimeClient,
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
-import { buildHealthCheckConverseInput } from "./build-converse-input";
+import {
+  buildHealthCheckConverseInput,
+  resolveGuardrailOptions,
+} from "./build-converse-input";
 import { extractReplyText } from "./extract-reply-text";
 
 const client = new BedrockRuntimeClient({});
@@ -16,8 +19,13 @@ export const handler = async (): Promise<{
     throw new Error("BEDROCK_MODEL_ID environment variable is not set");
   }
 
+  const guardrail = resolveGuardrailOptions(
+    process.env.BEDROCK_GUARDRAIL_ID,
+    process.env.BEDROCK_GUARDRAIL_VERSION
+  );
+
   const response = await client.send(
-    new ConverseCommand(buildHealthCheckConverseInput(modelId))
+    new ConverseCommand(buildHealthCheckConverseInput(modelId, guardrail))
   );
 
   const reply = extractReplyText(response.output?.message?.content?.[0]);

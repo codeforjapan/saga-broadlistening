@@ -1,4 +1,4 @@
-import { Template } from "aws-cdk-lib/assertions";
+import { Match, Template } from "aws-cdk-lib/assertions";
 import { describe, expect, it } from "vitest";
 import { createTestStacks } from "./test-support";
 
@@ -14,6 +14,12 @@ describe("LambdaStack", () => {
       Environment: {
         Variables: {
           BEDROCK_MODEL_ID: envConfig.bedrockModelId,
+          BEDROCK_GUARDRAIL_ID: Match.objectLike({
+            "Fn::ImportValue": Match.anyValue(),
+          }),
+          BEDROCK_GUARDRAIL_VERSION: Match.objectLike({
+            "Fn::ImportValue": Match.anyValue(),
+          }),
         },
       },
     });
