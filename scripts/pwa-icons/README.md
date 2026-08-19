@@ -10,7 +10,11 @@
 | `icon-dev.svg` | 開発環境（DEV バンド付き） |
 | `icon-staging.svg` | ステージング（STG バンド付き） |
 
-図形は `web/public/img/logo.svg` と同一のパスをそのまま使っています（ヘッダーのロゴとアプリアイコンの見た目を揃えるため）。**ロゴを差し替えたら、このSVG内のパスも更新して PNG を再生成してください。**
+図形は `web/public/img/logo.svg` と同一のパスを使っています（ヘッダーのロゴとアプリアイコンの見た目を揃えるため）。**ロゴを差し替えたら、このSVG内のパスも更新して PNG を再生成してください。**
+
+色は案3-1パレットの `sky/500 #2fb0ff` → `sky/700 #0077c8`（`--primary` 系から `--primary-accent` へ）のグラデーションです。`sky/400` 単色は白背景で 2.0:1 しかなく favicon が視認できないため、暗い側に `sky/700`（4.7:1）を置いて輪郭を確保しています。
+
+> `logo.svg` 本体は案3-1確定前の暫定色（Tailwind blue）のままです。ロゴ側の色をパレットに合わせる際は、このSVGの `linearGradient` と揃えてください。
 
 maskable アイコンとして OS 側で円形・角丸にクロップされるため、図形は中央80%のセーフゾーンに収まるスケールで配置しています。
 
@@ -44,4 +48,4 @@ cp /tmp/icon-staging-192.png ../../admin/public/icons/pwa/icon_staging_192.png
 
 ## favicon
 
-`web/src/app/icon.svg` と `admin/src/app/icon.svg` は `web/public/img/logo.svg` のコピーです（Next.js のファイル規約）。小サイズで表示されるため、余白付きの上記SVGではなくロゴ単体を使っています。
+`web/src/app/icon.svg` と `admin/src/app/icon.svg` は `icon.svg` と同じ配色のロゴ単体（余白なし・`viewBox="0 0 42 36"`）です（Next.js のファイル規約）。小サイズで表示されるため、余白付きのアイコン版は使っていません。
