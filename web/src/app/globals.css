@@ -14,8 +14,6 @@
   --breakpoint-pc: 1000px;
   --breakpoint-pcl: 1400px;
 
-  --font-sans: var(--font-noto-sans-jp);
-  --font-lexend: var(--font-lexend-giga);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -93,13 +91,11 @@
   --color-topic-citizen: #909090;
 
   /* 引用文の明朝体（Noto Serif JP） */
-  --font-mirai-serif: var(--font-noto-serif-jp);
 }
 
 :root {
   /* 色のセマンティック変数は @mirai-gikai/design-tokens/tokens.css で定義 */
   --radius: 0.625rem;
-  --leading-relaxed: 1.875;
 }
 
 @layer base {
@@ -184,10 +180,6 @@
       );
     background-origin: border-box;
     background-clip: padding-box, border-box;
-  }
-
-  .font-lexend {
-    font-family: var(--font-lexend-giga), system-ui, sans-serif;
   }
 }
 

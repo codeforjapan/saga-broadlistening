@@ -5,21 +5,27 @@ import {
 } from "@mirai-gikai/design-tokens/brand-meta";
 import { SITE_NAME } from "@mirai-gikai/shared/site";
 import type { Metadata, Viewport } from "next";
-import { Lexend_Giga, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
+import { Noto_Sans_JP, Noto_Serif_JP, Zen_Maru_Gothic } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactNode } from "react";
 import { env } from "@/lib/env";
 
+// 本文。D-7 により基準ウェイトは 500（強調 700）
 const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
   subsets: ["latin"],
   weight: ["400", "500", "700"],
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 });
 
-const lexendGiga = Lexend_Giga({
-  variable: "--font-lexend-giga",
+// 見出し（D-15）。見出し要素のみに適用するため 700 のみ読み込む
+const zenMaruGothic = Zen_Maru_Gothic({
+  variable: "--font-zen-maru-gothic",
   subsets: ["latin"],
-  weight: ["400", "500", "700", "800", "900"],
+  weight: ["700"],
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 });
 
 // トピックの代表意見など、引用文を明朝体で表示するために使用
@@ -27,6 +33,8 @@ const notoSerifJP = Noto_Serif_JP({
   variable: "--font-noto-serif-jp",
   subsets: ["latin"],
   weight: ["500", "600"],
+  display: "swap",
+  fallback: ["serif"],
 });
 
 const isDev = process.env.NODE_ENV === "development";
@@ -96,7 +104,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${notoSansJP.variable} ${lexendGiga.variable} ${notoSerifJP.variable} font-sans antialiased bg-background text-foreground`}
+        className={`${notoSansJP.variable} ${zenMaruGothic.variable} ${notoSerifJP.variable} font-sans antialiased bg-background text-foreground`}
       >
         <NextTopLoader showSpinner={false} color={PROGRESS_BAR_COLOR} />
         {children}

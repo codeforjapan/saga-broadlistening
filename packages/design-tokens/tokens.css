@@ -30,6 +30,58 @@
   --color-system-destructive: #d7263d;
   --color-system-success: #55801a;
   --color-system-warning: #b26a00;
+
+  /* 書体（実体は各アプリの next/font が定義する変数） */
+  --font-sans: var(--font-noto-sans-jp), system-ui, sans-serif;
+  --font-heading: var(--font-zen-maru-gothic), var(--font-noto-sans-jp), system-ui, sans-serif;
+  --font-quote: var(--font-noto-serif-jp), serif;
+
+  /* サイズ・行間スケール（行間は倍率指定。ルビON/OFFで崩れないため） */
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 1.35;
+  --text-h1--font-weight: 700;
+  --text-h2: 1.25rem;
+  --text-h2--line-height: 1.5;
+  --text-h2--font-weight: 700;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.8;
+  --text-body-rubied: 1.0625rem;
+  --text-body-rubied--line-height: 1.9;
+  --text-button: 1rem;
+  --text-button--line-height: 1.4;
+  --text-button--font-weight: 700;
+  --text-caption: 0.875rem;
+  --text-caption--line-height: 1.6;
+  --text-ruby: 0.6em;
+  --text-ruby--line-height: 1.3;
+  --text-compact-body: 0.9375rem;
+  --text-compact-body--line-height: 1.6;
+  --text-compact-caption: 0.875rem;
+  --text-compact-caption--line-height: 1.5;
+
+  /* 行間ユーティリティ */
+  --leading-relaxed: 1.875;
+}
+
+@layer base {
+  /* 本文は W500 を基準にする（D-7） */
+  body {
+    font-weight: 500;
+  }
+
+  /* 見出しのみ丸ゴを適用する（日本語書体は容量が大きいため。要求仕様4.3） */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+  }
+
+  /* ルビは本文の60%（D-16） */
+  rt {
+    font-size: var(--text-ruby);
+    line-height: var(--text-ruby--line-height);
+  }
 }
 
 :root {
