@@ -1,3 +1,4 @@
+import { PROGRESS_BAR_COLOR } from "@mirai-gikai/design-tokens/brand-meta";
 import { SITE_NAME } from "@mirai-gikai/shared/site";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -42,7 +43,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextTopLoader
-          color="#3b82f6"
+          color={PROGRESS_BAR_COLOR}
           initialPosition={0.08}
           crawlSpeed={200}
           height={3}

@@ -1,11 +1,11 @@
 {
-  "name": "みらい議会",
-  "short_name": "みらい議会",
-  "description": "国会で今どんな法案が検討されているか、わかりやすく伝えるプラットフォーム",
+  "name": "佐賀市公聴システム（仮）",
+  "short_name": "佐賀市公聴",
+  "description": "佐賀市の議案や政策をわかりやすく伝え、市民の声を政策づくりに活かす広聴プラットフォーム",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F7F4F0",
-  "theme_color": "#2aa693",
+  "background_color": "#ffffff",
+  "theme_color": "#55c1ff",
   "orientation": "portrait-primary",
   "icons": [
     {
