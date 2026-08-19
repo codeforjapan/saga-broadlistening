@@ -8,5 +8,5 @@ export const SITE_NAME = "佐賀市公聴システム（仮）";
 /** シェア文言などに使うハッシュタグ（先頭の # は含めない） */
 export const SITE_HASHTAG = "佐賀市公聴システム";
 
-/** コピーライト表記（フッター等で共通利用。佐賀市公式サイトの表記に合わせる） */
+/** コピーライト表記（フッター等で共通利用） */
 export const COPYRIGHT_TEXT = "Copyright (c) Saga city. All Rights Reserved.";

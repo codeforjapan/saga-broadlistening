@@ -1,3 +1,4 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { describe, expect, it } from "vitest";
 import { SourceCodePromptProvider } from "./source-code-prompt-provider";
 
@@ -9,7 +10,9 @@ describe("SourceCodePromptProvider", () => {
       billSummary: '[{"id":"1","name":"テスト法案"}]',
     });
 
-    expect(result.content).toContain("みらい議会");
+    expect(result.content).toContain(SITE_NAME);
+    expect(result.content).not.toContain("チームみらい");
+    expect(result.content).not.toContain("みらい議会");
     expect(result.content).toContain('[{"id":"1","name":"テスト法案"}]');
   });
 
@@ -21,7 +24,7 @@ describe("SourceCodePromptProvider", () => {
       billContent: "テスト法案の詳細内容",
     });
 
-    expect(result.content).toContain("みらい議会");
+    expect(result.content).toContain(SITE_NAME);
     expect(result.content).toContain("テスト法案");
     expect(result.content).toContain("テスト法案のタイトル");
     expect(result.content).toContain("テスト法案の要約");
@@ -67,7 +70,7 @@ describe("SourceCodePromptProvider", () => {
       billContent: "",
     });
 
-    expect(result.content).toContain("みらい議会");
+    expect(result.content).toContain(SITE_NAME);
   });
 
   it("bill-chat-system-hard プロンプトを変数付きで返す", async () => {
@@ -78,7 +81,7 @@ describe("SourceCodePromptProvider", () => {
       billContent: "テスト法案の詳細内容",
     });
 
-    expect(result.content).toContain("みらい議会");
+    expect(result.content).toContain(SITE_NAME);
     expect(result.content).toContain("テスト法案");
     expect(result.content).toContain("テスト法案のタイトル");
     expect(result.content).toContain("テスト法案の要約");
@@ -102,7 +105,7 @@ describe("SourceCodePromptProvider", () => {
       billContent: "",
     });
 
-    expect(result.content).toContain("みらい議会");
+    expect(result.content).toContain(SITE_NAME);
   });
 
   it("knowledgeSource を渡すと bill-chat-system-normal の出力に含まれる", async () => {

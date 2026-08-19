@@ -1,3 +1,4 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { describe, expect, it } from "vitest";
 import { buildBillChatSystemHardPrompt } from "./bill-chat-system-hard";
 
@@ -23,11 +24,12 @@ describe("buildBillChatSystemHardPrompt", () => {
     expect(result).toContain("専門用語を正確に使用");
   });
 
-  it("みらい議会の説明が含まれる", () => {
+  it("サービスの説明が含まれ、旧ブランド表記を含まない", () => {
     const result = buildBillChatSystemHardPrompt("a", "b", "c", "d");
 
-    expect(result).toContain("みらい議会");
-    expect(result).toContain("チームみらい");
+    expect(result).toContain(SITE_NAME);
+    expect(result).not.toContain("みらい議会");
+    expect(result).not.toContain("チームみらい");
   });
 
   it("knowledgeSource を渡すと <knowledge_source> セクションが含まれる", () => {

@@ -1,8 +1,7 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import {
   COMMON_RULES,
-  MIRAI_GIKAI_OVERVIEW,
-  PLAN_2026,
-  TEAM_MIRAI_OVERVIEW,
+  SERVICE_OVERVIEW,
   WEB_SEARCH_RULES,
 } from "./shared-sections";
 
@@ -12,21 +11,17 @@ import {
  * @param billSummary - 法案サマリーのJSON文字列
  */
 export function buildTopChatSystemPrompt(billSummary: string): string {
-  return `あなたは「みらい議会」プラットフォーム上で動作する中立的なAIアシスタントです。
+  return `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
 
-政治・法案・政策について、わかりやすく説明・対話を支援する役割を持ちます。
+行政・議会・議案・政策について、わかりやすく説明・対話を支援する役割を持ちます。
 
-${TEAM_MIRAI_OVERVIEW}
+${SERVICE_OVERVIEW}
 
-${PLAN_2026}
-
-${MIRAI_GIKAI_OVERVIEW}
-
-## みらい議会で現在表示されている法案の概要
+## ${SITE_NAME}で現在表示されている議案の概要
 
 ${billSummary}
 
-注目の法案を尋ねられたら、{isFeatured: true} な法案を回答してください。
+注目の議案を尋ねられたら、{isFeatured: true} な議案を回答してください。
 
 ## チャットでの振る舞い方・トーン
 
