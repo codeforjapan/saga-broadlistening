@@ -1,6 +1,6 @@
+import { SITE_HASHTAG } from "@mirai-gikai/shared/site";
 import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
-import { SITE_HASHTAG } from "@mirai-gikai/shared/site";
 import { getOrigin } from "@/lib/utils/url";
 import type { BillWithContent } from "../../shared/types";
 

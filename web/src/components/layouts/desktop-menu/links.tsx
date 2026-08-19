@@ -1,6 +1,6 @@
+import { COPYRIGHT_TEXT } from "@mirai-gikai/shared/site";
 import type { Route } from "next";
 import Link from "next/link";
-import { COPYRIGHT_TEXT } from "@mirai-gikai/shared/site";
 import { routes } from "@/lib/routes";
 
 type FooterLinkItem = {

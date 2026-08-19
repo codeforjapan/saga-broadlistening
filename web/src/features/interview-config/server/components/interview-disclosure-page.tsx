@@ -62,7 +62,7 @@ function StaticDisclosureSection() {
               </li>
               <li>
                 <span className="font-bold">活用の範囲：</span>
-                回答内容は、党内における政策検討、およびAIを用いた統計的分析に限定して活用いたします。
+                回答内容は、佐賀市における政策検討、およびAIを用いた統計的分析に限定して活用いたします。
               </li>
               <li>
                 <span className="font-bold">分析プロセスの透明化：</span>

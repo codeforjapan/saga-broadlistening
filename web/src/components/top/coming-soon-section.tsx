@@ -1,7 +1,7 @@
-import type { Route } from "next";
-import { ExternalLink } from "lucide-react";
-import Link from "next/link";
 import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { ExternalLink } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
 import type { ComingSoonBill } from "@/features/bills/shared/types";
 import { Card, CardContent } from "../ui/card";
 

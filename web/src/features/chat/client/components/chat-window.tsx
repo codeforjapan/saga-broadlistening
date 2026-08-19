@@ -1,11 +1,11 @@
 "use client";
 
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import Image from "next/image";
 import type { ChangeEvent, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useStickToBottomContext } from "use-stick-to-bottom";
-import { SITE_NAME } from "@mirai-gikai/shared/site";
 import {
   Conversation,
   ConversationContent,

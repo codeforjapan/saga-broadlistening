@@ -1,9 +1,9 @@
 import "./globals.css";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import type { Metadata, Viewport } from "next";
 import { Lexend_Giga, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactNode } from "react";
-import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { env } from "@/lib/env";
 
 const notoSansJP = Noto_Sans_JP({

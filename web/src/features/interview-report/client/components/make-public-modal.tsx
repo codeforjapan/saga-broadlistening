@@ -46,7 +46,7 @@ export function MakePublicModal({
             さまざまな意見が公開されることで、より深い法案議論が実現できます。
           </ConsentCheckListItem>
           <p className="text-sm text-black">
-            非公開で提出した場合でも、ご意見は党内での政策検討に活用させていただきます。
+            非公開で提出した場合でも、ご意見は佐賀市の政策検討に活用させていただきます。
           </p>
         </div>
 

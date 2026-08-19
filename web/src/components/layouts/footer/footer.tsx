@@ -1,11 +1,11 @@
 "use client";
 
+import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/shared/site";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isInterviewPage } from "@/lib/page-layout-utils";
-import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/shared/site";
 import { routes } from "@/lib/routes";
 import { policyLinks, primaryLinks } from "./footer.config";
 
