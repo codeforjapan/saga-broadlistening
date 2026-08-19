@@ -19,7 +19,7 @@ export function Hero() {
             いま国会で議論されていること <br />
             やさしい言葉で説明します
           </p>
-          <p className="mt-2 font-lexend text-xs">powered by Team Mirai & AI</p>
+          <p className="mt-2 font-lexend text-xs">powered by AI</p>
         </Container>
       </div>
 

@@ -43,7 +43,7 @@ const links = [
     external: true,
   },
   {
-    href: EXTERNAL_LINKS.FORK_GUIDELINES_NOTE,
+    href: EXTERNAL_LINKS.FORK_GUIDELINES,
     icon: BookOpen,
     title: "自主制作ガイドライン",
     description:

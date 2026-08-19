@@ -1,14 +1,13 @@
 /**
  * 外部リンク定数
+ *
+ * TODO(#15): 佐賀市側のFAQ・サービス紹介ページのURLが確定したら
+ * ここに定数を追加し、フッター等のリンクを復活させる。
  */
 export const EXTERNAL_LINKS = {
+  /** 不具合・問題の報告フォーム（TODO(#15): 佐賀市側フォームが用意でき次第差し替え） */
   REPORT: "https://forms.gle/wJXXMt6cv2ZdiCgg6",
-  ABOUT_NOTE: "https://note.com/team_mirai_jp/n/nd1656aa5f86d",
-  DONATION: "https://team-mir.ai/support/donation",
-  TEAM_MIRAI_ABOUT: "https://team-mir.ai/about",
-  TERMS: "https://team-mir.ai/terms",
-  PRIVACY: "https://team-mir.ai/privacy",
-  FAQ: "https://team-mirai.notion.site/FAQ-28cf6f56bae180bd84e7f7ae80f806a1",
-  FORK_GUIDELINES_NOTE: "https://note.com/team_mirai_jp/n/nc59ec347e8c7",
-  GITHUB_REPO: "https://github.com/team-mirai/mirai-gikai",
+  GITHUB_REPO: "https://github.com/codeforjapan/saga-broadlistening",
+  FORK_GUIDELINES:
+    "https://github.com/codeforjapan/saga-broadlistening/blob/develop/FORK_GUIDELINES.md",
 } as const;

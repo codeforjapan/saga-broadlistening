@@ -1,5 +1,6 @@
 "use client";
 
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -40,12 +41,12 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
             >
               <Image
                 src="/img/logo.svg"
-                alt="佐賀市公聴システム（仮）"
+                alt={SITE_NAME}
                 width={36}
                 height={32}
               />
               <span className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">
-                佐賀市公聴システム（仮）
+                {SITE_NAME}
               </span>
             </Link>
           </div>

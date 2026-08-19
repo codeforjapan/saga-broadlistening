@@ -1,5 +1,6 @@
-import type { Route } from "next";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { ExternalLink } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import type { ComingSoonBill } from "@/features/bills/shared/types";
 import { Card, CardContent } from "../ui/card";
@@ -17,7 +18,7 @@ export function ComingSoonSection({ bills }: ComingSoonSectionProps) {
           これから掲載される法案
         </h2>
         <p className="text-xs text-mirai-text-secondary">
-          みらい議会は、順次更新されていきます
+          {SITE_NAME}は、順次更新されていきます
         </p>
       </div>
 
