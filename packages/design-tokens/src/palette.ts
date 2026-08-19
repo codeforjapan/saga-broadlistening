@@ -84,6 +84,32 @@ export function resolveSemantic(token: SemanticToken): string {
   return PRIMITIVES[SEMANTICS[token]];
 }
 
+
+/**
+ * shadcn/ui 標準の chart / sidebar トークン。
+ *
+ * web / admin の `globals.css` に同一内容で重複していたものを集約した。値は移行前の
+ * stock shadcn（oklch）のままで、案3-1パレットへの割り当ては #14 で行う。
+ * プリミティブと違い hex ではないため、`PRIMITIVES` とは別に管理する。
+ */
+export const SHADCN_UI_TOKENS = {
+  "chart-1": "oklch(0.646 0.222 41.116)",
+  "chart-2": "oklch(0.6 0.118 184.704)",
+  "chart-3": "oklch(0.398 0.07 227.392)",
+  "chart-4": "oklch(0.828 0.189 84.429)",
+  "chart-5": "oklch(0.769 0.188 70.08)",
+  sidebar: "oklch(0.985 0 0)",
+  "sidebar-foreground": "oklch(0.145 0 0)",
+  "sidebar-primary": "oklch(0.205 0 0)",
+  "sidebar-primary-foreground": "oklch(0.985 0 0)",
+  "sidebar-accent": "oklch(0.97 0 0)",
+  "sidebar-accent-foreground": "oklch(0.205 0 0)",
+  "sidebar-border": "oklch(0.922 0 0)",
+  "sidebar-ring": "oklch(0.708 0 0)",
+} as const;
+
+export type ShadcnUiToken = keyof typeof SHADCN_UI_TOKENS;
+
 /**
  * 面として使うトークン。この上に白文字を置いてはいけない（対白コントラストが低いため）。
  * `palette.test.ts` がこのリストに対して「白文字不可」を機械的に検証する。

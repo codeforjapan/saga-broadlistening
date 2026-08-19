@@ -11,7 +11,7 @@
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PRIMITIVES, SEMANTICS } from "./palette";
+import { PRIMITIVES, SEMANTICS, SHADCN_UI_TOKENS } from "./palette";
 
 export function renderTokensCss(): string {
   const primitiveVars = Object.entries(PRIMITIVES)
@@ -23,6 +23,14 @@ export function renderTokensCss(): string {
     .join("\n");
 
   const semanticThemeVars = Object.keys(SEMANTICS)
+    .map((name) => `  --color-${name}: var(--${name});`)
+    .join("\n");
+
+  const uiVars = Object.entries(SHADCN_UI_TOKENS)
+    .map(([name, value]) => `  --${name}: ${value};`)
+    .join("\n");
+
+  const uiThemeVars = Object.keys(SHADCN_UI_TOKENS)
     .map((name) => `  --color-${name}: var(--${name});`)
     .join("\n");
 
@@ -42,11 +50,15 @@ ${primitiveVars}
 :root {
   /* shadcn/ui セマンティック変数 */
 ${semanticVars}
+
+  /* chart / sidebar（値は移行前のまま。案3-1への割り当ては #14） */
+${uiVars}
 }
 
 @theme inline {
   /* セマンティック変数をユーティリティクラスとして公開する */
 ${semanticThemeVars}
+${uiThemeVars}
 }
 `;
 }
