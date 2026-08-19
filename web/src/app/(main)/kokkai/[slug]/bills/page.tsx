@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layouts/container";
 import { routes } from "@/lib/routes";
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: Props) {
   }
 
   return {
-    title: `${session.name}の法案一覧 | みらい議会`,
+    title: `${session.name}の法案一覧 | ${SITE_NAME}`,
     description: `${session.name}（${session.start_date}〜${session.end_date}）に提出された法案の一覧です。`,
   };
 }

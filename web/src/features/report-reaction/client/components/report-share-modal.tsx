@@ -3,6 +3,7 @@
 import type { MouseEvent, KeyboardEvent } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import {
   shareNative,
   shareOnFacebook,
@@ -33,8 +34,8 @@ export function ReportShareModal({
   if (!isOpen) return null;
 
   const shareMessage = shareMessageProp
-    ? `みらい議会AIインタビュー「${shareMessageProp}」`
-    : `みらい議会AIインタビュー「${billName}」`;
+    ? `${SITE_NAME} AIインタビュー「${shareMessageProp}」`
+    : `${SITE_NAME} AIインタビュー「${billName}」`;
 
   const shareButtons = [
     {
