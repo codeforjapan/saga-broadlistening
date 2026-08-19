@@ -1,3 +1,4 @@
+import { OG_COLORS } from "@mirai-gikai/design-tokens/brand-meta";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";
@@ -38,7 +39,7 @@ function findBillNameElement(
   const element = node as ReactElement<StyledElementProps>;
   if (
     element.props.children === text &&
-    element.props.style?.color === "#0f8472"
+    element.props.style?.color === OG_COLORS.accent
   ) {
     return element;
   }

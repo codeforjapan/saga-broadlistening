@@ -1,4 +1,8 @@
 import "./globals.css";
+import {
+  PROGRESS_BAR_COLOR,
+  THEME_COLOR,
+} from "@mirai-gikai/design-tokens/brand-meta";
 import { SITE_NAME } from "@mirai-gikai/shared/site";
 import type { Metadata, Viewport } from "next";
 import { Lexend_Giga, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
@@ -81,7 +85,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#1d4ed8",
+  themeColor: THEME_COLOR,
 };
 
 export default function RootLayout({
@@ -94,7 +98,7 @@ export default function RootLayout({
       <body
         className={`${notoSansJP.variable} ${lexendGiga.variable} ${notoSerifJP.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <NextTopLoader showSpinner={false} color="#1d4ed8" />
+        <NextTopLoader showSpinner={false} color={PROGRESS_BAR_COLOR} />
         {children}
       </body>
     </html>

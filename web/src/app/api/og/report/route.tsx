@@ -1,3 +1,5 @@
+import { OG_COLORS } from "@mirai-gikai/design-tokens/brand-meta";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
@@ -154,7 +156,7 @@ export async function GET(request: Request) {
               display: "flex",
               fontSize: 38,
               fontWeight: 800,
-              color: "#1f2937",
+              color: OG_COLORS.text,
               lineHeight: 1.8,
               flex: 1,
               width: 740,
@@ -172,7 +174,7 @@ export async function GET(request: Request) {
               maxHeight: OG_BILL_NAME_MAX_HEIGHT,
               fontSize: 32,
               fontWeight: 800,
-              color: "#0f8472",
+              color: OG_COLORS.accent,
               lineHeight: 1.5,
               overflow: "hidden",
               wordBreak: "break-all",
@@ -182,7 +184,7 @@ export async function GET(request: Request) {
           </div>
         </div>
 
-        {/* みらい議会バッジ */}
+        {/* サービス名バッジ */}
         <div
           style={{
             position: "absolute",
@@ -197,19 +199,18 @@ export async function GET(request: Request) {
             paddingBottom: 10,
             borderBottomLeftRadius: 30,
             borderTopRightRadius: 30,
-            backgroundImage:
-              "linear-gradient(-30deg, rgb(188, 236, 211) 1%, rgb(100, 216, 198) 99%)",
+            backgroundColor: OG_COLORS.badgeSurface,
           }}
         >
           <span
             style={{
               fontSize: 28,
               fontWeight: 800,
-              color: "#1f2937",
+              color: OG_COLORS.text,
               letterSpacing: "0.03em",
             }}
           >
-            みらい議会
+            {SITE_NAME}
           </span>
         </div>
 
@@ -217,7 +218,7 @@ export async function GET(request: Request) {
         {logoDataUrl && (
           // biome-ignore lint/performance/noImgElement: ignore
           <img
-            alt="チームみらいロゴ"
+            alt={`${SITE_NAME}ロゴ`}
             src={logoDataUrl}
             width={189}
             height={160}

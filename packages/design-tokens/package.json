@@ -10,6 +10,10 @@
   },
   "exports": {
     "./tokens.css": "./tokens.css",
+    "./brand-meta": {
+      "types": "./src/brand-meta.ts",
+      "default": "./src/brand-meta.ts"
+    },
     "./palette": {
       "types": "./src/palette.ts",
       "default": "./src/palette.ts"
