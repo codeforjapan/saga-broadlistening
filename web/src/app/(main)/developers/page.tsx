@@ -1,3 +1,4 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import {
   ArrowUpRight,
   BookOpen,
@@ -13,9 +14,8 @@ import { EXTERNAL_LINKS } from "@/config/external-links";
 import { routes } from "@/lib/routes";
 
 export const metadata: Metadata = {
-  title: "開発者向け | みらい議会",
-  description:
-    "みらい議会のオープンデータAPIなど、開発者・研究者向けの情報をまとめています。",
+  title: `開発者向け | ${SITE_NAME}`,
+  description: `${SITE_NAME}のオープンデータAPIなど、開発者・研究者向けの情報をまとめています。`,
 };
 
 const links = [
@@ -29,7 +29,7 @@ const links = [
   {
     href: routes.interviewDataTerms(),
     icon: ScrollText,
-    title: "みらい議会AIインタビューデータ利用規約",
+    title: `${SITE_NAME}AIインタビューデータ利用規約`,
     description:
       "オープンデータとして提供されるインタビューデータの利用条件。APIで取得したデータを利用・再配布する際にご参照ください。",
     external: false,
@@ -38,8 +38,7 @@ const links = [
     href: EXTERNAL_LINKS.GITHUB_REPO,
     icon: Github,
     title: "GitHubリポジトリ",
-    description:
-      "みらい議会のソースコード。フォークして自由にご活用いただけます。",
+    description: `${SITE_NAME}のソースコード。フォークして自由にご活用いただけます。`,
     external: true,
   },
   {
@@ -102,7 +101,8 @@ export default function DevelopersPage() {
           </header>
 
           <p className="text-[15px] leading-loose tracking-wide text-mirai-text-subtle">
-            みらい議会では、AIインタビューに寄せられた法案への意見を、誰でも分析・活用できるオープンデータとして公開しています。
+            {SITE_NAME}
+            では、AIインタビューに寄せられた法案への意見を、誰でも分析・活用できるオープンデータとして公開しています。
           </p>
 
           <div className="flex flex-col border-t border-neutral-200">
