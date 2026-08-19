@@ -12,6 +12,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PRIMITIVES, SEMANTICS, SHADCN_UI_TOKENS } from "./palette";
+import { SHADOWS } from "./shadows";
 import {
   BODY_FONT_WEIGHT,
   FONT_FAMILIES,
@@ -61,6 +62,10 @@ export function renderTokensCss(): string {
     .map(([name, value]) => `  --leading-${name}: ${value};`)
     .join("\n");
 
+  const shadowVars = Object.entries(SHADOWS)
+    .map(([name, value]) => `  --shadow-${name}: ${value};`)
+    .join("\n");
+
   return `/**
  * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
  *
@@ -81,6 +86,9 @@ ${textVars}
 
   /* 行間ユーティリティ */
 ${leadingVars}
+
+  /* シャドウ（D-6: 面の区切りは線ではなくシャドウで表現する） */
+${shadowVars}
 }
 
 @layer base {

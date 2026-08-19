@@ -61,6 +61,11 @@
 
   /* 行間ユーティリティ */
   --leading-relaxed: 1.875;
+
+  /* シャドウ（D-6: 面の区切りは線ではなくシャドウで表現する） */
+  --shadow-card: 0 1px 2px rgba(43, 43, 43, 0.06), 0 1px 1px rgba(43, 43, 43, 0.04);
+  --shadow-raised: 0 2px 6px rgba(43, 43, 43, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(0, 119, 200, 0.35);
 }
 
 @layer base {
