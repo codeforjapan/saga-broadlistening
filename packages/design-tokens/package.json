@@ -1,0 +1,26 @@
+{
+  "name": "@mirai-gikai/design-tokens",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:css": "tsx src/generate-css.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./palette": {
+      "types": "./src/palette.ts",
+      "default": "./src/palette.ts"
+    },
+    "./contrast": {
+      "types": "./src/contrast.ts",
+      "default": "./src/contrast.ts"
+    }
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "vitest": "^3.2.4"
+  }
+}

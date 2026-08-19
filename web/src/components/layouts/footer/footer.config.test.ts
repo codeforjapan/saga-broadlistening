@@ -11,7 +11,7 @@ describe("footer.config", () => {
     expect(hrefs).toContain(routes.developers());
   });
 
-  it("内部リンクには external フラグが付かない", () => {
+  it("すべてのリンクが内部ルートを指す", () => {
     const internalHrefs = new Set<string>([
       routes.home(),
       routes.terms(),
@@ -20,11 +20,7 @@ describe("footer.config", () => {
     ]);
 
     for (const link of [...primaryLinks, ...policyLinks]) {
-      if (internalHrefs.has(link.href)) {
-        expect(link.external).toBeUndefined();
-      } else {
-        expect(link.external).toBe(true);
-      }
+      expect(internalHrefs.has(link.href)).toBe(true);
     }
   });
 });

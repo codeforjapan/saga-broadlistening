@@ -1,3 +1,4 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import Image from "next/image";
 import Link from "next/link";
 import { routes } from "@/lib/routes";
@@ -15,7 +16,7 @@ export function DesktopMenuLogo() {
       <div className="relative w-[116px] h-[98.38px]">
         <Image
           src="/img/logo.svg"
-          alt="佐賀市公聴システム（仮）ロゴ"
+          alt={`${SITE_NAME}ロゴ`}
           fill
           className="object-contain"
           priority
@@ -32,7 +33,7 @@ export function DesktopMenuLogo() {
             letterSpacing: "0.05em",
           }}
         >
-          佐賀市公聴システム（仮）
+          {SITE_NAME}
         </h1>
         <p
           className="font-bold text-black"

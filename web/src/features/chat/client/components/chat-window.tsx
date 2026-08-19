@@ -1,5 +1,6 @@
 "use client";
 
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import Image from "next/image";
 import type { ChangeEvent, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -105,7 +106,7 @@ function ChatMessages({
           {(billContext
             ? [`この法案のポイントは？`, "この法案は私にどんな影響がある？"]
             : [
-                "みらい議会って何？",
+                `${SITE_NAME}って何？`,
                 "国会って何をするところ？",
                 "注目の法案について教えて",
               ]

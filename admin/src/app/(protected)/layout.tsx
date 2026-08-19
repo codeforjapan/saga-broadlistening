@@ -1,3 +1,4 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { Home, User } from "lucide-react";
 import type { ReactNode } from "react";
 import { LogoutButton } from "@/features/auth/client/components/logout-button";
@@ -22,7 +23,7 @@ export default async function MainLayout({
                   <Home className="h-5 w-5 text-white" />
                 </div>
                 <h1 className="text-xl font-semibold text-gray-900">
-                  みらい議会 Admin
+                  {SITE_NAME} Admin
                 </h1>
               </div>
             </div>

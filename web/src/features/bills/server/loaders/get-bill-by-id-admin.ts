@@ -2,7 +2,6 @@ import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/ge
 import type { BillWithContent } from "../../shared/types";
 import {
   findBillById,
-  findMiraiStanceByBillId,
   findTagsByBillId,
 } from "../repositories/bill-repository";
 import { getBillContentWithDifficulty } from "./helpers/get-bill-content";
@@ -17,11 +16,10 @@ export async function getBillByIdAdmin(
 ): Promise<BillWithContent | null> {
   const difficultyLevel = await getDifficultyLevel();
 
-  // 基本的なbill情報、見解、コンテンツ、タグを並列取得
+  // 基本的なbill情報、コンテンツ、タグを並列取得
   // ステータスに関係なく取得（管理者用）
-  const [bill, miraiStance, billContent, billTags] = await Promise.all([
+  const [bill, billContent, billTags] = await Promise.all([
     findBillById(id),
-    findMiraiStanceByBillId(id),
     getBillContentWithDifficulty(id, difficultyLevel),
     findTagsByBillId(id),
   ]);
@@ -39,7 +37,6 @@ export async function getBillByIdAdmin(
 
   return {
     ...bill,
-    mirai_stance: miraiStance || undefined,
     bill_content: billContent || undefined,
     tags,
   };

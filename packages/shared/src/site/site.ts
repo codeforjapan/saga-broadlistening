@@ -9,4 +9,4 @@ export const SITE_NAME = "佐賀市公聴システム（仮）";
 export const SITE_HASHTAG = "佐賀市公聴システム";
 
 /** コピーライト表記（フッター等で共通利用） */
-export const COPYRIGHT_TEXT = "© 2026 佐賀市";
+export const COPYRIGHT_TEXT = "Copyright (c) Saga city. All Rights Reserved.";

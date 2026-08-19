@@ -1,12 +1,13 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { ChevronRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layouts/container";
-import { routes } from "@/lib/routes";
-import { getDietSessionBySlug } from "@/features/diet-sessions/server/loaders/get-diet-session-by-slug";
 import { getBillsByDietSession } from "@/features/bills/server/loaders/get-bills-by-diet-session";
 import { DietSessionBillList } from "@/features/diet-sessions/client/components/diet-session-bill-list";
+import { getDietSessionBySlug } from "@/features/diet-sessions/server/loaders/get-diet-session-by-slug";
+import { routes } from "@/lib/routes";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -21,7 +22,7 @@ export async function generateMetadata({ params }: Props) {
   }
 
   return {
-    title: `${session.name}の法案一覧 | みらい議会`,
+    title: `${session.name}の法案一覧 | ${SITE_NAME}`,
     description: `${session.name}（${session.start_date}〜${session.end_date}）に提出された法案の一覧です。`,
   };
 }
