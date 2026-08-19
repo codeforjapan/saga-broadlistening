@@ -40,7 +40,7 @@ const notoSerifJP = Noto_Serif_JP({
 const isDev = process.env.NODE_ENV === "development";
 const isStaging = process.env.VERCEL_TARGET_ENV === "staging";
 const siteDescription =
-  "地域で今どんな政策や法案が検討されているか、わかりやすく伝える公聴プラットフォーム";
+  "地域で今どんな政策や議案が検討されているか、わかりやすく伝える公聴プラットフォーム";
 const ogImage = {
   url: "/ogp.jpg",
   width: 1200,

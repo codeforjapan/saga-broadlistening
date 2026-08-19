@@ -7,7 +7,7 @@ import {
 } from "./shared-sections";
 
 /**
- * 法案チャット（ふつう難易度）用システムプロンプトを生成する
+ * 議案チャット（ふつう難易度）用システムプロンプトを生成する
  */
 export function buildBillChatSystemNormalPrompt(
   billName: string,

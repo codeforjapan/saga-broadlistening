@@ -7,7 +7,7 @@ export function BillDisclaimer() {
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-black">掲載コンテンツについて</h3>
         <p className="text-xs leading-relaxed text-mirai-text-note">
-          掲載されている法案情報は、国会に提出された議案などの公開情報を基に、佐賀市がAIを活用しながら背景情報を整理したものです。掲載法案は主に、内閣提出法案（
+          掲載されている議案情報は、市議会に提出された議案などの公開情報を基に、佐賀市がAIを活用しながら背景情報を整理したものです。掲載議案は主に、内閣提出議案（
           <ManualRuby ruby="かくほう">閣法</ManualRuby>
           ）を対象としております。
         </p>

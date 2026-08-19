@@ -38,7 +38,7 @@ export function toOpenDataBillItem(row: OpenDataBillRow): OpenDataBillItem {
     title: billContent?.title ?? "",
     summary: billContent?.summary ?? "",
     status: row.status,
-    statusLabel: getBillStatusLabel(row.status, row.originating_house),
+    statusLabel: getBillStatusLabel(row.status),
     statusNote: row.status_note,
     originatingHouse: row.originating_house,
     originatingHouseLabel: HOUSE_LABELS[row.originating_house],

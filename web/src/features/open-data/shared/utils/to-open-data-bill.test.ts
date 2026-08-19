@@ -8,7 +8,7 @@ import {
 
 const baseRow: OpenDataBillRow = {
   id: "123e4567-e89b-12d3-a456-426614174000",
-  name: "テスト法案",
+  name: "テスト議案",
   status: "in_originating_house",
   status_note: null,
   originating_house: "HR",
@@ -24,14 +24,14 @@ describe("toOpenDataBillItem", () => {
   it("議案行をAPIレスポンス形式に変換する", () => {
     expect(toOpenDataBillItem(baseRow)).toEqual({
       billId: "123e4567-e89b-12d3-a456-426614174000",
-      name: "テスト法案",
+      name: "テスト議案",
       title: "わかりやすいタイトル",
       summary: "概要",
       status: "in_originating_house",
-      statusLabel: "衆議院審議中",
+      statusLabel: "委員会審査中",
       statusNote: null,
       originatingHouse: "HR",
-      originatingHouseLabel: "衆議院",
+      originatingHouseLabel: "市長提出",
       submittedDate: "2026-01-10",
       publishedAt: "2026-01-15T00:00:00+00:00",
       tags: [{ id: "tag-1", label: "経済" }],

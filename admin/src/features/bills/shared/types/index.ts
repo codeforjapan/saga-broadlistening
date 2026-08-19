@@ -50,33 +50,31 @@ export const BILL_STATUS_ORDER: Record<BillStatus, number> = {
   preparing: 5,
 };
 
-// House display mapping
+/**
+ * 議案の提出元区分。
+ *
+ * DB の `house_enum`（HR / HC）は国会の衆議院・参議院を表す値だったが、
+ * 市議会は一院制のため、市議会の提出区分（市長提出 / 議員提出）として読み替えている。
+ * **暫定の再定義であり、佐賀市の確認待ち**（#20）。enum値そのものの再定義が必要と
+ * 判断された場合はマイグレーションを伴うため、フォローアップIssueで扱う。
+ */
 export const HOUSE_LABELS: Record<OriginatingHouse, string> = {
-  HR: "衆議院",
-  HC: "参議院",
+  HR: "市長提出",
+  HC: "議員提出",
 };
 
 // ステータスを日本語ラベルに変換する関数
-export function getBillStatusLabel(
-  status: BillStatus,
-  originatingHouse?: OriginatingHouse | null
-): string {
+export function getBillStatusLabel(status: BillStatus): string {
   switch (status) {
     case "preparing":
       return "準備中";
     case "introduced":
       return "提出済み";
     case "in_originating_house":
-      if (originatingHouse) {
-        return `${HOUSE_LABELS[originatingHouse]}審議中`;
-      }
-      return "審議中";
+      return "委員会審査中";
     case "in_receiving_house":
-      if (originatingHouse) {
-        const receivingHouse = originatingHouse === "HR" ? "HC" : "HR";
-        return `${HOUSE_LABELS[receivingHouse]}審議中`;
-      }
-      return "審議中";
+      return "本会議審議中";
+
     case "enacted":
       return "成立";
     case "rejected":

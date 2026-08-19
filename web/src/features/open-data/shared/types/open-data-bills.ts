@@ -27,11 +27,11 @@ export type OpenDataBillItem = {
   /** 議案の概要（難易度別コンテンツ由来） */
   summary: string;
   status: BillStatusEnum;
-  /** 審議状況の日本語ラベル（衆議院審議中 / 成立 など） */
+  /** 審議状況の日本語ラベル（委員会審査中 / 可決 など） */
   statusLabel: string;
   statusNote: string | null;
   originatingHouse: HouseEnum;
-  /** 提出元議院の日本語ラベル（衆議院 / 参議院） */
+  /** 提出元区分の日本語ラベル（市長提出 / 議員提出） */
   originatingHouseLabel: string;
   submittedDate: string | null;
   publishedAt: string | null;

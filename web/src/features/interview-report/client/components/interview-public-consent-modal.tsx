@@ -52,7 +52,7 @@ export function InterviewPublicConsentModal({
             </ConsentCheckListItem>
             <OpenDataNoticeItem />
             <ConsentCheckListItem>
-              さまざまな意見が公開されることで、より深い法案議論が実現できます。
+              さまざまな意見が公開されることで、より深い議案議論が実現できます。
             </ConsentCheckListItem>
           </div>
 

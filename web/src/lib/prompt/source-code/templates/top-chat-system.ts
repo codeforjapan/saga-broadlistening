@@ -8,7 +8,7 @@ import {
 /**
  * ホームページチャット用システムプロンプトを生成する
  *
- * @param billSummary - 法案サマリーのJSON文字列
+ * @param billSummary - 議案サマリーのJSON文字列
  */
 export function buildTopChatSystemPrompt(billSummary: string): string {
   return `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。

@@ -1,15 +1,13 @@
-import type { BillStatusEnum, HouseEnum } from "../../../shared/types";
+import type { BillStatusEnum } from "../../../shared/types";
 import {
   calculateProgressWidth,
   getCurrentStep,
-  getOrderedSteps,
   getStatusMessage,
   getStepState,
 } from "../../../shared/utils/bill-progress";
 
 interface BillStatusProgressProps {
   status: BillStatusEnum;
-  originatingHouse: HouseEnum;
   statusNote?: string | null;
 }
 
@@ -25,12 +23,18 @@ interface ProgressStepProps {
   isPreparing: boolean;
 }
 
-// 基本ステップ定義
+/**
+ * 市議会の審議段階。
+ *
+ * DB の `bill_status_enum` は国会の二院制（in_originating_house / in_receiving_house）
+ * を前提にした値だが、市議会は一院制のため「委員会審査 → 本会議」として読み替える。
+ * enum値そのものは変更していない（変更にはマイグレーションが必要なためフォローアップ）。
+ */
 const BASE_STEPS = [
-  { label: "法案\n提出" },
-  { label: "衆議院\n審議" },
-  { label: "参議院\n審議" },
-  { label: "法案\n成立" },
+  { label: "議案\n提出" },
+  { label: "委員会\n審査" },
+  { label: "本会議\n審議" },
+  { label: "議案\n可決" },
 ] as const;
 
 // ステータスバッジコンポーネント
@@ -95,13 +99,13 @@ function ProgressStep({
 
 export function BillStatusProgress({
   status,
-  originatingHouse,
   statusNote,
 }: BillStatusProgressProps) {
   const isPreparing = status === "preparing";
   const currentStep = getCurrentStep(status);
 
-  const orderedSteps = getOrderedSteps(originatingHouse, BASE_STEPS);
+  // 一院制のため発議院による順序入れ替えは行わない
+  const orderedSteps = BASE_STEPS;
   const progressWidth = calculateProgressWidth(currentStep);
 
   const statusMessage = getStatusMessage(status, statusNote);

@@ -102,7 +102,7 @@ export default function DevelopersPage() {
 
           <p className="text-[15px] leading-loose tracking-wide text-mirai-text-subtle">
             {SITE_NAME}
-            では、AIインタビューに寄せられた法案への意見を、誰でも分析・活用できるオープンデータとして公開しています。
+            では、AIインタビューに寄せられた議案への意見を、誰でも分析・活用できるオープンデータとして公開しています。
           </p>
 
           <div className="flex flex-col border-t border-neutral-200">
