@@ -12,6 +12,12 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PRIMITIVES, SEMANTICS, SHADCN_UI_TOKENS } from "./palette";
+import {
+  BODY_FONT_WEIGHT,
+  FONT_FAMILIES,
+  LINE_HEIGHTS,
+  TEXT_SCALE,
+} from "./typography";
 
 export function renderTokensCss(): string {
   const primitiveVars = Object.entries(PRIMITIVES)
@@ -34,6 +40,27 @@ export function renderTokensCss(): string {
     .map((name) => `  --color-${name}: var(--${name});`)
     .join("\n");
 
+  const fontVars = Object.entries(FONT_FAMILIES)
+    .map(([name, value]) => `  --font-${name}: ${value};`)
+    .join("\n");
+
+  const textVars = Object.entries(TEXT_SCALE)
+    .flatMap(([name, spec]) => {
+      const lines = [
+        `  --text-${name}: ${spec.size};`,
+        `  --text-${name}--line-height: ${spec.lineHeight};`,
+      ];
+      if ("fontWeight" in spec) {
+        lines.push(`  --text-${name}--font-weight: ${spec.fontWeight};`);
+      }
+      return lines;
+    })
+    .join("\n");
+
+  const leadingVars = Object.entries(LINE_HEIGHTS)
+    .map(([name, value]) => `  --leading-${name}: ${value};`)
+    .join("\n");
+
   return `/**
  * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
  *
@@ -45,6 +72,36 @@ export function renderTokensCss(): string {
 @theme {
   /* プリミティブパレット */
 ${primitiveVars}
+
+  /* 書体（実体は各アプリの next/font が定義する変数） */
+${fontVars}
+
+  /* サイズ・行間スケール（行間は倍率指定。ルビON/OFFで崩れないため） */
+${textVars}
+
+  /* 行間ユーティリティ */
+${leadingVars}
+}
+
+@layer base {
+  /* 本文は W500 を基準にする（D-7） */
+  body {
+    font-weight: ${BODY_FONT_WEIGHT};
+  }
+
+  /* 見出しのみ丸ゴを適用する（日本語書体は容量が大きいため。要求仕様4.3） */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+  }
+
+  /* ルビは本文の60%（D-16） */
+  rt {
+    font-size: var(--text-ruby);
+    line-height: var(--text-ruby--line-height);
+  }
 }
 
 :root {

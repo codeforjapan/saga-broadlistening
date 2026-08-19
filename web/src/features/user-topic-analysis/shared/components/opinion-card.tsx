@@ -68,7 +68,7 @@ function CategoryChip({
 function Quote({ quote }: { quote: string }) {
   return (
     <div className="ml-2 border-l-2 border-mirai-border pl-4">
-      <p className="font-mirai-serif text-[14px] font-medium leading-[22px] text-mirai-text">
+      <p className="font-quote text-[14px] font-medium leading-[22px] text-mirai-text">
         <span className="mr-1 align-[-0.1em] text-[18px] text-primary-accent">
           “
         </span>
