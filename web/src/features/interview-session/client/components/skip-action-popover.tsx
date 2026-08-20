@@ -62,7 +62,7 @@ export function SkipActionPopover({
         align="end"
         side="top"
         sideOffset={8}
-        className="w-auto rounded-2xl border border-gray-200 bg-white px-2 py-4 shadow-md"
+        className="w-auto rounded-2xl bg-white px-2 py-4 shadow-raised"
       >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 px-4">

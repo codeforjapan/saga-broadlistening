@@ -11,7 +11,7 @@ export function ExpertRegistrationBanner({
   onRegisterClick,
 }: ExpertRegistrationBannerProps) {
   return (
-    <div className="bg-mirai-light-gradient rounded-2xl border border-primary p-6 flex flex-col gap-6">
+    <div className="bg-mirai-light-gradient rounded-2xl p-6 flex flex-col gap-6 shadow-card">
       <div className="flex flex-col gap-4">
         <span className="inline-flex items-center justify-center rounded-2xl bg-primary text-white px-4 py-2 text-sm font-medium w-fit">
           法案の有識者の方へ

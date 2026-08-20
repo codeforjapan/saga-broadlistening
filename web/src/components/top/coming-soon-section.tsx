@@ -62,11 +62,11 @@ function ComingSoonBillCard({ bill }: { bill: ComingSoonBill }) {
 
   const content = (
     <Card
-      className={`border border-black ${
+      className={
         bill.shugiin_url
           ? "hover:bg-gray-50 transition-colors cursor-pointer"
-          : ""
-      }`}
+          : undefined
+      }
     >
       <CardContent className="flex items-center justify-between py-4 px-5">
         <div className="flex flex-col gap-1 min-w-0 pr-3">
