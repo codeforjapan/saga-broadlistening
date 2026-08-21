@@ -3,6 +3,7 @@ import { resolveEnvConfig } from "../config/environments";
 import type { EnvName } from "../config/types";
 import { BedrockStack } from "./bedrock-stack";
 import { LambdaStack } from "./lambda-stack";
+import { VercelOidcStack } from "./vercel-oidc-stack";
 
 import { GitHubOidcStack } from "./github-oidc-stack";
 
@@ -33,6 +34,25 @@ export function createTestGitHubOidcStack(idPrefix: string, envName: EnvName) {
   });
 
   return { app, envConfig, githubOidcStack };
+}
+
+/**
+ * テスト用にBedrockStackとVercelOidcStackを組み立てるヘルパー。
+ * VercelOidcStackはBedrockStackのポリシーに依存するため、両方をまとめて構築する。
+ */
+export function createTestVercelOidcStack(idPrefix: string, envName: EnvName) {
+  const { app, envConfig, bedrockStack } = createTestBedrockStack(
+    idPrefix,
+    envName
+  );
+
+  const vercelOidcStack = new VercelOidcStack(app, `${idPrefix}VercelOidc`, {
+    env: { account: envConfig.account, region: envConfig.region },
+    envConfig,
+    bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
+  });
+
+  return { app, envConfig, bedrockStack, vercelOidcStack };
 }
 
 /**
