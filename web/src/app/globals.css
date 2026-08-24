@@ -99,6 +99,10 @@
 }
 
 @layer base {
+  /* Tailwind の preflight により border-width の既定は 0 のため、この宣言は
+     「罫線を引いたときの既定色」を決めるだけで、罫線そのものは増やさない。
+     撤去すると border-color が currentColor（＝文字色）にフォールバックして
+     かえって濃い線になるため、D-6 のシャドウ方針の下でも残す。 */
   * {
     @apply border-border outline-ring/50;
   }
@@ -109,7 +113,7 @@
   }
 
   *:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
@@ -119,7 +123,7 @@
   }
 
   button:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
@@ -129,7 +133,7 @@
   }
 
   a:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
@@ -139,7 +143,7 @@
   }
 
   table:focus-visible {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
 
