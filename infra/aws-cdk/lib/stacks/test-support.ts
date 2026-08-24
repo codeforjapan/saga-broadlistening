@@ -3,6 +3,7 @@ import { resolveEnvConfig } from "../config/environments";
 import type { EnvName } from "../config/types";
 import { BedrockStack } from "./bedrock-stack";
 import { LambdaStack } from "./lambda-stack";
+import { TopicAnalysisStack } from "./topic-analysis-stack";
 import { VercelOidcStack } from "./vercel-oidc-stack";
 
 import { GitHubOidcStack } from "./github-oidc-stack";
@@ -74,5 +75,38 @@ export function createTestStacks(idPrefix: string, envName: EnvName) {
   });
 
   return { app, envConfig, bedrockStack, lambdaStack };
+}
+
+/**
+ * テスト用にBedrockStack・GitHubOidcStack・TopicAnalysisStackを組み立てるヘルパー。
+ * TopicAnalysisStackはBedrockStackのポリシーとGitHubOidcStackのデプロイRoleに
+ * 依存するため、3つまとめて構築する。
+ */
+export function createTestTopicAnalysisStack(
+  idPrefix: string,
+  envName: EnvName
+) {
+  const { app, envConfig, bedrockStack } = createTestBedrockStack(
+    idPrefix,
+    envName
+  );
+
+  const githubOidcStack = new GitHubOidcStack(app, `${idPrefix}GitHubOidc`, {
+    env: { account: envConfig.account, region: envConfig.region },
+    envConfig,
+  });
+
+  const topicAnalysisStack = new TopicAnalysisStack(
+    app,
+    `${idPrefix}TopicAnalysis`,
+    {
+      env: { account: envConfig.account, region: envConfig.region },
+      envConfig,
+      bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
+      githubActionsDeployRole: githubOidcStack.deployRole,
+    }
+  );
+
+  return { app, envConfig, bedrockStack, githubOidcStack, topicAnalysisStack };
 }
 

@@ -10,4 +10,7 @@ export const stgConfig: EnvConfig = {
   account: UNCONFIGURED_ACCOUNT_ID,
   region: "ap-northeast-1",
   bedrockModelId: "anthropic.claude-3-5-sonnet-20241022-v2:0",
+  // stgアカウント未設定のため無効。GCP Cloud Schedulerと二重稼働させないよう、
+  // stgアカウントを設定して有効化する際はGCP側のSCHEDULER_PAUSEDを1にすること。
+  topicAnalysisSchedulerEnabled: false,
 };
