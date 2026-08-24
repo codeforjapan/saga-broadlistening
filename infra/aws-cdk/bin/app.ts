@@ -4,6 +4,7 @@ import { resolveEnvConfig } from "../lib/config/environments";
 import { BedrockStack } from "../lib/stacks/bedrock-stack";
 import { GitHubOidcStack } from "../lib/stacks/github-oidc-stack";
 import { LambdaStack } from "../lib/stacks/lambda-stack";
+import { TopicAnalysisStack } from "../lib/stacks/topic-analysis-stack";
 import { VercelOidcStack } from "../lib/stacks/vercel-oidc-stack";
 
 const app = new App();
@@ -18,10 +19,11 @@ if (!envName) {
 const envConfig = resolveEnvConfig(envName);
 const env = { account: envConfig.account, region: envConfig.region };
 
-new GitHubOidcStack(app, `MiraiGikaiGitHubOidcStack-${envConfig.envName}`, {
-  env,
-  envConfig,
-});
+const githubOidcStack = new GitHubOidcStack(
+  app,
+  `MiraiGikaiGitHubOidcStack-${envConfig.envName}`,
+  { env, envConfig }
+);
 
 const bedrockStack = new BedrockStack(
   app,
@@ -42,3 +44,14 @@ new VercelOidcStack(app, `MiraiGikaiVercelOidcStack-${envConfig.envName}`, {
   envConfig,
   bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
 });
+
+new TopicAnalysisStack(
+  app,
+  `MiraiGikaiTopicAnalysisStack-${envConfig.envName}`,
+  {
+    env,
+    envConfig,
+    bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
+    githubActionsDeployRole: githubOidcStack.deployRole,
+  }
+);

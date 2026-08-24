@@ -64,6 +64,25 @@ describe("GitHubOidcStack", () => {
     });
   });
 
+  it("ecr:GetAuthorizationTokenをリソース*で付与する（ECRの仕様上必須）", () => {
+    const { githubOidcStack } = createTestGitHubOidcStack("Test3b", "prd");
+
+    const template = Template.fromStack(githubOidcStack);
+
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: "EcrAuthToken",
+            Effect: "Allow",
+            Action: "ecr:GetAuthorizationToken",
+            Resource: "*",
+          }),
+        ]),
+      },
+    });
+  });
+
   it("Role ARNをCfnOutputとして出力する", () => {
     const { githubOidcStack } = createTestGitHubOidcStack("Test4", "prd");
 

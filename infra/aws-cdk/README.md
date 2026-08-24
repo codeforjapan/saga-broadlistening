@@ -20,9 +20,10 @@ infra/aws-cdk/
 │   │       ├── prd.ts             # prd環境の設定
 │   │       └── index.ts           # resolveEnvConfig(envName) — 環境名から設定を解決する純粋関数
 │   └── stacks/
-│       ├── bedrock-stack.ts       # Bedrockのモデル呼び出し用IAM権限（ManagedPolicy）を定義
-│       ├── lambda-stack.ts        # Bedrock疎通確認用Lambda関数を定義
-│       └── test-support.ts        # スタックのテスト用セットアップヘルパー
+│       ├── bedrock-stack.ts         # Bedrockのモデル呼び出し用IAM権限（ManagedPolicy）を定義
+│       ├── lambda-stack.ts          # Bedrock疎通確認用Lambda関数を定義
+│       ├── topic-analysis-stack.ts  # トピック分析worker用ECS Fargate + EventBridge Scheduler基盤
+│       └── test-support.ts          # スタックのテスト用セットアップヘルパー
 └── src/handlers/
     └── bedrock-health-check/
         ├── build-converse-input.ts      # ConverseCommand入力を組み立てる純粋関数
@@ -74,12 +75,17 @@ AWS_PROFILE=<devアカウント用プロファイル> pnpm run diff:dev
 # デプロイ
 AWS_PROFILE=<devアカウント用プロファイル> pnpm run deploy:dev
 
-# CloudFormationテンプレートの出力のみ（AWS認証不要）
+# CloudFormationテンプレートの出力のみ
 pnpm run synth:dev
 ```
 
 stg / prd も同様に `:stg` / `:prd` のスクリプトを使用してください
 （stgは`account`が未設定のため、対象アカウントが決まるまで`resolveEnvConfig`がエラーを投げてsynth/deployを止めます）。
+
+> **注意**: `TopicAnalysisStack` が `ec2.Vpc` を作成するため、`AZ一覧の取得`
+> （`ec2:DescribeAvailabilityZones`）にAWS認証情報が必要です。`synth`も含め、
+> 対象アカウントの `AWS_PROFILE` を付けて実行してください。初回実行後に生成される
+> `cdk.context.json` をコミットしておくと、2回目以降は認証情報なしでも`synth`が通ります。
 
 ## テスト
 
@@ -131,6 +137,15 @@ AWS_PROFILE=<prdアカウント用プロファイル> npx cdk deploy MiraiGikaiG
   `AWS_PROFILE=<devプロファイル> pnpm run deploy:dev` 等で手動デプロイしてください。
 - stg環境は前述の通りAWSアカウント未発行のため対象外です。
 
+### worker イメージのCI（`.github/workflows/deploy_worker_ecs.yml`）
+
+`worker/` 配下（および依存パッケージ）の変更が main にマージされると、上記の
+`MiraiGikaiGitHubActionsDeployRole-prd` を使ってprd用ECRリポジトリへ
+`mirai-gikai-topic-analysis-worker-prd:latest` / `:<sha>` をpushする
+（タスク定義は常に`:latest`を参照するため、pushするだけで次回起動から反映される）。
+Roleの信頼条件が `main`ブランチ限定のため、dev/stg環境への自動pushは対象外
+（手動で`docker push`するか、上記手順3を参照）。
+
 ## 現状のスコープ
 
 - `BedrockStack`: Lambda等がBedrockの基盤モデルを呼び出すためのIAM権限（`ManagedPolicy`）のみを定義。
@@ -138,3 +153,30 @@ AWS_PROFILE=<prdアカウント用プロファイル> npx cdk deploy MiraiGikaiG
   各アカウントで手動有効化が必要です。
 - `LambdaStack`: Bedrockとの疎通確認用の最小限のLambda関数（`bedrock-health-check`）のみを実装。
   実際の業務ロジックは未定のため、今後の要件に応じてLambda関数を追加・置き換えしてください。
+- `TopicAnalysisStack`: トピック分析・意見再抽出バックフィルworker（`worker/`）をGCP Cloud Run Job
+  （`infra/cloud-run`）からECS Fargateへ移行する基盤。ECRリポジトリ・VPC（NATなし・パブリック
+  サブネットのみ）・ECSクラスタ・タスク定義・EventBridge Schedulerを作成する
+  （GitHub Issue #48）。admin からの手動起動（`ecs:RunTask`）への切替はGitHub Issue #49で対応する。
+
+### TopicAnalysisStackのデプロイ後にやること
+
+1. **Secretsに実値を設定**（CDKは空のSecretだけを作成する）:
+   ```bash
+   aws secretsmanager put-secret-value \
+     --secret-id mirai-gikai-topic-analysis-worker-<env>/SUPABASE_URL \
+     --secret-string "<値>" --profile <対象アカウント用プロファイル>
+   # SUPABASE_SECRET_KEY / AI_GATEWAY_API_KEY も同様に設定する
+   ```
+2. **workerイメージをECRにpush**（初回はタスク定義が参照する`:latest`タグが無いと起動に失敗する）:
+   ```bash
+   aws ecr get-login-password --region ap-northeast-1 --profile <profile> | \
+     docker login --username AWS --password-stdin <account>.dkr.ecr.ap-northeast-1.amazonaws.com
+   docker build --platform linux/amd64 -f worker/Dockerfile \
+     -t <account>.dkr.ecr.ap-northeast-1.amazonaws.com/mirai-gikai-topic-analysis-worker-<env>:latest .
+   docker push <account>.dkr.ecr.ap-northeast-1.amazonaws.com/mirai-gikai-topic-analysis-worker-<env>:latest
+   ```
+   以降は `.github/workflows/deploy_worker_ecs.yml`（mainブランチ・prd環境のみ）が
+   `worker/` 配下の変更を検知して自動push する。
+3. **定期実行を有効化する場合**は、GCP Cloud Scheduler側を`SCHEDULER_PAUSED=1`で
+   一時停止してから `lib/config/environments/<env>.ts` の `topicAnalysisSchedulerEnabled`
+   を `true` にしてデプロイする（両方が有効だと同一議案の分析が二重実行される）。
