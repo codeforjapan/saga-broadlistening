@@ -134,7 +134,7 @@ describe("find_sessions_ordered_by_total_content_richness() フィルタパラ�
     expect(data?.[0].session_id).toBe(published.id);
   });
 
-  it("p_visibility='private'は未公開の意見と意見なしのセッションを返す", async () => {
+  it("p_visibility='private'は未公開の意見のセッションのみを返す", async () => {
     const configId = await configs.createConfigId();
 
     const published = await createOrderedSession(configId, testUser.id);
@@ -143,7 +143,8 @@ describe("find_sessions_ordered_by_total_content_richness() フィルタパラ�
     const hidden = await createOrderedSession(configId, testUser.id);
     await createTestOpinion(hidden.id, { review_status: "hidden" });
 
-    // 意見が未作成のセッションも非公開扱い
+    // 意見が未作成のセッションは public / private のどちらにも含めない
+    // （PostgREST 側の opinions!inner を使う件数集計と一致させるため）
     const noOpinion = await createOrderedSession(configId, testUser.id);
 
     const { data, error } = await adminClient.rpc(
@@ -159,9 +160,8 @@ describe("find_sessions_ordered_by_total_content_richness() フィルタパラ�
 
     expect(error).toBeNull();
     const sessionIds = (data ?? []).map((r) => r.session_id);
-    expect(sessionIds).toHaveLength(2);
-    expect(sessionIds).toContain(hidden.id);
-    expect(sessionIds).toContain(noOpinion.id);
+    expect(sessionIds).toEqual([hidden.id]);
+    expect(sessionIds).not.toContain(noOpinion.id);
     expect(sessionIds).not.toContain(published.id);
   });
 
