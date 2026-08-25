@@ -17,7 +17,6 @@ export type {
   PublishedVersionMeta,
   RawOpinionRow,
   RawRespondentDetailRow,
-  RawRespondentRow,
   RawTopicRow,
   RawTranscriptMessageRow,
   TranscriptMessage,

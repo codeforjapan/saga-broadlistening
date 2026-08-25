@@ -2,38 +2,16 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
-
-async function createTestReactions(
-  opinionId: string,
-  userIds: string[],
-  reactionType: "helpful" | "hmm" = "helpful"
-) {
-  const reactions = userIds.map((userId) => ({
-    opinion_id: opinionId,
-    user_id: userId,
-    reaction_type: reactionType,
-  }));
-  const { error } = await adminClient
-    .from("opinion_reactions")
-    .insert(reactions);
-  if (error) throw new Error(`opinion_reactions 作成失敗: ${error.message}`);
-}
+import { createTestReactions, trackInterviewConfigs } from "./helpers";
 
 describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   let testUsers: TestUser[] = [];
-  const configIds: string[] = [];
-
-  async function createConfig(): Promise<string> {
-    const config = await createTestInterviewConfig();
-    configIds.push(config.id);
-    return config.id;
-  }
+  const configs = trackInterviewConfigs();
 
   beforeEach(async () => {
     // リアクションは1ユーザー1意見につき1件のため複数ユーザーを用意する
@@ -43,10 +21,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     for (const user of testUsers) {
       await cleanupTestUser(user.id);
     }
@@ -54,7 +29,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   });
 
   it("参考になるリアクション数の降順でセッションIDを返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     // session1: 1 helpful
     const session1 = await createTestSession(configId, testUsers[0].id);
@@ -93,7 +68,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   });
 
   it("参考になるリアクション数の昇順でセッションIDを返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const session1 = await createTestSession(configId, testUsers[0].id);
     const opinion1 = await createTestOpinion(session1.id);
@@ -120,7 +95,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   });
 
   it("リアクションなしのセッションは0として扱われる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     // session1: 2 helpful
     const session1 = await createTestSession(configId, testUsers[0].id);
@@ -151,7 +126,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   });
 
   it("hmmリアクションはhelpfulカウントに含まれない", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     // session1: 1 helpful + 3 hmm
     const session1 = await createTestSession(configId, testUsers[0].id);
@@ -189,7 +164,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   });
 
   it("offset/limitでページネーションが正しく動作する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const sessions = [];
     for (let i = 0; i < 4; i++) {
@@ -221,12 +196,12 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   });
 
   it("別のconfigのセッションは含まれない", async () => {
-    const configId1 = await createConfig();
+    const configId1 = await configs.createConfigId();
     const session1 = await createTestSession(configId1, testUsers[0].id);
     const opinion1 = await createTestOpinion(session1.id);
     await createTestReactions(opinion1.id, [testUsers[0].id]);
 
-    const configId2 = await createConfig();
+    const configId2 = await configs.createConfigId();
     const session2 = await createTestSession(configId2, testUsers[0].id);
     const opinion2 = await createTestOpinion(session2.id);
     await createTestReactions(opinion2.id, [
@@ -251,7 +226,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   });
 
   it("p_visibilityで公開状態フィルタできる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const publicSession = await createTestSession(configId, testUsers[0].id);
     await createTestOpinion(publicSession.id, { review_status: "published" });

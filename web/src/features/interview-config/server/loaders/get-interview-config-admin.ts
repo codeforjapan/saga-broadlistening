@@ -1,9 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
-import {
-  findLatestInterviewConfigByPolicyId,
-  findOpenInterviewConfigByPolicyId,
-} from "../repositories/interview-config-repository";
+import { findPrimaryInterviewConfigByPolicyId } from "../repositories/interview-config-repository";
 import type { InterviewConfig } from "./get-interview-config";
 
 export type { InterviewConfig };
@@ -20,29 +17,15 @@ export async function getInterviewConfigAdmin(
 
 const _getCachedInterviewConfigAdmin = unstable_cache(
   async (billId: string): Promise<InterviewConfig | null> => {
-    // まず募集中の設定を探す
-    const { data: openData, error: openError } =
-      await findOpenInterviewConfigByPolicyId(billId);
+    // 募集中を優先し、なければ最新。解決ルールはリポジトリ側に一本化している
+    const { data, error } = await findPrimaryInterviewConfigByPolicyId(billId);
 
-    if (openError) {
-      console.error("Failed to fetch interview config (admin):", openError);
+    if (error) {
+      console.error("Failed to fetch interview config (admin):", error);
       return null;
     }
 
-    if (openData) {
-      return openData;
-    }
-
-    // 募集中の設定がなければ、最新の設定を返す
-    const { data: latestData, error: latestError } =
-      await findLatestInterviewConfigByPolicyId(billId);
-
-    if (latestError) {
-      console.error("Failed to fetch interview config (admin):", latestError);
-      return null;
-    }
-
-    return latestData;
+    return data;
   },
   ["interview-config-admin"],
   {

@@ -1,40 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestPolicy,
   cleanupTestUser,
   createTestInterviewData,
   createTestInterviewMessages,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig } from "./helpers";
 
 describe("get_interview_message_counts() 関数", () => {
   let testUser: TestUser;
-  let policyIds: string[] = [];
-  let configIds: string[] = [];
+  let cleanups: Array<() => Promise<void>> = [];
 
   /** 施策 ─ 意見募集 ─ セッションを作り、後片付け対象に登録する */
   async function createInterviewData() {
     const data = await createTestInterviewData(testUser.id);
-    policyIds.push(data.policy.id);
-    configIds.push(data.config.id);
+    cleanups.push(data.cleanup);
     return data;
   }
 
   beforeEach(async () => {
     testUser = await createTestUser();
-    policyIds = [];
-    configIds = [];
+    cleanups = [];
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    for (const policyId of policyIds) {
-      await cleanupTestPolicy(policyId);
+    for (const cleanup of cleanups) {
+      await cleanup();
     }
     await cleanupTestUser(testUser.id);
   });

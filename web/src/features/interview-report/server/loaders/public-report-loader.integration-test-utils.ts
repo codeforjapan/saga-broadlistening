@@ -1,12 +1,11 @@
 import {
-  adminClient,
-  cleanupTestPolicy,
+  cleanupAll,
   cleanupTestUser,
-  createTestInterviewConfig,
-  createTestPolicy,
   createTestPolicyContent,
+  createTestPolicyWithConfig,
+  createTestPublicOpinions,
   createTestUser,
-  linkPolicyToInterviewConfig,
+  insertTestInterviewMessages,
   type TestUser,
 } from "@test-utils/utils";
 
@@ -14,6 +13,8 @@ export type PublicReportLoaderContext = {
   user: TestUser;
   billId: string;
   configId: string;
+  /** 施策と意見募集（配下のセッション・意見を含む）を削除する */
+  cleanupPolicyWithConfig: () => Promise<void>;
 };
 
 type TestMessage = {
@@ -35,32 +36,23 @@ export async function createPublicReportLoaderContext(
   billContentTitle = "施策タイトル"
 ): Promise<PublicReportLoaderContext> {
   const user = await createTestUser();
-  const bill = await createTestPolicy();
+  const { policy, config, cleanup } = await createTestPolicyWithConfig({
+    config: { name: `公開レポート loader テスト ${Date.now()}` },
+  });
 
   try {
-    await createTestPolicyContent(bill.id, { title: billContentTitle });
-
-    const config = await createTestInterviewConfig({
-      name: `公開レポート loader テスト ${Date.now()}`,
-    });
-    await linkPolicyToInterviewConfig(bill.id, config.id);
-
-    return { user, billId: bill.id, configId: config.id };
+    await createTestPolicyContent(policy.id, { title: billContentTitle });
+    return {
+      user,
+      billId: policy.id,
+      configId: config.id,
+      cleanupPolicyWithConfig: cleanup,
+    };
   } catch (error) {
-    const cleanupResults = await Promise.allSettled([
-      cleanupTestPolicy(bill.id),
-      cleanupTestUser(user.id),
-    ]);
-    const rejected = cleanupResults.filter(
-      (result): result is PromiseRejectedResult => result.status === "rejected"
+    // 元の失敗原因を隠さないよう、後片付けの失敗はログに留める。
+    await cleanupAll(cleanup(), cleanupTestUser(user.id)).catch(
+      (cleanupError) => console.error(String(cleanupError))
     );
-    if (rejected.length > 0) {
-      console.error(
-        `テストデータのクリーンアップに失敗しました: ${rejected
-          .map((result) => String(result.reason))
-          .join(", ")}`
-      );
-    }
     throw error;
   }
 }
@@ -70,22 +62,10 @@ export async function cleanupPublicReportLoaderContext(
 ) {
   if (!context) return;
 
-  const billCleanupResults = await Promise.allSettled([
-    cleanupTestPolicy(context.billId),
-  ]);
-  const userCleanupResults = await Promise.allSettled([
-    cleanupTestUser(context.user.id),
-  ]);
-  const rejected = [...billCleanupResults, ...userCleanupResults].filter(
-    (result): result is PromiseRejectedResult => result.status === "rejected"
+  await cleanupAll(
+    context.cleanupPolicyWithConfig(),
+    cleanupTestUser(context.user.id)
   );
-  if (rejected.length > 0) {
-    throw new Error(
-      `テストデータのクリーンアップに失敗しました: ${rejected
-        .map((result) => String(result.reason))
-        .join(", ")}`
-    );
-  }
 }
 
 export async function createPublicReports(
@@ -93,71 +73,37 @@ export async function createPublicReports(
   count: number,
   options: CreatePublicReportOptions = {}
 ) {
-  if (count === 0) return [];
-
-  const now = Date.now();
-  const { data: sessions, error: sessionError } = await adminClient
-    .from("interview_sessions")
-    .insert(
-      Array.from({ length: count }, (_, index) => ({
-        interview_config_id: context.configId,
-        user_id: context.user.id,
-        started_at: new Date(now + index).toISOString(),
-        completed_at: new Date(now + index + 1000).toISOString(),
-      }))
-    )
-    .select();
-  if (sessionError) {
-    throw new Error(`interview_session 作成失敗: ${sessionError.message}`);
-  }
-
-  const { data: reports, error: reportError } = await adminClient
-    .from("opinions")
-    .insert(
-      sessions.map((session, index) => ({
-        interview_session_id: session.id,
-        is_public_by_admin: options.isPublicByAdmin ?? true,
-        is_public_by_user: options.isPublicByUser ?? true,
-        review_status: options.reviewStatus ?? "published",
-        role_title: options.roleTitle ?? "会社員",
-        final_text: `公開意見の本文 ${index + 1}`,
-        summary: options.summary
-          ? `${options.summary}-${index + 1}`
-          : `公開レポート ${index + 1}`,
-        content_richness: {
-          total: options.contentRichnessTotal ?? 70,
-          clarity: 70,
-          specificity: 70,
-          impact: 70,
-          constructiveness: 70,
-          reasoning: "テスト用の十分な内容",
-        },
-      }))
-    )
-    .select();
-  if (reportError) {
-    throw new Error(`opinions 作成失敗: ${reportError.message}`);
-  }
+  const { sessions, opinions } = await createTestPublicOpinions({
+    interviewConfigId: context.configId,
+    userId: context.user.id,
+    count,
+    opinion: (index) => ({
+      is_public_by_admin: options.isPublicByAdmin ?? true,
+      is_public_by_user: options.isPublicByUser ?? true,
+      review_status: options.reviewStatus ?? "published",
+      role_title: options.roleTitle ?? "会社員",
+      final_text: `公開意見の本文 ${index + 1}`,
+      summary: options.summary
+        ? `${options.summary}-${index + 1}`
+        : `公開レポート ${index + 1}`,
+      content_richness: {
+        total: options.contentRichnessTotal ?? 70,
+        clarity: 70,
+        specificity: 70,
+        impact: 70,
+        constructiveness: 70,
+        reasoning: "テスト用の十分な内容",
+      },
+    }),
+  });
 
   if (options.messages) {
-    const messages = options.messages;
-    const { error: messageError } = await adminClient
-      .from("interview_messages")
-      .insert(
-        sessions.flatMap((session) =>
-          messages.map((message) => ({
-            interview_session_id: session.id,
-            role: message.role,
-            content: message.content,
-          }))
-        )
-      );
-    if (messageError) {
-      throw new Error(`interview_messages 作成失敗: ${messageError.message}`);
+    for (const session of sessions) {
+      await insertTestInterviewMessages(session.id, options.messages);
     }
   }
 
-  return reports.map((report, index) => ({
+  return opinions.map((report, index) => ({
     report,
     session: sessions[index],
   }));

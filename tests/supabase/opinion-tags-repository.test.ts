@@ -8,14 +8,11 @@ import {
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  cleanupTestInterviewConfig,
-  createTestSession,
-} from "./db-function/helpers";
-import {
   adminClient,
+  cleanupTestInterviewConfig,
   cleanupTestUser,
   createTestInterviewConfig,
-  createTestOpinion,
+  createTestOpinionWithSegments,
   createTestUser,
   type TestUser,
 } from "./utils";
@@ -39,50 +36,52 @@ async function createOpinionWithSegments(opts: {
   segmentCount: number;
   tagged?: boolean;
 }) {
-  const session = await createTestSession(opts.configId, opts.userId, {
-    started_at: opts.createdAt,
-    completed_at: opts.createdAt,
+  return await createTestOpinionWithSegments({
+    interviewConfigId: opts.configId,
+    userId: opts.userId,
+    session: { started_at: opts.createdAt, completed_at: opts.createdAt },
+    opinion: {
+      is_public_by_user: opts.isPublicByUser,
+      summary: "サマリ",
+      role_title: "教員",
+    },
+    segments: Array.from({ length: opts.segmentCount }, () => ({
+      tags_extracted_at: opts.tagged ? opts.createdAt : null,
+    })),
   });
-  const opinion = await createTestOpinion(session.id, {
-    is_public_by_user: opts.isPublicByUser,
-    summary: "サマリ",
-    role_title: "教員",
-  });
-
-  const rows = Array.from({ length: opts.segmentCount }, (_, i) => ({
-    opinion_id: opinion.id,
-    opinion_index: i,
-    title: `論点${i}`,
-    content: `内容${i}`,
-    tags_extracted_at: opts.tagged ? opts.createdAt : null,
-  }));
-  const { error } = await adminClient.from("opinion_segments").insert(rows);
-  if (error) throw new Error(`opinion_segments 作成失敗: ${error.message}`);
-
-  return opinion;
 }
 
 describe("opinion-tags repository 統合テスト", () => {
   let testUser: TestUser;
   let configId: string;
-  let otherConfigId: string;
+  const scopedConfigIds: string[] = [];
+
+  /**
+   * テスト専用のテーマを作る。
+   * 件数を突き合わせるテストは、他のテストが作ったデータに影響されないよう
+   * 共有テーマ（configId）ではなくこちらを使う。
+   */
+  async function createScopedConfig(name: string): Promise<string> {
+    const config = await createTestInterviewConfig({ name });
+    scopedConfigIds.push(config.id);
+    return config.id;
+  }
 
   beforeAll(async () => {
     testUser = await createTestUser();
     configId = (await createTestInterviewConfig({ name: "tag-test" })).id;
-    otherConfigId = (
-      await createTestInterviewConfig({ name: "tag-test-other" })
-    ).id;
   });
 
   afterAll(async () => {
+    for (const scopedConfigId of scopedConfigIds.splice(0)) {
+      await cleanupTestInterviewConfig(scopedConfigId);
+    }
     await cleanupTestInterviewConfig(configId);
-    await cleanupTestInterviewConfig(otherConfigId);
     await cleanupTestUser(testUser.id);
   });
 
   it("reasoning_types は NOT NULL DEFAULT '{}' で入る", async () => {
-    const opinion = await createOpinionWithSegments({
+    const { opinionId } = await createOpinionWithSegments({
       configId,
       userId: testUser.id,
       isPublicByUser: true,
@@ -93,7 +92,7 @@ describe("opinion-tags repository 統合テスト", () => {
     const { data } = await adminClient
       .from("opinion_segments")
       .select("reasoning_types, concern, proposal, tags_extracted_at")
-      .eq("opinion_id", opinion.id)
+      .eq("opinion_id", opinionId)
       .single();
 
     expect(data?.reasoning_types).toEqual([]);
@@ -103,6 +102,7 @@ describe("opinion-tags repository 統合テスト", () => {
   });
 
   it("countPendingTagExtraction は interviewConfigId で絞り込める", async () => {
+    const otherConfigId = await createScopedConfig("tag-test-count");
     await createOpinionWithSegments({
       configId,
       userId: testUser.id,
@@ -123,6 +123,7 @@ describe("opinion-tags repository 統合テスト", () => {
   });
 
   it("findOpinionsToTag は該当テーマの未タグ意見だけを返す", async () => {
+    const otherConfigId = await createScopedConfig("tag-test-find");
     const target = await createOpinionWithSegments({
       configId: otherConfigId,
       userId: testUser.id,
@@ -142,22 +143,33 @@ describe("opinion-tags repository 統合テスト", () => {
     const opinions = await findOpinionsToTag(50, otherConfigId);
     const ids = opinions.map((o) => o.opinionId);
 
-    expect(ids).toContain(target.id);
-    expect(ids).not.toContain(alreadyTagged.id);
+    expect(ids).toContain(target.opinionId);
+    expect(ids).not.toContain(alreadyTagged.opinionId);
     // 立場はプロンプト接地に使うので載っていること
-    const found = opinions.find((o) => o.opinionId === target.id);
+    const found = opinions.find((o) => o.opinionId === target.opinionId);
     expect(found?.roleTitle).toBe("教員");
-    expect(found?.sessionId).toBe(target.interview_session_id);
+    expect(found?.sessionId).toBe(target.sessionId);
   });
 
   it("findOpinionsToTag は limit 件の意見に束ねる（論点数ではない）", async () => {
-    // 1意見3論点 × 複数意見あっても limit=1 なら意見1件だけ返る
-    const opinions = await findOpinionsToTag(1, otherConfigId);
+    const limitConfigId = await createScopedConfig("tag-test-limit");
+    // 1意見3論点 × 2意見あっても limit=1 なら意見1件だけ返る
+    for (const createdAt of ["2024-03-03T00:00:00Z", "2024-03-04T00:00:00Z"]) {
+      await createOpinionWithSegments({
+        configId: limitConfigId,
+        userId: testUser.id,
+        isPublicByUser: true,
+        createdAt,
+        segmentCount: 3,
+      });
+    }
+
+    const opinions = await findOpinionsToTag(1, limitConfigId);
     expect(opinions).toHaveLength(1);
   });
 
   it("updateOpinionSegmentTags はタグ列だけ更新し、本文を変えない", async () => {
-    const opinion = await createOpinionWithSegments({
+    const { opinionId } = await createOpinionWithSegments({
       configId,
       userId: testUser.id,
       isPublicByUser: true,
@@ -166,7 +178,7 @@ describe("opinion-tags repository 統合テスト", () => {
     });
 
     await updateOpinionSegmentTags(
-      opinion.id,
+      opinionId,
       [
         {
           opinionIndex: 0,
@@ -183,7 +195,7 @@ describe("opinion-tags repository 統合テスト", () => {
       .select(
         "opinion_index, title, concern, reasoning_types, tags_extracted_at"
       )
-      .eq("opinion_id", opinion.id)
+      .eq("opinion_id", opinionId)
       .order("opinion_index");
 
     expect(data?.[0].title).toBe("論点0");
@@ -198,7 +210,7 @@ describe("opinion-tags repository 統合テスト", () => {
   // バックフィルは本番稼働中に走るため、対象抽出から更新までの間に
   // ライブ生成が同じ行にタグを書き込むことがある。それを上書きしない。
   it("updateOpinionSegmentTags はタグ付け済みの行を上書きしない", async () => {
-    const opinion = await createOpinionWithSegments({
+    const { opinionId } = await createOpinionWithSegments({
       configId,
       userId: testUser.id,
       isPublicByUser: true,
@@ -209,10 +221,10 @@ describe("opinion-tags repository 統合テスト", () => {
     await adminClient
       .from("opinion_segments")
       .update({ concern: "先に入っていた値" })
-      .eq("opinion_id", opinion.id);
+      .eq("opinion_id", opinionId);
 
     await updateOpinionSegmentTags(
-      opinion.id,
+      opinionId,
       [
         {
           opinionIndex: 0,
@@ -227,14 +239,14 @@ describe("opinion-tags repository 統合テスト", () => {
     const { data } = await adminClient
       .from("opinion_segments")
       .select("concern")
-      .eq("opinion_id", opinion.id)
+      .eq("opinion_id", opinionId)
       .single();
 
     expect(data?.concern).toBe("先に入っていた値");
   });
 
   it("findUntaggedOpinionSegments は未タグの論点だけを index 昇順で返す", async () => {
-    const opinion = await createOpinionWithSegments({
+    const { opinionId } = await createOpinionWithSegments({
       configId,
       userId: testUser.id,
       isPublicByUser: true,
@@ -242,25 +254,44 @@ describe("opinion-tags repository 統合テスト", () => {
       segmentCount: 3,
     });
     await markOpinionSegmentsTagAttempted(
-      opinion.id,
+      opinionId,
       [1],
       "2024-06-02T00:00:00Z"
     );
 
-    const segments = await findUntaggedOpinionSegments(opinion.id);
+    const segments = await findUntaggedOpinionSegments(opinionId);
 
     expect(segments.map((s) => s.opinion_index)).toEqual([0, 2]);
   });
 
   it("resetTagExtractionForInterviewConfig は該当テーマのウォーターマークだけ戻す", async () => {
+    const otherConfigId = await createScopedConfig("tag-test-reset");
+    // タグ付け済み2論点 + 未タグ1論点
+    await createOpinionWithSegments({
+      configId: otherConfigId,
+      userId: testUser.id,
+      isPublicByUser: true,
+      createdAt: "2024-07-01T00:00:00Z",
+      segmentCount: 2,
+      tagged: true,
+    });
+    await createOpinionWithSegments({
+      configId: otherConfigId,
+      userId: testUser.id,
+      isPublicByUser: true,
+      createdAt: "2024-07-02T00:00:00Z",
+      segmentCount: 1,
+    });
+
     const beforeOther = await countPendingTagExtraction(otherConfigId);
     const beforeMain = await countPendingTagExtraction(configId);
+    expect(beforeOther).toBe(1);
 
     const reset = await resetTagExtractionForInterviewConfig(otherConfigId);
     const afterOther = await countPendingTagExtraction(otherConfigId);
     const afterMain = await countPendingTagExtraction(configId);
 
-    expect(reset).toBeGreaterThan(0);
+    expect(reset).toBe(2);
     expect(afterOther).toBe(beforeOther + reset);
     // 別テーマは影響を受けない
     expect(afterMain).toBe(beforeMain);

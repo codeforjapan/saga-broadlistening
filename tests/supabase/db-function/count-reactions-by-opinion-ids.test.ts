@@ -1,28 +1,17 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   adminClient,
+  cleanupTestInterviewConfig,
   cleanupTestUser,
   createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { createTestReactions } from "./helpers";
 
 const MISSING_ID = "00000000-0000-0000-0000-000000000000";
-
-async function createTestReaction(
-  opinionId: string,
-  userId: string,
-  reactionType: "helpful" | "hmm"
-) {
-  const { error } = await adminClient.from("opinion_reactions").insert({
-    opinion_id: opinionId,
-    user_id: userId,
-    reaction_type: reactionType,
-  });
-  if (error) throw new Error(`opinion_reactions 作成失敗: ${error.message}`);
-}
 
 describe("count_reactions_by_opinion_ids() 関数", () => {
   const users: TestUser[] = [];
@@ -46,10 +35,10 @@ describe("count_reactions_by_opinion_ids() 関数", () => {
     opinionId2 = (await createTestOpinion(session2.id)).id;
     opinionId3 = (await createTestOpinion(session3.id)).id;
 
-    await createTestReaction(opinionId1, users[0].id, "helpful");
-    await createTestReaction(opinionId1, users[1].id, "helpful");
-    await createTestReaction(opinionId1, users[2].id, "hmm");
-    await createTestReaction(opinionId2, users[0].id, "helpful");
+    await createTestReactions(opinionId1, [users[0].id], "helpful");
+    await createTestReactions(opinionId1, [users[1].id], "helpful");
+    await createTestReactions(opinionId1, [users[2].id], "hmm");
+    await createTestReactions(opinionId2, [users[0].id], "helpful");
   });
 
   afterAll(async () => {

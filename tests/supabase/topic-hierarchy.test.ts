@@ -8,14 +8,11 @@ import {
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  cleanupTestInterviewConfig,
-  createTestSession,
-} from "./db-function/helpers";
-import {
   adminClient,
+  cleanupTestInterviewConfig,
   cleanupTestUser,
   createTestInterviewConfig,
-  createTestOpinion,
+  createTestOpinionWithSegments,
   createTestUser,
   type TestUser,
 } from "./utils";
@@ -30,39 +27,37 @@ import {
  * - 公開ページのトピック並び順が従来（件数降順）のままか
  */
 
-/** 公開済み（§8 を通る）意見と、その論点1件を作る。 */
+/** 公開済み（§8 を通る）意見と、その論点1件を作り、論点IDを返す。 */
 async function createSegment(opts: {
   configId: string;
   userId: string;
   title: string;
-}) {
-  const session = await createTestSession(opts.configId, opts.userId, {
-    started_at: "2024-08-01T00:00:00Z",
-    completed_at: "2024-08-01T00:00:00Z",
+}): Promise<string> {
+  const { segmentIds } = await createTestOpinionWithSegments({
+    interviewConfigId: opts.configId,
+    userId: opts.userId,
+    session: {
+      started_at: "2024-08-01T00:00:00Z",
+      completed_at: "2024-08-01T00:00:00Z",
+    },
+    opinion: {
+      review_status: "published",
+      is_public_by_user: true,
+      is_public_by_admin: true,
+      // moderation_status は moderation_score からの生成列（<30 で ok）。
+      moderation_score: 5,
+      summary: "サマリ",
+      role_title: "肩書",
+    },
+    segments: [
+      {
+        title: opts.title,
+        content: `${opts.title} の内容`,
+        contextual_quote: `${opts.title} の引用`,
+      },
+    ],
   });
-  const opinion = await createTestOpinion(session.id, {
-    review_status: "published",
-    is_public_by_user: true,
-    is_public_by_admin: true,
-    // moderation_status は moderation_score からの生成列（<30 で ok）。
-    moderation_score: 5,
-    summary: "サマリ",
-    role_title: "肩書",
-  });
-
-  const { data: segment, error } = await adminClient
-    .from("opinion_segments")
-    .insert({
-      opinion_id: opinion.id,
-      opinion_index: 0,
-      title: opts.title,
-      content: `${opts.title} の内容`,
-      contextual_quote: `${opts.title} の引用`,
-    })
-    .select()
-    .single();
-  if (!segment) throw new Error(`opinion_segments 作成失敗: ${error?.message}`);
-  return segment;
+  return segmentIds[0];
 }
 
 describe("トピック2階層 統合テスト", () => {
@@ -94,7 +89,7 @@ describe("トピック2階層 統合テスト", () => {
   it("親を先に入れて子に parent_topic_id が載る", async () => {
     const version = await newVersion();
     if (!version) throw new Error("version 作成失敗");
-    const segment = await createSegment({
+    const segmentId = await createSegment({
       configId,
       userId: testUser.id,
       title: "階層テスト用",
@@ -116,7 +111,7 @@ describe("トピック2階層 統合テスト", () => {
           parent_sort_order: 0,
         },
       ],
-      [{ opinion_segment_id: segment.id, topic_index: 1 }]
+      [{ opinion_segment_id: segmentId, topic_index: 1 }]
     );
 
     const { data: topics } = await adminClient
@@ -184,7 +179,7 @@ describe("トピック2階層 統合テスト", () => {
   it("子を失った大トピックは葉として返らない", async () => {
     const version = await newVersion();
     if (!version) throw new Error("version 作成失敗");
-    const segment = await createSegment({
+    const segmentId = await createSegment({
       configId,
       userId: testUser.id,
       title: "孤児親テスト",
@@ -201,7 +196,7 @@ describe("トピック2階層 統合テスト", () => {
         },
         { title: "中", description: "-", sort_order: 1, parent_sort_order: 0 },
       ],
-      [{ opinion_segment_id: segment.id, topic_index: 1 }]
+      [{ opinion_segment_id: segmentId, topic_index: 1 }]
     );
 
     // 唯一の子を削除して親を子なしにする
@@ -252,8 +247,8 @@ describe("トピック2階層 統合テスト", () => {
         },
       ],
       [
-        { opinion_segment_id: s1.id, topic_index: 0 },
-        { opinion_segment_id: s2.id, topic_index: 1 },
+        { opinion_segment_id: s1, topic_index: 0 },
+        { opinion_segment_id: s2, topic_index: 1 },
       ]
     );
 
@@ -278,12 +273,12 @@ describe("トピック2階層 統合テスト", () => {
     };
     for (const [slot, n] of Object.entries(counts)) {
       for (let i = 0; i < n; i++) {
-        const segment = await createSegment({
+        const segmentId = await createSegment({
           configId,
           userId: testUser.id,
           title: `${slot}-${i}`,
         });
-        segmentsBySlot[slot].push(segment.id);
+        segmentsBySlot[slot].push(segmentId);
       }
     }
 

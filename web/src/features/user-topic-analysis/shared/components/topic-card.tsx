@@ -1,8 +1,8 @@
+import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { getInterviewMessageLink } from "@/features/interview-config/shared/utils/interview-links";
-import { shouldDisplayPublicOpinions } from "@/features/interview-report/shared/utils/public-report-display";
 import { ClampedQuote } from "../../client/components/clamped-quote";
 import type { PublicOpinion, PublicTopic } from "../types";
 import { opinionAttributionLabel } from "../utils/topic-category";
@@ -65,7 +65,7 @@ export function TopicCard({
   const messageHrefFor = (opinion: PublicOpinion): string | null => {
     if (!opinion.source_message_id) return null;
     const visible =
-      opinion.opinion_public && shouldDisplayPublicOpinions(publicReportCount);
+      opinion.opinion_public && shouldDisplayPublicReports(publicReportCount);
     if (!visible) return null;
     return getInterviewMessageLink(
       opinion.opinion_id,

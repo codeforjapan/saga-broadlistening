@@ -55,7 +55,7 @@ export async function createInterviewConfig(
 
     // 募集中にする場合、同じ施策の他の募集中設定を終了する
     if (validatedData.status === "open") {
-      await closeOtherOpenConfigs(billId);
+      await closeOtherOpenConfigs([billId]);
     }
 
     // 新規作成
@@ -103,9 +103,7 @@ export async function updateInterviewConfig(
     // 募集中にする場合、同じ施策の他の募集中設定を終了する
     if (validatedData.status === "open") {
       const policyIds = await findPolicyIdsByInterviewConfigId(configId);
-      for (const policyId of policyIds) {
-        await closeOtherOpenConfigs(policyId, configId);
-      }
+      await closeOtherOpenConfigs(policyIds, configId);
     }
 
     // 更新

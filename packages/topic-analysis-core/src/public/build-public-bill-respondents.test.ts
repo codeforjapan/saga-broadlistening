@@ -1,31 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { buildPublicBillRespondents } from "./build-public-bill-respondents";
-import type { RawRespondentRow } from "./public-types";
+import type { PublicRespondent } from "./public-types";
 
-function row(overrides: Partial<RawRespondentRow> = {}): RawRespondentRow {
+function row(overrides: Partial<PublicRespondent> = {}): PublicRespondent {
   return {
     id: "r1",
     role_title: null,
     summary: "要約",
-    final_text: "提出した意見の本文",
     created_at: null,
     ...overrides,
   };
 }
 
 describe("buildPublicBillRespondents", () => {
-  it("summary・final_text・created_at をそのまま引き継ぐ", () => {
+  it("summary・created_at をそのまま引き継ぐ", () => {
     const [r] = buildPublicBillRespondents([
       row({
         role_title: "育休経験者",
         summary: "本文",
-        final_text: "提出文",
         created_at: "2026-06-09",
       }),
     ]);
     expect(r.role_title).toBe("育休経験者");
     expect(r.summary).toBe("本文");
-    expect(r.final_text).toBe("提出文");
     expect(r.created_at).toBe("2026-06-09");
   });
 

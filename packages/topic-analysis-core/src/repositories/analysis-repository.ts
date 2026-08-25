@@ -136,21 +136,26 @@ export async function fetchInterviewConfigContext(
   interviewConfigId: string
 ): Promise<InterviewConfigContext> {
   const supabase = createAdminClient();
-  const { data: config, error } = await supabase
-    .from("interview_configs")
-    .select("name, description")
-    .eq("id", interviewConfigId)
-    .single();
+  // テーマ本体と紐づく施策は互いに独立なので並列で引く。
+  const [
+    { data: config, error },
+    { data: links, error: linksError },
+  ] = await Promise.all([
+    supabase
+      .from("interview_configs")
+      .select("name, description")
+      .eq("id", interviewConfigId)
+      .single(),
+    supabase
+      .from("policies_interview_configs")
+      .select(
+        "policies!inner(name, policy_contents(summary, content, difficulty_level))"
+      )
+      .eq("interview_config_id", interviewConfigId),
+  ]);
   if (error) {
     throw new Error(`Failed to fetch interview config: ${error.message}`);
   }
-
-  const { data: links, error: linksError } = await supabase
-    .from("policies_interview_configs")
-    .select(
-      "policies!inner(name, policy_contents(summary, content, difficulty_level))"
-    )
-    .eq("interview_config_id", interviewConfigId);
   if (linksError) {
     throw new Error(`Failed to fetch linked policies: ${linksError.message}`);
   }

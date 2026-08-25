@@ -16,13 +16,25 @@ import {
   findInterviewSessionById,
 } from "../repositories/interview-repository";
 import { OPINION_BACKFILL_MODEL } from "../shared/constants";
-import type { BackfillTargetOpinion, ReextractResult } from "../shared/types";
+import type {
+  BackfillTargetOpinion,
+  InterviewConfigContext,
+  ReextractResult,
+} from "../shared/types";
 import { prepareReextractionMessages } from "../utils/prepare-reextraction-messages";
 
 /** 再抽出の生成ステップ（テストで Fake に差し替えられるよう DI 可能にする）。 */
 export type GenerateReportFn = (params: {
   systemPrompt: string;
 }) => Promise<InterviewReportData>;
+
+/**
+ * テーマ文脈の取得。同じ意見募集なら全意見で同じ内容になるため、
+ * バックフィルの run 側でキャッシュ済みの取得関数を差し込めるようにしている。
+ */
+export type LoadConfigContextFn = (
+  interviewConfigId: string
+) => Promise<InterviewConfigContext>;
 
 /** 指定モデルで再抽出する既定の生成関数を作る。 */
 function createDefaultGenerateReport(model: string): GenerateReportFn {
@@ -50,12 +62,18 @@ function createDefaultGenerateReport(model: string): GenerateReportFn {
  */
 export async function reextractReportOpinions(
   target: BackfillTargetOpinion,
-  deps: { generateReport?: GenerateReportFn; model?: string } = {}
+  deps: {
+    generateReport?: GenerateReportFn;
+    model?: string;
+    loadConfigContext?: LoadConfigContextFn;
+  } = {}
 ): Promise<ReextractResult> {
   const { opinionId, sessionId } = target;
   const generateReport =
     deps.generateReport ??
     createDefaultGenerateReport(deps.model ?? OPINION_BACKFILL_MODEL);
+  const loadConfigContext =
+    deps.loadConfigContext ?? fetchInterviewConfigContext;
   const nowIso = new Date().toISOString();
 
   try {
@@ -66,7 +84,7 @@ export async function reextractReportOpinions(
     }
 
     const [context, messages] = await Promise.all([
-      fetchInterviewConfigContext(session.interview_config_id),
+      loadConfigContext(session.interview_config_id),
       findInterviewMessagesBySessionId(sessionId),
     ]);
 

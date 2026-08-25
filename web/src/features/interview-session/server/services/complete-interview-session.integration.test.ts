@@ -1,12 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   adminClient,
-  createTestUser,
   cleanupTestUser,
   createTestInterviewData,
-  cleanupTestPolicy,
+  createTestUser,
   type TestUser,
 } from "@test-utils/utils";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { completeInterviewSession } from "./complete-interview-session";
 
 const contentRichness = {
@@ -66,17 +65,17 @@ function buildReportMessage(
 describe("completeInterviewSession 統合テスト", () => {
   let testUser: TestUser;
   let sessionId: string;
-  let billId: string;
+  let cleanupInterviewData: () => Promise<void>;
 
   beforeEach(async () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.policy.id;
+    cleanupInterviewData = data.cleanup;
   });
 
   afterEach(async () => {
-    await cleanupTestPolicy(billId);
+    await cleanupInterviewData();
     await cleanupTestUser(testUser.id);
   });
 

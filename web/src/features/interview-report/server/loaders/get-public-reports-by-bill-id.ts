@@ -1,17 +1,15 @@
 import "server-only";
 
+import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { getLinkedInterviewConfigId } from "@/features/interview-config/server/loaders/get-linked-interview-config-id";
-import {
-  mapPublicInterviewReports,
-  type PublicInterviewReportDisplay,
-  shouldDisplayPublicOpinions,
-} from "../../shared/utils/public-report-display";
+import type { PublicInterviewReport } from "../../shared/utils/public-report-display";
 import {
   countPublicOpinionsByInterviewConfigId,
   findPublicOpinionsByConfigId,
 } from "../repositories/interview-report-repository";
 
-export type PublicInterviewReport = PublicInterviewReportDisplay;
+// 既存の呼び出し元がこのローダー経由で型を参照しているため再エクスポートする。
+export type { PublicInterviewReport };
 
 export type PublicReportsResult = {
   reports: PublicInterviewReport[];
@@ -35,12 +33,11 @@ export async function getPublicReportsByBillId(
   const totalCount =
     await countPublicOpinionsByInterviewConfigId(interviewConfigId);
 
-  if (!shouldDisplayPublicOpinions(totalCount)) {
+  if (!shouldDisplayPublicReports(totalCount)) {
     return { reports: [], totalCount: 0 };
   }
 
-  const rawReports = await findPublicOpinionsByConfigId(interviewConfigId, 3);
-  const reports = mapPublicInterviewReports(rawReports);
+  const reports = await findPublicOpinionsByConfigId(interviewConfigId, 3);
 
   return { reports, totalCount };
 }

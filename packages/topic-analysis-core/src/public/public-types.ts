@@ -87,7 +87,12 @@ export type PublishedVersionMeta = {
 
 // ── 回答一覧（回答者1人=1カード）の表示データ ──
 
-/** 回答一覧カード1件（公開意見＝回答者1人）。 */
+/**
+ * 回答一覧カード1件（公開意見＝回答者1人）。
+ * リポジトリが返す生行と同じ形なので、pure 関数の入力にもこの型を使う
+ * （違いは role_title が表示用に正規化済みかどうかだけ）。
+ * 本文（final_text）はカードに出さないため含めない（意見詳細でのみ返す）。
+ */
 export type PublicRespondent = {
   /** 出典意見ID（意見詳細への遷移に使う）。 */
   id: string;
@@ -95,18 +100,7 @@ export type PublicRespondent = {
   role_title: string | null;
   /** 意見の要約テキスト（カード本文に表示）。 */
   summary: string | null;
-  /** 市民が最終確認・修正して提出した意見本文（opinions.final_text）。 */
-  final_text: string;
   /** 出典意見の作成日時（相対表示・日付表示に使う）。 */
-  created_at: string | null;
-};
-
-/** リポジトリが返す生の意見行（回答一覧用・pure 関数の入力）。 */
-export type RawRespondentRow = {
-  id: string;
-  role_title: string | null;
-  summary: string | null;
-  final_text: string;
   created_at: string | null;
 };
 
@@ -143,8 +137,10 @@ export type PublicRespondentDetail = {
   messages: TranscriptMessage[];
 };
 
-/** 詳細取得の生の意見行（pure 関数の入力）。回答一覧の行に立場説明を加えたもの。 */
-export type RawRespondentDetailRow = RawRespondentRow & {
+/** 詳細取得の生の意見行（pure 関数の入力）。回答一覧の行に本文と立場説明を加えたもの。 */
+export type RawRespondentDetailRow = PublicRespondent & {
+  /** 市民が最終確認・修正して提出した意見本文（opinions.final_text）。 */
+  final_text: string;
   role_description: string | null;
 };
 

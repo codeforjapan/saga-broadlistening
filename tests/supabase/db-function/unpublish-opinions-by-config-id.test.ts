@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { trackInterviewConfigs } from "./helpers";
 
 async function readOpinion(opinionId: string) {
   const { data, error } = await adminClient
@@ -21,13 +21,7 @@ async function readOpinion(opinionId: string) {
 
 describe("unpublish_opinions_by_config_id", () => {
   let user: TestUser;
-  const configIds: string[] = [];
-
-  async function createConfig(): Promise<string> {
-    const config = await createTestInterviewConfig();
-    configIds.push(config.id);
-    return config.id;
-  }
+  const configs = trackInterviewConfigs();
 
   async function createOpinionInConfig(
     configId: string,
@@ -46,15 +40,12 @@ describe("unpublish_opinions_by_config_id", () => {
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(user.id);
   });
 
   it("対象config配下の意見をhiddenにしis_public_by_adminを下げる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const published = await createOpinionInConfig(configId, {
       review_status: "published",
@@ -80,7 +71,7 @@ describe("unpublish_opinions_by_config_id", () => {
   });
 
   it("すでにhiddenの意見は更新対象にならない", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const alreadyHidden = await createOpinionInConfig(configId, {
       review_status: "hidden",
@@ -100,8 +91,8 @@ describe("unpublish_opinions_by_config_id", () => {
   });
 
   it("別configの意見には影響しない", async () => {
-    const targetConfigId = await createConfig();
-    const otherConfigId = await createConfig();
+    const targetConfigId = await configs.createConfigId();
+    const otherConfigId = await configs.createConfigId();
 
     await createOpinionInConfig(targetConfigId, {
       review_status: "published",

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { adminClient, createTestInterviewConfig } from "../utils";
-import { cleanupTestInterviewConfig } from "./helpers";
+import {
+  adminClient,
+  cleanupTestInterviewConfig,
+  createTestInterviewConfig,
+} from "../utils";
 
 let configId: string;
 

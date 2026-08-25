@@ -1,14 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   adminClient,
-  createTestUser,
   cleanupTestUser,
   createTestInterviewData,
-  cleanupTestPolicy,
+  createTestUser,
   type TestUser,
 } from "@test-utils/utils";
-import type { GetUserFn } from "../utils/verify-session-ownership";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { archiveInterviewSessionCore } from "../services/archive-interview-session-core";
+import type { GetUserFn } from "../utils/verify-session-ownership";
 
 function createGetUser(userId: string): GetUserFn {
   return async () => ({
@@ -25,17 +24,17 @@ const getUnauthenticatedUser: GetUserFn = async () => ({
 describe("archiveInterviewSession 統合テスト", () => {
   let testUser: TestUser;
   let sessionId: string;
-  let billId: string;
+  let cleanupInterviewData: () => Promise<void>;
 
   beforeEach(async () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.policy.id;
+    cleanupInterviewData = data.cleanup;
   });
 
   afterEach(async () => {
-    await cleanupTestPolicy(billId);
+    await cleanupInterviewData();
     await cleanupTestUser(testUser.id);
   });
 

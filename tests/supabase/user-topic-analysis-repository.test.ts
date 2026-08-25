@@ -7,15 +7,13 @@ import {
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
-  cleanupTestInterviewConfig,
-  createTestSession,
-} from "./db-function/helpers";
-import {
   adminClient,
+  cleanupTestInterviewConfig,
   cleanupTestUser,
   createTestInterviewConfig,
-  createTestOpinion,
+  createTestOpinionWithSegments,
   createTestUser,
+  type TestOpinionSegmentInput,
   type TestUser,
 } from "./utils";
 
@@ -25,41 +23,27 @@ function expectVersion<T>(v: T | null): T {
   return v;
 }
 
-/** session + opinion + opinion_segments を作る。 */
+/** §8 フィルタの入力になる意見を、公開状態とモデレーションスコアを指定して作る。 */
 async function createOpinionWithSegments(opts: {
   configId: string;
   userId: string;
   reviewStatus: "published" | "pending_review" | "hidden";
   moderationScore: number; // <30=ok, 30-69=warning, >=70=ng（generated column）
-  segments: Array<{ title: string; content: string }>;
-}): Promise<{ opinionId: string; segmentIds: string[] }> {
-  const session = await createTestSession(opts.configId, opts.userId, {
-    completed_at: new Date().toISOString(),
+  segments: TestOpinionSegmentInput[];
+}) {
+  return await createTestOpinionWithSegments({
+    interviewConfigId: opts.configId,
+    userId: opts.userId,
+    session: { completed_at: new Date().toISOString() },
+    opinion: {
+      review_status: opts.reviewStatus,
+      is_public_by_user: true,
+      is_public_by_admin: opts.reviewStatus === "published",
+      moderation_score: opts.moderationScore,
+      summary: "s",
+    },
+    segments: opts.segments,
   });
-  const opinion = await createTestOpinion(session.id, {
-    review_status: opts.reviewStatus,
-    is_public_by_user: true,
-    is_public_by_admin: opts.reviewStatus === "published",
-    moderation_score: opts.moderationScore,
-    summary: "s",
-  });
-
-  const { data: segments, error } = await adminClient
-    .from("opinion_segments")
-    .insert(
-      opts.segments.map((s, i) => ({
-        opinion_id: opinion.id,
-        opinion_index: i,
-        title: s.title,
-        content: s.content,
-      }))
-    )
-    .select("id");
-  if (error || !segments) {
-    throw new Error(`opinion_segments 作成失敗: ${error?.message}`);
-  }
-
-  return { opinionId: opinion.id, segmentIds: segments.map((s) => s.id) };
 }
 
 describe("user-topic-analysis repository 統合テスト", () => {

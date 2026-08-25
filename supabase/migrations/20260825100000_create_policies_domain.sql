@@ -91,8 +91,6 @@ create table policy_contents (
   unique (policy_id, difficulty_level)
 );
 
-create index idx_policy_contents_policy_id on policy_contents(policy_id);
-
 create trigger update_policy_contents_updated_at before update on policy_contents
   for each row execute function update_updated_at_column();
 

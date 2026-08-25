@@ -1,3 +1,4 @@
+import type { Database } from "@mirai-gikai/supabase";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   cleanupTestUser,
@@ -9,7 +10,13 @@ import {
 /**
  * 全テーブルは RLS 有効 + ポリシーなし（default deny）。
  * anon / authenticated どちらからも SELECT・INSERT できないことを確認する。
+ *
+ * 対象は public スキーマの全テーブル。テーブルを追加したときに
+ * ここへ足し忘れると `_assertAllTablesCovered` が型エラーになる
+ * （手書きのリストが実スキーマから静かにずれるのを防ぐため）。
  */
+
+type PublicTable = keyof Database["public"]["Tables"];
 
 const tables = [
   "policies",
@@ -24,13 +31,31 @@ const tables = [
   "interview_questions",
   "interview_sessions",
   "interview_messages",
+  "interview_rating_feedbacks",
   "opinions",
   "opinion_segments",
   "opinion_reactions",
+  "topic_analysis_versions",
+  "topic_analysis_topics",
+  "topic_analysis_classifications",
+  "topic_analysis_version",
+  "topic",
+  "topic_opinion",
   "portal_controls",
   "audit_logs",
   "guard_events",
-] as const;
+  "api_rate_limits",
+  "chat_usage_events",
+  // Issue #59 で削除予定の旧テーブル
+  "bills",
+  "bill_contents",
+  "bills_tags",
+  "chats",
+] as const satisfies readonly PublicTable[];
+
+/** 網羅チェック。未掲載のテーブルがあると never に代入できず型エラーになる */
+type UncoveredTable = Exclude<PublicTable, (typeof tables)[number]>;
+const _assertAllTablesCovered: UncoveredTable[] = [];
 
 describe("RLS default deny（全テーブル共通）", () => {
   describe("anon クライアント", () => {

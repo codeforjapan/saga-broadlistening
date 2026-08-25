@@ -121,8 +121,6 @@ export function MultiSimulationView({
     }
 
     const snapshot: TransientConfigSnapshot = {
-      // Epic #54 で interview_configs.mode は廃止され loop に一本化された
-      mode: "loop",
       description: formValues.description,
       estimatedDurationMinutes: formValues.estimated_duration,
       questions: currentQuestions.map((q, index) => ({

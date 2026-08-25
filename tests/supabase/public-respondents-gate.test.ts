@@ -6,12 +6,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { MIN_PUBLIC_OPINIONS_FOR_DISPLAY } from "../../packages/shared/src/report-publication/auto-publish";
 import {
   cleanupTestInterviewConfig,
-  createTestSession,
-} from "./db-function/helpers";
-import {
   cleanupTestUser,
   createTestInterviewConfig,
-  createTestOpinion,
+  createTestPublicOpinions,
   createTestUser,
   type TestUser,
 } from "./utils";
@@ -19,7 +16,7 @@ import {
 /**
  * 回答一覧（getPublicRespondents）の k-匿名性ゲート統合テスト。
  * 公開意見（review_status='published'）が MIN_PUBLIC_OPINIONS_FOR_DISPLAY 件未満の
- * 意見募集では、回答者個人の属性（role_title・summary・final_text）を返さないことを確認する。
+ * 意見募集では、回答者個人の属性（role_title・summary）を返さないことを確認する。
  *
  * ゲートの単位は施策ではなく意見募集（テーマ）。
  */
@@ -34,21 +31,17 @@ describe("getPublicRespondents の k-匿名性ゲート 統合テスト", () => 
     const config = await createTestInterviewConfig();
     createdConfigIds.push(config.id);
 
-    for (let i = 0; i < count; i++) {
-      const session = await createTestSession(config.id, testUser.id, {
-        completed_at: new Date().toISOString(),
-      });
-      await createTestOpinion(session.id, {
-        review_status: "published",
-        is_public_by_user: true,
-        is_public_by_admin: true,
+    await createTestPublicOpinions({
+      interviewConfigId: config.id,
+      userId: testUser.id,
+      count,
+      opinion: (index) => ({
         // moderation_status は moderation_score からの生成列のため指定しない。
         moderation_score: 5,
-        role_title: `テスト回答者${i + 1}`,
-        summary: `テスト要約${i + 1}`,
-        final_text: `テスト意見本文${i + 1}`,
-      });
-    }
+        role_title: `テスト回答者${index + 1}`,
+        summary: `テスト要約${index + 1}`,
+      }),
+    });
 
     return config.id;
   }
@@ -86,6 +79,5 @@ describe("getPublicRespondents の k-匿名性ゲート 統合テスト", () => 
     expect(respondents).toHaveLength(MIN_PUBLIC_OPINIONS_FOR_DISPLAY);
     expect(respondents[0].role_title).toMatch(/^テスト回答者/);
     expect(respondents[0].summary).toMatch(/^テスト要約/);
-    expect(respondents[0].final_text).toMatch(/^テスト意見本文/);
   });
 });

@@ -1,102 +1,85 @@
 import { MIN_PUBLIC_OPINIONS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
 import {
-  adminClient,
-  cleanupTestPolicy,
   cleanupTestUser,
-  createTestInterviewConfig,
-  createTestPolicy,
+  createTestPolicyWithConfig,
+  createTestPublicOpinions,
   createTestUser,
-  linkPolicyToInterviewConfig,
+  insertTestInterviewMessages,
   type TestUser,
 } from "@test-utils/utils";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { getOpenDataInterviews } from "./get-open-data-interviews";
 
 /**
+ * getOpenDataInterviews は find_open_data_opinions RPC の薄いラッパー。
+ * 絞り込み・並び順・カーソルは RPC 側のテスト
+ * （tests/supabase/db-function/find-open-data-opinions.test.ts）で確認済みなので、
+ * ここでは web 側でしか通らない「interview_messages → { role, content } の整形」を検証する。
+ *
  * k-匿名性ゲート（テーマあたり公開意見 >= MIN_PUBLIC_OPINIONS_FOR_DISPLAY）を
- * 満たすデータを実DBに作り、サービス全体（RPC + メッセージ取得 + 整形）を検証する。
- * ローカルDBには他の条件合致データが存在し得るため、検証はこのテストの
- * 意見募集の行だけに絞って行う。
+ * 満たすデータが要るため、残りは水増しで埋める。ローカルDBには他の条件合致データが
+ * 存在し得るため、検証はこのテストの意見募集の行だけに絞って行う。
  */
 describe("getOpenDataInterviews", () => {
   let testUser: TestUser;
-  let policyId: string;
   let configId: string;
+  let cleanupPolicyWithConfig: () => Promise<void>;
 
   beforeAll(async () => {
     testUser = await createTestUser();
-    const policy = await createTestPolicy({
-      publish_status: "published",
-      published_at: new Date().toISOString(),
-    });
-    policyId = policy.id;
-
-    const config = await createTestInterviewConfig({
-      name: `オープンデータ統合テスト ${Date.now()}`,
+    const { config, cleanup } = await createTestPolicyWithConfig({
+      policy: {
+        publish_status: "published",
+        published_at: new Date().toISOString(),
+      },
+      config: { name: `オープンデータ統合テスト ${Date.now()}` },
     });
     configId = config.id;
-    await linkPolicyToInterviewConfig(policyId, configId);
+    cleanupPolicyWithConfig = cleanup;
 
     // ゲートを満たす数の公開意見を作成し、うち2件だけ二次利用許諾を付ける
-    for (let i = 0; i < MIN_PUBLIC_OPINIONS_FOR_DISPLAY; i++) {
-      const { data: session, error: sessionError } = await adminClient
-        .from("interview_sessions")
-        .insert({
-          interview_config_id: config.id,
-          user_id: testUser.id,
-          started_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-      if (sessionError) throw new Error(sessionError.message);
-
-      const consented = i < 2;
-      const { error: opinionError } = await adminClient
-        .from("opinions")
-        .insert({
-          interview_session_id: session.id,
-          is_public_by_user: true,
-          is_public_by_admin: true,
-          review_status: "published",
+    const { sessions } = await createTestPublicOpinions({
+      interviewConfigId: configId,
+      userId: testUser.id,
+      count: MIN_PUBLIC_OPINIONS_FOR_DISPLAY,
+      opinion: (index) => {
+        const consented = index < 2;
+        return {
           is_data_reuse_consented: consented,
-          final_text: consented ? `許諾済み本文${i}` : `許諾なし本文${i}`,
-          summary: consented ? `許諾済み${i}` : `許諾なし${i}`,
-          // i=1（許諾済みの新しい方）> i=0 となるよう作成時刻をずらす
-          created_at: new Date(Date.UTC(2026, 0, 1) + i * 60_000).toISOString(),
-        });
-      if (opinionError) throw new Error(opinionError.message);
+          final_text: consented
+            ? `許諾済み本文${index}`
+            : `許諾なし本文${index}`,
+          summary: consented ? `許諾済み${index}` : `許諾なし${index}`,
+          // index=1（許諾済みの新しい方）> index=0 となるよう作成時刻をずらす
+          created_at: new Date(
+            Date.UTC(2026, 0, 1) + index * 60_000
+          ).toISOString(),
+        };
+      },
+    });
 
-      // 新しい方の許諾済みセッションにだけ会話ログを付ける。
-      // 同一insertだと created_at が同値になり時系列順が不定になるため明示する
-      if (i === 1) {
-        const { error: messageError } = await adminClient
-          .from("interview_messages")
-          .insert([
-            {
-              interview_session_id: session.id,
-              role: "assistant",
-              content: "質問です",
-              created_at: "2026-01-01T00:00:00+00:00",
-            },
-            {
-              interview_session_id: session.id,
-              role: "user",
-              content: "回答です",
-              created_at: "2026-01-01T00:00:01+00:00",
-            },
-          ]);
-        if (messageError) throw new Error(messageError.message);
-      }
-    }
+    // 新しい方の許諾済みセッションにだけ会話ログを付ける。
+    // 同一 INSERT だと created_at が同値になり時系列順が不定になるため明示する
+    await insertTestInterviewMessages(sessions[1].id, [
+      {
+        role: "assistant",
+        content: "質問です",
+        created_at: "2026-01-01T00:00:00+00:00",
+      },
+      {
+        role: "user",
+        content: "回答です",
+        created_at: "2026-01-01T00:00:01+00:00",
+      },
+    ]);
   });
 
   afterAll(async () => {
-    await cleanupTestPolicy(policyId);
-    await adminClient.from("interview_configs").delete().eq("id", configId);
+    await cleanupPolicyWithConfig();
     await cleanupTestUser(testUser.id);
   });
 
-  it("許諾済み意見のみを新しい順に返し、会話ログを整形する", async () => {
+  it("許諾済み意見の会話ログを時系列で整形して返す", async () => {
     const page = await getOpenDataInterviews({ limit: 1000, cursor: null });
     const mine = page.items.filter(
       (item) => item.interviewConfigId === configId
@@ -110,27 +93,11 @@ describe("getOpenDataInterviews", () => {
 
     const [newer, older] = mine;
     expect(newer?.finalText).toBe("許諾済み本文1");
-    // 会話ログが時系列で紐づく（メッセージなしのセッションは空配列）
     expect(newer?.messages).toEqual([
       { role: "assistant", content: "質問です" },
       { role: "user", content: "回答です" },
     ]);
+    // メッセージなしのセッションは空配列
     expect(older?.messages).toEqual([]);
-  });
-
-  it("cursor 以降のページには古い意見だけが含まれる", async () => {
-    const page = await getOpenDataInterviews({ limit: 1000, cursor: null });
-    const newer = page.items.find((item) => item.summary === "許諾済み1");
-    expect(newer).toBeTruthy();
-    if (!newer) return;
-
-    const afterCursor = await getOpenDataInterviews({
-      limit: 1000,
-      cursor: { createdAt: newer.createdAt, id: newer.opinionId },
-    });
-    const mine = afterCursor.items.filter(
-      (item) => item.interviewConfigId === configId
-    );
-    expect(mine.map((item) => item.summary)).toEqual(["許諾済み0"]);
   });
 });

@@ -78,7 +78,6 @@ async function buildPipelineParams(params: MultiSimulationRunRequest) {
           description: params.improvedConfig.description,
         },
         questions: improvedQuestions,
-        mode: params.improvedConfig.mode,
         estimatedDurationMinutes:
           params.improvedConfig.estimatedDurationMinutes ?? null,
       },

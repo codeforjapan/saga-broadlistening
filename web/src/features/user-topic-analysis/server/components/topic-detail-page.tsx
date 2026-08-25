@@ -9,7 +9,8 @@ import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
-import { getPublicReportsByBillId } from "@/features/interview-report/server/loaders/get-public-reports-by-bill-id";
+import { getLinkedInterviewConfigId } from "@/features/interview-config/server/loaders/get-linked-interview-config-id";
+import { countPublicOpinionsByInterviewConfigId } from "@/features/interview-report/server/repositories/interview-report-repository";
 import { routes } from "@/lib/routes";
 import { TopicOpinionList } from "../../client/components/topic-opinion-list";
 import { splitSummaryLines } from "../../shared/utils/split-summary-lines";
@@ -74,14 +75,16 @@ export async function TopicDetailPage({
   billId,
   topicId,
 }: TopicDetailPageProps) {
-  const [bill, detail, publicReportsResult, interviewConfig] =
-    await Promise.all([
-      getBillById(billId),
-      getPublicTopicDetail(billId, topicId),
-      getPublicReportsByBillId(billId),
-      getInterviewConfig(billId),
-    ]);
-  const publicReportCount = publicReportsResult.totalCount;
+  const [bill, detail, interviewConfigId, interviewConfig] = await Promise.all([
+    getBillById(billId),
+    getPublicTopicDetail(billId, topicId),
+    getLinkedInterviewConfigId(billId),
+    getInterviewConfig(billId),
+  ]);
+  // 使うのは k-匿名性ゲートの判定に必要な件数だけなので、公開意見の本体は引かない
+  const publicReportCount = interviewConfigId
+    ? await countPublicOpinionsByInterviewConfigId(interviewConfigId)
+    : 0;
 
   if (!bill || !detail) {
     notFound();

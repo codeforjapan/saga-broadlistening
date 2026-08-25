@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { trackInterviewConfigs } from "./helpers";
 
 let sessionCounter = 0;
 
@@ -26,28 +26,19 @@ async function createOrderedSession(
 
 describe("find_sessions_ordered_by_total_content_richness() フィルタパラメータ", () => {
   let testUser: TestUser;
-  const configIds: string[] = [];
-
-  async function createConfig(): Promise<string> {
-    const config = await createTestInterviewConfig();
-    configIds.push(config.id);
-    return config.id;
-  }
+  const configs = trackInterviewConfigs();
 
   beforeEach(async () => {
     testUser = await createTestUser();
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(testUser.id);
   });
 
   it("p_statusでcompletedセッションのみフィルタできる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const completed = await createOrderedSession(
       configId,
@@ -76,7 +67,7 @@ describe("find_sessions_ordered_by_total_content_richness() フィルタパラ�
   });
 
   it("p_statusでin_progress/archivedを区別できる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const inProgress = await createOrderedSession(configId, testUser.id);
     const archived = await createOrderedSession(configId, testUser.id);
@@ -113,7 +104,7 @@ describe("find_sessions_ordered_by_total_content_richness() フィルタパラ�
   });
 
   it("p_visibility='public'は公開済み(published)の意見を持つセッションのみ返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const published = await createOrderedSession(configId, testUser.id);
     await createTestOpinion(published.id, {
@@ -144,7 +135,7 @@ describe("find_sessions_ordered_by_total_content_richness() フィルタパラ�
   });
 
   it("p_visibility='private'は未公開の意見と意見なしのセッションを返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const published = await createOrderedSession(configId, testUser.id);
     await createTestOpinion(published.id, { review_status: "published" });
@@ -175,7 +166,7 @@ describe("find_sessions_ordered_by_total_content_richness() フィルタパラ�
   });
 
   it("複数フィルタを組み合わせて絞り込める", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     // 完了 × 公開済み（唯一の該当）
     const target = await createOrderedSession(
@@ -224,7 +215,7 @@ describe("find_sessions_ordered_by_total_content_richness() フィルタパラ�
   });
 
   it("フィルタパラメータがNULLの場合はフィルタしない", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const s1 = await createOrderedSession(configId, testUser.id);
     await createTestOpinion(s1.id, { content_richness: { total: 30 } });

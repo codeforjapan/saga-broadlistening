@@ -1,10 +1,10 @@
 import {
   isPublicReportVisible,
   type OpinionReviewStatus,
-  shouldDisplayPublicReports,
 } from "@mirai-gikai/shared/report-publication/auto-publish";
 
-export type RawPublicInterviewReport = {
+/** 公開意見一覧のカード1件（取得した行をそのまま表示に使う）。 */
+export type PublicInterviewReport = {
   id: string;
   role_title: string | null;
   summary: string | null;
@@ -12,8 +12,6 @@ export type RawPublicInterviewReport = {
   total_content_richness: number | null;
   created_at: string;
 };
-
-export type PublicInterviewReportDisplay = RawPublicInterviewReport;
 
 /** 意見に紐づくセッション（意見募集・施策まで辿れる形） */
 export type PublicReportSessionLike = {
@@ -27,28 +25,14 @@ export type PublicReportSessionLike = {
 
 type BillContentLike = { title: string };
 
-export function mapPublicInterviewReports(
-  rawReports: RawPublicInterviewReport[]
-): PublicInterviewReportDisplay[] {
-  return rawReports.map((report) => ({
-    id: report.id,
-    role_title: report.role_title,
-    summary: report.summary,
-    final_text: report.final_text,
-    total_content_richness: report.total_content_richness,
-    created_at: report.created_at,
-  }));
-}
-
+/** 1件多く取得した行から、ページ分の意見と続きの有無を切り出す。 */
 export function buildPublicReportsPage(
-  rawReports: RawPublicInterviewReport[],
+  rawReports: PublicInterviewReport[],
   pageSize: number
 ) {
   const hasMore = rawReports.length > pageSize;
   return {
-    reports: mapPublicInterviewReports(
-      hasMore ? rawReports.slice(0, pageSize) : rawReports
-    ),
+    reports: hasMore ? rawReports.slice(0, pageSize) : rawReports,
     hasMore,
   };
 }
@@ -82,28 +66,6 @@ export function countUserMessageCharacters(
     .reduce((sum, message) => sum + message.content.length, 0);
 }
 
-/**
- * 公開意見が第三者に表示できるか（公開状態 × k-匿名性ゲート）。
- * 判定ロジックの正準は @mirai-gikai/shared（web/admin 共有）。
- */
-export function isPublicOpinionVisible({
-  reviewStatus,
-  publicOpinionCount,
-}: {
-  reviewStatus: OpinionReviewStatus;
-  publicOpinionCount: number;
-}) {
-  return isPublicReportVisible({
-    reviewStatus,
-    publicReportCount: publicOpinionCount,
-  });
-}
-
-/** 公開意見数がk-匿名性のしきい値に達しているか。 */
-export function shouldDisplayPublicOpinions(publicOpinionCount: number) {
-  return shouldDisplayPublicReports(publicOpinionCount);
-}
-
 export function canViewReportWithMessages({
   isOwner,
   reviewStatus,
@@ -114,5 +76,8 @@ export function canViewReportWithMessages({
   publicOpinionCount: number;
 }) {
   if (isOwner) return true;
-  return isPublicOpinionVisible({ reviewStatus, publicOpinionCount });
+  return isPublicReportVisible({
+    reviewStatus,
+    publicReportCount: publicOpinionCount,
+  });
 }

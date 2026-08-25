@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@mirai-gikai/supabase";
-import { resolveOpinionPublicSettingUpdate } from "../../shared/utils/resolve-review-status";
+import { resolveOpinionPublicSettingUpdate } from "@mirai-gikai/shared/report-publication/review-status";
 import type { SortOrder } from "../../shared/utils/sort-order";
 
 // Epic #54 で interview_report → opinions に再定義され、公開状態の正本は

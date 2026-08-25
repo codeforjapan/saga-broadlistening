@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { createTestReactions, trackInterviewConfigs } from "./helpers";
 
 /** 意見募集配下に意見を1件作成する（既定は公開済み） */
 async function createOpinionInConfig(
@@ -30,28 +30,9 @@ async function createOpinionInConfig(
   });
 }
 
-async function createTestReaction(
-  opinionId: string,
-  userId: string,
-  reactionType: "helpful" | "hmm"
-) {
-  const { error } = await adminClient.from("opinion_reactions").insert({
-    opinion_id: opinionId,
-    user_id: userId,
-    reaction_type: reactionType,
-  });
-  if (error) throw new Error(`opinion_reactions 作成失敗: ${error.message}`);
-}
-
 describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () => {
   let testUsers: TestUser[] = [];
-  const configIds: string[] = [];
-
-  async function createConfig(): Promise<string> {
-    const config = await createTestInterviewConfig();
-    configIds.push(config.id);
-    return config.id;
-  }
+  const configs = trackInterviewConfigs();
 
   beforeEach(async () => {
     testUsers = [
@@ -62,10 +43,7 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     for (const user of testUsers) {
       await cleanupTestUser(user.id);
     }
@@ -73,7 +51,7 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   it("helpful×1+total_content_richnessの重み付きスコア降順で意見を返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     // opinion1: helpful x0, total_content_richness=80 → weighted=0+80=80
     const opinion1 = await createOpinionInConfig(configId, testUsers[0].id, {
@@ -90,9 +68,9 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
       total_content_richness: 80,
     });
 
-    await createTestReaction(opinion2.id, testUsers[0].id, "helpful");
-    await createTestReaction(opinion2.id, testUsers[2].id, "helpful");
-    await createTestReaction(opinion3.id, testUsers[0].id, "helpful");
+    await createTestReactions(opinion2.id, [testUsers[0].id], "helpful");
+    await createTestReactions(opinion2.id, [testUsers[2].id], "helpful");
+    await createTestReactions(opinion3.id, [testUsers[0].id], "helpful");
 
     const { data, error } = await adminClient.rpc(
       "find_public_opinions_by_config_id_ordered_by_reactions",
@@ -108,7 +86,7 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   it("hmmリアクションは重み付きスコアに影響しない", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     // opinion1: hmm x2, helpful x0, total_content_richness=80 → weighted=80
     const opinion1 = await createOpinionInConfig(configId, testUsers[0].id, {
@@ -120,9 +98,9 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
       total_content_richness: 70,
     });
 
-    await createTestReaction(opinion1.id, testUsers[1].id, "hmm");
-    await createTestReaction(opinion1.id, testUsers[2].id, "hmm");
-    await createTestReaction(opinion2.id, testUsers[0].id, "helpful");
+    await createTestReactions(opinion1.id, [testUsers[1].id], "hmm");
+    await createTestReactions(opinion1.id, [testUsers[2].id], "hmm");
+    await createTestReactions(opinion2.id, [testUsers[0].id], "helpful");
 
     const { data, error } = await adminClient.rpc(
       "find_public_opinions_by_config_id_ordered_by_reactions",
@@ -136,7 +114,7 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   it("helpfulが同数の場合はtotal_content_richnessの差で順序が決まる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const opinion1 = await createOpinionInConfig(configId, testUsers[0].id, {
       total_content_richness: 70,
@@ -157,7 +135,7 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   it("review_statusがpublishedでない意見は返さない", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     await createOpinionInConfig(configId, testUsers[0].id, {
       review_status: "pending_review",
@@ -178,8 +156,8 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   it("別の意見募集の意見は返さない", async () => {
-    const configId1 = await createConfig();
-    const configId2 = await createConfig();
+    const configId1 = await configs.createConfigId();
+    const configId2 = await configs.createConfigId();
 
     const opinion1 = await createOpinionInConfig(configId1, testUsers[0].id);
     await createOpinionInConfig(configId2, testUsers[1].id);
@@ -195,7 +173,7 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   it("p_limitで返却件数を制限できる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     for (const user of testUsers) {
       await createOpinionInConfig(configId, user.id);
@@ -211,7 +189,7 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   it("p_offsetでスキップできる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     await createOpinionInConfig(configId, testUsers[0].id, {
       total_content_richness: 90,
@@ -235,7 +213,7 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   it("p_sort_order='newest'で作成日時降順にソートされる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     // opinion1: 最古・最高スコア（helpful x2, total_content_richness=90）
     const opinion1 = await createOpinionInConfig(configId, testUsers[0].id, {
@@ -248,8 +226,8 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
       total_content_richness: 10,
     });
 
-    await createTestReaction(opinion1.id, testUsers[1].id, "helpful");
-    await createTestReaction(opinion1.id, testUsers[2].id, "helpful");
+    await createTestReactions(opinion1.id, [testUsers[1].id], "helpful");
+    await createTestReactions(opinion1.id, [testUsers[2].id], "helpful");
 
     const { data, error } = await adminClient.rpc(
       "find_public_opinions_by_config_id_ordered_by_reactions",
@@ -265,7 +243,7 @@ describe("find_public_opinions_by_config_id_ordered_by_reactions() 関数", () =
   });
 
   it("p_sort_order='recommended'（デフォルト）で重み付きスコア降順にソートされる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const opinion1 = await createOpinionInConfig(configId, testUsers[0].id, {
       total_content_richness: 10,

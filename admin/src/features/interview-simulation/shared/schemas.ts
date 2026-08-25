@@ -1,4 +1,3 @@
-import { INTERVIEW_MODES } from "@mirai-gikai/shared/interview-prompts/types";
 import { z } from "zod";
 import { AI_MODELS, type AiModel } from "@/lib/ai/models";
 import { MAX_PERSONA_SLOTS } from "./constants";
@@ -319,7 +318,6 @@ export const multiSimulationRunRequestSchema = z
       .max(MAX_PERSONA_SLOTS, `ペルソナは最大 ${MAX_PERSONA_SLOTS} 件までです`),
     improvedConfig: z
       .object({
-        mode: z.enum(INTERVIEW_MODES),
         description: z.string().max(LONG_TEXT_MAX).nullable(),
         estimatedDurationMinutes: z.number().int().min(1).max(600).nullable(),
         questions: z

@@ -88,7 +88,11 @@ export async function extractOpinionTagsForReport(
       return { opinionId, status: "skipped", reason: "session not found" };
     }
 
-    const messages = await findInterviewMessagesBySessionId(sessionId);
+    // どちらも session だけに依存するので並列で引く。
+    const [messages, interviewConfigName] = await Promise.all([
+      findInterviewMessagesBySessionId(sessionId),
+      findInterviewConfigNameById(session.interview_config_id),
+    ]);
 
     // 発言原文が引けないと professional_expertise の判定材料が無く、
     // 根拠なしを焼き付けてしまうため再抽出側と同じく skip する。
@@ -102,9 +106,6 @@ export async function extractOpinionTagsForReport(
       return { opinionId, status: "skipped", reason: "no chat messages" };
     }
 
-    const interviewConfigName = await findInterviewConfigNameById(
-      session.interview_config_id
-    );
     if (!interviewConfigName) {
       await markOpinionSegmentsTagAttempted(
         opinionId,

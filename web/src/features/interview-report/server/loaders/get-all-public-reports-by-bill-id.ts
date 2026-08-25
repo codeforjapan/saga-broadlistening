@@ -1,10 +1,8 @@
 import "server-only";
 
+import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { getLinkedInterviewConfigId } from "@/features/interview-config/server/loaders/get-linked-interview-config-id";
-import {
-  buildPublicReportsPage,
-  shouldDisplayPublicOpinions,
-} from "../../shared/utils/public-report-display";
+import { buildPublicReportsPage } from "../../shared/utils/public-report-display";
 import type { SortOrder } from "../../shared/utils/sort-order";
 import {
   countPublicOpinionsByInterviewConfigId,
@@ -38,7 +36,7 @@ async function getPublicReportsPage(
   const totalCount =
     await countPublicOpinionsByInterviewConfigId(interviewConfigId);
 
-  if (!shouldDisplayPublicOpinions(totalCount)) {
+  if (!shouldDisplayPublicReports(totalCount)) {
     return { reports: [], totalCount: 0, hasMore: false };
   }
 

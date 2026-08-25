@@ -2,22 +2,16 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { trackInterviewConfigs } from "./helpers";
 
 describe("find_sessions_ordered_by_total_content_richness() 関数", () => {
   let testUser: TestUser;
-  const configIds: string[] = [];
-
-  async function createConfig(): Promise<string> {
-    const config = await createTestInterviewConfig();
-    configIds.push(config.id);
-    return config.id;
-  }
+  const configs = trackInterviewConfigs();
 
   /** 情報充実度を指定した意見を持つセッションを作成する */
   async function createSessionWithRichness(
@@ -39,15 +33,12 @@ describe("find_sessions_ordered_by_total_content_richness() 関数", () => {
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(testUser.id);
   });
 
   it("充実度の降順でセッションIDを返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const session1 = await createSessionWithRichness(configId, 60);
     const session2 = await createSessionWithRichness(configId, 90);
@@ -71,7 +62,7 @@ describe("find_sessions_ordered_by_total_content_richness() 関数", () => {
   });
 
   it("充実度の昇順でセッションIDを返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const session1 = await createSessionWithRichness(configId, 80);
     const session2 = await createSessionWithRichness(configId, 20);
@@ -93,7 +84,7 @@ describe("find_sessions_ordered_by_total_content_richness() 関数", () => {
   });
 
   it("充実度がnullのセッションはNULLS LASTで末尾に配置される", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const withRichness = await createSessionWithRichness(configId, 50);
     // 意見なし → total_content_richness = null
@@ -118,7 +109,7 @@ describe("find_sessions_ordered_by_total_content_richness() 関数", () => {
   });
 
   it("offset/limitでページネーションが正しく動作する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const sessions = [];
     for (let i = 0; i < 5; i++) {
@@ -143,10 +134,10 @@ describe("find_sessions_ordered_by_total_content_richness() 関数", () => {
   });
 
   it("別のconfigのセッションは含まれない", async () => {
-    const configId1 = await createConfig();
+    const configId1 = await configs.createConfigId();
     const session1 = await createSessionWithRichness(configId1, 90);
 
-    const configId2 = await createConfig();
+    const configId2 = await configs.createConfigId();
     await createSessionWithRichness(configId2, 50);
 
     const { data, error } = await adminClient.rpc(

@@ -5,14 +5,11 @@ import {
   canViewReportWithMessages,
   countUserMessageCharacters,
   getBillIdFromPublicReportSession,
-  isPublicOpinionVisible,
-  mapPublicInterviewReports,
-  type RawPublicInterviewReport,
+  type PublicInterviewReport,
   selectPrimaryBillContent,
-  shouldDisplayPublicOpinions,
 } from "./public-report-display";
 
-function rawReport(id: string): RawPublicInterviewReport {
+function rawReport(id: string): PublicInterviewReport {
   return {
     id,
     role_title: "会社員",
@@ -24,19 +21,6 @@ function rawReport(id: string): RawPublicInterviewReport {
 }
 
 describe("public report display utilities", () => {
-  it("公開意見の表示用フィールドだけを写す", () => {
-    expect(mapPublicInterviewReports([rawReport("opinion-1")])).toEqual([
-      {
-        id: "opinion-1",
-        role_title: "会社員",
-        summary: "summary-opinion-1",
-        final_text: "final-opinion-1",
-        total_content_richness: 72,
-        created_at: "2026-05-06T00:00:00.000Z",
-      },
-    ]);
-  });
-
   it("ページサイズを超える公開意見は hasMore を立てて切り詰める", () => {
     const result = buildPublicReportsPage(
       [rawReport("opinion-1"), rawReport("opinion-2")],
@@ -91,36 +75,6 @@ describe("public report display utilities", () => {
         { role: "user", content: "de" },
       ])
     ).toBe(5);
-  });
-
-  it("公開済みかつ公開件数がしきい値以上のときだけ表示できる", () => {
-    expect(
-      isPublicOpinionVisible({
-        reviewStatus: "published",
-        publicOpinionCount: MIN_PUBLIC_OPINIONS_FOR_DISPLAY,
-      })
-    ).toBe(true);
-    expect(
-      isPublicOpinionVisible({
-        reviewStatus: "published",
-        publicOpinionCount: MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1,
-      })
-    ).toBe(false);
-    expect(
-      isPublicOpinionVisible({
-        reviewStatus: "pending_review",
-        publicOpinionCount: MIN_PUBLIC_OPINIONS_FOR_DISPLAY,
-      })
-    ).toBe(false);
-  });
-
-  it("公開件数のしきい値判定はk-匿名性の基準に一致する", () => {
-    expect(shouldDisplayPublicOpinions(MIN_PUBLIC_OPINIONS_FOR_DISPLAY)).toBe(
-      true
-    );
-    expect(
-      shouldDisplayPublicOpinions(MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1)
-    ).toBe(false);
   });
 
   it("所有者は公開件数ゲートを迂回し、非所有者は公開状態と件数を満たす必要がある", () => {

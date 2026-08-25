@@ -1,9 +1,7 @@
 import { fetchTargetOpinions } from "@mirai-gikai/topic-analysis-core/repository";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { cleanupTestInterviewConfig } from "./db-function/helpers";
 import {
   adminClient,
-  cleanupTestPolicy,
   cleanupTestUser,
   createTestInterviewData,
   createTestOpinion,
@@ -15,15 +13,15 @@ import {
 const SEGMENT_COUNT = 1001;
 
 let user: TestUser;
-let policyId: string;
 let interviewConfigId: string;
+let cleanupInterviewData: () => Promise<void>;
 
 describe("fetchTargetOpinions ページネーション統合テスト", () => {
   beforeAll(async () => {
     user = await createTestUser();
-    const { policy, config, session } = await createTestInterviewData(user.id);
-    policyId = policy.id;
+    const { config, session, cleanup } = await createTestInterviewData(user.id);
     interviewConfigId = config.id;
+    cleanupInterviewData = cleanup;
 
     // §8 フィルタ（公開済み × モデレーションOK）を通す意見。
     const opinion = await createTestOpinion(session.id, {
@@ -46,8 +44,7 @@ describe("fetchTargetOpinions ページネーション統合テスト", () => {
   });
 
   afterAll(async () => {
-    await cleanupTestInterviewConfig(interviewConfigId);
-    await cleanupTestPolicy(policyId);
+    await cleanupInterviewData();
     await cleanupTestUser(user.id);
   });
 

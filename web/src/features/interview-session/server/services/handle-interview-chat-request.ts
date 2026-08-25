@@ -43,8 +43,8 @@ import {
   buildInterviewSystemPrompt,
   buildSummarySystemPrompt,
 } from "../utils/build-interview-system-prompt";
+import { calculateLoopModeNextQuestionId } from "../../shared/utils/interview-logic/loop-mode";
 import { collectAskedQuestionIds } from "../utils/interview-logic";
-import { loopModeLogic } from "../utils/interview-logic/loop-mode";
 import { saveInterviewMessage } from "./save-interview-message";
 
 /** テスト時にモック注入するための外部依存 */
@@ -147,17 +147,14 @@ export async function handleInterviewChatRequest({
     loadSessionAndMessages(),
   ]);
 
-  // Epic #54 で interview_configs.mode が廃止されたため loop モードに一本化
-  const logic = loopModeLogic;
-
   // 既に聞いた質問IDを収集
   const askedQuestionIds = collectAskedQuestionIds(dbMessages);
 
   // クライアントから受け取ったステージで判定
   const isSummaryPhase = currentStage === "summary";
 
-  // 次に聞くべき質問を特定（モードに応じてロジックが異なる）
-  const effectiveNextQuestionId = logic.calculateNextQuestionId({
+  // 次に聞くべき質問を特定
+  const effectiveNextQuestionId = calculateLoopModeNextQuestionId({
     messages: dbMessages,
     questions,
   });

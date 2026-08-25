@@ -13,9 +13,7 @@ import {
   OPINION_TAG_BACKFILL_CONCURRENCY,
 } from "./shared/constants";
 import {
-  type BackfillChunkResult,
   runWatermarkBackfill,
-  runWatermarkBackfillChunk,
   type WatermarkBackfillSteps,
 } from "./utils/run-watermark-backfill";
 
@@ -48,13 +46,6 @@ function buildSteps(
     // 残件は論点単位で数える（対象抽出は意見単位だが進捗の分母は論点）。
     countRemaining: () => countPendingTagExtraction(interviewConfigId),
   };
-}
-
-/** タグ未抽出の論点を1チャンク分処理する。 */
-export function runOpinionTagBackfillChunk(
-  deps: { interviewConfigId?: string } & TagDeps = {}
-): Promise<BackfillChunkResult> {
-  return runWatermarkBackfillChunk(buildSteps(deps));
 }
 
 /**

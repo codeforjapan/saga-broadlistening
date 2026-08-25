@@ -1,5 +1,6 @@
 import "server-only";
 
+import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { cache } from "react";
 import type { InterviewMessage } from "@/features/interview-session/shared/types";
 import type { InterviewReport } from "../../shared/types";
@@ -7,7 +8,6 @@ import {
   countUserMessageCharacters,
   getBillIdFromPublicReportSession,
   selectPrimaryBillContent,
-  shouldDisplayPublicOpinions,
 } from "../../shared/utils/public-report-display";
 import {
   countPublicOpinionsByInterviewConfigId,
@@ -72,7 +72,7 @@ export const getPublicReportById = cache(
       console.error("Failed to count public opinions:", error);
       return null;
     }
-    if (!shouldDisplayPublicOpinions(publicOpinionCount)) {
+    if (!shouldDisplayPublicReports(publicOpinionCount)) {
       return null;
     }
 

@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { trackInterviewConfigs } from "./helpers";
 
 async function createTestQuestion(
   configId: string,
@@ -51,28 +51,19 @@ const iso = (offsetSec: number) =>
 
 describe("get_question_answer_counts() 関数", () => {
   let testUser: TestUser;
-  const configIds: string[] = [];
-
-  async function createConfig(): Promise<string> {
-    const config = await createTestInterviewConfig();
-    configIds.push(config.id);
-    return config.id;
-  }
+  const configs = trackInterviewConfigs();
 
   beforeEach(async () => {
     testUser = await createTestUser();
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(testUser.id);
   });
 
   it("質問ごとの提示セッション数と回答セッション数を集計する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
     const q1 = await createTestQuestion(configId, "質問1", 1);
     const q2 = await createTestQuestion(configId, "質問2", 2);
 
@@ -111,7 +102,7 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("同一セッションで同じ質問が複数回提示されても1セッションと数える", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
     const q1 = await createTestQuestion(configId, "質問1", 1);
 
     const s1 = await createTestSession(configId, testUser.id);
@@ -131,7 +122,7 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("legacyのcamelCaseキー（questionId）も集計する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
     const q1 = await createTestQuestion(configId, "質問1", 1);
 
     const s1 = await createTestSession(configId, testUser.id);
@@ -154,7 +145,7 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("JSONでないメッセージや不正なquestion_idはスキップする", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
     const q1 = await createTestQuestion(configId, "質問1", 1);
 
     const s1 = await createTestSession(configId, testUser.id);
@@ -191,7 +182,7 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("一度も提示されていない質問も0件で返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
     await createTestQuestion(configId, "質問1", 1);
     await createTestQuestion(configId, "質問2", 2);
 
@@ -206,8 +197,8 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("別configのセッションは集計に含まれない", async () => {
-    const configId1 = await createConfig();
-    const configId2 = await createConfig();
+    const configId1 = await configs.createConfigId();
+    const configId2 = await configs.createConfigId();
     const q1 = await createTestQuestion(configId1, "質問1", 1);
 
     // config2のセッションがconfig1の質問IDを参照しても数えない
@@ -226,7 +217,7 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("question_orderの昇順で返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
     await createTestQuestion(configId, "質問B", 2);
     await createTestQuestion(configId, "質問A", 1);
     await createTestQuestion(configId, "質問C", 3);

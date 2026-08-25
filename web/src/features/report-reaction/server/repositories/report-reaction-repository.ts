@@ -1,8 +1,8 @@
 import "server-only";
 
+import { isPublicReportVisible } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { createAdminClient } from "@mirai-gikai/supabase";
 import { countPublicOpinionsByInterviewConfigId } from "@/features/interview-report/server/repositories/interview-report-repository";
-import { isPublicOpinionVisible } from "@/features/interview-report/shared/utils/public-report-display";
 import type { ReactionCounts, ReactionType } from "../../shared/types";
 
 // Epic #54 で report_reactions → opinion_reactions（interview_report_id → opinion_id）に
@@ -33,9 +33,9 @@ export async function getReportPublicStatus(
 
   const publicOpinionCount =
     await countPublicOpinionsByInterviewConfigId(interviewConfigId);
-  return isPublicOpinionVisible({
+  return isPublicReportVisible({
     reviewStatus: data.review_status,
-    publicOpinionCount,
+    publicReportCount: publicOpinionCount,
   });
 }
 

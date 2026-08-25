@@ -3,12 +3,13 @@ import "server-only";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import type { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import type { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { loopModeLogic } from "./interview-logic/loop-mode";
+import { buildLoopModeSystemPrompt } from "../../shared/utils/interview-logic/loop-mode";
 
 /**
  * インタビュー用システムプロンプトを構築
  *
- * Epic #54 で interview_configs.mode が廃止されたため loop モードに一本化した。
+ * Epic #54 で interview_configs.mode が廃止され、対話モードの概念ごとなくなったため
+ * loop の builder を直接呼ぶ。
  */
 export function buildInterviewSystemPrompt({
   bill,
@@ -27,7 +28,7 @@ export function buildInterviewSystemPrompt({
   askedQuestionIds: Set<string>;
   remainingMinutes?: number | null;
 }): string {
-  return loopModeLogic.buildSystemPrompt({
+  return buildLoopModeSystemPrompt({
     bill,
     interviewConfig,
     questions,

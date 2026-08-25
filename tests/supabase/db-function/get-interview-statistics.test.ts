@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
   createTestInterviewMessages,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { trackInterviewConfigs } from "./helpers";
 
 async function insertInterviewMessage(
   sessionId: string,
@@ -26,28 +26,19 @@ async function insertInterviewMessage(
 
 describe("get_interview_statistics() 関数", () => {
   let testUser: TestUser;
-  const configIds: string[] = [];
-
-  async function createConfig(): Promise<string> {
-    const config = await createTestInterviewConfig();
-    configIds.push(config.id);
-    return config.id;
-  }
+  const configs = trackInterviewConfigs();
 
   beforeEach(async () => {
     testUser = await createTestUser();
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(testUser.id);
   });
 
   it("セッション数・完了数を正しく集計する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const now = new Date();
     const fiveMinLater = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
@@ -70,7 +61,7 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("満足度の平均を正しく計算する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     await createTestSession(configId, testUser.id, { rating: 5 });
     await createTestSession(configId, testUser.id, { rating: 3 });
@@ -86,7 +77,7 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("情報充実度の平均を正しく計算する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const s1 = await createTestSession(configId, testUser.id);
     await createTestOpinion(s1.id, { content_richness: { total: 80 } });
@@ -102,7 +93,7 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("平均メッセージ数を正しく計算する（0件セッション含む）", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const s1 = await createTestSession(configId, testUser.id);
     await createTestInterviewMessages(s1.id, 6);
@@ -120,7 +111,7 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("本人が公開に同意した件数（public_by_user_count）を集計する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const s1 = await createTestSession(configId, testUser.id);
     await createTestOpinion(s1.id, { is_public_by_user: true });
@@ -138,7 +129,7 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("公開済み件数（published_count）を集計する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const s1 = await createTestSession(configId, testUser.id);
     await createTestOpinion(s1.id, {
@@ -170,10 +161,10 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("別のconfigのデータは含まれない", async () => {
-    const configId1 = await createConfig();
+    const configId1 = await configs.createConfigId();
     await createTestSession(configId1, testUser.id);
 
-    const configId2 = await createConfig();
+    const configId2 = await configs.createConfigId();
     await createTestSession(configId2, testUser.id);
     await createTestSession(configId2, testUser.id);
 
@@ -186,7 +177,7 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("フィードバックタグ集計を正しく行う", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const s1 = await createTestSession(configId, testUser.id, { rating: 2 });
     const s2 = await createTestSession(configId, testUser.id, { rating: 1 });
@@ -223,7 +214,7 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("フィードバックがない場合はゼロを返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     await createTestSession(configId, testUser.id, { rating: 5 });
 
@@ -240,7 +231,7 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("総所要時間を完了セッションと途中離脱セッションの両方で集計する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const base = new Date("2026-05-20T00:00:00.000Z").getTime();
     const iso = (offsetSec: number) =>
@@ -275,7 +266,7 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("該当セッションが無い場合 total_duration_seconds は 0", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
       p_config_id: configId,

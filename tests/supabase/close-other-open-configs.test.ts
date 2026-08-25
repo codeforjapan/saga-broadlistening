@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { closeOtherOpenConfigs } from "../../admin/src/features/interview-config/server/repositories/interview-config-repository";
-import { cleanupTestInterviewConfig } from "./db-function/helpers";
 import {
   adminClient,
+  cleanupTestInterviewConfig,
   cleanupTestPolicy,
   createTestInterviewConfig,
   createTestPolicy,
@@ -59,7 +59,7 @@ describe("closeOtherOpenConfigs", () => {
     const policy = await createPolicy();
     const config = await createLinkedConfig(policy.id, "open", "募集中テーマ");
 
-    await closeOtherOpenConfigs(policy.id);
+    await closeOtherOpenConfigs([policy.id]);
 
     expect((await readConfig(config.id)).status).toBe("closed");
   });
@@ -72,7 +72,7 @@ describe("closeOtherOpenConfigs", () => {
     // UPDATE BEFORE トリガでupdated_atが上書きされないことを確認するため、
     // 時刻が進んだ状態で呼び出す
     await new Promise((r) => setTimeout(r, 50));
-    await closeOtherOpenConfigs(policy.id);
+    await closeOtherOpenConfigs([policy.id]);
 
     expect((await readConfig(config.id)).updated_at).toBe(originalUpdatedAt);
   });
@@ -91,7 +91,7 @@ describe("closeOtherOpenConfigs", () => {
       "施策Bのテーマ"
     );
 
-    await closeOtherOpenConfigs(policyA.id);
+    await closeOtherOpenConfigs([policyA.id]);
 
     expect((await readConfig(configA.id)).status).toBe("closed");
     expect((await readConfig(configB.id)).status).toBe("open");
@@ -102,7 +102,7 @@ describe("closeOtherOpenConfigs", () => {
     const kept = await createLinkedConfig(policy.id, "open", "残すテーマ");
     const closed = await createLinkedConfig(policy.id, "open", "閉じるテーマ");
 
-    await closeOtherOpenConfigs(policy.id, kept.id);
+    await closeOtherOpenConfigs([policy.id], kept.id);
 
     expect((await readConfig(kept.id)).status).toBe("open");
     expect((await readConfig(closed.id)).status).toBe("closed");
@@ -111,6 +111,6 @@ describe("closeOtherOpenConfigs", () => {
   it("対象のconfigが存在しなくてもエラーにならない", async () => {
     const policy = await createPolicy();
 
-    await expect(closeOtherOpenConfigs(policy.id)).resolves.toBeUndefined();
+    await expect(closeOtherOpenConfigs([policy.id])).resolves.toBeUndefined();
   });
 });

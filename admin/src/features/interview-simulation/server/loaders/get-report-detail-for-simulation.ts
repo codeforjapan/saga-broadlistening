@@ -1,7 +1,6 @@
 import "server-only";
 
 import type {
-  InterviewMode,
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
   InterviewQuestion as PromptInterviewQuestion,
@@ -26,7 +25,6 @@ export interface ReportDetailForSimulation {
   bill: PromptBillInput;
   interviewConfig: PromptInterviewConfig;
   questions: PromptInterviewQuestion[];
-  mode: InterviewMode;
   /** 保存済み config の estimated_duration（分）。本番のタイムマネジメント用 */
   estimatedDurationMinutes: number | null;
 }
@@ -138,8 +136,6 @@ export async function getReportDetailForSimulation(
     bill,
     interviewConfig: promptInterviewConfig,
     questions: promptQuestions,
-    // Epic #54 で interview_configs.mode は廃止され loop に一本化された
-    mode: "loop",
     estimatedDurationMinutes: interviewConfig.estimated_duration ?? null,
   };
 }

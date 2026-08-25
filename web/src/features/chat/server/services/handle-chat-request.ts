@@ -101,21 +101,17 @@ export async function handleChatRequest({
     console.error("Cost limit check error:", error);
   }
 
-  // Build prompt configuration
-  const { promptName, promptResult } = await buildPrompt(
-    context,
-    promptProvider
-  );
+  // プロンプト構築とインタビュー提案の判定は互いに独立なので並列で待つ
+  const [{ promptName, promptResult }, shouldSuggestInterview] =
+    await Promise.all([
+      buildPrompt(context, promptProvider),
+      determineShouldSuggestInterview(context, messages),
+    ]);
+
   // Model configuration
   const model = deps?.model ?? AI_MODELS.gpt4o;
   const modelName =
     typeof model === "string" ? model : (model.modelId ?? "unknown");
-
-  // Determine if interview suggestion should be enabled
-  const shouldSuggestInterview = await determineShouldSuggestInterview(
-    context,
-    messages
-  );
 
   // Build system prompt with interview suggestion instructions
   const pageType =
@@ -130,15 +126,10 @@ export async function handleChatRequest({
   const tools = buildTools(shouldSuggestInterview);
 
   // 対話ログを chat_sessions / chat_messages に残す。
+  // ここで await すると初回トークンまでに DB 往復 2 回分の遅延が乗るため、
+  // Promise だけ握っておき、assistant 側を書く onFinish で待ち合わせる。
   // 保存の失敗はストリームを止めない（ログのみ）。
-  const chatSessionId = await resolveChatSessionId(context, messages, userId);
-  if (chatSessionId) {
-    await persistChatMessage(
-      chatSessionId,
-      "user",
-      extractUiMessageText(messages.at(-1))
-    );
-  }
+  const chatSessionIdPromise = persistUserMessage(context, messages, userId);
 
   // Generate streaming response
   try {
@@ -148,6 +139,7 @@ export async function handleChatRequest({
       messages: await convertToModelMessages(messages),
       tools,
       onFinish: async (event) => {
+        const chatSessionId = await chatSessionIdPromise;
         if (chatSessionId) {
           await persistChatMessage(chatSessionId, "assistant", event.text);
         }
@@ -210,6 +202,27 @@ async function resolveChatSessionId(
     console.error("Failed to resolve chat session:", error);
     return null;
   }
+}
+
+/**
+ * セッションを解決し、ユーザー発話を保存する。
+ * 解決した session ID を返し、保存対象外・失敗時は null を返す（reject しない）。
+ */
+async function persistUserMessage(
+  context: ChatMessageMetadata,
+  messages: UIMessage<ChatMessageMetadata>[],
+  userId: string
+): Promise<string | null> {
+  const chatSessionId = await resolveChatSessionId(context, messages, userId);
+  if (!chatSessionId) {
+    return null;
+  }
+  await persistChatMessage(
+    chatSessionId,
+    "user",
+    extractUiMessageText(messages.at(-1))
+  );
+  return chatSessionId;
 }
 
 /** 対話ログを1件保存する（失敗してもストリームは継続する）。 */

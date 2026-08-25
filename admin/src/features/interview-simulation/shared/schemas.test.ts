@@ -1,4 +1,3 @@
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
 import { describe, expect, it } from "vitest";
 import { AI_MODELS } from "@/lib/ai/models";
 import { MAX_PERSONA_SLOTS } from "./constants";
@@ -9,7 +8,6 @@ type ValidRequest = {
   billId: string;
   personaSlots: PersonaSlotInput[];
   improvedConfig: {
-    mode: InterviewMode;
     description: string | null;
     estimatedDurationMinutes: number | null;
     questions: Array<{
@@ -29,7 +27,6 @@ function baseValidRequest(): ValidRequest {
     billId: "bill-1",
     personaSlots: [{ kind: "bill" }],
     improvedConfig: {
-      mode: "loop",
       description: "テーマ A",
       estimatedDurationMinutes: 30,
       questions: [

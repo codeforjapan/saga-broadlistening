@@ -2,14 +2,12 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { registerTopicAnalysisTools } from "../../admin/src/features/mcp/server/tools/register-topic-analysis-tools";
 import { unwrapUntrustedData } from "../../admin/src/features/mcp/shared/utils/untrusted-data-block";
 import {
-  cleanupTestInterviewConfig,
-  createTestSession,
-} from "../supabase/db-function/helpers";
-import {
   adminClient,
+  cleanupTestInterviewConfig,
   cleanupTestUser,
   createTestInterviewConfig,
-  createTestOpinion,
+  createTestOpinionWithSegments,
+  createTestPublicOpinions,
   createTestUser,
   type TestUser,
 } from "../supabase/utils";
@@ -27,83 +25,24 @@ async function createOpinionWithSegment(opts: {
   roleDescription?: string;
   messages?: Array<{ role: "assistant" | "user"; content: string }>;
 }): Promise<{ opinionId: string; segmentId: string }> {
-  const session = await createTestSession(opts.configId, opts.userId, {
-    completed_at: new Date().toISOString(),
-  });
-
-  const opinion = await createTestOpinion(session.id, {
-    review_status: opts.reviewStatus,
-    is_public_by_user: true,
-    is_public_by_admin: opts.reviewStatus === "published",
-    moderation_score: 5,
-    role_title: "育休経験者",
-    role_description: opts.roleDescription,
-    summary: `${opts.title}の要約`,
-    final_text: `${opts.title}の意見本文`,
-  });
-
-  if (opts.messages?.length) {
-    const { error: messagesError } = await adminClient
-      .from("interview_messages")
-      .insert(
-        opts.messages.map((m) => ({
-          interview_session_id: session.id,
-          role: m.role,
-          content: m.content,
-        }))
-      );
-    if (messagesError) throw new Error("messages insert failed");
-  }
-
-  const { data: segment } = await adminClient
-    .from("opinion_segments")
-    .insert({
-      opinion_id: opinion.id,
-      opinion_index: 0,
-      title: opts.title,
-      content: `${opts.title}の本文`,
-    })
-    .select("id")
-    .single();
-  if (!segment) throw new Error("opinion_segment insert failed");
-  return { opinionId: opinion.id, segmentId: segment.id };
-}
-
-/**
- * 件数ゲート用に、最小構成の公開意見（session + opinion）を n 件まとめて作る。
- * k-匿名性しきい値（公開意見 >= 20 件）を満たすための水増しに使う。
- */
-async function createPublicOpinions(
-  configId: string,
-  userId: string,
-  n: number
-): Promise<void> {
-  const now = new Date().toISOString();
-  const { data: sessions } = await adminClient
-    .from("interview_sessions")
-    .insert(
-      Array.from({ length: n }, () => ({
-        interview_config_id: configId,
-        user_id: userId,
-        started_at: now,
-        completed_at: now,
-      }))
-    )
-    .select("id");
-  if (!sessions) throw new Error("sessions insert failed");
-
-  const { error } = await adminClient.from("opinions").insert(
-    sessions.map((s, i) => ({
-      interview_session_id: s.id,
-      final_text: `件数ゲート用${i + 1}`,
-      summary: "件数ゲート用",
-      review_status: "published" as const,
+  const { opinionId, segmentIds } = await createTestOpinionWithSegments({
+    interviewConfigId: opts.configId,
+    userId: opts.userId,
+    session: { completed_at: new Date().toISOString() },
+    opinion: {
+      review_status: opts.reviewStatus,
       is_public_by_user: true,
-      is_public_by_admin: true,
+      is_public_by_admin: opts.reviewStatus === "published",
       moderation_score: 5,
-    }))
-  );
-  if (error) throw new Error("opinions insert failed");
+      role_title: "育休経験者",
+      role_description: opts.roleDescription,
+      summary: `${opts.title}の要約`,
+      final_text: `${opts.title}の意見本文`,
+    },
+    messages: opts.messages,
+    segments: [{ title: opts.title, content: `${opts.title}の本文` }],
+  });
+  return { opinionId, segmentId: segmentIds[0] };
 }
 
 /**
@@ -234,7 +173,17 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
       ],
     });
     detailOpinionId = detail.opinionId;
-    await createPublicOpinions(configDisplayable, testUser.id, 19);
+    // 件数ゲート（公開意見 >= 20 件）を満たすための水増し
+    await createTestPublicOpinions({
+      interviewConfigId: configDisplayable,
+      userId: testUser.id,
+      count: 19,
+      opinion: (index) => ({
+        final_text: `件数ゲート用${index + 1}`,
+        summary: "件数ゲート用",
+        moderation_score: 5,
+      }),
+    });
   });
 
   afterAll(async () => {
@@ -380,7 +329,7 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
 
     it("公開状態で絞り込める", async () => {
       const result = await registry.callTool<
-        Array<{ id: string; summary: string | null; final_text: string }>
+        Array<{ id: string; summary: string | null }>
       >("list_respondents", {
         interviewConfigId: configWithAnalysis,
         reviewStatus: "published",
@@ -390,8 +339,8 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
       expect(ids).toContain(publishedOpinionId);
       expect(ids).not.toContain(pendingOpinionId);
       const pub = result.find((r) => r.id === publishedOpinionId);
+      // 一覧はカード表示用の要約のみ。意見本文は get_respondent_detail が返す。
       expect(pub?.summary).toBe("公開OKの要約");
-      expect(pub?.final_text).toBe("公開OKの意見本文");
     });
 
     it("requireDisplayThreshold 指定時、公開20件未満なら status=below_threshold", async () => {

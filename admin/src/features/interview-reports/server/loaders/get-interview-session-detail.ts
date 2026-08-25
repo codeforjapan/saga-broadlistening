@@ -12,68 +12,54 @@ import {
   findReactionCountsByReportId,
 } from "../repositories/interview-report-repository";
 
+/** 取得に失敗しても画面は出したいので、フォールバック値に倒して続行する。 */
+function fallbackOn<T>(label: string, value: T) {
+  return (error: unknown): T => {
+    console.error(label, error);
+    return value;
+  };
+}
+
 export async function getInterviewSessionDetail(
   sessionId: string
 ): Promise<InterviewSessionDetail | null> {
-  // セッション情報を取得
-  let session: Awaited<ReturnType<typeof findInterviewSessionById>>;
-  try {
-    session = await findInterviewSessionById(sessionId);
-  } catch (error) {
-    console.error("Failed to fetch interview session:", error);
+  // セッション・レポート・メッセージ・タグは互いに独立なので並列で引く。
+  const [session, report, messages, feedbackTags] = await Promise.all([
+    findInterviewSessionById(sessionId).catch(
+      fallbackOn("Failed to fetch interview session:", null)
+    ),
+    findInterviewReportBySessionId(sessionId).catch(
+      fallbackOn("Failed to fetch interview report:", null)
+    ),
+    findInterviewMessagesBySessionId(sessionId).catch(
+      fallbackOn("Failed to fetch interview messages:", [])
+    ),
+    findFeedbackTagsBySessionId(sessionId).catch(
+      fallbackOn("Failed to fetch feedback tags:", [] as string[])
+    ),
+  ]);
+
+  if (!session) {
     return null;
   }
 
-  // レポートを取得
-  let report: Awaited<ReturnType<typeof findInterviewReportBySessionId>> = null;
-  try {
-    report = await findInterviewReportBySessionId(sessionId);
-  } catch (error) {
-    console.error("Failed to fetch interview report:", error);
-  }
-
-  // メッセージを取得
-  let messages: Awaited<ReturnType<typeof findInterviewMessagesBySessionId>> =
-    [];
-  try {
-    messages = await findInterviewMessagesBySessionId(sessionId);
-  } catch (error) {
-    console.error("Failed to fetch interview messages:", error);
-  }
-
-  // リアクション数を取得
-  let reactionCounts: ReactionCounts | null = null;
-  if (report) {
-    try {
-      reactionCounts = await findReactionCountsByReportId(report.id);
-    } catch (error) {
-      console.error("Failed to fetch reaction counts:", error);
-    }
-  }
-
-  // 論点単位の意見を取得
-  let opinionSegments: OpinionSegment[] = [];
-  if (report) {
-    try {
-      opinionSegments = await findOpinionSegmentsByOpinionId(report.id);
-    } catch (error) {
-      console.error("Failed to fetch opinion segments:", error);
-    }
-  }
-
-  // フィードバックタグを取得
-  let feedbackTags: string[] = [];
-  try {
-    feedbackTags = await findFeedbackTagsBySessionId(sessionId);
-  } catch (error) {
-    console.error("Failed to fetch feedback tags:", error);
-  }
+  // リアクション数と論点は意見IDが要るので、レポートが引けた後に並列で引く。
+  const [reactionCounts, opinionSegments] = report
+    ? await Promise.all([
+        findReactionCountsByReportId(report.id).catch(
+          fallbackOn("Failed to fetch reaction counts:", null)
+        ),
+        findOpinionSegmentsByOpinionId(report.id).catch(
+          fallbackOn("Failed to fetch opinion segments:", [])
+        ),
+      ])
+    : [null as ReactionCounts | null, [] as OpinionSegment[]];
 
   return {
     ...session,
-    interview_report: report || null,
+    interview_report: report,
     opinion_segments: opinionSegments,
-    interview_messages: messages || [],
+    interview_messages: messages,
     reaction_counts: reactionCounts,
     feedback_tags: feedbackTags,
   };

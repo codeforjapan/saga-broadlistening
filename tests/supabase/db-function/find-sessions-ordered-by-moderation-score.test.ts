@@ -2,22 +2,16 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { trackInterviewConfigs } from "./helpers";
 
 describe("find_sessions_ordered_by_moderation_score() 関数", () => {
   let testUser: TestUser;
-  const configIds: string[] = [];
-
-  async function createConfig(): Promise<string> {
-    const config = await createTestInterviewConfig();
-    configIds.push(config.id);
-    return config.id;
-  }
+  const configs = trackInterviewConfigs();
 
   /** モデレーションスコア付きの意見を持つセッションを作成する */
   async function createSessionWithScore(
@@ -37,15 +31,12 @@ describe("find_sessions_ordered_by_moderation_score() 関数", () => {
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(testUser.id);
   });
 
   it("モデレーションスコアの降順でセッションIDを返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const session1 = await createSessionWithScore(configId, 10);
     const session2 = await createSessionWithScore(configId, 80);
@@ -69,7 +60,7 @@ describe("find_sessions_ordered_by_moderation_score() 関数", () => {
   });
 
   it("モデレーションスコアの昇順でセッションIDを返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const session1 = await createSessionWithScore(configId, 60);
     const session2 = await createSessionWithScore(configId, 20);
@@ -91,7 +82,7 @@ describe("find_sessions_ordered_by_moderation_score() 関数", () => {
   });
 
   it("NULLスコアのセッションは昇順・降順ともに末尾に配置される", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const scored = await createSessionWithScore(configId, 50);
     // 意見なし（スコアNULL）
@@ -129,7 +120,7 @@ describe("find_sessions_ordered_by_moderation_score() 関数", () => {
   });
 
   it("offset/limitでページネーションが正しく動作する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const sessions = [];
     for (let i = 0; i < 4; i++) {
@@ -154,10 +145,10 @@ describe("find_sessions_ordered_by_moderation_score() 関数", () => {
   });
 
   it("別のconfigのセッションは含まれない", async () => {
-    const configId1 = await createConfig();
+    const configId1 = await configs.createConfigId();
     const session1 = await createSessionWithScore(configId1, 30);
 
-    const configId2 = await createConfig();
+    const configId2 = await configs.createConfigId();
     await createSessionWithScore(configId2, 90);
 
     const { data, error } = await adminClient.rpc(

@@ -8,6 +8,5 @@ export type {
   PublicTopicAnalysis,
   PublishedVersionMeta,
   RawOpinionRow,
-  RawRespondentRow,
   RawTopicRow,
 } from "@mirai-gikai/topic-analysis-core/public";

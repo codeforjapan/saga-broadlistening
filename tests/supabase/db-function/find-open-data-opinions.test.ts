@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { trackInterviewConfigs } from "./helpers";
 
 async function findOpenData(params: {
   minPublicOpinions?: number;
@@ -29,13 +29,7 @@ async function findOpenData(params: {
 
 describe("find_open_data_opinions", () => {
   let testUser: TestUser;
-  const configIds: string[] = [];
-
-  async function createConfig(status: "draft" | "open" | "closed" = "open") {
-    const config = await createTestInterviewConfig({ status });
-    configIds.push(config.id);
-    return config;
-  }
+  const configs = trackInterviewConfigs();
 
   async function createOpinionInConfig(
     configId: string,
@@ -63,15 +57,12 @@ describe("find_open_data_opinions", () => {
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(testUser.id);
   });
 
   it("公開×二次利用許諾の意見のみ返し、許諾なし・未公開は除外する", async () => {
-    const config = await createConfig();
+    const config = await configs.createConfig();
 
     await createOpinionInConfig(config.id, {
       summary: "許諾あり",
@@ -110,7 +101,7 @@ describe("find_open_data_opinions", () => {
   });
 
   it("公開意見数が閾値未満のテーマは除外する（k-匿名性ゲート）", async () => {
-    const config = await createConfig();
+    const config = await configs.createConfig();
     await createOpinionInConfig(config.id, { summary: "ゲート対象" });
 
     const withThreshold2 = await findOpenData({ minPublicOpinions: 2 });
@@ -121,7 +112,7 @@ describe("find_open_data_opinions", () => {
   });
 
   it("k-匿名性ゲートは二次利用許諾の有無を問わず公開意見を数える", async () => {
-    const config = await createConfig();
+    const config = await configs.createConfig();
     await createOpinionInConfig(config.id, { summary: "許諾あり1件目" });
     // 許諾なしでもゲートの母数（公開意見数）には含まれる
     await createOpinionInConfig(config.id, {
@@ -136,7 +127,7 @@ describe("find_open_data_opinions", () => {
   });
 
   it("下書き（draft）のテーマの意見は除外する", async () => {
-    const config = await createConfig("draft");
+    const config = await configs.createConfig({ status: "draft" });
     await createOpinionInConfig(config.id, { summary: "下書きテーマ" });
 
     const rows = await findOpenData({});
@@ -144,7 +135,7 @@ describe("find_open_data_opinions", () => {
   });
 
   it("新しい順に返り、カーソル以降のページを取得できる", async () => {
-    const config = await createConfig();
+    const config = await configs.createConfig();
 
     // 作成順に created_at が進むため、返却順は「新しい」→「古い」になる
     for (const summary of ["古い", "中間", "新しい"]) {

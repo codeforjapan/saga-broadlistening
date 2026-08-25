@@ -20,8 +20,8 @@ import { getOpenDataBills } from "./get-open-data-bills";
  * 施策の行だけに絞って行う。
  */
 describe("getOpenDataBills / getOpenDataBillDetail", () => {
-  let publishedBillId: string;
-  let publishedBillWithoutStanceId: string;
+  let taggedBillId: string;
+  let untaggedBillId: string;
   let draftBillId: string;
   let tagId: string;
 
@@ -31,14 +31,14 @@ describe("getOpenDataBills / getOpenDataBillDetail", () => {
       publish_status: "published",
       published_at: new Date().toISOString(),
     });
-    publishedBillId = published.id;
-    await createTestPolicyContent(publishedBillId, {
+    taggedBillId = published.id;
+    await createTestPolicyContent(taggedBillId, {
       difficulty_level: "normal",
       title: "ふつうタイトル",
       summary: "ふつう概要",
       content: "ふつう本文",
     });
-    await createTestPolicyContent(publishedBillId, {
+    await createTestPolicyContent(taggedBillId, {
       difficulty_level: "hard",
       title: "難しいタイトル",
       summary: "難しい概要",
@@ -46,15 +46,15 @@ describe("getOpenDataBills / getOpenDataBillDetail", () => {
     });
     const tag = await createTestTag();
     tagId = tag.id;
-    await createTestPolicyTag(publishedBillId, tagId);
+    await createTestPolicyTag(taggedBillId, tagId);
 
     // 古い方: タグなし・normalコンテンツのみ
-    const withoutStance = await createTestPolicy({
+    const untagged = await createTestPolicy({
       publish_status: "published",
       published_at: new Date().toISOString(),
     });
-    publishedBillWithoutStanceId = withoutStance.id;
-    await createTestPolicyContent(publishedBillWithoutStanceId, {
+    untaggedBillId = untagged.id;
+    await createTestPolicyContent(untaggedBillId, {
       difficulty_level: "normal",
     });
 
@@ -71,25 +71,18 @@ describe("getOpenDataBills / getOpenDataBillDetail", () => {
         .eq("id", billId);
       if (error) throw new Error(error.message);
     };
-    await setCreatedAt(publishedBillId, "2026-01-02T00:00:00+00:00");
-    await setCreatedAt(
-      publishedBillWithoutStanceId,
-      "2026-01-01T00:00:00+00:00"
-    );
+    await setCreatedAt(taggedBillId, "2026-01-02T00:00:00+00:00");
+    await setCreatedAt(untaggedBillId, "2026-01-01T00:00:00+00:00");
   });
 
   afterAll(async () => {
-    await cleanupTestPolicy(publishedBillId);
-    await cleanupTestPolicy(publishedBillWithoutStanceId);
+    await cleanupTestPolicy(taggedBillId);
+    await cleanupTestPolicy(untaggedBillId);
     await cleanupTestPolicy(draftBillId);
     await cleanupTestTag(tagId);
   });
 
-  const testBillIds = () => [
-    publishedBillId,
-    publishedBillWithoutStanceId,
-    draftBillId,
-  ];
+  const testBillIds = () => [taggedBillId, untaggedBillId, draftBillId];
 
   /**
    * 全ページを走査して施策を収集する。ローカルDBの件数が1ページ分を
@@ -118,8 +111,8 @@ describe("getOpenDataBills / getOpenDataBillDetail", () => {
     const mine = items.filter((item) => testBillIds().includes(item.billId));
 
     expect(mine.map((item) => item.billId)).toEqual([
-      publishedBillId,
-      publishedBillWithoutStanceId,
+      taggedBillId,
+      untaggedBillId,
     ]);
 
     const [withTag, withoutTag] = mine;
@@ -133,13 +126,13 @@ describe("getOpenDataBills / getOpenDataBillDetail", () => {
     const items = await fetchAllBills("hard");
     const mine = items.filter((item) => testBillIds().includes(item.billId));
 
-    expect(mine.map((item) => item.billId)).toEqual([publishedBillId]);
+    expect(mine.map((item) => item.billId)).toEqual([taggedBillId]);
     expect(mine[0]?.title).toBe("難しいタイトル");
   });
 
   it("cursor 以降のページには古い施策だけが含まれる", async () => {
     const items = await fetchAllBills("normal");
-    const newer = items.find((item) => item.billId === publishedBillId);
+    const newer = items.find((item) => item.billId === taggedBillId);
     expect(newer).toBeTruthy();
     if (!newer) return;
 
@@ -150,20 +143,18 @@ describe("getOpenDataBills / getOpenDataBillDetail", () => {
     const mine = afterCursor.filter((item) =>
       testBillIds().includes(item.billId)
     );
-    expect(mine.map((item) => item.billId)).toEqual([
-      publishedBillWithoutStanceId,
-    ]);
+    expect(mine.map((item) => item.billId)).toEqual([untaggedBillId]);
   });
 
   it("詳細は本文を含めて返し、難易度で内容が切り替わる", async () => {
     const normal = await getOpenDataBillDetail({
-      billId: publishedBillId,
+      billId: taggedBillId,
       difficulty: "normal",
     });
     expect(normal?.content).toBe("ふつう本文");
 
     const hard = await getOpenDataBillDetail({
-      billId: publishedBillId,
+      billId: taggedBillId,
       difficulty: "hard",
     });
     expect(hard?.content).toBe("難しい本文");
@@ -175,7 +166,7 @@ describe("getOpenDataBills / getOpenDataBillDetail", () => {
     ).toBeNull();
     expect(
       await getOpenDataBillDetail({
-        billId: publishedBillWithoutStanceId,
+        billId: untaggedBillId,
         difficulty: "hard",
       })
     ).toBeNull();

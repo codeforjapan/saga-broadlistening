@@ -323,24 +323,6 @@ export async function findTopicsByVersionId(versionId: string) {
 }
 
 /**
- * バージョンの分類一覧を取得する
- */
-export async function findClassificationsByVersionId(versionId: string) {
-  const supabase = createAdminClient();
-
-  const { data, error } = await supabase
-    .from("topic_analysis_classifications")
-    .select("*")
-    .eq("version_id", versionId);
-
-  if (error) {
-    throw new Error(`Failed to fetch classifications: ${error.message}`);
-  }
-
-  return data;
-}
-
-/**
  * 議案とコンテンツを取得する
  */
 export async function fetchBillWithContents(billId: string) {

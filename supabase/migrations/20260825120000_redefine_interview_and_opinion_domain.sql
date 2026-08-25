@@ -91,7 +91,6 @@ create table interview_configs (
 );
 
 create index idx_interview_configs_status on interview_configs(status);
-create index idx_interview_configs_ends_at on interview_configs(ends_at);
 
 create trigger update_interview_configs_updated_at before update on interview_configs
   for each row execute function update_updated_at_column();
@@ -142,8 +141,6 @@ create table interview_questions (
   updated_at timestamptz not null default now(),
   unique (interview_config_id, question_order)
 );
-
-create index idx_interview_questions_config_id on interview_questions(interview_config_id);
 
 create trigger update_interview_questions_updated_at before update on interview_questions
   for each row execute function update_updated_at_column();
@@ -294,9 +291,11 @@ create index idx_opinions_published_session
   on opinions (interview_session_id)
   where review_status = 'published';
 
--- 再抽出バックフィルの対象抽出用
+-- 再抽出バックフィルの対象抽出用。
+-- findOpinionsToReextract は is_public_by_user desc, created_at asc で並べるため、
+-- 並び順どおりのキーにしないとソートが index を使えない。
 create index idx_opinions_reextraction_pending
-  on opinions (created_at)
+  on opinions (is_public_by_user desc, created_at asc)
   where opinions_reextracted_at is null;
 
 create trigger update_opinions_updated_at before update on opinions
@@ -345,8 +344,6 @@ create table opinion_segments (
   unique (opinion_id, opinion_index)
 );
 
-create index idx_opinion_segments_opinion_id on opinion_segments(opinion_id);
-
 -- タグ未抽出の意見を引くための部分インデックス（タグバックフィルの対象抽出）
 create index idx_opinion_segments_tags_pending
   on opinion_segments (opinion_id)
@@ -384,7 +381,6 @@ create table opinion_reactions (
   unique (opinion_id, user_id)
 );
 
-create index idx_opinion_reactions_opinion_id on opinion_reactions(opinion_id);
 create index idx_opinion_reactions_user_id on opinion_reactions(user_id);
 
 alter table opinion_reactions enable row level security;
@@ -412,9 +408,6 @@ create table topic_analysis_versions (
   updated_at timestamptz not null default now(),
   unique (interview_config_id, version)
 );
-
-create index idx_topic_analysis_versions_config_id
-  on topic_analysis_versions(interview_config_id);
 
 create trigger update_topic_analysis_versions_updated_at
   before update on topic_analysis_versions
@@ -462,8 +455,6 @@ create table topic_analysis_classifications (
   unique (version_id, topic_id, opinion_id, opinion_index)
 );
 
-create index idx_topic_analysis_classifications_version_id
-  on topic_analysis_classifications(version_id);
 create index idx_topic_analysis_classifications_topic_id
   on topic_analysis_classifications(topic_id);
 create index idx_topic_analysis_classifications_opinion_id
@@ -512,9 +503,6 @@ create unique index one_published_per_interview_config
 create unique index one_active_version_per_interview_config
   on topic_analysis_version (interview_config_id) where status in ('pending', 'running');
 
-create index idx_topic_analysis_version_config
-  on topic_analysis_version(interview_config_id);
-
 alter table topic_analysis_version enable row level security;
 
 comment on table topic_analysis_version is '市民向けトピック分析のバージョン（テーマ内連番・公開管理の中心）';
@@ -538,7 +526,6 @@ create table topic (
     references topic (version_id, id) on delete cascade
 );
 
-create index idx_topic_version on topic(version_id);
 create index idx_topic_parent on topic (parent_topic_id);
 
 alter table topic enable row level security;
@@ -637,12 +624,13 @@ begin
     o.created_at
   from opinions o
   inner join interview_sessions s on s.id = o.interview_session_id
-  left join (
-    select orx.opinion_id, count(*) as helpful_count
+  -- 集約を意見1件に閉じる（全 opinion_reactions を GROUP BY しない）
+  left join lateral (
+    select count(*) as helpful_count
     from opinion_reactions orx
-    where orx.reaction_type = 'helpful'
-    group by orx.opinion_id
-  ) rc on rc.opinion_id = o.id
+    where orx.opinion_id = o.id
+      and orx.reaction_type = 'helpful'
+  ) rc on true
   where o.review_status = 'published'
     and s.interview_config_id = p_interview_config_id
   order by
@@ -746,12 +734,13 @@ begin
   select s.id as session_id
   from interview_sessions s
   left join opinions o on o.interview_session_id = s.id
-  left join (
-    select orx.opinion_id, count(*)::bigint as cnt
+  -- 集約を意見1件に閉じる（全 opinion_reactions を GROUP BY しない）
+  left join lateral (
+    select count(*)::bigint as cnt
     from opinion_reactions orx
-    where orx.reaction_type = 'helpful'
-    group by orx.opinion_id
-  ) hc on hc.opinion_id = o.id
+    where orx.opinion_id = o.id
+      and orx.reaction_type = 'helpful'
+  ) hc on true
   where s.interview_config_id = p_config_id
     and (p_status is null or
          (p_status = 'completed' and s.completed_at is not null) or
@@ -855,12 +844,13 @@ as $$
   from interview_configs c
   left join interview_sessions s
     on s.interview_config_id = c.id
-  left join (
-    select im.interview_session_id, max(im.created_at) as last_message_at
+  -- セッション1件ごとに最終メッセージ時刻を引く
+  -- （全 interview_messages を GROUP BY すると対象テーマ以外まで走査してしまう）
+  left join lateral (
+    select max(im.created_at) as last_message_at
     from interview_messages im
-    group by im.interview_session_id
-  ) lm
-    on lm.interview_session_id = s.id
+    where im.interview_session_id = s.id
+  ) lm on true
   where p_interview_config_id is null or c.id = p_interview_config_id
   group by c.id, c.name
   order by count(s.id) desc, c.name;

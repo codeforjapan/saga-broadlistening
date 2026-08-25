@@ -7,14 +7,12 @@ import {
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  cleanupTestInterviewConfig,
-  createTestSession,
-} from "./db-function/helpers";
-import {
   adminClient,
+  cleanupTestInterviewConfig,
   cleanupTestUser,
   createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "./utils";
@@ -150,6 +148,7 @@ describe("opinion-reextraction repository テーマスコープ統合テスト",
   let testUser: TestUser;
   let configA: string;
   let configB: string;
+  const scopedConfigIds: string[] = [];
   // テーマ A の意見（公開新旧 / 非公開 / 再抽出済み）
   let aPublicOld: string;
   let aPublicNew: string;
@@ -208,6 +207,9 @@ describe("opinion-reextraction repository テーマスコープ統合テスト",
   });
 
   afterAll(async () => {
+    for (const scopedConfigId of scopedConfigIds.splice(0)) {
+      await cleanupTestInterviewConfig(scopedConfigId);
+    }
     await cleanupTestInterviewConfig(configA);
     await cleanupTestInterviewConfig(configB);
     await cleanupTestUser(testUser.id);
@@ -231,18 +233,36 @@ describe("opinion-reextraction repository テーマスコープ統合テスト",
     expect(await countAllOpinions(configB)).toBe(1);
   });
 
-  // watermark を変更するため、件数を検証する他テストの後（describe 末尾）に置く。
-  it("resetReextractionForInterviewConfig はテーマAの再抽出済みを未再抽出に戻す", async () => {
-    // 事前: aDone のみ再抽出済み（pending=3 / total=4）
-    expect(await countPendingReextraction(configA)).toBe(3);
+  // watermark を書き換えるテストなので、他テストと共有しない専用テーマで動かす。
+  it("resetReextractionForInterviewConfig は該当テーマの再抽出済みを未再抽出に戻す", async () => {
+    const resetConfig = (
+      await createTestInterviewConfig({ name: "scope-test-reset" })
+    ).id;
+    scopedConfigIds.push(resetConfig);
+    for (const [isPublicByUser, createdAt, reextracted] of [
+      [true, "2021-01-01T00:00:00Z", false],
+      [false, "2020-01-01T00:00:00Z", false],
+      [true, "2019-01-01T00:00:00Z", true],
+    ] as const) {
+      await createOpinion({
+        configId: resetConfig,
+        userId: testUser.id,
+        isPublicByUser,
+        createdAt,
+        reextracted,
+      });
+    }
 
-    // 再抽出済み(NOT NULL)の行だけ NULL に戻すため、戻り値は aDone の1件。
-    const reset = await resetReextractionForInterviewConfig(configA);
+    // 事前: 再抽出済み1件のみ（pending=2 / total=3）
+    expect(await countPendingReextraction(resetConfig)).toBe(2);
+
+    // 再抽出済み(NOT NULL)の行だけ NULL に戻すため、戻り値は1件。
+    const reset = await resetReextractionForInterviewConfig(resetConfig);
     expect(reset).toBe(1);
 
     // リセット後は全件が未再抽出 = pending が total と一致する
-    expect(await countPendingReextraction(configA)).toBe(4);
-    expect(await countAllOpinions(configA)).toBe(4);
+    expect(await countPendingReextraction(resetConfig)).toBe(3);
+    expect(await countAllOpinions(resetConfig)).toBe(3);
     // 他テーマは影響を受けない
     expect(await countPendingReextraction(configB)).toBe(1);
   });

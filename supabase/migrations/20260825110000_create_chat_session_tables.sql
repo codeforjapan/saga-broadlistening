@@ -21,9 +21,7 @@ create table chat_sessions (
   updated_at timestamptz not null default now()
 );
 
-create index idx_chat_sessions_policy_id on chat_sessions(policy_id);
 create index idx_chat_sessions_user_id on chat_sessions(user_id);
-create index idx_chat_sessions_created_at on chat_sessions(created_at desc);
 -- 施策 × 利用者で進行中セッションを引く（初回送信時のセッション再利用）
 create index idx_chat_sessions_policy_user_created
   on chat_sessions(policy_id, user_id, created_at desc);
@@ -51,7 +49,6 @@ create table chat_messages (
   updated_at timestamptz not null default now()
 );
 
-create index idx_chat_messages_session_id on chat_messages(session_id);
 create index idx_chat_messages_session_created on chat_messages(session_id, created_at);
 
 create trigger update_chat_messages_updated_at before update on chat_messages

@@ -1,6 +1,5 @@
 import "server-only";
 
-import { registerNodeTelemetry } from "@/lib/telemetry/register";
 import { ANALYSIS_STEPS } from "../../shared/constants";
 import type {
   FlatOpinion,
@@ -10,7 +9,6 @@ import type {
 import {
   createClassifications,
   createTopics,
-  createVersion,
   fetchBillWithContents,
   fetchCompletedInterviewReports,
   loadPhaseData,
@@ -24,19 +22,6 @@ import { mergeTopics } from "./step2-merge-topics";
 import { classifyOpinions } from "./step3-classify-opinions";
 import { generateTopicReports } from "./step4-generate-topic-reports";
 import { generateOverallSummary } from "./step5-generate-summary";
-
-/**
- * トピック解析パイプラインのオーケストレーター（互換ラッパー）
- *
- * バージョンを作成し、パイプラインを実行する
- */
-export async function runTopicAnalysis(billId: string, configId: string) {
-  await registerNodeTelemetry();
-
-  const version = await createVersion(configId);
-  await executeAnalysisPipeline(version.id, billId, configId);
-  return { versionId: version.id };
-}
 
 // --- Phase 内部ステップランナー（private） ---
 

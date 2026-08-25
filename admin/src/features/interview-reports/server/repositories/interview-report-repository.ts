@@ -1,6 +1,7 @@
 import "server-only";
 
-import { isReportAutoPublishEligible } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { shouldAutoPublishOnUserSettingChange } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { resolveAdminVisibilityUpdate } from "@mirai-gikai/shared/report-publication/review-status";
 import { createAdminClient } from "@mirai-gikai/supabase";
 import type {
   MessageSearchFilterConfig,
@@ -132,79 +133,6 @@ export async function findInterviewSessionsWithReportByIds(
   // Preserve the order of sessionIds
   const dataMap = new Map(data.map((s) => [s.id, s]));
   return sessionIds.map((id) => dataMap.get(id)).filter(Boolean) as typeof data;
-}
-
-export async function findFilteredSessionIds(
-  configId: string,
-  filters: SessionFilterConfig = DEFAULT_SESSION_FILTER
-): Promise<string[]> {
-  const supabase = createAdminClient();
-
-  // レポートレベルフィルタがある場合はreport経由でセッションIDを取得
-  if (hasReportLevelFilters(filters)) {
-    let reportQuery = supabase
-      .from("opinions")
-      .select("interview_session_id, interview_sessions!inner(id)")
-      .eq("interview_sessions.interview_config_id", configId);
-
-    if (filters.status === "completed") {
-      reportQuery = reportQuery.not(
-        "interview_sessions.completed_at",
-        "is",
-        null
-      );
-    } else if (filters.status === "in_progress") {
-      reportQuery = reportQuery
-        .is("interview_sessions.completed_at", null)
-        .is("interview_sessions.archived_at", null);
-    } else if (filters.status === "archived") {
-      reportQuery = reportQuery
-        .is("interview_sessions.completed_at", null)
-        .not("interview_sessions.archived_at", "is", null);
-    }
-
-    if (filters.visibility === "public") {
-      reportQuery = reportQuery.eq("review_status", "published");
-    } else if (filters.visibility === "private") {
-      reportQuery = reportQuery.neq("review_status", "published");
-    }
-
-    if (filters.moderation === "unscored") {
-      reportQuery = reportQuery.is("moderation_score", null);
-    } else if (filters.moderation !== "all") {
-      reportQuery = reportQuery.eq("moderation_status", filters.moderation);
-    }
-
-    const { data, error } = await reportQuery;
-
-    if (error) {
-      throw new Error(`Failed to fetch filtered session ids: ${error.message}`);
-    }
-
-    return (data || []).map((row) => row.interview_session_id);
-  }
-
-  // セッションレベルフィルタのみの場合
-  let query = supabase
-    .from("interview_sessions")
-    .select("id")
-    .eq("interview_config_id", configId);
-
-  if (filters.status === "completed") {
-    query = query.not("completed_at", "is", null);
-  } else if (filters.status === "in_progress") {
-    query = query.is("completed_at", null).is("archived_at", null);
-  } else if (filters.status === "archived") {
-    query = query.is("completed_at", null).not("archived_at", "is", null);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Failed to fetch filtered session ids: ${error.message}`);
-  }
-
-  return (data || []).map((row) => row.id);
 }
 
 export async function findSessionIdsOrderedByTotalContentRichness(
@@ -586,13 +514,30 @@ export async function updateReportVisibility(
   reviewedBy: string
 ): Promise<void> {
   const supabase = createAdminClient();
+
+  // published にできるのは市民本人の公開同意が揃っているときだけなので、
+  // 現在の is_public_by_user を読んでから遷移を決める。
+  const { data: opinion, error: fetchError } = await supabase
+    .from("opinions")
+    .select("is_public_by_user")
+    .eq("id", reportId)
+    .single();
+
+  if (fetchError) {
+    throw new Error(
+      `Failed to fetch opinion for visibility update: ${fetchError.message}`
+    );
+  }
+
   // 職員が非公開にした判断は review_status='hidden' として残し、ユーザー操作による
   // 自動公開で公開停止が覆されないようにする（旧 admin_unpublished_at の役割）。
   const { error } = await supabase
     .from("opinions")
     .update({
-      is_public_by_admin: isPublic,
-      review_status: isPublic ? "published" : "hidden",
+      ...resolveAdminVisibilityUpdate({
+        isPublic,
+        isPublicByUser: opinion.is_public_by_user,
+      }),
       reviewed_by: reviewedBy,
       reviewed_at: new Date().toISOString(),
     })
@@ -745,9 +690,9 @@ export async function publishReportIfAutoPublishEligible(
 
   // 職員が非公開にした意見（hidden）は自動公開の対象外
   if (
-    report.is_public_by_admin ||
-    report.review_status === "hidden" ||
-    !isReportAutoPublishEligible({
+    !shouldAutoPublishOnUserSettingChange({
+      isPublicByAdmin: report.is_public_by_admin,
+      reviewStatus: report.review_status,
       isPublicByUser: report.is_public_by_user,
       moderationScore: report.moderation_score,
       totalContentRichness: report.total_content_richness,

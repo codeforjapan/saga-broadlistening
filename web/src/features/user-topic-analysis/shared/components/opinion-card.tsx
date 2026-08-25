@@ -1,8 +1,8 @@
+import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { getInterviewMessageLink } from "@/features/interview-config/shared/utils/interview-links";
-import { shouldDisplayPublicOpinions } from "@/features/interview-report/shared/utils/public-report-display";
 import { routes } from "@/lib/routes";
 import type { PublicOpinion } from "../types";
 import { formatOpinionDate } from "../utils/format-opinion-date";
@@ -51,7 +51,7 @@ export function OpinionCard({
   const roleTitle = normalizeRoleTitle(opinion.role_title);
 
   const reportVisible =
-    opinion.opinion_public && shouldDisplayPublicOpinions(publicReportCount);
+    opinion.opinion_public && shouldDisplayPublicReports(publicReportCount);
   // 意見詳細リンクは該当メッセージ位置へ飛ばす。
   // source_message_id が無い場合は意見詳細の先頭にフォールバックする。
   const reportHref = opinion.source_message_id

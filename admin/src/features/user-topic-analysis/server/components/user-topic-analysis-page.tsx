@@ -1,7 +1,7 @@
 import "server-only";
 
 import {
-  fetchInterviewConfigContext,
+  findInterviewConfigNameById,
   getLeafTopicsWithOpinions,
   listVersionsByInterviewConfig,
 } from "@mirai-gikai/topic-analysis-core/repository";
@@ -34,8 +34,10 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
     );
   }
 
-  const [context, versions] = await Promise.all([
-    fetchInterviewConfigContext(interviewConfigId),
+  // 見出しに出すのはテーマ名だけなので、紐づく施策本文まで引く
+  // fetchInterviewConfigContext は使わない。
+  const [configName, versions] = await Promise.all([
+    findInterviewConfigNameById(interviewConfigId),
     listVersionsByInterviewConfig(interviewConfigId),
   ]);
 
@@ -55,7 +57,7 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
   return (
     <div className="container mx-auto py-8">
       <h1 className="mb-1 text-2xl font-bold">ユーザー向けトピック分析</h1>
-      <p className="mb-1 text-sm text-gray-600">テーマ: {context.name}</p>
+      <p className="mb-1 text-sm text-gray-600">テーマ: {configName ?? "-"}</p>
       <p className="mb-6 text-sm text-gray-500">
         公開に同意された意見（モデレーションOK）のみを対象に、論点（トピック）を抽出・分類します。
       </p>

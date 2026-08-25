@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
   cleanupTestUser,
-  createTestInterviewConfig,
   createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
+import { trackInterviewConfigs } from "./helpers";
 
 const THRESHOLDS = {
   p_max_moderation_score: 29,
@@ -27,13 +27,7 @@ async function readOpinion(opinionId: string) {
 describe("count_bulk_publish_opinion_targets / bulk_publish_opinions", () => {
   let testUser: TestUser;
   let reviewer: TestUser;
-  const configIds: string[] = [];
-
-  async function createConfig(): Promise<string> {
-    const config = await createTestInterviewConfig();
-    configIds.push(config.id);
-    return config.id;
-  }
+  const configs = trackInterviewConfigs();
 
   beforeEach(async () => {
     testUser = await createTestUser();
@@ -41,16 +35,13 @@ describe("count_bulk_publish_opinion_targets / bulk_publish_opinions", () => {
   });
 
   afterEach(async () => {
-    for (const configId of configIds) {
-      await cleanupTestInterviewConfig(configId);
-    }
-    configIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(testUser.id);
     await cleanupTestUser(reviewer.id);
   });
 
   it("条件に合致する意見のみカウントされる", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     // 対象: 本人が公開に同意済み・レビュー保留中・しきい値を満たす
     const s1 = await createTestSession(configId, testUser.id);
@@ -113,7 +104,7 @@ describe("count_bulk_publish_opinion_targets / bulk_publish_opinions", () => {
   });
 
   it("moderation_scoreやtotal_content_richnessがNULLの意見は除外される", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     // moderation_score が NULL
     const s1 = await createTestSession(configId, testUser.id);
@@ -139,8 +130,8 @@ describe("count_bulk_publish_opinion_targets / bulk_publish_opinions", () => {
   });
 
   it("別の意見募集の意見はカウントされない", async () => {
-    const configId1 = await createConfig();
-    const configId2 = await createConfig();
+    const configId1 = await configs.createConfigId();
+    const configId2 = await configs.createConfigId();
 
     const s1 = await createTestSession(configId1, testUser.id);
     await createTestOpinion(s1.id, {
@@ -166,7 +157,7 @@ describe("count_bulk_publish_opinion_targets / bulk_publish_opinions", () => {
   });
 
   it("bulk_publish_opinionsが対象意見のみ公開し件数を返す", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const s1 = await createTestSession(configId, testUser.id);
     const target1 = await createTestOpinion(s1.id, {
@@ -210,7 +201,7 @@ describe("count_bulk_publish_opinion_targets / bulk_publish_opinions", () => {
   });
 
   it("公開した意見にレビュー者（reviewed_by）とレビュー日時を記録する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const session = await createTestSession(configId, testUser.id);
     const opinion = await createTestOpinion(session.id, {
@@ -232,7 +223,7 @@ describe("count_bulk_publish_opinion_targets / bulk_publish_opinions", () => {
   });
 
   it("countとbulk publishの件数が一致する", async () => {
-    const configId = await createConfig();
+    const configId = await configs.createConfigId();
 
     const s1 = await createTestSession(configId, testUser.id);
     await createTestOpinion(s1.id, {

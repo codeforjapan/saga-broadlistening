@@ -1,27 +1,5 @@
 import { createAdminClient } from "@mirai-gikai/supabase";
 
-/**
- * インタビュー設定を取得する。再抽出のプロンプト構築に使う。
- * 存在しなければ null（PGRST116）。
- */
-export async function findInterviewConfigById(configId: string) {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("interview_configs")
-    .select("*")
-    .eq("id", configId)
-    .single();
-
-  if (error) {
-    if (error.code === "PGRST116") {
-      return null;
-    }
-    throw new Error(`Failed to fetch interview config: ${error.message}`);
-  }
-
-  return data;
-}
-
 /** インタビューセッションを取得する。存在しなければ null（呼び出し側でスキップ判定）。 */
 export async function findInterviewSessionById(sessionId: string) {
   const supabase = createAdminClient();
@@ -54,43 +32,6 @@ export async function findInterviewMessagesBySessionId(sessionId: string) {
   }
 
   return data;
-}
-
-/**
- * 施策と policy_contents（normal 優先）を取得し、プロンプト接地用に整形する。
- */
-export async function fetchPolicyWithContents(policyId: string) {
-  const supabase = createAdminClient();
-
-  const { data: policy, error: policyError } = await supabase
-    .from("policies")
-    .select("*")
-    .eq("id", policyId)
-    .single();
-
-  if (policyError) {
-    throw new Error(`Failed to fetch policy: ${policyError.message}`);
-  }
-
-  const { data: contents, error: contentsError } = await supabase
-    .from("policy_contents")
-    .select("*")
-    .eq("policy_id", policyId);
-
-  if (contentsError) {
-    throw new Error(
-      `Failed to fetch policy contents: ${contentsError.message}`
-    );
-  }
-
-  const normalContent = contents.find((c) => c.difficulty_level === "normal");
-
-  return {
-    policy,
-    policyTitle: normalContent?.title ?? policy.name,
-    policyContent: normalContent?.content ?? "",
-    policySummary: normalContent?.summary ?? "",
-  };
 }
 
 /**

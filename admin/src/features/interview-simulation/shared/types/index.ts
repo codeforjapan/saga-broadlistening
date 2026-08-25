@@ -1,4 +1,3 @@
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
 import type { AiModel } from "@/lib/ai/models";
 import type { PromptKind } from "../constants";
 import type {
@@ -108,7 +107,6 @@ export interface SimulationMetrics {
  * 本番の「編集した config を保存せずにテストする」ユースケース向け。
  */
 export interface TransientConfigSnapshot {
-  mode: InterviewMode;
   /** 職員が設定したテーマの説明文（interview_configs.description） */
   description: string | null;
   /** インタビュー目安時間（分）。本番の「## タイムマネジメント」セクションに反映される */

@@ -1,18 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestPolicy,
   cleanupTestUser,
   createTestInterviewData,
   createTestOpinion,
   createTestUser,
   type TestUser,
 } from "../utils";
-import { cleanupTestInterviewConfig } from "./helpers";
 
 let user: TestUser;
-let policyId: string;
-let configId: string;
+let cleanupInterviewData: () => Promise<void>;
 let opinionId: string;
 const segmentIds: string[] = [];
 
@@ -42,9 +39,8 @@ async function extractedAtById(): Promise<Map<string, string | null>> {
 describe("mark_opinions_extracted()", () => {
   beforeAll(async () => {
     user = await createTestUser();
-    const { policy, config, session } = await createTestInterviewData(user.id);
-    policyId = policy.id;
-    configId = config.id;
+    const { session, cleanup } = await createTestInterviewData(user.id);
+    cleanupInterviewData = cleanup;
     opinionId = (await createTestOpinion(session.id)).id;
     segmentIds.push(await insertSegment(0));
     segmentIds.push(await insertSegment(1));
@@ -52,8 +48,7 @@ describe("mark_opinions_extracted()", () => {
   });
 
   afterAll(async () => {
-    await cleanupTestInterviewConfig(configId);
-    await cleanupTestPolicy(policyId);
+    await cleanupInterviewData();
     await cleanupTestUser(user.id);
   });
 

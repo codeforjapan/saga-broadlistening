@@ -4,10 +4,10 @@ import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publicati
 import { countPublicOpinionsByInterviewConfigId } from "@mirai-gikai/shared/report-publication/count-public-reports";
 import { createAdminClient } from "@mirai-gikai/supabase";
 import type {
+  PublicRespondent,
   PublishedVersionMeta,
   RawOpinionRow,
   RawRespondentDetailRow,
-  RawRespondentRow,
   RawTopicRow,
   RawTranscriptMessageRow,
 } from "./public-types";
@@ -46,32 +46,16 @@ async function fetchAnalysisData(
   const rawTopics: RawTopicRow[] = (topics ?? []).map((t) => {
     const opinions: RawOpinionRow[] = [];
     for (const link of t.topic_opinion ?? []) {
-      const segment = link.opinion_segments as unknown as
-        | (Omit<
-            RawOpinionRow,
-            "review_status" | "moderation_status" | "role_title" | "created_at"
-          > & {
-            opinions: {
-              review_status: string | null;
-              moderation_status: string | null;
-              role_title: string | null;
-              created_at: string | null;
-            } | null;
-          })
-        | null;
-      if (!segment || !segment.opinions) continue;
+      const segment = link.opinion_segments;
+      if (!segment?.opinions) continue;
+      // 論点の列はそのまま、意見側の列だけ相乗する。
+      const { opinions: source, ...segmentColumns } = segment;
       opinions.push({
-        id: segment.id,
-        opinion_id: segment.opinion_id,
-        created_at: segment.opinions.created_at,
-        title: segment.title,
-        content: segment.content,
-        contextual_quote: segment.contextual_quote,
-        source_message_id: segment.source_message_id,
-        richness: segment.richness,
-        review_status: segment.opinions.review_status,
-        moderation_status: segment.opinions.moderation_status,
-        role_title: segment.opinions.role_title,
+        ...segmentColumns,
+        created_at: source.created_at,
+        review_status: source.review_status,
+        moderation_status: source.moderation_status,
+        role_title: source.role_title,
       });
     }
     return { id: t.id, title: t.title, description: t.description, opinions };
@@ -146,8 +130,9 @@ export type OpinionRowFilter = {
 /** web 公開ページのプリセット（公開済みのみ）。 */
 const PUBLIC_OPINION_FILTER: OpinionRowFilter = { reviewStatus: "published" };
 
+// 回答一覧カードは立場・要約・日付しか描画しないので、本文（final_text）は引かない。
 const RESPONDENT_SELECT =
-  "id, role_title, summary, final_text, created_at, interview_sessions!inner(interview_config_id)";
+  "id, role_title, summary, created_at, interview_sessions!inner(interview_config_id)";
 
 /**
  * テーマに紐づく回答者の意見行を取得する（回答一覧用・新しい順）。
@@ -156,7 +141,7 @@ const RESPONDENT_SELECT =
 export async function findRespondentRows(
   interviewConfigId: string,
   filter: OpinionRowFilter = {}
-): Promise<RawRespondentRow[]> {
+): Promise<PublicRespondent[]> {
   const supabase = createAdminClient();
   let query = supabase
     .from("opinions")
@@ -173,13 +158,8 @@ export async function findRespondentRows(
     throw new Error(`Failed to fetch respondents: ${error.message}`);
   }
 
-  return (data ?? []).map((o) => ({
-    id: o.id,
-    role_title: o.role_title,
-    summary: o.summary,
-    final_text: o.final_text,
-    created_at: o.created_at,
-  }));
+  // select 列が PublicRespondent と一致するためそのまま渡す（正規化は pure 関数側）。
+  return data ?? [];
 }
 
 /**
@@ -190,7 +170,7 @@ export async function findRespondentRows(
  */
 export async function findPublicBillRespondentRows(
   interviewConfigId: string
-): Promise<RawRespondentRow[]> {
+): Promise<PublicRespondent[]> {
   return findRespondentRows(interviewConfigId, PUBLIC_OPINION_FILTER);
 }
 
@@ -238,10 +218,8 @@ export async function findRespondentDetail(
 
   // k-匿名性ゲート（任意）: 公開意見が少数のテーマでは会話ログを返さない（web と統一）。
   if (filter.requireDisplayThreshold) {
-    const session = opinion.interview_sessions as unknown as {
-      interview_config_id: string;
-    } | null;
-    const interviewConfigId = session?.interview_config_id ?? null;
+    const interviewConfigId =
+      opinion.interview_sessions?.interview_config_id ?? null;
     if (!interviewConfigId) return null;
     const publicOpinionCount =
       await countPublicOpinionsByInterviewConfigId(interviewConfigId);

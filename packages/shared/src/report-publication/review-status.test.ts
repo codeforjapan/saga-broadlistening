@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveOpinionPublicSettingUpdate } from "./resolve-review-status";
+import {
+  resolveAdminVisibilityUpdate,
+  resolveOpinionPublicSettingUpdate,
+} from "./review-status";
 
 const eligible = {
   moderationScore: 10,
@@ -76,5 +79,25 @@ describe("resolveOpinionPublicSettingUpdate", () => {
         ...eligible,
       })
     ).toEqual({});
+  });
+});
+
+describe("resolveAdminVisibilityUpdate", () => {
+  it("本人が公開に同意済みなら published にする", () => {
+    expect(
+      resolveAdminVisibilityUpdate({ isPublic: true, isPublicByUser: true })
+    ).toEqual({ is_public_by_admin: true, review_status: "published" });
+  });
+
+  it("本人が公開に同意していなければ published にせず pending_review に留める", () => {
+    expect(
+      resolveAdminVisibilityUpdate({ isPublic: true, isPublicByUser: false })
+    ).toEqual({ is_public_by_admin: true, review_status: "pending_review" });
+  });
+
+  it("職員が非公開にしたら本人の同意によらず hidden にする", () => {
+    expect(
+      resolveAdminVisibilityUpdate({ isPublic: false, isPublicByUser: true })
+    ).toEqual({ is_public_by_admin: false, review_status: "hidden" });
   });
 });

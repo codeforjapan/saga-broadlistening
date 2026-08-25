@@ -103,22 +103,6 @@ export async function linkPolicyToInterviewConfig(
   }
 }
 
-export async function unlinkPolicyFromInterviewConfig(
-  policyId: string,
-  configId: string
-): Promise<void> {
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("policies_interview_configs")
-    .delete()
-    .eq("policy_id", policyId)
-    .eq("interview_config_id", configId);
-
-  if (error) {
-    throw new Error(`Failed to unlink policy from config: ${error.message}`);
-  }
-}
-
 export async function findInterviewQuestionsByConfigId(
   interviewConfigId: string
 ): Promise<InterviewQuestion[]> {
@@ -137,13 +121,16 @@ export async function findInterviewQuestionsByConfigId(
 }
 
 /**
- * 同じ施策に紐づく他の募集中（open）の意見募集をまとめて終了する
+ * 指定した施策群に紐づく他の募集中（open）の意見募集をまとめて終了する。
+ * 施策ごとに往復せず、1回の select + 1回の update で完了させる。
  */
 export async function closeOtherOpenConfigs(
-  policyId: string,
+  policyIds: string[],
   excludeConfigId?: string
 ): Promise<void> {
-  const configIds = await findInterviewConfigIdsByPolicyId(policyId);
+  if (policyIds.length === 0) return;
+
+  const configIds = await findInterviewConfigIdsByPolicyIds(policyIds);
   const targetIds = excludeConfigId
     ? configIds.filter((id) => id !== excludeConfigId)
     : configIds;
@@ -162,20 +149,21 @@ export async function closeOtherOpenConfigs(
   }
 }
 
-async function findInterviewConfigIdsByPolicyId(
-  policyId: string
+async function findInterviewConfigIdsByPolicyIds(
+  policyIds: string[]
 ): Promise<string[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("policies_interview_configs")
     .select("interview_config_id")
-    .eq("policy_id", policyId);
+    .in("policy_id", policyIds);
 
   if (error) {
     throw new Error(`Failed to fetch interview configs: ${error.message}`);
   }
 
-  return data.map((row) => row.interview_config_id);
+  // 複数施策に同じ意見募集が紐づき得るので重複を除く。
+  return [...new Set(data.map((row) => row.interview_config_id))];
 }
 
 export async function createInterviewConfigRecord(params: {

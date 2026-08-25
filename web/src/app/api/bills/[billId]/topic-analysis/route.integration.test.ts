@@ -4,13 +4,10 @@ import {
 } from "@mirai-gikai/topic-analysis-core/public-server";
 import {
   adminClient,
-  cleanupTestPolicy,
   cleanupTestUser,
-  createTestInterviewConfig,
-  createTestOpinion,
-  createTestPolicy,
+  createTestOpinionWithSegments,
+  createTestPolicyWithConfig,
   createTestUser,
-  linkPolicyToInterviewConfig,
   type TestUser,
 } from "@test-utils/utils";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -24,38 +21,20 @@ async function createOpinionSegment(opts: {
   moderationScore: number;
   title: string;
 }): Promise<string> {
-  const { data: session } = await adminClient
-    .from("interview_sessions")
-    .insert({
-      interview_config_id: opts.configId,
-      user_id: opts.userId,
-      started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-  if (!session) throw new Error("session insert failed");
-
-  const opinion = await createTestOpinion(session.id, {
-    review_status: opts.reviewStatus,
-    is_public_by_user: opts.reviewStatus === "published",
-    is_public_by_admin: opts.reviewStatus === "published",
-    moderation_score: opts.moderationScore,
-    summary: "s",
+  const { segmentIds } = await createTestOpinionWithSegments({
+    interviewConfigId: opts.configId,
+    userId: opts.userId,
+    session: { completed_at: new Date().toISOString() },
+    opinion: {
+      review_status: opts.reviewStatus,
+      is_public_by_user: opts.reviewStatus === "published",
+      is_public_by_admin: opts.reviewStatus === "published",
+      moderation_score: opts.moderationScore,
+      summary: "s",
+    },
+    segments: [{ title: opts.title, content: "c" }],
   });
-
-  const { data: segment } = await adminClient
-    .from("opinion_segments")
-    .insert({
-      opinion_id: opinion.id,
-      opinion_index: 0,
-      title: opts.title,
-      content: "c",
-    })
-    .select("id")
-    .single();
-  if (!segment) throw new Error("opinion_segment insert failed");
-  return segment.id;
+  return segmentIds[0];
 }
 
 describe("公開トピック分析 読み取り（web 統合）", () => {
@@ -64,26 +43,28 @@ describe("公開トピック分析 読み取り（web 統合）", () => {
   let publishedBillId: string;
   let publishedConfigId: string;
   let emptyConfigId: string;
+  const cleanups: Array<() => Promise<void>> = [];
 
   beforeAll(async () => {
     testUser = await createTestUser();
 
     // 公開版あり: topic に「公開」「非公開」の2意見を割当
-    const policy = await createTestPolicy();
-    publishedBillId = policy.id;
-    const config = await createTestInterviewConfig({ name: "uta-read-test" });
-    publishedConfigId = config.id;
-    await linkPolicyToInterviewConfig(publishedBillId, publishedConfigId);
+    const published = await createTestPolicyWithConfig({
+      config: { name: "uta-read-test" },
+    });
+    publishedBillId = published.policy.id;
+    publishedConfigId = published.config.id;
+    cleanups.push(published.cleanup);
 
     const okId = await createOpinionSegment({
-      configId: config.id,
+      configId: publishedConfigId,
       userId: testUser.id,
       reviewStatus: "published",
       moderationScore: 5,
       title: "公開OK",
     });
     const privateId = await createOpinionSegment({
-      configId: config.id,
+      configId: publishedConfigId,
       userId: testUser.id,
       reviewStatus: "pending_review",
       moderationScore: 5,
@@ -130,22 +111,16 @@ describe("公開トピック分析 読み取り（web 統合）", () => {
     ]);
 
     // 公開版なしの施策
-    const policy2 = await createTestPolicy();
-    billId = policy2.id;
-    const emptyConfig = await createTestInterviewConfig();
-    emptyConfigId = emptyConfig.id;
-    await linkPolicyToInterviewConfig(billId, emptyConfigId);
+    const empty = await createTestPolicyWithConfig();
+    billId = empty.policy.id;
+    emptyConfigId = empty.config.id;
+    cleanups.push(empty.cleanup);
   });
 
   afterAll(async () => {
-    // beforeAll が途中失敗した場合に未初期化値で二次エラーを起こし、
-    // 元の失敗原因を隠さないよう存在チェックしてからクリーンアップする。
-    if (publishedBillId) await cleanupTestPolicy(publishedBillId);
-    if (billId) await cleanupTestPolicy(billId);
-    for (const configId of [publishedConfigId, emptyConfigId]) {
-      if (configId) {
-        await adminClient.from("interview_configs").delete().eq("id", configId);
-      }
+    // beforeAll が途中で失敗しても、そこまでに作った分だけ後片付けする。
+    for (const cleanup of cleanups.splice(0)) {
+      await cleanup();
     }
     if (testUser?.id) await cleanupTestUser(testUser.id);
   });

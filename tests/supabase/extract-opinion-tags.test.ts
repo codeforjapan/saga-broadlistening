@@ -5,14 +5,11 @@ import {
 import { extractOpinionTagsForReport } from "@mirai-gikai/topic-analysis-core/tag-backfill-service";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  cleanupTestInterviewConfig,
-  createTestSession,
-} from "./db-function/helpers";
-import {
   adminClient,
+  cleanupTestInterviewConfig,
   cleanupTestUser,
   createTestInterviewConfig,
-  createTestOpinion,
+  createTestOpinionWithSegments,
   createTestUser,
   type TestUser,
 } from "./utils";
@@ -30,41 +27,26 @@ async function createOpinionWithSegments(opts: {
   segmentCount: number;
   withMessages: boolean;
 }) {
-  const session = await createTestSession(opts.configId, opts.userId, {
-    completed_at: "2024-07-01T00:00:00Z",
+  return await createTestOpinionWithSegments({
+    interviewConfigId: opts.configId,
+    userId: opts.userId,
+    session: { completed_at: "2024-07-01T00:00:00Z" },
+    opinion: {
+      is_public_by_user: true,
+      summary: "サマリ",
+      role_title: "教員",
+    },
+    messages: opts.withMessages
+      ? [
+          {
+            role: "assistant",
+            content: JSON.stringify({ text: "どう思いますか？" }),
+          },
+          { role: "user", content: "現場では紙のほうが定着すると感じます" },
+        ]
+      : [],
+    segments: Array.from({ length: opts.segmentCount }, () => ({})),
   });
-  const opinion = await createTestOpinion(session.id, {
-    is_public_by_user: true,
-    summary: "サマリ",
-    role_title: "教員",
-  });
-
-  if (opts.withMessages) {
-    await adminClient.from("interview_messages").insert([
-      {
-        interview_session_id: session.id,
-        role: "assistant",
-        content: JSON.stringify({ text: "どう思いますか？" }),
-      },
-      {
-        interview_session_id: session.id,
-        role: "user",
-        content: "現場では紙のほうが定着すると感じます",
-      },
-    ]);
-  }
-
-  const { error } = await adminClient.from("opinion_segments").insert(
-    Array.from({ length: opts.segmentCount }, (_, i) => ({
-      opinion_id: opinion.id,
-      opinion_index: i,
-      title: `論点${i}`,
-      content: `内容${i}`,
-    }))
-  );
-  if (error) throw new Error(`opinion_segments 作成失敗: ${error.message}`);
-
-  return { opinionId: opinion.id, sessionId: session.id };
 }
 
 async function readSegments(opinionId: string) {
