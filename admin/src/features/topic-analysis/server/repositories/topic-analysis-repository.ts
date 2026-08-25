@@ -3,17 +3,21 @@ import "server-only";
 import { createAdminClient } from "@mirai-gikai/supabase";
 import type { IntermediateResults, PhaseData } from "../../shared/types";
 
+// Epic #54 で topic_analysis_versions.bill_id は interview_config_id に、
+// bills / bill_contents は policies / policy_contents になった。
+// bill という名前の改名は Epic #8 完了後のフォローアップで行う。
+
 /**
  * 新しいバージョンを作成する（version番号は自動インクリメント）
  */
-export async function createVersion(billId: string) {
+export async function createVersion(interviewConfigId: string) {
   const supabase = createAdminClient();
 
   // 現在の最大バージョン番号を取得
   const { data: existing } = await supabase
     .from("topic_analysis_versions")
     .select("version")
-    .eq("bill_id", billId)
+    .eq("interview_config_id", interviewConfigId)
     .order("version", { ascending: false })
     .limit(1);
 
@@ -23,7 +27,7 @@ export async function createVersion(billId: string) {
   const { data, error } = await supabase
     .from("topic_analysis_versions")
     .insert({
-      bill_id: billId,
+      interview_config_id: interviewConfigId,
       version: nextVersion,
       status: "pending",
     })
@@ -157,15 +161,17 @@ export async function loadPhaseData(versionId: string): Promise<PhaseData> {
 }
 
 /**
- * 議案のバージョン一覧を取得する
+ * 意見募集のバージョン一覧を取得する
  */
-export async function findVersionsByBillId(billId: string) {
+export async function findVersionsByInterviewConfigId(
+  interviewConfigId: string
+) {
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("topic_analysis_versions")
     .select("*")
-    .eq("bill_id", billId)
+    .eq("interview_config_id", interviewConfigId)
     .order("version", { ascending: false });
 
   if (error) {
@@ -246,7 +252,7 @@ export async function createTopics(
 export async function createClassifications(
   versionId: string,
   classifications: Array<{
-    interview_report_id: string;
+    opinion_id: string;
     topic_id: string;
     opinion_index: number;
   }>
@@ -255,7 +261,7 @@ export async function createClassifications(
 
   const rows = classifications.map((c) => ({
     version_id: versionId,
-    interview_report_id: c.interview_report_id,
+    opinion_id: c.opinion_id,
     topic_id: c.topic_id,
     opinion_index: c.opinion_index,
   }));
@@ -281,7 +287,7 @@ export async function createClassifications(
         .insert(row);
       if (rowError) {
         console.warn(
-          `[TopicAnalysis] Skipped classification (report: ${row.interview_report_id}): ${rowError.message}`
+          `[TopicAnalysis] Skipped classification (opinion: ${row.opinion_id}): ${rowError.message}`
         );
         skipped++;
       } else {
@@ -341,7 +347,7 @@ export async function fetchBillWithContents(billId: string) {
   const supabase = createAdminClient();
 
   const { data: bill, error: billError } = await supabase
-    .from("bills")
+    .from("policies")
     .select("*")
     .eq("id", billId)
     .single();
@@ -351,9 +357,9 @@ export async function fetchBillWithContents(billId: string) {
   }
 
   const { data: contents, error: contentsError } = await supabase
-    .from("bill_contents")
+    .from("policy_contents")
     .select("*")
-    .eq("bill_id", billId);
+    .eq("policy_id", billId);
 
   if (contentsError) {
     throw new Error(`Failed to fetch bill contents: ${contentsError.message}`);
@@ -370,86 +376,49 @@ export async function fetchBillWithContents(billId: string) {
 }
 
 /**
- * 完了済みインタビューセッションのレポート一覧を取得する
+ * 完了済みインタビューセッションの意見一覧（論点単位に展開済み）を取得する
  */
-export async function fetchCompletedInterviewReports(billId: string) {
+export async function fetchCompletedInterviewReports(
+  interviewConfigId: string
+) {
   const supabase = createAdminClient();
 
-  // まず interview_configs から config_id を取得
-  const { data: configs, error: configError } = await supabase
-    .from("interview_configs")
-    .select("id")
-    .eq("bill_id", billId);
-
-  if (configError) {
-    throw new Error(
-      `Failed to fetch interview configs: ${configError.message}`
-    );
-  }
-
-  if (!configs || configs.length === 0) {
-    return [];
-  }
-
-  const configIds = configs.map((c) => c.id);
-
-  // 完了済みセッションとレポートを取得
-  const { data: sessions, error: sessionsError } = await supabase
-    .from("interview_sessions")
+  const { data, error } = await supabase
+    .from("opinions")
     .select(
       `
       id,
-      interview_config_id,
-      interview_report(*)
+      interview_session_id,
+      interview_sessions!inner(interview_config_id, completed_at),
+      opinion_segments(opinion_index, title, content, source_message_id, contextual_quote)
     `
     )
-    .in("interview_config_id", configIds)
-    .not("completed_at", "is", null);
+    .eq("interview_sessions.interview_config_id", interviewConfigId)
+    .not("interview_sessions.completed_at", "is", null);
 
-  if (sessionsError) {
-    throw new Error(
-      `Failed to fetch interview sessions: ${sessionsError.message}`
+  if (error) {
+    throw new Error(`Failed to fetch opinions: ${error.message}`);
+  }
+
+  // 論点（opinion_segments）が1件も無い意見は解析対象にならないので除外する
+  return (data ?? []).flatMap((opinion) => {
+    const segments = [...opinion.opinion_segments].sort(
+      (a, b) => a.opinion_index - b.opinion_index
     );
-  }
+    if (segments.length === 0) return [];
 
-  // レポートが存在し、opinions が null でないものだけを返す
-  const reports: Array<{
-    session_id: string;
-    config_id: string;
-    report_id: string;
-    opinions: Array<{
-      title: string;
-      content: string;
-      source_message_id?: string | null;
-      source_message_content?: string | null;
-    }>;
-  }> = [];
-
-  for (const session of sessions) {
-    const report = Array.isArray(session.interview_report)
-      ? session.interview_report[0]
-      : session.interview_report;
-
-    if (report?.opinions) {
-      const opinions = Array.isArray(report.opinions)
-        ? (report.opinions as Array<{
-            title: string;
-            content: string;
-            source_message_id?: string | null;
-            source_message_content?: string | null;
-          }>)
-        : [];
-
-      if (opinions.length > 0) {
-        reports.push({
-          session_id: session.id,
-          config_id: session.interview_config_id,
-          report_id: report.id,
-          opinions,
-        });
-      }
-    }
-  }
-
-  return reports;
+    return [
+      {
+        session_id: opinion.interview_session_id,
+        config_id: interviewConfigId,
+        opinion_id: opinion.id,
+        opinions: segments.map((segment) => ({
+          title: segment.title,
+          content: segment.content,
+          source_message_id: segment.source_message_id,
+          source_message_content: segment.contextual_quote,
+        })),
+      },
+    ];
+  });
 }

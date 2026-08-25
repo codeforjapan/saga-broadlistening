@@ -1,6 +1,6 @@
 import {
   adminClient,
-  cleanupTestBill,
+  cleanupTestPolicy,
   cleanupTestUser,
   createTestInterviewData,
   createTestUser,
@@ -118,13 +118,13 @@ describe("handleInterviewChatRequest 統合テスト", () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.bill.id;
+    billId = data.policy.id;
     session = data.session;
     config = data.config;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId);
+    await cleanupTestPolicy(billId);
     await cleanupTestUser(testUser.id);
   });
 

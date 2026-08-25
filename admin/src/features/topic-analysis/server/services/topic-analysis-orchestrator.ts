@@ -30,11 +30,11 @@ import { generateOverallSummary } from "./step5-generate-summary";
  *
  * バージョンを作成し、パイプラインを実行する
  */
-export async function runTopicAnalysis(billId: string) {
+export async function runTopicAnalysis(billId: string, configId: string) {
   await registerNodeTelemetry();
 
-  const version = await createVersion(billId);
-  await executeAnalysisPipeline(version.id, billId);
+  const version = await createVersion(configId);
+  await executeAnalysisPipeline(version.id, billId, configId);
   return { versionId: version.id };
 }
 
@@ -45,14 +45,15 @@ export async function runTopicAnalysis(billId: string) {
  */
 async function runPhase1Steps(
   versionId: string,
-  billId: string
+  billId: string,
+  configId: string
 ): Promise<PhaseData> {
   // Step 1: データ取得
   await updateVersionStep(versionId, ANALYSIS_STEPS.FETCH_DATA.label);
   console.log("[TopicAnalysis] Step 1: Fetching data...");
   const [billData, reports] = await Promise.all([
     fetchBillWithContents(billId),
-    fetchCompletedInterviewReports(billId),
+    fetchCompletedInterviewReports(configId),
   ]);
 
   if (reports.length === 0) {
@@ -63,7 +64,7 @@ async function runPhase1Steps(
   for (const report of reports) {
     for (let i = 0; i < report.opinions.length; i++) {
       flatOpinions.push({
-        interview_report_id: report.report_id,
+        opinion_id: report.opinion_id,
         session_id: report.session_id,
         opinion_index: i,
         title: report.opinions[i].title,
@@ -165,8 +166,7 @@ async function runPhase3Steps(
   for (const c of classifications) {
     const opinion = flatOpinions.find(
       (o) =>
-        o.interview_report_id === c.interview_report_id &&
-        o.opinion_index === c.opinion_index
+        o.opinion_id === c.opinion_id && o.opinion_index === c.opinion_index
     );
     if (opinion) {
       for (const topicName of c.topic_names) {
@@ -232,20 +232,18 @@ async function runPhase3Steps(
     topicNameToId.set(topic.name, topic.id);
   }
 
-  // 有効な interview_report_id のセットを構築（FK制約違反を防止）
-  const validReportIds = new Set(
-    flatOpinions.map((o) => o.interview_report_id)
-  );
+  // 有効な opinion_id のセットを構築（FK制約違反を防止）
+  const validReportIds = new Set(flatOpinions.map((o) => o.opinion_id));
 
   const classificationRows: Array<{
-    interview_report_id: string;
+    opinion_id: string;
     topic_id: string;
     opinion_index: number;
   }> = [];
 
   let skippedCount = 0;
   for (const c of classifications) {
-    if (!validReportIds.has(c.interview_report_id)) {
+    if (!validReportIds.has(c.opinion_id)) {
       skippedCount++;
       continue;
     }
@@ -253,7 +251,7 @@ async function runPhase3Steps(
       const topicId = topicNameToId.get(topicName);
       if (topicId) {
         classificationRows.push({
-          interview_report_id: c.interview_report_id,
+          opinion_id: c.opinion_id,
           topic_id: topicId,
           opinion_index: c.opinion_index,
         });
@@ -263,7 +261,7 @@ async function runPhase3Steps(
 
   if (skippedCount > 0) {
     console.warn(
-      `[TopicAnalysis] Skipped ${skippedCount} classifications with invalid interview_report_id`
+      `[TopicAnalysis] Skipped ${skippedCount} classifications with invalid opinion_id`
     );
   }
 
@@ -291,11 +289,12 @@ async function runPhase3Steps(
  */
 export async function executePhase1(
   versionId: string,
-  billId: string
+  billId: string,
+  configId: string
 ): Promise<void> {
   try {
     await updateVersionStatus(versionId, "running");
-    const phaseData = await runPhase1Steps(versionId, billId);
+    const phaseData = await runPhase1Steps(versionId, billId, configId);
     await savePhaseData(versionId, phaseData);
     console.log(`[TopicAnalysis] Phase 1 completed. Version: ${versionId}`);
   } catch (error) {
@@ -350,12 +349,13 @@ export async function executePhase3(
  */
 export async function executeAnalysisPipeline(
   versionId: string,
-  billId: string
+  billId: string,
+  configId: string
 ) {
   try {
     await updateVersionStatus(versionId, "running");
 
-    const phase1Data = await runPhase1Steps(versionId, billId);
+    const phase1Data = await runPhase1Steps(versionId, billId, configId);
     const phase2Data = await runPhase2Steps(versionId, phase1Data);
     await runPhase3Steps(versionId, billId, phase2Data);
 

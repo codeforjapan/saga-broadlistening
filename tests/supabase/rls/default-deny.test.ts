@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  cleanupTestUser,
+  createTestUser,
   getAnonClient,
   getAuthenticatedClient,
-  createTestUser,
-  cleanupTestUser,
 } from "../utils";
 
 /**
@@ -12,19 +12,24 @@ import {
  */
 
 const tables = [
-  "bills",
-  "bill_contents",
-  "mirai_stances",
-  "chats",
+  "policies",
+  "policy_contents",
+  "policies_tags",
   "tags",
-  "bills_tags",
   "preview_tokens",
-  "diet_sessions",
+  "chat_sessions",
+  "chat_messages",
   "interview_configs",
+  "policies_interview_configs",
   "interview_questions",
   "interview_sessions",
   "interview_messages",
-  "interview_report",
+  "opinions",
+  "opinion_segments",
+  "opinion_reactions",
+  "portal_controls",
+  "audit_logs",
+  "guard_events",
 ] as const;
 
 describe("RLS default deny（全テーブル共通）", () => {
@@ -43,22 +48,19 @@ describe("RLS default deny（全テーブル共通）", () => {
       });
     }
 
-    it("bills: INSERT が拒否される", async () => {
-      const { error } = await anon.from("bills").insert({
+    it("policies: INSERT が拒否される", async () => {
+      const { error } = await anon.from("policies").insert({
         name: "不正な挿入テスト",
-        originating_house: "HR",
-        status: "introduced",
+        slug: `rls-test-${Date.now()}`,
         publish_status: "draft",
       });
       expect(error).not.toBeNull();
     });
 
-    it("diet_sessions: INSERT が拒否される", async () => {
-      const { error } = await anon.from("diet_sessions").insert({
-        name: "不正な挿入テスト",
-        start_date: "2025-01-01",
-        end_date: "2025-06-30",
-        slug: "rls-test",
+    it("audit_logs: INSERT が拒否される", async () => {
+      const { error } = await anon.from("audit_logs").insert({
+        action: "不正な挿入テスト",
+        entity_type: "policy",
       });
       expect(error).not.toBeNull();
     });
@@ -91,24 +93,21 @@ describe("RLS default deny（全テーブル共通）", () => {
       });
     }
 
-    it("bills: INSERT が拒否される", async () => {
+    it("policies: INSERT が拒否される", async () => {
       const client = await getAuthenticatedClient(email, password);
-      const { error } = await client.from("bills").insert({
+      const { error } = await client.from("policies").insert({
         name: "不正な挿入テスト",
-        originating_house: "HR",
-        status: "introduced",
+        slug: `rls-test-${Date.now()}`,
         publish_status: "draft",
       });
       expect(error).not.toBeNull();
     });
 
-    it("diet_sessions: INSERT が拒否される", async () => {
+    it("audit_logs: INSERT が拒否される", async () => {
       const client = await getAuthenticatedClient(email, password);
-      const { error } = await client.from("diet_sessions").insert({
-        name: "不正な挿入テスト",
-        start_date: "2025-01-01",
-        end_date: "2025-06-30",
-        slug: "rls-test",
+      const { error } = await client.from("audit_logs").insert({
+        action: "不正な挿入テスト",
+        entity_type: "policy",
       });
       expect(error).not.toBeNull();
     });

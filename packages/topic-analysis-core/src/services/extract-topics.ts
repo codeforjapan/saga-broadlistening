@@ -5,14 +5,18 @@ import {
   TOPIC_MODEL,
 } from "../shared/constants";
 import { topicExtractionSchema } from "../shared/schemas";
-import type { BillContext, TargetOpinion, TopicDraft } from "../shared/types";
+import type {
+  InterviewConfigContext,
+  TargetOpinion,
+  TopicDraft,
+} from "../shared/types";
 import { chunk, mapWithConcurrency, withRetry } from "../utils/concurrency";
 import { joinSummaryPoints } from "../utils/join-summary-points";
 import { buildExtractPrompt } from "./prompts";
 
 async function extractBatch(
   opinions: TargetOpinion[],
-  bill: BillContext,
+  context: InterviewConfigContext,
   batchIndex: number
 ): Promise<TopicDraft[]> {
   const opinionsText = opinions
@@ -24,7 +28,7 @@ async function extractBatch(
       generateObject({
         model: TOPIC_MODEL,
         schema: topicExtractionSchema,
-        prompt: buildExtractPrompt(bill, opinionsText),
+        prompt: buildExtractPrompt(context, opinionsText),
         experimental_telemetry: {
           isEnabled: true,
           functionId: "user-topic-analysis-extract",
@@ -43,12 +47,12 @@ async function extractBatch(
 /** Phase1: 意見をバッチ分割しトピック候補を並列抽出（Map）。 */
 export async function extractTopics(
   opinions: TargetOpinion[],
-  bill: BillContext
+  context: InterviewConfigContext
 ): Promise<TopicDraft[]> {
   if (opinions.length === 0) return [];
   const batches = chunk(opinions, EXTRACT_BATCH_SIZE);
   const perBatch = await mapWithConcurrency(batches, MAX_CONCURRENCY, (b, i) =>
-    extractBatch(b, bill, i)
+    extractBatch(b, context, i)
   );
   return perBatch.flat();
 }

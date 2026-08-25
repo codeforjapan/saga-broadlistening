@@ -1,7 +1,7 @@
 import {
   countPendingTagExtraction,
-  findReportsToTag,
-  resetTagExtractionForBill,
+  findOpinionsToTag,
+  resetTagExtractionForInterviewConfig,
 } from "./repositories/opinion-tags-repository";
 import {
   extractOpinionTagsForReport,
@@ -22,63 +22,68 @@ import {
 type TagDeps = { generateTags?: GenerateTagsFn; model?: string };
 
 export type TagBackfillOptions = TagDeps & {
-  /** 指定議案に限定して実行する。未指定なら全議案。 */
-  billId?: string;
+  /** 指定テーマに限定して実行する。未指定なら全テーマ。 */
+  interviewConfigId?: string;
   /**
-   * "pending"（既定）: タグ未抽出の意見のみ。
-   * "all": 既にタグ付け済みも含めて全件やり直す（billId 必須）。
+   * "pending"（既定）: タグ未抽出の論点のみ。
+   * "all": 既にタグ付け済みも含めて全件やり直す（interviewConfigId 必須）。
    */
   scope?: BackfillScope;
 };
 
 /** 共通ドライバに渡すステップ定義を組み立てる。 */
 function buildSteps(
-  deps: { billId?: string } & TagDeps
-): WatermarkBackfillSteps<Awaited<ReturnType<typeof findReportsToTag>>[number]> {
-  const { billId, generateTags, model } = deps;
+  deps: { interviewConfigId?: string } & TagDeps
+): WatermarkBackfillSteps<
+  Awaited<ReturnType<typeof findOpinionsToTag>>[number]
+> {
+  const { interviewConfigId, generateTags, model } = deps;
   return {
     label: "tag backfill",
     chunkSize: OPINION_TAG_BACKFILL_CHUNK_SIZE,
     concurrency: OPINION_TAG_BACKFILL_CONCURRENCY,
-    findTargets: (limit) => findReportsToTag(limit, billId),
+    findTargets: (limit) => findOpinionsToTag(limit, interviewConfigId),
     processTarget: (target) =>
       extractOpinionTagsForReport(target, { generateTags, model }),
-    // 残件は意見単位で数える（対象抽出はレポート単位だが進捗の分母は意見）。
-    countRemaining: () => countPendingTagExtraction(billId),
+    // 残件は論点単位で数える（対象抽出は意見単位だが進捗の分母は論点）。
+    countRemaining: () => countPendingTagExtraction(interviewConfigId),
   };
 }
 
-/** タグ未抽出の意見を1チャンク分処理する。 */
+/** タグ未抽出の論点を1チャンク分処理する。 */
 export function runOpinionTagBackfillChunk(
-  deps: { billId?: string } & TagDeps = {}
+  deps: { interviewConfigId?: string } & TagDeps = {}
 ): Promise<BackfillChunkResult> {
   return runWatermarkBackfillChunk(buildSteps(deps));
 }
 
 /**
  * 意見タグ付けバックフィルを実行する（Cloud Run Job のメイン処理）。
- * - scope="pending"（既定）: タグ未抽出の意見をウォーターマーク方式で全件処理。
- * - scope="all": 指定議案のウォーターマークをリセットしてから全件やり直す（billId 必須）。
+ * - scope="pending"（既定）: タグ未抽出の論点をウォーターマーク方式で全件処理。
+ * - scope="all": 指定テーマのウォーターマークをリセットしてから全件やり直す
+ *   （interviewConfigId 必須）。
  */
 export async function runTagBackfill(
   options: TagBackfillOptions = {}
 ): Promise<void> {
-  const { billId, scope = "pending", generateTags, model } = options;
+  const { interviewConfigId, scope = "pending", generateTags, model } = options;
   console.log(
-    `[topic-analysis] start opinion tag backfill (scope=${scope} bill=${billId ?? "all"} model=${model ?? "default"})`
+    `[topic-analysis] start opinion tag backfill (scope=${scope} config=${interviewConfigId ?? "all"} model=${model ?? "default"})`
   );
 
   if (scope === "all") {
-    // billId 必須は resolveBackfillParams でも検証しているが、
-    // 直接呼び出しでも全議案リセットが起きないよう不変条件として残す。
-    if (!billId) {
-      throw new Error('tag backfill scope="all" requires a billId');
+    // interviewConfigId 必須は resolveBackfillParams でも検証しているが、
+    // 直接呼び出しでも全テーマリセットが起きないよう不変条件として残す。
+    if (!interviewConfigId) {
+      throw new Error('tag backfill scope="all" requires an interviewConfigId');
     }
-    const reset = await resetTagExtractionForBill(billId);
+    const reset = await resetTagExtractionForInterviewConfig(interviewConfigId);
     console.log(
-      `[topic-analysis] reset ${reset} tag watermark(s) for bill=${billId}`
+      `[topic-analysis] reset ${reset} tag watermark(s) for config=${interviewConfigId}`
     );
   }
 
-  await runWatermarkBackfill(buildSteps({ billId, generateTags, model }));
+  await runWatermarkBackfill(
+    buildSteps({ interviewConfigId, generateTags, model })
+  );
 }

@@ -5,28 +5,17 @@ import {
 } from "@mirai-gikai/shared/report-publication/auto-publish";
 import {
   adminClient,
-  cleanupTestBill,
+  cleanupTestPolicy,
   cleanupTestUser,
-  createTestBill,
+  createTestInterviewConfig,
+  createTestOpinion,
+  createTestPolicy,
   createTestUser,
+  linkPolicyToInterviewConfig,
   type TestUser,
 } from "@test-utils/utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { updateReportPublicSetting } from "./interview-report-repository";
-
-async function createTestInterviewConfig(billId: string) {
-  const { data, error } = await adminClient
-    .from("interview_configs")
-    .insert({
-      bill_id: billId,
-      status: "public",
-      name: `公開設定テスト ${Date.now()}`,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_config 作成失敗: ${error.message}`);
-  return data;
-}
 
 async function createTestSession(configId: string, userId: string) {
   const { data, error } = await adminClient
@@ -42,54 +31,46 @@ async function createTestSession(configId: string, userId: string) {
   return data;
 }
 
-async function createTestReport(
-  sessionId: string,
-  overrides: Partial<{
-    is_public_by_admin: boolean;
-    is_public_by_user: boolean;
-    admin_unpublished_at: string | null;
-    moderation_score: number | null;
-    contentRichnessTotal: number | null;
-  }> = {}
-) {
-  const contentRichnessTotal = overrides.contentRichnessTotal ?? null;
-  const { data, error } = await adminClient
-    .from("interview_report")
-    .insert({
-      interview_session_id: sessionId,
-      is_public_by_admin: overrides.is_public_by_admin ?? false,
-      is_public_by_user: overrides.is_public_by_user ?? false,
-      admin_unpublished_at: overrides.admin_unpublished_at ?? null,
-      moderation_score: overrides.moderation_score ?? null,
-      content_richness:
-        contentRichnessTotal == null ? null : { total: contentRichnessTotal },
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_report 作成失敗: ${error.message}`);
-  return data;
-}
+type OpinionOverrides = {
+  is_public_by_admin?: boolean;
+  is_public_by_user?: boolean;
+  review_status?: "published" | "pending_review" | "hidden";
+  moderation_score?: number | null;
+  contentRichnessTotal?: number | null;
+};
 
 async function createReportFixture(
   userId: string,
-  overrides: Parameters<typeof createTestReport>[1]
+  overrides: OpinionOverrides
 ) {
-  const bill = await createTestBill();
+  const policy = await createTestPolicy();
   try {
-    const config = await createTestInterviewConfig(bill.id);
+    const config = await createTestInterviewConfig();
+    await linkPolicyToInterviewConfig(policy.id, config.id);
     const session = await createTestSession(config.id, userId);
-    const report = await createTestReport(session.id, overrides);
-    return { bill, report };
+    const { contentRichnessTotal, ...opinionOverrides } = overrides;
+    const report = await createTestOpinion(session.id, {
+      is_public_by_admin: opinionOverrides.is_public_by_admin ?? false,
+      is_public_by_user: opinionOverrides.is_public_by_user ?? false,
+      review_status: opinionOverrides.review_status ?? "pending_review",
+      ...(opinionOverrides.moderation_score != null
+        ? { moderation_score: opinionOverrides.moderation_score }
+        : {}),
+      ...(contentRichnessTotal != null
+        ? { content_richness: { total: contentRichnessTotal } }
+        : {}),
+    });
+    return { bill: policy, report };
   } catch (error) {
-    await cleanupTestBill(bill.id);
+    await cleanupTestPolicy(policy.id);
     throw error;
   }
 }
 
 async function findPublicFlags(reportId: string) {
   const { data, error } = await adminClient
-    .from("interview_report")
-    .select("is_public_by_user, is_public_by_admin")
+    .from("opinions")
+    .select("is_public_by_user, is_public_by_admin, review_status")
     .eq("id", reportId)
     .single();
   expect(error).toBeNull();
@@ -106,7 +87,7 @@ describe("updateReportPublicSetting 統合テスト", () => {
 
   afterEach(async () => {
     const billCleanupResults = await Promise.allSettled(
-      billIds.map((billId) => cleanupTestBill(billId))
+      billIds.map((billId) => cleanupTestPolicy(billId))
     );
     billIds.length = 0;
     const userCleanupResults = await Promise.allSettled([
@@ -124,10 +105,8 @@ describe("updateReportPublicSetting 統合テスト", () => {
     }
   });
 
-  it("公開許可時に自動公開条件を満たす未公開レポートを管理者公開にする", async () => {
+  it("公開許可時に自動公開条件を満たす未公開意見を公開済みにする", async () => {
     const { bill, report } = await createReportFixture(testUser.id, {
-      is_public_by_admin: false,
-      is_public_by_user: false,
       moderation_score: AUTO_PUBLISH_MAX_MODERATION_SCORE,
       contentRichnessTotal: AUTO_PUBLISH_MIN_CONTENT_RICHNESS,
     });
@@ -138,13 +117,12 @@ describe("updateReportPublicSetting 統合テスト", () => {
     await expect(findPublicFlags(report.id)).resolves.toEqual({
       is_public_by_user: true,
       is_public_by_admin: true,
+      review_status: "published",
     });
   });
 
   it("自動公開条件を満たさない場合はユーザー公開設定だけを更新する", async () => {
     const { bill, report } = await createReportFixture(testUser.id, {
-      is_public_by_admin: false,
-      is_public_by_user: false,
       moderation_score: AUTO_PUBLISH_MAX_MODERATION_SCORE + 1,
       contentRichnessTotal: AUTO_PUBLISH_MIN_CONTENT_RICHNESS,
     });
@@ -155,14 +133,13 @@ describe("updateReportPublicSetting 統合テスト", () => {
     await expect(findPublicFlags(report.id)).resolves.toEqual({
       is_public_by_user: true,
       is_public_by_admin: false,
+      review_status: "pending_review",
     });
   });
 
-  it("管理者が非公開にしたレポートはユーザー操作で再公開しない", async () => {
+  it("職員が非公開にした意見はユーザー操作で再公開しない", async () => {
     const { bill, report } = await createReportFixture(testUser.id, {
-      is_public_by_admin: false,
-      is_public_by_user: false,
-      admin_unpublished_at: new Date().toISOString(),
+      review_status: "hidden",
       moderation_score: AUTO_PUBLISH_MAX_MODERATION_SCORE,
       contentRichnessTotal: AUTO_PUBLISH_MIN_CONTENT_RICHNESS,
     });
@@ -173,12 +150,32 @@ describe("updateReportPublicSetting 統合テスト", () => {
     await expect(findPublicFlags(report.id)).resolves.toEqual({
       is_public_by_user: true,
       is_public_by_admin: false,
+      review_status: "hidden",
     });
   });
 
-  it("公開設定更新前のレポート取得に失敗したらエラーにする", async () => {
+  it("本人が公開を取り消したら公開済みからレビュー保留へ戻す", async () => {
+    const { bill, report } = await createReportFixture(testUser.id, {
+      is_public_by_admin: true,
+      is_public_by_user: true,
+      review_status: "published",
+      moderation_score: AUTO_PUBLISH_MAX_MODERATION_SCORE,
+      contentRichnessTotal: AUTO_PUBLISH_MIN_CONTENT_RICHNESS,
+    });
+    billIds.push(bill.id);
+
+    await updateReportPublicSetting(report.id, false);
+
+    await expect(findPublicFlags(report.id)).resolves.toEqual({
+      is_public_by_user: false,
+      is_public_by_admin: true,
+      review_status: "pending_review",
+    });
+  });
+
+  it("公開設定更新前の意見取得に失敗したらエラーにする", async () => {
     await expect(updateReportPublicSetting(randomUUID(), true)).rejects.toThrow(
-      "Failed to fetch report for public setting:"
+      "Failed to fetch opinion for public setting:"
     );
   });
 });

@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import type { Bill } from "../../shared/types";
@@ -63,7 +64,9 @@ async function _fetchOriginalBill(billId: string) {
  * 複製した議案を作成
  */
 async function _createDuplicateBill(originalBill: Bill) {
-  const insertData = prepareBillForDuplication(originalBill);
+  // policies.slug は NOT NULL かつ一意なため、複製時にランダムな接尾辞で採番する
+  const newSlug = `${originalBill.slug}-copy-${randomBytes(4).toString("hex")}`;
+  const insertData = prepareBillForDuplication(originalBill, newSlug);
 
   try {
     const data = await createBill(insertData);

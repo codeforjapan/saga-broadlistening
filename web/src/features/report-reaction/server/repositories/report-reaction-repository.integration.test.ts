@@ -1,29 +1,18 @@
 import { randomUUID } from "node:crypto";
-import { MIN_PUBLIC_REPORTS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { MIN_PUBLIC_OPINIONS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
 import {
   adminClient,
-  cleanupTestBill,
+  cleanupTestPolicy,
   cleanupTestUser,
-  createTestBill,
+  createTestInterviewConfig,
+  createTestOpinion,
+  createTestPolicy,
   createTestUser,
+  linkPolicyToInterviewConfig,
   type TestUser,
 } from "@test-utils/utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { getReportPublicStatus } from "./report-reaction-repository";
-
-async function createTestInterviewConfig(billId: string) {
-  const { data, error } = await adminClient
-    .from("interview_configs")
-    .insert({
-      bill_id: billId,
-      status: "public",
-      name: `リアクション公開判定テスト ${Date.now()}`,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_config 作成失敗: ${error.message}`);
-  return data;
-}
 
 async function createTestSession(configId: string, userId: string) {
   const { data, error } = await adminClient
@@ -42,24 +31,15 @@ async function createTestSession(configId: string, userId: string) {
 async function createTestReport(
   configId: string,
   userId: string,
-  overrides: Partial<{
-    is_public_by_admin: boolean;
-    is_public_by_user: boolean;
-  }> = {}
+  reviewStatus: "published" | "pending_review" | "hidden" = "published"
 ) {
   const session = await createTestSession(configId, userId);
-  const { data, error } = await adminClient
-    .from("interview_report")
-    .insert({
-      interview_session_id: session.id,
-      is_public_by_admin: overrides.is_public_by_admin ?? true,
-      is_public_by_user: overrides.is_public_by_user ?? true,
-      content_richness: { total: 70 },
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_report 作成失敗: ${error.message}`);
-  return data;
+  return createTestOpinion(session.id, {
+    review_status: reviewStatus,
+    is_public_by_admin: reviewStatus === "published",
+    is_public_by_user: reviewStatus === "published",
+    content_richness: { total: 70 },
+  });
 }
 
 async function createPublicReports(
@@ -68,11 +48,17 @@ async function createPublicReports(
   count: number
 ) {
   for (let index = 0; index < count; index++) {
-    await createTestReport(configId, userId, {
-      is_public_by_admin: true,
-      is_public_by_user: true,
-    });
+    await createTestReport(configId, userId);
   }
+}
+
+/** 施策 + 紐づく意見募集を1組作る。 */
+async function createPolicyWithConfig(billIds: string[]) {
+  const policy = await createTestPolicy();
+  billIds.push(policy.id);
+  const config = await createTestInterviewConfig();
+  await linkPolicyToInterviewConfig(policy.id, config.id);
+  return config;
 }
 
 describe("getReportPublicStatus 統合テスト", () => {
@@ -85,7 +71,7 @@ describe("getReportPublicStatus 統合テスト", () => {
 
   afterEach(async () => {
     const billCleanupResults = await Promise.allSettled(
-      billIds.map((billId) => cleanupTestBill(billId))
+      billIds.map((billId) => cleanupTestPolicy(billId))
     );
     billIds.length = 0;
     const userCleanupResults = await Promise.allSettled([
@@ -103,56 +89,44 @@ describe("getReportPublicStatus 統合テスト", () => {
     }
   });
 
-  it("レポート取得に失敗したら false を返す", async () => {
+  it("意見の取得に失敗したら false を返す", async () => {
     await expect(getReportPublicStatus(randomUUID())).resolves.toBe(false);
   });
 
-  it("両公開フラグと表示件数ゲートを満たす場合だけ true を返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("公開済みかつ表示件数ゲートを満たす場合だけ true を返す", async () => {
+    const config = await createPolicyWithConfig(billIds);
     const report = await createTestReport(config.id, testUser.id);
     await createPublicReports(
       config.id,
       testUser.id,
-      MIN_PUBLIC_REPORTS_FOR_DISPLAY - 1
+      MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1
     );
 
     await expect(getReportPublicStatus(report.id)).resolves.toBe(true);
   });
 
   it.each([
-    { is_public_by_admin: false, is_public_by_user: true },
-    { is_public_by_admin: true, is_public_by_user: false },
-  ])("公開フラグが片側でも false なら false を返す (%o)", async ({
-    is_public_by_admin,
-    is_public_by_user,
-  }) => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-    const report = await createTestReport(config.id, testUser.id, {
-      is_public_by_admin,
-      is_public_by_user,
-    });
+    "pending_review" as const,
+    "hidden" as const,
+  ])("review_status が %s なら false を返す", async (reviewStatus) => {
+    const config = await createPolicyWithConfig(billIds);
+    const report = await createTestReport(config.id, testUser.id, reviewStatus);
     await createPublicReports(
       config.id,
       testUser.id,
-      MIN_PUBLIC_REPORTS_FOR_DISPLAY
+      MIN_PUBLIC_OPINIONS_FOR_DISPLAY
     );
 
     await expect(getReportPublicStatus(report.id)).resolves.toBe(false);
   });
 
   it("公開済み件数が表示閾値未満なら false を返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const config = await createPolicyWithConfig(billIds);
     const report = await createTestReport(config.id, testUser.id);
     await createPublicReports(
       config.id,
       testUser.id,
-      MIN_PUBLIC_REPORTS_FOR_DISPLAY - 2
+      MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 2
     );
 
     await expect(getReportPublicStatus(report.id)).resolves.toBe(false);

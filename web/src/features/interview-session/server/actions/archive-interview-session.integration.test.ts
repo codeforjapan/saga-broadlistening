@@ -4,7 +4,7 @@ import {
   createTestUser,
   cleanupTestUser,
   createTestInterviewData,
-  cleanupTestBill,
+  cleanupTestPolicy,
   type TestUser,
 } from "@test-utils/utils";
 import type { GetUserFn } from "../utils/verify-session-ownership";
@@ -31,11 +31,11 @@ describe("archiveInterviewSession 統合テスト", () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.bill.id;
+    billId = data.policy.id;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId);
+    await cleanupTestPolicy(billId);
     await cleanupTestUser(testUser.id);
   });
 

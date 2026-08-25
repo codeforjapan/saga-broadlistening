@@ -11,6 +11,7 @@ import { MAX_PERSONA_SLOTS } from "./constants";
 const ID_MAX = 100;
 const SHORT_TEXT_MAX = 200;
 const MEDIUM_TEXT_MAX = 2_000;
+const LONG_TEXT_MAX = 4_000;
 const SMALL_ARRAY_MAX = 20;
 const MEDIUM_ARRAY_MAX = 50;
 
@@ -319,10 +320,7 @@ export const multiSimulationRunRequestSchema = z
     improvedConfig: z
       .object({
         mode: z.enum(INTERVIEW_MODES),
-        themes: z
-          .array(z.string().max(MEDIUM_TEXT_MAX))
-          .max(SMALL_ARRAY_MAX)
-          .nullable(),
+        description: z.string().max(LONG_TEXT_MAX).nullable(),
         estimatedDurationMinutes: z.number().int().min(1).max(600).nullable(),
         questions: z
           .array(
@@ -335,11 +333,6 @@ export const multiSimulationRunRequestSchema = z
                   .max(SMALL_ARRAY_MAX)
                   .nullable(),
                 follow_up_guide: z.string().max(MEDIUM_TEXT_MAX).nullable(),
-                target_audience: z
-                  .string()
-                  .max(MEDIUM_TEXT_MAX)
-                  .nullable()
-                  .optional(),
               })
               .strict()
           )

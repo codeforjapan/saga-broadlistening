@@ -33,7 +33,8 @@ export type PromptBillInput = {
  * インタビュー設定の型（純粋関数用）
  */
 export type InterviewConfig = {
-  themes?: string[] | null;
+  /** 職員が設定したテーマの説明文（interview_configs.description）。 */
+  description?: string | null;
   [key: string]: unknown;
 } | null;
 

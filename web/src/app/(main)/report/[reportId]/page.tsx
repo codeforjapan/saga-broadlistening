@@ -25,16 +25,9 @@ export async function generateMetadata({
     return { title: "インタビューレポート" };
   }
 
-  const billName = data.bill.bill_content?.title || data.bill.name || "法案";
-  const stanceText =
-    data.stance === "for"
-      ? "期待"
-      : data.stance === "against"
-        ? "懸念"
-        : "意見";
+  const billName = data.bill.bill_content?.title || data.bill.name || "施策";
 
-  const ogTitle =
-    data.summary || `${stanceText} - ${billName} インタビューレポート`;
+  const ogTitle = data.summary || `${billName} インタビューレポート`;
   const ogDescription = `${billName}に対するインタビューレポート`;
   const shareImageUrl = new URL(
     `/api/og/report?id=${reportId}`,

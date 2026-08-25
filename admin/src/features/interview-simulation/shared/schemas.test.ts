@@ -10,14 +10,13 @@ type ValidRequest = {
   personaSlots: PersonaSlotInput[];
   improvedConfig: {
     mode: InterviewMode;
-    themes: string[] | null;
+    description: string | null;
     estimatedDurationMinutes: number | null;
     questions: Array<{
       id: string;
       question: string;
       quick_replies: string[] | null;
       follow_up_guide: string | null;
-      target_audience?: string | null;
     }>;
   };
   interviewerModel: string;
@@ -31,7 +30,7 @@ function baseValidRequest(): ValidRequest {
     personaSlots: [{ kind: "bill" }],
     improvedConfig: {
       mode: "loop",
-      themes: ["テーマ A"],
+      description: "テーマ A",
       estimatedDurationMinutes: 30,
       questions: [
         {
@@ -169,16 +168,9 @@ describe("multiSimulationRunRequestSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("themes 配列が 20 件を超えると拒否", () => {
+  it("description が 4_000 文字を超えると拒否", () => {
     const body = baseValidRequest();
-    body.improvedConfig.themes = Array.from({ length: 21 }, (_, i) => `t${i}`);
-    const result = multiSimulationRunRequestSchema.safeParse(body);
-    expect(result.success).toBe(false);
-  });
-
-  it("themes 要素が 2_000 文字を超えると拒否", () => {
-    const body = baseValidRequest();
-    body.improvedConfig.themes = ["a".repeat(2_001)];
+    body.improvedConfig.description = "a".repeat(4_001);
     const result = multiSimulationRunRequestSchema.safeParse(body);
     expect(result.success).toBe(false);
   });

@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { formatDateWithDots } from "@/lib/utils/date";
 import type { BillWithContent } from "../../../shared/types";
 import { ReviewCompleteBadge } from "../bill-detail/review-status-banner";
-import { BillStatusBadge } from "./bill-status-badge";
 
 interface CompactBillCardProps {
   bill: BillWithContent;
@@ -16,7 +15,6 @@ interface CompactBillCardProps {
  */
 export function CompactBillCard({ bill, className }: CompactBillCardProps) {
   const displayTitle = bill.bill_content?.title || bill.name;
-  const statusLabel = bill.status === "enacted" ? "成立" : "提出";
 
   return (
     <Card
@@ -27,7 +25,7 @@ export function CompactBillCard({ bill, className }: CompactBillCardProps) {
         <div className="flex-1 p-4 flex flex-col gap-2">
           <h3 className="font-bold text-[15px] leading-[1.6] line-clamp-2">
             {displayTitle}
-            {bill.is_review_completed && (
+            {bill.approved_at && (
               <>
                 {" "}
                 <ReviewCompleteBadge size={14} top="1px" />
@@ -35,10 +33,9 @@ export function CompactBillCard({ bill, className }: CompactBillCardProps) {
             )}
           </h3>
           <div className="flex items-center gap-3">
-            <BillStatusBadge status={bill.status} className="w-fit" />
-            {bill.submitted_date && (
+            {bill.published_at && (
               <span className="text-xs text-muted-foreground">
-                {formatDateWithDots(bill.submitted_date)} {statusLabel}
+                {formatDateWithDots(bill.published_at)} 公開
               </span>
             )}
           </div>

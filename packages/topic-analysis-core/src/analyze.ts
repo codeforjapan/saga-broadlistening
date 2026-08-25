@@ -1,11 +1,11 @@
 import {
   createVersion,
-  fetchBillContext,
+  fetchInterviewConfigContext,
   fetchTargetOpinions,
   finalizeVersion,
   getLeafTopicsWithOpinions,
-  listAllBills,
-  listVersionsByBill,
+  listAllInterviewConfigs,
+  listVersionsByInterviewConfig,
   loadProgress,
   markOpinionsExtracted,
   publishVersion,
@@ -21,8 +21,8 @@ import { judgeNewTopics } from "./services/judge-new-topics";
 import { mergeTopics } from "./services/merge-topics";
 import { ANALYSIS_STEPS, PROMPT_VERSION, TOPIC_MODEL } from "./shared/constants";
 import type {
-  BillContext,
   FinalTopicWithId,
+  InterviewConfigContext,
   OpinionAssignment,
   TopicDraft,
 } from "./shared/types";
@@ -43,22 +43,22 @@ export type AnalysisStrategy = "full" | "incremental";
 
 // ── フル分析（従来どおり全意見を抽出・統合・割当） ──
 
-/** Phase1: 対象意見・議案を取得しトピック候補を抽出 → progress 保存。 */
+/** Phase1: 対象意見・テーマを取得しトピック候補を抽出 → progress 保存。 */
 async function executeExtract(
   versionId: string,
-  billId: string
+  interviewConfigId: string
 ): Promise<void> {
   await updateVersionStatus(versionId, "running");
   await updateVersionStep(versionId, ANALYSIS_STEPS.EXTRACT);
 
-  const [targetOpinions, bill] = await Promise.all([
-    fetchTargetOpinions(billId),
-    fetchBillContext(billId),
+  const [targetOpinions, context] = await Promise.all([
+    fetchTargetOpinions(interviewConfigId),
+    fetchInterviewConfigContext(interviewConfigId),
   ]);
 
-  const candidates = await extractTopics(targetOpinions, bill);
+  const candidates = await extractTopics(targetOpinions, context);
   await saveProgress(versionId, {
-    bill,
+    context,
     target_opinions: targetOpinions,
     candidates,
   });
@@ -69,7 +69,7 @@ async function executeMerge(versionId: string): Promise<void> {
   await updateVersionStep(versionId, ANALYSIS_STEPS.MERGE);
   const progress = await loadProgress(versionId);
 
-  const merged = await mergeTopics(progress.candidates ?? [], progress.bill);
+  const merged = await mergeTopics(progress.candidates ?? [], progress.context);
   const finalTopics: FinalTopicWithId[] = merged.map((t, i) => ({
     ...t,
     local_id: toAlphaLocalId("t", i),
@@ -90,23 +90,23 @@ async function executeAssign(versionId: string): Promise<void> {
   const assignments = await assignOpinions(
     targetOpinions,
     finalTopics,
-    progress.bill
+    progress.context
   );
 
   await updateVersionStep(versionId, ANALYSIS_STEPS.GROUP);
-  await groupAndSave(versionId, finalTopics, assignments, progress.bill);
+  await groupAndSave(versionId, finalTopics, assignments, progress.context);
   await finalizeVersion(versionId, targetOpinions.length);
   // version が完了してから抽出済みを記録する（finalize 後に置く理由は増分側と同じ）。
   // フル分析では全対象意見を抽出済みにし、以後の増分で「新規」として再抽出されないようにする。
-  await markExtractedBestEffort(targetOpinions.map((o) => o.opinion_id));
+  await markExtractedBestEffort(targetOpinions.map((o) => o.opinion_segment_id));
   await autoPublish(versionId);
 }
 
 async function runFullAnalysis(
   versionId: string,
-  billId: string
+  interviewConfigId: string
 ): Promise<void> {
-  await executeExtract(versionId, billId);
+  await executeExtract(versionId, interviewConfigId);
   console.log(`[topic-analysis] extract done version=${versionId}`);
   await executeMerge(versionId);
   console.log(`[topic-analysis] merge done version=${versionId}`);
@@ -124,7 +124,7 @@ async function groupAndSave(
   versionId: string,
   finalTopics: FinalTopicWithId[],
   assignments: OpinionAssignment[],
-  bill: BillContext
+  context: InterviewConfigContext
 ): Promise<void> {
   const countByLocalId = countAssignmentsByLocalId(assignments);
   const assigned = finalTopics.filter(
@@ -132,7 +132,7 @@ async function groupAndSave(
   );
 
   const hierarchy = sortHierarchyByOpinionCount(
-    await groupTopics(assigned, bill, countByLocalId),
+    await groupTopics(assigned, context, countByLocalId),
     countByLocalId
   );
   const { topics, pairs } = buildHierarchySavePlan(hierarchy, assignments);
@@ -162,10 +162,12 @@ async function autoPublish(versionId: string): Promise<void> {
  * ここで失敗しても完了した version を failed に倒さない。失敗時は当該意見が次回
  * 「新規」として再抽出されるだけ（重複コストのみで、データ欠落や取りこぼしは起きない）。
  */
-async function markExtractedBestEffort(opinionIds: string[]): Promise<void> {
-  if (opinionIds.length === 0) return;
+async function markExtractedBestEffort(
+  opinionSegmentIds: string[]
+): Promise<void> {
+  if (opinionSegmentIds.length === 0) return;
   try {
-    await markOpinionsExtracted(opinionIds);
+    await markOpinionsExtracted(opinionSegmentIds);
   } catch (error) {
     console.error(
       `[UserTopicAnalysis] mark-extracted failed (version stays completed):`,
@@ -182,9 +184,9 @@ async function markExtractedBestEffort(opinionIds: string[]): Promise<void> {
  */
 async function runIncrementalAnalysis(
   versionId: string,
-  billId: string
+  interviewConfigId: string
 ): Promise<void> {
-  const versions = await listVersionsByBill(billId);
+  const versions = await listVersionsByInterviewConfig(interviewConfigId);
   const prev = versions.find(
     (v) => v.status === "completed" && v.id !== versionId
   );
@@ -193,16 +195,16 @@ async function runIncrementalAnalysis(
     console.log(
       `[topic-analysis] no previous version, fallback to full version=${versionId}`
     );
-    await runFullAnalysis(versionId, billId);
+    await runFullAnalysis(versionId, interviewConfigId);
     return;
   }
 
   await updateVersionStatus(versionId, "running");
   await updateVersionStep(versionId, ANALYSIS_STEPS.EXTRACT);
 
-  const [allTargets, bill] = await Promise.all([
-    fetchTargetOpinions(billId),
-    fetchBillContext(billId),
+  const [allTargets, context] = await Promise.all([
+    fetchTargetOpinions(interviewConfigId),
+    fetchInterviewConfigContext(interviewConfigId),
   ]);
   // 大トピックを混ぜると割当先候補になり、意見が大トピックに直接付いてしまう。
   const existing = toExistingTopics(await getLeafTopicsWithOpinions(prev.id));
@@ -211,10 +213,10 @@ async function runIncrementalAnalysis(
   // Step1-2: 新規意見のみ抽出 → 新規同士で統合 → 既存と突き合わせて採否判定。
   let acceptedNew: TopicDraft[] = [];
   if (unextracted.length > 0) {
-    const candidates = await extractTopics(unextracted, bill);
+    const candidates = await extractTopics(unextracted, context);
     await updateVersionStep(versionId, ANALYSIS_STEPS.MERGE);
-    const mergedNew = await mergeTopics(candidates, bill);
-    acceptedNew = await judgeNewTopics(mergedNew, existing, bill);
+    const mergedNew = await mergeTopics(candidates, context);
+    acceptedNew = await judgeNewTopics(mergedNew, existing, context);
   }
   console.log(
     `[topic-analysis] incremental: new opinions=${unextracted.length} accepted topics=${acceptedNew.length} version=${versionId}`
@@ -228,20 +230,20 @@ async function runIncrementalAnalysis(
   const newAssignments = await assignOpinions(
     unassignedOpinions,
     finalTopics,
-    bill
+    context
   );
   await updateVersionStep(versionId, ANALYSIS_STEPS.GROUP);
   await groupAndSave(
     versionId,
     finalTopics,
     [...carriedAssignments, ...newAssignments],
-    bill
+    context
   );
   await finalizeVersion(versionId, allTargets.length);
   // version が完了(known-good)になってから抽出済みを記録する。finalize 前に記録すると、
   // finalize 失敗時に「未保存なのに抽出済み」になり、新規意見が次回以降に再抽出されず
   // 新トピックが二度と提案されなくなるため（completed 後に置く）。
-  await markExtractedBestEffort(unextracted.map((o) => o.opinion_id));
+  await markExtractedBestEffort(unextracted.map((o) => o.opinion_segment_id));
   await autoPublish(versionId);
 }
 
@@ -253,17 +255,17 @@ async function runIncrementalAnalysis(
  */
 export async function runAnalysis(
   versionId: string,
-  billId: string,
+  interviewConfigId: string,
   strategy: AnalysisStrategy = "full"
 ): Promise<void> {
   console.log(
-    `[topic-analysis] start analysis version=${versionId} bill=${billId} strategy=${strategy}`
+    `[topic-analysis] start analysis version=${versionId} config=${interviewConfigId} strategy=${strategy}`
   );
   try {
     if (strategy === "incremental") {
-      await runIncrementalAnalysis(versionId, billId);
+      await runIncrementalAnalysis(versionId, interviewConfigId);
     } else {
-      await runFullAnalysis(versionId, billId);
+      await runFullAnalysis(versionId, interviewConfigId);
     }
     console.log(`[topic-analysis] analysis completed version=${versionId}`);
   } catch (error) {
@@ -277,82 +279,82 @@ export async function runAnalysis(
 }
 
 /**
- * 全議案に対してトピック分析を順次実行する（1 Cloud Run 実行で全議案ループ）。
- * - 有効な対象意見が0件の議案はスキップ（version を作らない）。
- * - incremental かつ「前回完了版があり新規意見が無い」議案はスキップ（無駄な再分析を避ける）。
+ * 全意見募集に対してトピック分析を順次実行する（1 Cloud Run 実行で全テーマループ）。
+ * - 有効な対象意見が0件のテーマはスキップ（version を作らない）。
+ * - incremental かつ「前回完了版があり新規意見が無い」テーマはスキップ（無駄な再分析を避ける）。
  * - createVersion が null（実行中の版が既存＝多重起動ガード）なら skip。
- * - 1議案の失敗は全体を止めず、次の議案へ進む。
+ * - 1テーマの失敗は全体を止めず、次のテーマへ進む。
  */
 export async function runAnalyzeAll(
   strategy: AnalysisStrategy = "incremental"
 ): Promise<void> {
-  const bills = await listAllBills();
-  const total = bills.length;
+  const configs = await listAllInterviewConfigs();
+  const total = configs.length;
   console.log(
-    `[topic-analysis] start analyze-all bills=${total} strategy=${strategy}`
+    `[topic-analysis] start analyze-all configs=${total} strategy=${strategy}`
   );
   let analyzed = 0;
   let skipped = 0;
   let failed = 0;
 
   for (let i = 0; i < total; i++) {
-    const { id: billId, name } = bills[i];
-    // 全体進捗（何件目／全何件）と議案ごとの開始・終了をログに出す（議案はタイトルで表示）。
+    const { id: interviewConfigId, name } = configs[i];
+    // 全体進捗（何件目／全何件）とテーマごとの開始・終了をログに出す。
     const progress = `${i + 1}/${total}`;
     console.log(
-      `[topic-analysis] analyze-all (${progress}) start 議案=${name}`
+      `[topic-analysis] analyze-all (${progress}) start テーマ=${name}`
     );
     try {
-      const targets = await fetchTargetOpinions(billId);
+      const targets = await fetchTargetOpinions(interviewConfigId);
       if (targets.length === 0) {
         skipped++;
         console.log(
-          `[topic-analysis] analyze-all (${progress}) skip 議案=${name} (対象意見なし)`
+          `[topic-analysis] analyze-all (${progress}) skip テーマ=${name} (対象意見なし)`
         );
         continue;
       }
       if (strategy === "incremental") {
-        const versions = await listVersionsByBill(billId);
+        const versions = await listVersionsByInterviewConfig(interviewConfigId);
         const hasCompleted = versions.some((v) => v.status === "completed");
         const hasNew = selectUnextractedOpinions(targets).length > 0;
         // 既に分析済みで新規意見が無ければ何もしない。
         if (hasCompleted && !hasNew) {
           skipped++;
           console.log(
-            `[topic-analysis] analyze-all (${progress}) skip 議案=${name} (新規意見なし)`
+            `[topic-analysis] analyze-all (${progress}) skip テーマ=${name} (新規意見なし)`
           );
           continue;
         }
       }
-      const version = await createVersion(
-        billId,
-        "manual",
-        TOPIC_MODEL,
-        PROMPT_VERSION
-      );
+      const version = await createVersion({
+        interviewConfigId,
+        trigger: "manual",
+        model: TOPIC_MODEL,
+        promptVersion: PROMPT_VERSION,
+      });
       if (!version) {
-        // 実行中/保留中の版が既にある（one_active_version_per_bill）。
+        // 実行中/保留中の版が既にある（one_active_version_per_interview_config）。
         skipped++;
         console.log(
-          `[topic-analysis] analyze-all (${progress}) skip 議案=${name} (実行中の版あり)`
+          `[topic-analysis] analyze-all (${progress}) skip テーマ=${name} (実行中の版あり)`
         );
         continue;
       }
-      await runAnalysis(version.id, billId, strategy);
+      await runAnalysis(version.id, interviewConfigId, strategy);
       analyzed++;
       console.log(
-        `[topic-analysis] analyze-all (${progress}) done 議案=${name} version=${version.id}`
+        `[topic-analysis] analyze-all (${progress}) done テーマ=${name} version=${version.id}`
       );
     } catch (error) {
       failed++;
       const message = error instanceof Error ? error.message : "unknown error";
       console.error(
-        `[topic-analysis] analyze-all (${progress}) failed 議案=${name}: ${message}`
+        `[topic-analysis] analyze-all (${progress}) failed テーマ=${name}: ${message}`
       );
     }
   }
 
   console.log(
-    `[topic-analysis] analyze-all done: analyzed=${analyzed} skipped=${skipped} failed=${failed} (bills=${total}) strategy=${strategy}`
+    `[topic-analysis] analyze-all done: analyzed=${analyzed} skipped=${skipped} failed=${failed} (configs=${total}) strategy=${strategy}`
   );
 }

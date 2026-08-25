@@ -1752,8 +1752,11 @@ export const Constants = {
       ],
       chat_role_enum: ["user", "system", "assistant"],
       difficulty_level_enum: ["normal", "hard"],
+      guard_action: ["allow", "rewrite", "notice", "block", "hold_for_review"],
+      guard_product: ["policy_chat", "interview"],
+      guard_stage: ["input", "in_dialogue", "output"],
       house_enum: ["HR", "HC"],
-      interview_config_status_enum: ["public", "closed"],
+      interview_config_status_enum: ["draft", "open", "closed"],
       interview_feedback_tag_enum: [
         "irrelevant_questions",
         "not_aligned",
@@ -1770,6 +1773,8 @@ export const Constants = {
       ],
       interview_role_enum: ["assistant", "user"],
       moderation_status_enum: ["ok", "warning", "ng"],
+      opinion_review_status: ["published", "pending_review", "hidden"],
+      policy_publish_status: ["draft", "published"],
       stance_type_enum: [
         "for",
         "against",

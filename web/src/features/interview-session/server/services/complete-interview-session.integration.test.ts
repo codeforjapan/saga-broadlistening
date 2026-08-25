@@ -4,7 +4,7 @@ import {
   createTestUser,
   cleanupTestUser,
   createTestInterviewData,
-  cleanupTestBill,
+  cleanupTestPolicy,
   type TestUser,
 } from "@test-utils/utils";
 import { completeInterviewSession } from "./complete-interview-session";
@@ -22,18 +22,16 @@ const contentRichness = {
 const validReportMessage = JSON.stringify({
   text: "インタビューのまとめです。",
   report: {
-    summary: "テスト法案に賛成の立場",
-    stance: "for",
-    role: "general_citizen",
-    role_description: "一般市民として法案に関心がある",
+    summary: "テスト施策に賛成の立場",
+    final_text: "この施策には賛成です。社会全体の利益になると考えるためです。",
+    role_description: "一般市民として施策に関心がある",
     role_title: "会社員",
     opinions: [
       {
         title: "賛成の理由",
         content: "社会全体の利益になると考える",
         source_message_id: null,
-        contextual_quote: "（法案について）社会全体の利益になると思う",
-        bill_sentiment: "期待",
+        contextual_quote: "（施策について）社会全体の利益になると思う",
       },
     ],
     content_richness: contentRichness,
@@ -47,20 +45,17 @@ function buildReportMessage(
     content: string;
     source_message_id: string | null;
     contextual_quote?: string | null;
-    bill_sentiment?: "期待" | "懸念" | null;
   }>
 ): string {
   return JSON.stringify({
     text: "インタビューのまとめです。",
     report: {
-      summary: "テスト法案に賛成の立場",
-      stance: "for",
-      role: "general_citizen",
-      role_description: "一般市民として法案に関心がある",
+      summary: "テスト施策に賛成の立場",
+      final_text: "この施策には賛成です。",
+      role_description: "一般市民として施策に関心がある",
       role_title: "会社員",
       opinions: opinions.map((o) => ({
         contextual_quote: null,
-        bill_sentiment: null,
         ...o,
       })),
       content_richness: contentRichness,
@@ -77,11 +72,11 @@ describe("completeInterviewSession 統合テスト", () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.bill.id;
+    billId = data.policy.id;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId);
+    await cleanupTestPolicy(billId);
     await cleanupTestUser(testUser.id);
   });
 
@@ -91,7 +86,7 @@ describe("completeInterviewSession 統合テスト", () => {
       {
         interview_session_id: sessionId,
         role: "user",
-        content: "この法案に賛成です",
+        content: "この施策に賛成です",
       },
       {
         interview_session_id: sessionId,
@@ -104,20 +99,20 @@ describe("completeInterviewSession 統合テスト", () => {
 
     // 戻り値を検証
     expect(report.interview_session_id).toBe(sessionId);
-    expect(report.summary).toBe("テスト法案に賛成の立場");
-    expect(report.stance).toBe("for");
-    expect(report.role).toBe("general_citizen");
+    expect(report.summary).toBe("テスト施策に賛成の立場");
+    expect(report.final_text).toBe(
+      "この施策には賛成です。社会全体の利益になると考えるためです。"
+    );
 
-    // DB 状態を検証: レポートが保存されていること
+    // DB 状態を検証: 意見が保存されていること
     const { data: dbReport } = await adminClient
-      .from("interview_report")
+      .from("opinions")
       .select("*")
       .eq("interview_session_id", sessionId)
       .single();
 
     expect(dbReport).toBeTruthy();
-    expect(dbReport?.summary).toBe("テスト法案に賛成の立場");
-    expect(dbReport?.stance).toBe("for");
+    expect(dbReport?.summary).toBe("テスト施策に賛成の立場");
 
     // DB 状態を検証: セッションが completed になっていること
     const { data: dbSession } = await adminClient
@@ -128,24 +123,23 @@ describe("completeInterviewSession 統合テスト", () => {
 
     expect(dbSession?.completed_at).toBeTruthy();
 
-    // DB 状態を検証: interview_opinion に dual-write されていること（新フィールド含む）
-    const { data: opinions } = await adminClient
-      .from("interview_opinion")
+    // DB 状態を検証: opinion_segments に同期されていること
+    const { data: segments } = await adminClient
+      .from("opinion_segments")
       .select("*")
-      .eq("interview_report_id", report.id)
+      .eq("opinion_id", report.id)
       .order("opinion_index", { ascending: true });
 
-    expect(opinions).toHaveLength(1);
-    expect(opinions?.[0]).toMatchObject({
+    expect(segments).toHaveLength(1);
+    expect(segments?.[0]).toMatchObject({
       opinion_index: 0,
       title: "賛成の理由",
       content: "社会全体の利益になると考える",
-      contextual_quote: "（法案について）社会全体の利益になると思う",
-      bill_sentiment: "期待",
+      contextual_quote: "（施策について）社会全体の利益になると思う",
     });
   });
 
-  it("再完了しても opinion_id(UUID) が安定する", async () => {
+  it("再完了しても opinion_segments.id(UUID) が安定する", async () => {
     await adminClient.from("interview_messages").insert({
       interview_session_id: sessionId,
       role: "assistant",
@@ -157,24 +151,24 @@ describe("completeInterviewSession 統合テスト", () => {
 
     const report = await completeInterviewSession({ sessionId });
     const { data: first } = await adminClient
-      .from("interview_opinion")
+      .from("opinion_segments")
       .select("id, opinion_index")
-      .eq("interview_report_id", report.id)
+      .eq("opinion_id", report.id)
       .order("opinion_index", { ascending: true });
 
     // 同じ内容で再完了（ON CONFLICT DO UPDATE で id は変わらないはず）
     await completeInterviewSession({ sessionId });
     const { data: second } = await adminClient
-      .from("interview_opinion")
+      .from("opinion_segments")
       .select("id, opinion_index")
-      .eq("interview_report_id", report.id)
+      .eq("opinion_id", report.id)
       .order("opinion_index", { ascending: true });
 
     expect(first).toHaveLength(2);
     expect(second?.map((o) => o.id)).toEqual(first?.map((o) => o.id));
   });
 
-  it("意見数が減った再完了で末尾の interview_opinion 行が削除される", async () => {
+  it("意見数が減った再完了で末尾の opinion_segments 行が削除される", async () => {
     // 1回目: 2件
     await adminClient.from("interview_messages").insert({
       interview_session_id: sessionId,
@@ -186,9 +180,9 @@ describe("completeInterviewSession 統合テスト", () => {
     });
     const report = await completeInterviewSession({ sessionId });
     const { data: before } = await adminClient
-      .from("interview_opinion")
+      .from("opinion_segments")
       .select("id")
-      .eq("interview_report_id", report.id);
+      .eq("opinion_id", report.id);
     expect(before).toHaveLength(2);
 
     // 2回目: より新しい assistant メッセージで 1件に縮小
@@ -202,9 +196,9 @@ describe("completeInterviewSession 統合テスト", () => {
     await completeInterviewSession({ sessionId });
 
     const { data: after } = await adminClient
-      .from("interview_opinion")
+      .from("opinion_segments")
       .select("opinion_index")
-      .eq("interview_report_id", report.id);
+      .eq("opinion_id", report.id);
     expect(after).toHaveLength(1);
     expect(after?.[0].opinion_index).toBe(0);
   });
@@ -237,9 +231,9 @@ describe("completeInterviewSession 統合テスト", () => {
 
     expect(dbSession?.completed_at).toBeNull();
 
-    // DB 状態を検証: レポートが作成されていないこと
+    // DB 状態を検証: 意見が作成されていないこと
     const { data: dbReport } = await adminClient
-      .from("interview_report")
+      .from("opinions")
       .select("*")
       .eq("interview_session_id", sessionId);
 
@@ -267,6 +261,6 @@ describe("completeInterviewSession 統合テスト", () => {
     ]);
 
     const report = await completeInterviewSession({ sessionId });
-    expect(report.summary).toBe("テスト法案に賛成の立場");
+    expect(report.summary).toBe("テスト施策に賛成の立場");
   });
 });

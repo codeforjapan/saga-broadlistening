@@ -46,12 +46,12 @@ create table policies (
     check (publish_status <> 'published' or published_at is not null)
 );
 
-create index idx_policies_publish_status on policies(publish_status);
 create index idx_policies_published_at on policies(published_at desc nulls last);
 create index idx_policies_is_featured on policies(is_featured) where is_featured;
 
--- オープンデータAPIの施策一覧が使うキーセットページネーション
--- （publish_status = 'published' かつ created_at DESC, id DESC）用
+-- 公開状態での絞り込みと、オープンデータAPIの施策一覧が使う
+-- キーセットページネーション（publish_status = 'published' かつ
+-- created_at DESC, id DESC）を1本でまかなう
 create index idx_policies_publish_status_created_at_id
   on policies (publish_status, created_at desc, id desc);
 

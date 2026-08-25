@@ -9,17 +9,9 @@ import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
-import { countPublicReportsByBillId } from "@/features/interview-report/server/repositories/interview-report-repository";
+import { getPublicReportsByBillId } from "@/features/interview-report/server/loaders/get-public-reports-by-bill-id";
 import { routes } from "@/lib/routes";
 import { TopicOpinionList } from "../../client/components/topic-opinion-list";
-import {
-  TopicCategoryChips,
-  TopicSentiment,
-} from "../../shared/components/topic-meta";
-import {
-  type TopicFilter,
-  topicFilterLabel,
-} from "../../shared/utils/filter-topics";
 import { splitSummaryLines } from "../../shared/utils/split-summary-lines";
 import { getPublicTopicDetail } from "../loaders/get-public-topic-detail";
 
@@ -29,14 +21,12 @@ function TopicNav({
   total,
   prevTopicId,
   nextTopicId,
-  filter,
 }: {
   billId: string;
   position: number;
   total: number;
   prevTopicId: string | null;
   nextTopicId: string | null;
-  filter: TopicFilter;
 }) {
   return (
     // 3カラムグリッドで中央の位置カウンタを常に中央寄せにする
@@ -46,7 +36,7 @@ function TopicNav({
       <div className="justify-self-start">
         {prevTopicId && (
           <Link
-            href={routes.billTopicDetail(billId, prevTopicId, filter) as Route}
+            href={routes.billTopicDetail(billId, prevTopicId) as Route}
             className="flex items-center gap-1 text-primary-accent hover:underline"
           >
             <ChevronLeft className="size-4 shrink-0" />
@@ -63,7 +53,7 @@ function TopicNav({
       <div className="justify-self-end">
         {nextTopicId && (
           <Link
-            href={routes.billTopicDetail(billId, nextTopicId, filter) as Route}
+            href={routes.billTopicDetail(billId, nextTopicId) as Route}
             className="flex items-center gap-1 text-primary-accent hover:underline"
           >
             次のトピック
@@ -78,21 +68,20 @@ function TopicNav({
 interface TopicDetailPageProps {
   billId: string;
   topicId: string;
-  /** 一覧から引き継いだフィルタ。前後トピックの並びとリンクに反映する。 */
-  filter?: TopicFilter;
 }
 
 export async function TopicDetailPage({
   billId,
   topicId,
-  filter = "all",
 }: TopicDetailPageProps) {
-  const [bill, detail, publicReportCount, interviewConfig] = await Promise.all([
-    getBillById(billId),
-    getPublicTopicDetail(billId, topicId, filter),
-    countPublicReportsByBillId(billId),
-    getInterviewConfig(billId),
-  ]);
+  const [bill, detail, publicReportsResult, interviewConfig] =
+    await Promise.all([
+      getBillById(billId),
+      getPublicTopicDetail(billId, topicId),
+      getPublicReportsByBillId(billId),
+      getInterviewConfig(billId),
+    ]);
+  const publicReportCount = publicReportsResult.totalCount;
 
   if (!bill || !detail) {
     notFound();
@@ -104,13 +93,9 @@ export async function TopicDetailPage({
   const { topic, position, total, prevTopicId, nextTopicId } = detail;
   const billTitle = bill.bill_content?.title || bill.name;
 
-  const filterLabel = topicFilterLabel(filter);
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "法案詳細", href: routes.billDetail(billId) },
-    {
-      label: filterLabel ? `トピック一覧（${filterLabel}）` : "トピック一覧",
-      href: routes.billTopics(billId),
-    },
+    { label: "施策詳細", href: routes.billDetail(billId) },
+    { label: "トピック一覧", href: routes.billTopics(billId) },
     { label: "トピック詳細" },
   ];
 
@@ -140,7 +125,6 @@ export async function TopicDetailPage({
             total={total}
             prevTopicId={prevTopicId}
             nextTopicId={nextTopicId}
-            filter={filter}
           />
 
           {/* トピックヘッダー */}
@@ -151,8 +135,6 @@ export async function TopicDetailPage({
                 （{topic.opinion_count}件）
               </span>
             </h2>
-            <TopicSentiment sentiment={topic.sentiment} />
-            <TopicCategoryChips topic={topic} />
             {topic.description && (
               <ul className="flex list-disc flex-col gap-1 pl-5 text-[15px] leading-6 text-mirai-text">
                 {splitSummaryLines(topic.description).map((line) => (

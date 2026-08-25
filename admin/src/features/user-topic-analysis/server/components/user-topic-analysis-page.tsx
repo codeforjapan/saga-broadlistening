@@ -1,10 +1,11 @@
 import "server-only";
 
 import {
-  fetchBillContext,
+  fetchInterviewConfigContext,
   getLeafTopicsWithOpinions,
-  listVersionsByBill,
+  listVersionsByInterviewConfig,
 } from "@mirai-gikai/topic-analysis-core/repository";
+import { findInterviewConfigsByPolicyId } from "@/features/interview-config/server/repositories/interview-config-repository";
 import { DeleteTopicButton } from "../../client/components/delete-topic-button";
 import { PublishToggleButton } from "../../client/components/publish-toggle-button";
 import { RunAnalysisButton } from "../../client/components/run-analysis-button";
@@ -17,9 +18,25 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
-  const [bill, versions] = await Promise.all([
-    fetchBillContext(billId),
-    listVersionsByBill(billId),
+  // Epic #54 でトピック分析の単位は施策から意見募集（テーマ）に移った。
+  // このページのURLは施策IDのままなので、紐づくテーマの先頭1件を対象にする。
+  const configs = await findInterviewConfigsByPolicyId(billId);
+  const interviewConfigId = configs[0]?.id;
+
+  if (!interviewConfigId) {
+    return (
+      <div className="container mx-auto py-8">
+        <h1 className="mb-1 text-2xl font-bold">ユーザー向けトピック分析</h1>
+        <p className="text-sm text-gray-600">
+          この議案に紐づく意見募集がありません。
+        </p>
+      </div>
+    );
+  }
+
+  const [context, versions] = await Promise.all([
+    fetchInterviewConfigContext(interviewConfigId),
+    listVersionsByInterviewConfig(interviewConfigId),
   ]);
 
   const latestCompleted = versions.find((v) => v.status === "completed");
@@ -38,13 +55,13 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
   return (
     <div className="container mx-auto py-8">
       <h1 className="mb-1 text-2xl font-bold">ユーザー向けトピック分析</h1>
-      <p className="mb-1 text-sm text-gray-600">議案: {bill.name}</p>
+      <p className="mb-1 text-sm text-gray-600">テーマ: {context.name}</p>
       <p className="mb-6 text-sm text-gray-500">
         公開に同意された意見（モデレーションOK）のみを対象に、論点（トピック）を抽出・分類します。
       </p>
 
       <section className="mb-8 rounded-lg border bg-white p-6">
-        <RunAnalysisButton billId={billId} />
+        <RunAnalysisButton interviewConfigId={interviewConfigId} />
       </section>
 
       <section className="mb-8 rounded-lg border bg-white p-6">
@@ -121,7 +138,7 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
             <ul className="flex flex-col gap-4">
               {topics.map((topic) => {
                 const opinions = (topic.topic_opinion ?? [])
-                  .map((to) => to.interview_opinion)
+                  .map((to) => to.opinion_segments)
                   .filter((o): o is NonNullable<typeof o> => o != null);
                 return (
                   <li key={topic.id} className="rounded border p-4">
@@ -146,7 +163,6 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
                       {opinions.slice(0, 3).map((o) => (
                         <li key={o.id} className="border-l-2 pl-2">
                           {o.contextual_quote ?? o.title}
-                          {o.bill_sentiment ? `（${o.bill_sentiment}）` : ""}
                         </li>
                       ))}
                     </ul>

@@ -1,85 +1,52 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestBill,
   cleanupTestUser,
-  createTestBill,
+  createTestInterviewConfig,
+  createTestOpinion,
   createTestUser,
   type TestUser,
 } from "../utils";
-
-async function createTestInterviewConfig(billId: string) {
-  const { data, error } = await adminClient
-    .from("interview_configs")
-    .insert({
-      bill_id: billId,
-      status: "public",
-      name: `テスト設定 ${Date.now()}`,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_config 作成失敗: ${error.message}`);
-  return data;
-}
-
-async function createTestSession(configId: string, userId: string) {
-  const { data, error } = await adminClient
-    .from("interview_sessions")
-    .insert({
-      interview_config_id: configId,
-      user_id: userId,
-      started_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_session 作成失敗: ${error.message}`);
-  return data;
-}
-
-async function createTestReport(sessionId: string) {
-  const { data, error } = await adminClient
-    .from("interview_report")
-    .insert({
-      interview_session_id: sessionId,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_report 作成失敗: ${error.message}`);
-  return data;
-}
+import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
 
 async function createTestReactions(
-  reportId: string,
+  opinionId: string,
   userIds: string[],
   reactionType: "helpful" | "hmm" = "helpful"
 ) {
   const reactions = userIds.map((userId) => ({
-    interview_report_id: reportId,
+    opinion_id: opinionId,
     user_id: userId,
     reaction_type: reactionType,
   }));
   const { error } = await adminClient
-    .from("report_reactions")
+    .from("opinion_reactions")
     .insert(reactions);
-  if (error) throw new Error(`report_reactions 作成失敗: ${error.message}`);
+  if (error) throw new Error(`opinion_reactions 作成失敗: ${error.message}`);
 }
 
 describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   let testUsers: TestUser[] = [];
-  const billIds: string[] = [];
+  const configIds: string[] = [];
+
+  async function createConfig(): Promise<string> {
+    const config = await createTestInterviewConfig();
+    configIds.push(config.id);
+    return config.id;
+  }
 
   beforeEach(async () => {
-    // リアクション用に複数ユーザーを作成
+    // リアクションは1ユーザー1意見につき1件のため複数ユーザーを用意する
     for (let i = 0; i < 5; i++) {
       testUsers.push(await createTestUser());
     }
   });
 
   afterEach(async () => {
-    for (const billId of billIds) {
-      await cleanupTestBill(billId);
+    for (const configId of configIds) {
+      await cleanupTestInterviewConfig(configId);
     }
-    billIds.length = 0;
+    configIds.length = 0;
     for (const user of testUsers) {
       await cleanupTestUser(user.id);
     }
@@ -87,33 +54,31 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
   });
 
   it("参考になるリアクション数の降順でセッションIDを返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
     // session1: 1 helpful
-    const session1 = await createTestSession(config.id, testUsers[0].id);
-    const report1 = await createTestReport(session1.id);
-    await createTestReactions(report1.id, [testUsers[0].id]);
+    const session1 = await createTestSession(configId, testUsers[0].id);
+    const opinion1 = await createTestOpinion(session1.id);
+    await createTestReactions(opinion1.id, [testUsers[0].id]);
 
     // session2: 3 helpful
-    const session2 = await createTestSession(config.id, testUsers[0].id);
-    const report2 = await createTestReport(session2.id);
-    await createTestReactions(report2.id, [
+    const session2 = await createTestSession(configId, testUsers[0].id);
+    const opinion2 = await createTestOpinion(session2.id);
+    await createTestReactions(opinion2.id, [
       testUsers[0].id,
       testUsers[1].id,
       testUsers[2].id,
     ]);
 
     // session3: 2 helpful
-    const session3 = await createTestSession(config.id, testUsers[0].id);
-    const report3 = await createTestReport(session3.id);
-    await createTestReactions(report3.id, [testUsers[0].id, testUsers[1].id]);
+    const session3 = await createTestSession(configId, testUsers[0].id);
+    const opinion3 = await createTestOpinion(session3.id);
+    await createTestReactions(opinion3.id, [testUsers[0].id, testUsers[1].id]);
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_helpful_count",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
@@ -122,28 +87,26 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
 
     expect(error).toBeNull();
     expect(data).toHaveLength(3);
-    expect(data![0].session_id).toBe(session2.id); // 3
-    expect(data![1].session_id).toBe(session3.id); // 2
-    expect(data![2].session_id).toBe(session1.id); // 1
+    expect(data?.[0].session_id).toBe(session2.id); // 3
+    expect(data?.[1].session_id).toBe(session3.id); // 2
+    expect(data?.[2].session_id).toBe(session1.id); // 1
   });
 
   it("参考になるリアクション数の昇順でセッションIDを返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
-    const session1 = await createTestSession(config.id, testUsers[0].id);
-    const report1 = await createTestReport(session1.id);
-    await createTestReactions(report1.id, [testUsers[0].id, testUsers[1].id]);
+    const session1 = await createTestSession(configId, testUsers[0].id);
+    const opinion1 = await createTestOpinion(session1.id);
+    await createTestReactions(opinion1.id, [testUsers[0].id, testUsers[1].id]);
 
-    const session2 = await createTestSession(config.id, testUsers[0].id);
-    const report2 = await createTestReport(session2.id);
-    await createTestReactions(report2.id, [testUsers[0].id]);
+    const session2 = await createTestSession(configId, testUsers[0].id);
+    const opinion2 = await createTestOpinion(session2.id);
+    await createTestReactions(opinion2.id, [testUsers[0].id]);
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_helpful_count",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: true,
         p_offset: 0,
         p_limit: 10,
@@ -152,31 +115,29 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
 
     expect(error).toBeNull();
     expect(data).toHaveLength(2);
-    expect(data![0].session_id).toBe(session2.id); // 1
-    expect(data![1].session_id).toBe(session1.id); // 2
+    expect(data?.[0].session_id).toBe(session2.id); // 1
+    expect(data?.[1].session_id).toBe(session1.id); // 2
   });
 
   it("リアクションなしのセッションは0として扱われる", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
     // session1: 2 helpful
-    const session1 = await createTestSession(config.id, testUsers[0].id);
-    const report1 = await createTestReport(session1.id);
-    await createTestReactions(report1.id, [testUsers[0].id, testUsers[1].id]);
+    const session1 = await createTestSession(configId, testUsers[0].id);
+    const opinion1 = await createTestOpinion(session1.id);
+    await createTestReactions(opinion1.id, [testUsers[0].id, testUsers[1].id]);
 
-    // session2: no report (no reactions)
-    const session2 = await createTestSession(config.id, testUsers[0].id);
+    // session2: 意見なし（リアクションもなし）
+    await createTestSession(configId, testUsers[0].id);
 
-    // session3: report but no reactions
-    const session3 = await createTestSession(config.id, testUsers[0].id);
-    await createTestReport(session3.id);
+    // session3: 意見はあるがリアクションなし
+    const session3 = await createTestSession(configId, testUsers[0].id);
+    await createTestOpinion(session3.id);
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_helpful_count",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
@@ -185,30 +146,28 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
 
     expect(error).toBeNull();
     expect(data).toHaveLength(3);
-    expect(data![0].session_id).toBe(session1.id); // 2
-    // session2 and session3 both have 0, sorted by started_at DESC
+    expect(data?.[0].session_id).toBe(session1.id); // 2
+    // 残る2件は 0 件同士なので started_at 降順で並ぶ
   });
 
   it("hmmリアクションはhelpfulカウントに含まれない", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
     // session1: 1 helpful + 3 hmm
-    const session1 = await createTestSession(config.id, testUsers[0].id);
-    const report1 = await createTestReport(session1.id);
-    await createTestReactions(report1.id, [testUsers[0].id], "helpful");
+    const session1 = await createTestSession(configId, testUsers[0].id);
+    const opinion1 = await createTestOpinion(session1.id);
+    await createTestReactions(opinion1.id, [testUsers[0].id], "helpful");
     await createTestReactions(
-      report1.id,
+      opinion1.id,
       [testUsers[1].id, testUsers[2].id, testUsers[3].id],
       "hmm"
     );
 
     // session2: 2 helpful
-    const session2 = await createTestSession(config.id, testUsers[0].id);
-    const report2 = await createTestReport(session2.id);
+    const session2 = await createTestSession(configId, testUsers[0].id);
+    const opinion2 = await createTestOpinion(session2.id);
     await createTestReactions(
-      report2.id,
+      opinion2.id,
       [testUsers[0].id, testUsers[1].id],
       "helpful"
     );
@@ -216,7 +175,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_helpful_count",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
@@ -225,22 +184,20 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
 
     expect(error).toBeNull();
     expect(data).toHaveLength(2);
-    expect(data![0].session_id).toBe(session2.id); // 2 helpful
-    expect(data![1].session_id).toBe(session1.id); // 1 helpful
+    expect(data?.[0].session_id).toBe(session2.id); // helpful 2件
+    expect(data?.[1].session_id).toBe(session1.id); // helpful 1件
   });
 
   it("offset/limitでページネーションが正しく動作する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
     const sessions = [];
     for (let i = 0; i < 4; i++) {
-      const session = await createTestSession(config.id, testUsers[0].id);
-      const report = await createTestReport(session.id);
-      // i+1 個のhelpfulリアクション
+      const session = await createTestSession(configId, testUsers[0].id);
+      const opinion = await createTestOpinion(session.id);
+      // i+1 件の helpful リアクション
       await createTestReactions(
-        report.id,
+        opinion.id,
         testUsers.slice(0, i + 1).map((u) => u.id)
       );
       sessions.push(session);
@@ -250,7 +207,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_helpful_count",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 1,
         p_limit: 2,
@@ -259,24 +216,20 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
 
     expect(error).toBeNull();
     expect(data).toHaveLength(2);
-    expect(data![0].session_id).toBe(sessions[2].id); // 3 helpful
-    expect(data![1].session_id).toBe(sessions[1].id); // 2 helpful
+    expect(data?.[0].session_id).toBe(sessions[2].id); // helpful 3件
+    expect(data?.[1].session_id).toBe(sessions[1].id); // helpful 2件
   });
 
   it("別のconfigのセッションは含まれない", async () => {
-    const bill1 = await createTestBill();
-    billIds.push(bill1.id);
-    const config1 = await createTestInterviewConfig(bill1.id);
-    const session1 = await createTestSession(config1.id, testUsers[0].id);
-    const report1 = await createTestReport(session1.id);
-    await createTestReactions(report1.id, [testUsers[0].id]);
+    const configId1 = await createConfig();
+    const session1 = await createTestSession(configId1, testUsers[0].id);
+    const opinion1 = await createTestOpinion(session1.id);
+    await createTestReactions(opinion1.id, [testUsers[0].id]);
 
-    const bill2 = await createTestBill();
-    billIds.push(bill2.id);
-    const config2 = await createTestInterviewConfig(bill2.id);
-    const session2 = await createTestSession(config2.id, testUsers[0].id);
-    const report2 = await createTestReport(session2.id);
-    await createTestReactions(report2.id, [
+    const configId2 = await createConfig();
+    const session2 = await createTestSession(configId2, testUsers[0].id);
+    const opinion2 = await createTestOpinion(session2.id);
+    await createTestReactions(opinion2.id, [
       testUsers[0].id,
       testUsers[1].id,
       testUsers[2].id,
@@ -285,7 +238,7 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_helpful_count",
       {
-        p_config_id: config1.id,
+        p_config_id: configId1,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
@@ -294,7 +247,34 @@ describe("find_sessions_ordered_by_helpful_count() 関数", () => {
 
     expect(error).toBeNull();
     expect(data).toHaveLength(1);
-    expect(data![0].session_id).toBe(session1.id);
+    expect(data?.[0].session_id).toBe(session1.id);
+  });
+
+  it("p_visibilityで公開状態フィルタできる", async () => {
+    const configId = await createConfig();
+
+    const publicSession = await createTestSession(configId, testUsers[0].id);
+    await createTestOpinion(publicSession.id, { review_status: "published" });
+
+    const privateSession = await createTestSession(configId, testUsers[0].id);
+    await createTestOpinion(privateSession.id, {
+      review_status: "pending_review",
+    });
+
+    const { data, error } = await adminClient.rpc(
+      "find_sessions_ordered_by_helpful_count",
+      {
+        p_config_id: configId,
+        p_ascending: false,
+        p_offset: 0,
+        p_limit: 10,
+        p_visibility: "public",
+      }
+    );
+
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+    expect(data?.[0].session_id).toBe(publicSession.id);
   });
 
   it("存在しないconfig_idでは空配列を返す", async () => {

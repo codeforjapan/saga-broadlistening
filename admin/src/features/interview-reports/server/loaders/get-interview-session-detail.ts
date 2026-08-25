@@ -1,5 +1,6 @@
 import type {
   InterviewSessionDetail,
+  OpinionSegment,
   ReactionCounts,
 } from "../../shared/types";
 import {
@@ -7,6 +8,7 @@ import {
   findInterviewMessagesBySessionId,
   findInterviewReportBySessionId,
   findInterviewSessionById,
+  findOpinionSegmentsByOpinionId,
   findReactionCountsByReportId,
 } from "../repositories/interview-report-repository";
 
@@ -49,6 +51,16 @@ export async function getInterviewSessionDetail(
     }
   }
 
+  // 論点単位の意見を取得
+  let opinionSegments: OpinionSegment[] = [];
+  if (report) {
+    try {
+      opinionSegments = await findOpinionSegmentsByOpinionId(report.id);
+    } catch (error) {
+      console.error("Failed to fetch opinion segments:", error);
+    }
+  }
+
   // フィードバックタグを取得
   let feedbackTags: string[] = [];
   try {
@@ -60,6 +72,7 @@ export async function getInterviewSessionDetail(
   return {
     ...session,
     interview_report: report || null,
+    opinion_segments: opinionSegments,
     interview_messages: messages || [],
     reaction_counts: reactionCounts,
     feedback_tags: feedbackTags,

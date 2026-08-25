@@ -1,11 +1,14 @@
 import "server-only";
 
 import { buildInterviewOpinionRows } from "@mirai-gikai/shared/interview-report/build-opinion-rows";
-import type { InterviewOpinionSource } from "@mirai-gikai/shared/interview-report/schema";
-import { syncInterviewOpinions } from "@mirai-gikai/shared/interview-report/sync-opinions";
+import { syncOpinionSegments } from "@mirai-gikai/shared/interview-report/sync-opinions";
+import { createAdminClient } from "@mirai-gikai/supabase";
 import type { InterviewReportData } from "../../shared/schemas";
 import type { InterviewReport } from "../../shared/types";
-import { buildCompletedInterviewReportInsert } from "../../shared/utils/complete-interview-report";
+import {
+  buildCompletedInterviewReportInsert,
+  buildCompletedOpinionSources,
+} from "../../shared/utils/complete-interview-report";
 import { extractReportFromMessage } from "../../shared/utils/report-extraction";
 import {
   findInterviewMessagesBySessionIdDesc,
@@ -84,7 +87,6 @@ export async function completeInterviewSession({
   const report = await upsertInterviewReport(
     buildCompletedInterviewReportInsert({
       sessionId,
-      messages,
       reportData,
       moderationScore,
       moderationReasoning,
@@ -93,27 +95,26 @@ export async function completeInterviewSession({
     })
   );
 
-  // 新規インタビュー完了時は JSONB（report.opinions）と interview_opinion テーブルの
-  // 両方へ書き込む（既存互換のため。JSONB はユーザーが確認するレポート記録、
-  // interview_opinion はトピック分析用の意見ストア）。
-  // 失敗してもインタビュー完了はブロックしない。未同期分は意見再抽出バックフィルが取り込む
-  // （再抽出は JSONB を書き換えず interview_opinion のみ更新する）。
+  // 論点単位の意見を opinion_segments へ同期する（トピック分析用の意見ストア）。
+  // 失敗してもインタビュー完了はブロックしない。未同期分は意見再抽出バックフィルが取り込む。
   try {
-    const storedOpinions = Array.isArray(report.opinions)
-      ? (report.opinions as InterviewOpinionSource[])
-      : [];
+    const opinionSources = buildCompletedOpinionSources({
+      reportData,
+      messages,
+    });
     // レポート生成と同時にタグ（concern/proposal/reasoning_types）も得ているため、
     // タグ付け済みとしてウォーターマークを立てる（バックフィルの対象から外す）。
-    await syncInterviewOpinions(
+    await syncOpinionSegments(
+      createAdminClient(),
       report.id,
-      buildInterviewOpinionRows(report.id, storedOpinions, {
+      buildInterviewOpinionRows(report.id, opinionSources, {
         tagsExtractedAtIso: new Date().toISOString(),
       })
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error(
-      `Failed to sync interview_opinion for session ${sessionId}: ${message}`
+      `Failed to sync opinion_segments for session ${sessionId}: ${message}`
     );
   }
 

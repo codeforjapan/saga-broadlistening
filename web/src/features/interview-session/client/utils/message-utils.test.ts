@@ -13,16 +13,14 @@ describe("convertPartialReport", () => {
   it("有効なレポートを変換する", () => {
     const result = convertPartialReport({
       summary: "テスト要約",
-      stance: "for",
-      role: "general_citizen",
+      final_text: "提出する意見の本文",
       role_description: "一般市民",
       role_title: "市民",
       opinions: [{ title: "意見1", content: "内容1" }],
     });
     expect(result).toEqual({
       summary: "テスト要約",
-      stance: "for",
-      role: "general_citizen",
+      final_text: "提出する意見の本文",
       role_description: "一般市民",
       role_title: "市民",
       opinions: [
@@ -31,7 +29,6 @@ describe("convertPartialReport", () => {
           content: "内容1",
           source_message_id: null,
           contextual_quote: null,
-          bill_sentiment: null,
           richness: null,
           concern: null,
           proposal: null,
@@ -44,8 +41,7 @@ describe("convertPartialReport", () => {
   it("全フィールドがnull/空なら無効としてnullを返す", () => {
     const result = convertPartialReport({
       summary: null,
-      stance: null,
-      role: null,
+      final_text: null,
       role_description: null,
       role_title: null,
       opinions: [],
@@ -69,7 +65,6 @@ describe("convertPartialReport", () => {
         content: "内容1",
         source_message_id: null,
         contextual_quote: null,
-        bill_sentiment: null,
         richness: null,
         concern: null,
         proposal: null,
@@ -80,7 +75,6 @@ describe("convertPartialReport", () => {
         content: "内容2",
         source_message_id: null,
         contextual_quote: null,
-        bill_sentiment: null,
         richness: null,
         concern: null,
         proposal: null,
@@ -109,7 +103,6 @@ describe("convertPartialReport", () => {
         content: "",
         source_message_id: null,
         contextual_quote: null,
-        bill_sentiment: null,
         richness: null,
         concern: null,
         proposal: null,
@@ -132,8 +125,7 @@ describe("convertPartialReport", () => {
     });
     expect(result).toEqual({
       summary: "テスト",
-      stance: null,
-      role: null,
+      final_text: "",
       role_description: null,
       role_title: null,
       opinions: [],

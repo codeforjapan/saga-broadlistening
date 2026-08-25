@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  BILL_STATUS_ORDER,
-  type BillWithContent,
-} from "@/features/bills/shared/types";
+import type { BillWithContent } from "@/features/bills/shared/types";
 import {
   buildTargetedModeSystemPrompt,
   calculateTargetedModeNextQuestionId,
@@ -14,28 +11,23 @@ const makeBill = (
 ): BillWithContent => ({
   id: "bill-1",
   name: "テスト法案",
+  slug: "test-policy",
+  department: null,
+  contact: null,
   is_featured: false,
-  is_review_completed: true,
-  originating_house: "HR",
-  shugiin_url: null,
-  slug: null,
-  diet_session_id: null,
+  approved_by: null,
+  approved_at: null,
   publish_status: "published",
   published_at: null,
-  submitted_date: null,
   share_thumbnail_url: null,
-  status: "introduced",
-  status_note: null,
-  status_order: BILL_STATUS_ORDER.introduced,
-  publish_status_order: 2,
   thumbnail_url: null,
   knowledge_source: "厚生労働省の報告書",
-  use_knowledge_source_in_chat: false,
+  enable_ai_chat: false,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   bill_content: {
     id: "bc-1",
-    bill_id: "bill-1",
+    policy_id: "bill-1",
     title: "テスト法案タイトル",
     summary: "テスト法案の要約です",
     content: "テスト法案の内容",
@@ -70,7 +62,7 @@ const sampleQuestions = [
 const baseParams: InterviewPromptInput = {
   bill: makeBill(),
   interviewConfig: {
-    themes: ["医療", "教育"],
+    description: "- 医療\n- 教育",
   },
   questions: sampleQuestions,
   currentStage: "chat",

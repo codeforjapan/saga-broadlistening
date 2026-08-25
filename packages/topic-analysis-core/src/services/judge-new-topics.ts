@@ -1,7 +1,11 @@
 import { generateObject } from "ai";
 import { TOPIC_MODEL } from "../shared/constants";
 import { topicJudgeSchema } from "../shared/schemas";
-import type { BillContext, ExistingTopic, TopicDraft } from "../shared/types";
+import type {
+  ExistingTopic,
+  InterviewConfigContext,
+  TopicDraft,
+} from "../shared/types";
 import { withRetry } from "../utils/concurrency";
 import { toInlineText } from "../utils/to-inline-text";
 import { buildJudgeNewTopicsPrompt } from "./prompts";
@@ -36,7 +40,7 @@ const defaultJudge: JudgeFn = async ({ prompt }) => {
 export async function judgeNewTopics(
   candidates: TopicDraft[],
   existing: ExistingTopic[],
-  bill: BillContext,
+  context: InterviewConfigContext,
   deps: { judge?: JudgeFn } = {}
 ): Promise<TopicDraft[]> {
   if (candidates.length === 0) return [];
@@ -52,7 +56,11 @@ export async function judgeNewTopics(
     .join("\n");
 
   const { accepted_indices } = await judge({
-    prompt: buildJudgeNewTopicsPrompt(bill, existingTopicsText, candidatesText),
+    prompt: buildJudgeNewTopicsPrompt(
+      context,
+      existingTopicsText,
+      candidatesText
+    ),
   });
 
   // 1始まりの番号を候補配列の index に変換。非整数・範囲外・重複は無視する

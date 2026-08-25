@@ -3,11 +3,13 @@ import "server-only";
 import { createAdminClient, type Database } from "@mirai-gikai/supabase";
 import type {
   InterviewMessage,
-  InterviewOpinionInsert,
   InterviewReport,
   InterviewReportInsert,
   InterviewSession,
 } from "../../shared/types";
+
+// Epic #54 で interview_report → opinions に再定義された。
+// 関数名（*InterviewReport）の改名は Epic #8 完了後のフォローアップ。
 
 // ========================================
 // Interview Sessions
@@ -50,13 +52,16 @@ export async function findActiveInterviewSession(
 }
 
 /**
- * セッションIDからインタビューセッション（interview_configs付き）を取得
+ * セッションIDからインタビューセッション（紐づく施策ID付き）を取得
+ *
+ * 施策と意見募集は多対多になったため、施策IDは
+ * interview_configs → policies_interview_configs 経由で引く。
  */
 export async function findInterviewSessionWithConfigById(sessionId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .select("*, interview_configs(bill_id)")
+    .select("*, interview_configs(policies_interview_configs(policy_id))")
     .eq("id", sessionId)
     .single();
 
@@ -77,7 +82,7 @@ export async function findLatestNonArchivedSession(
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .select("id, completed_at, interview_report(id)")
+    .select("id, completed_at, opinions(id)")
     .eq("interview_config_id", interviewConfigId)
     .eq("user_id", userId)
     .is("archived_at", null)
@@ -334,7 +339,7 @@ export async function upsertInterviewReport(
 ): Promise<InterviewReport> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .upsert(params, { onConflict: "interview_session_id" })
     .select()
     .single();
@@ -344,39 +349,4 @@ export async function upsertInterviewReport(
   }
 
   return data;
-}
-
-/**
- * レポートの意見を interview_opinion（正規化プロジェクション）へ同期する。
- *
- * opinion_id(UUID) を安定させるため delete+insert ではなく
- * ON CONFLICT (interview_report_id, opinion_index) DO UPDATE で upsert する（§3.1）。
- * 意見数が減った再生成では、新配列長以降の opinion_index を持つ行のみ削除する。
- */
-export async function syncInterviewOpinions(
-  reportId: string,
-  rows: InterviewOpinionInsert[]
-): Promise<void> {
-  const supabase = createAdminClient();
-
-  if (rows.length > 0) {
-    const { error } = await supabase
-      .from("interview_opinion")
-      .upsert(rows, { onConflict: "interview_report_id,opinion_index" });
-    if (error) {
-      throw new Error(`Failed to upsert interview opinions: ${error.message}`);
-    }
-  }
-
-  // 意見数が縮んだ（または0になった）場合に末尾の古い行を削除
-  const { error: deleteError } = await supabase
-    .from("interview_opinion")
-    .delete()
-    .eq("interview_report_id", reportId)
-    .gte("opinion_index", rows.length);
-  if (deleteError) {
-    throw new Error(
-      `Failed to prune stale interview opinions: ${deleteError.message}`
-    );
-  }
 }

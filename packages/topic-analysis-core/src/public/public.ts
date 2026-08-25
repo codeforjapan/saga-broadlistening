@@ -21,13 +21,8 @@ export type {
   RawTopicRow,
   RawTranscriptMessageRow,
   TranscriptMessage,
-  UserCategory,
 } from "./public-types";
 export { normalizeRoleTitle } from "./normalize-role-title";
-export { normalizeStanceToSentiment } from "./normalize-stance";
-export {
-  buildPublicTopicAnalysis,
-  mapRoleToCategory,
-} from "./build-public-topic-analysis";
+export { buildPublicTopicAnalysis } from "./build-public-topic-analysis";
 export { buildPublicBillRespondents } from "./build-public-bill-respondents";
 export { buildPublicRespondentDetail } from "./build-public-respondent-detail";

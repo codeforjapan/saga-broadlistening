@@ -1,110 +1,69 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestBill,
   cleanupTestUser,
-  createTestBill,
+  createTestInterviewConfig,
   createTestInterviewMessages,
+  createTestOpinion,
   createTestUser,
   type TestUser,
 } from "../utils";
-
-async function createTestInterviewConfig(billId: string) {
-  const { data, error } = await adminClient
-    .from("interview_configs")
-    .insert({
-      bill_id: billId,
-      status: "public",
-      name: `テスト設定 ${Date.now()}`,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_config 作成失敗: ${error.message}`);
-  return data;
-}
+import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
 
 let sessionCounter = 0;
 
-async function createTestSession(
+/** 作成順を started_at で確定させたセッションを作る */
+async function createOrderedSession(
   configId: string,
   userId: string,
   completedAt?: string
 ) {
   sessionCounter++;
-  const startedAt = new Date(Date.now() - sessionCounter * 1000).toISOString();
-  const { data, error } = await adminClient
-    .from("interview_sessions")
-    .insert({
-      interview_config_id: configId,
-      user_id: userId,
-      started_at: startedAt,
-      completed_at: completedAt ?? null,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_session 作成失敗: ${error.message}`);
-  return data;
-}
-
-async function createTestReport(
-  sessionId: string,
-  overrides: {
-    stance?: string;
-    role?: string;
-    is_public_by_admin?: boolean;
-    total_content_richness?: number;
-  } = {}
-) {
-  const { data, error } = await adminClient
-    .from("interview_report")
-    .insert({
-      interview_session_id: sessionId,
-      stance: overrides.stance ?? "for",
-      role: overrides.role ?? "general_citizen",
-      is_public_by_admin: overrides.is_public_by_admin ?? false,
-      content_richness: { total: overrides.total_content_richness ?? 50 },
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_report 作成失敗: ${error.message}`);
-  return data;
+  return await createTestSession(configId, userId, {
+    started_at: new Date(Date.now() - sessionCounter * 1000).toISOString(),
+    completed_at: completedAt ?? null,
+  });
 }
 
 describe("find_sessions_ordered_by_message_count() フィルタパラメータ", () => {
   let testUser: TestUser;
-  const billIds: string[] = [];
+  const configIds: string[] = [];
+
+  async function createConfig(): Promise<string> {
+    const config = await createTestInterviewConfig();
+    configIds.push(config.id);
+    return config.id;
+  }
 
   beforeEach(async () => {
     testUser = await createTestUser();
   });
 
   afterEach(async () => {
-    for (const billId of billIds) {
-      await cleanupTestBill(billId);
+    for (const configId of configIds) {
+      await cleanupTestInterviewConfig(configId);
     }
-    billIds.length = 0;
+    configIds.length = 0;
     await cleanupTestUser(testUser.id);
   });
 
   it("p_statusでcompletedセッションのみフィルタできる", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
-    const completed = await createTestSession(
-      config.id,
+    const completed = await createOrderedSession(
+      configId,
       testUser.id,
       new Date().toISOString()
     );
     await createTestInterviewMessages(completed.id, 3);
 
-    const inProgress = await createTestSession(config.id, testUser.id);
+    const inProgress = await createOrderedSession(configId, testUser.id);
     await createTestInterviewMessages(inProgress.id, 5);
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_message_count",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
@@ -114,71 +73,24 @@ describe("find_sessions_ordered_by_message_count() フィルタパラメータ",
 
     expect(error).toBeNull();
     expect(data).toHaveLength(1);
-    expect(data![0].session_id).toBe(completed.id);
+    expect(data?.[0].session_id).toBe(completed.id);
   });
 
-  it("p_stanceでスタンスフィルタできる", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("p_visibility='public'は公開済み(published)の意見を持つセッションのみ返す", async () => {
+    const configId = await createConfig();
 
-    const s1 = await createTestSession(
-      config.id,
-      testUser.id,
-      new Date().toISOString()
-    );
-    await createTestInterviewMessages(s1.id, 3);
-    await createTestReport(s1.id, { stance: "for" });
+    const published = await createOrderedSession(configId, testUser.id);
+    await createTestInterviewMessages(published.id, 2);
+    await createTestOpinion(published.id, { review_status: "published" });
 
-    const s2 = await createTestSession(
-      config.id,
-      testUser.id,
-      new Date().toISOString()
-    );
-    await createTestInterviewMessages(s2.id, 5);
-    await createTestReport(s2.id, { stance: "against" });
+    const pending = await createOrderedSession(configId, testUser.id);
+    await createTestInterviewMessages(pending.id, 4);
+    await createTestOpinion(pending.id, { review_status: "pending_review" });
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_message_count",
       {
-        p_config_id: config.id,
-        p_ascending: false,
-        p_offset: 0,
-        p_limit: 10,
-        p_stance: "for",
-      }
-    );
-
-    expect(error).toBeNull();
-    expect(data).toHaveLength(1);
-    expect(data![0].session_id).toBe(s1.id);
-  });
-
-  it("p_visibilityで公開状態フィルタできる", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-
-    const s1 = await createTestSession(
-      config.id,
-      testUser.id,
-      new Date().toISOString()
-    );
-    await createTestInterviewMessages(s1.id, 2);
-    await createTestReport(s1.id, { is_public_by_admin: true });
-
-    const s2 = await createTestSession(
-      config.id,
-      testUser.id,
-      new Date().toISOString()
-    );
-    await createTestInterviewMessages(s2.id, 4);
-    await createTestReport(s2.id, { is_public_by_admin: false });
-
-    const { data, error } = await adminClient.rpc(
-      "find_sessions_ordered_by_message_count",
-      {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
@@ -188,114 +100,100 @@ describe("find_sessions_ordered_by_message_count() フィルタパラメータ",
 
     expect(error).toBeNull();
     expect(data).toHaveLength(1);
-    expect(data![0].session_id).toBe(s1.id);
+    expect(data?.[0].session_id).toBe(published.id);
   });
 
-  it("p_roleで役割フィルタできる", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("p_visibility='private'は未公開の意見と意見なしのセッションを返す", async () => {
+    const configId = await createConfig();
 
-    const s1 = await createTestSession(
-      config.id,
-      testUser.id,
-      new Date().toISOString()
-    );
-    await createTestInterviewMessages(s1.id, 3);
-    await createTestReport(s1.id, { role: "subject_expert" });
+    const published = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(published.id, { review_status: "published" });
 
-    const s2 = await createTestSession(
-      config.id,
-      testUser.id,
-      new Date().toISOString()
-    );
-    await createTestInterviewMessages(s2.id, 1);
-    await createTestReport(s2.id, { role: "general_citizen" });
+    const hidden = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(hidden.id, { review_status: "hidden" });
+
+    // 意見が未作成のセッションも非公開扱い
+    const noOpinion = await createOrderedSession(configId, testUser.id);
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_message_count",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
-        p_role: "subject_expert",
+        p_visibility: "private",
       }
     );
 
     expect(error).toBeNull();
-    expect(data).toHaveLength(1);
-    expect(data![0].session_id).toBe(s1.id);
+    const sessionIds = (data ?? []).map((r) => r.session_id);
+    expect(sessionIds).toHaveLength(2);
+    expect(sessionIds).toContain(hidden.id);
+    expect(sessionIds).toContain(noOpinion.id);
+    expect(sessionIds).not.toContain(published.id);
   });
 
   it("複数フィルタを組み合わせて絞り込める", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
-    const s1 = await createTestSession(
-      config.id,
+    // 完了 × 公開済み（唯一の該当）
+    const target = await createOrderedSession(
+      configId,
       testUser.id,
       new Date().toISOString()
     );
-    await createTestInterviewMessages(s1.id, 5);
-    await createTestReport(s1.id, { stance: "for", is_public_by_admin: true });
+    await createTestInterviewMessages(target.id, 5);
+    await createTestOpinion(target.id, { review_status: "published" });
 
-    const s2 = await createTestSession(
-      config.id,
+    // 完了だが未公開
+    const completedPrivate = await createOrderedSession(
+      configId,
       testUser.id,
       new Date().toISOString()
     );
-    await createTestInterviewMessages(s2.id, 3);
-    await createTestReport(s2.id, {
-      stance: "for",
-      is_public_by_admin: false,
+    await createTestInterviewMessages(completedPrivate.id, 3);
+    await createTestOpinion(completedPrivate.id, {
+      review_status: "pending_review",
     });
 
-    const s3 = await createTestSession(
-      config.id,
-      testUser.id,
-      new Date().toISOString()
-    );
-    await createTestInterviewMessages(s3.id, 7);
-    await createTestReport(s3.id, {
-      stance: "against",
-      is_public_by_admin: true,
+    // 公開済みだが未完了
+    const inProgressPublic = await createOrderedSession(configId, testUser.id);
+    await createTestInterviewMessages(inProgressPublic.id, 7);
+    await createTestOpinion(inProgressPublic.id, {
+      review_status: "published",
     });
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_message_count",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
         p_status: "completed",
-        p_stance: "for",
         p_visibility: "public",
       }
     );
 
     expect(error).toBeNull();
     expect(data).toHaveLength(1);
-    expect(data![0].session_id).toBe(s1.id);
+    expect(data?.[0].session_id).toBe(target.id);
   });
 
-  it("フィルタパラメータがNULLの場合はフィルタしない（既存動作と同等）", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("フィルタパラメータがNULLの場合はフィルタしない", async () => {
+    const configId = await createConfig();
 
-    const s1 = await createTestSession(config.id, testUser.id);
+    const s1 = await createOrderedSession(configId, testUser.id);
     await createTestInterviewMessages(s1.id, 2);
 
-    const s2 = await createTestSession(config.id, testUser.id);
+    const s2 = await createOrderedSession(configId, testUser.id);
     await createTestInterviewMessages(s2.id, 4);
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_message_count",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,

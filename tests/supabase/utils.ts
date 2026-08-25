@@ -16,6 +16,11 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/** 同一テスト実行内で衝突しない一意な接尾辞 */
+function uniqueSuffix(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 // ── クライアント ──
 /** secret key クライアント（RLS バイパス） */
 export const adminClient = createClient<Database>(SUPABASE_URL, SECRET_KEY);
@@ -81,96 +86,121 @@ export async function cleanupTestUser(userId: string): Promise<void> {
 }
 
 // ── テストデータ作成ヘルパー ──
-/** テスト用 diet_session を作成 */
-export async function createTestDietSession(
+/** テスト用 policy を作成 */
+export async function createTestPolicy(
   overrides: Partial<{
     name: string;
-    start_date: string;
-    end_date: string;
     slug: string;
-    is_active: boolean;
-  }> = {}
-) {
-  const defaults = {
-    name: `テスト会期 ${Date.now()}`,
-    start_date: "2025-01-01",
-    end_date: "2025-06-30",
-    slug: `test-session-${Date.now()}`,
-    is_active: false,
-    ...overrides,
-  };
-  const { data, error } = await adminClient
-    .from("diet_sessions")
-    .insert(defaults)
-    .select()
-    .single();
-  if (error) throw new Error(`diet_session 作成失敗: ${error.message}`);
-  return data;
-}
-
-/** テスト用 diet_session を削除 */
-export async function cleanupTestDietSession(sessionId: string): Promise<void> {
-  await adminClient.from("diet_sessions").delete().eq("id", sessionId);
-}
-
-/** テスト用 bill を作成 */
-export async function createTestBill(
-  overrides: Partial<{
-    name: string;
-    originating_house: "HR" | "HC";
-    status:
-      | "introduced"
-      | "in_originating_house"
-      | "in_receiving_house"
-      | "enacted"
-      | "rejected"
-      | "preparing";
-    publish_status: "draft" | "published" | "coming_soon";
-    diet_session_id: string;
+    publish_status: "draft" | "published";
+    published_at: string;
+    department: string;
+    contact: string;
     is_featured: boolean;
-    submitted_date: string;
-    shugiin_url: string;
+    enable_ai_chat: boolean;
+    knowledge_source: string;
   }> = {}
 ) {
+  const suffix = uniqueSuffix();
   const defaults = {
-    name: `テスト議案 ${Date.now()}`,
-    originating_house: "HR" as const,
-    status: "introduced" as const,
+    name: `テスト施策 ${suffix}`,
+    slug: `test-policy-${suffix}`,
     publish_status: "draft" as const,
     ...overrides,
   };
   const { data, error } = await adminClient
-    .from("bills")
+    .from("policies")
     .insert(defaults)
     .select()
     .single();
-  if (error) throw new Error(`bill 作成失敗: ${error.message}`);
+  if (error) throw new Error(`policy 作成失敗: ${error.message}`);
   return data;
 }
 
-/** テスト用 bill を削除（CASCADE で関連データも削除） */
-export async function cleanupTestBill(billId: string): Promise<void> {
-  await adminClient.from("bills").delete().eq("id", billId);
+/** テスト用 policy を削除（CASCADE で関連データも削除） */
+export async function cleanupTestPolicy(policyId: string): Promise<void> {
+  await adminClient.from("policies").delete().eq("id", policyId);
+}
+
+/** テスト用 policy_contents を作成 */
+export async function createTestPolicyContent(
+  policyId: string,
+  overrides: Partial<{
+    difficulty_level: "normal" | "hard";
+    title: string;
+    summary: string;
+    content: string;
+  }> = {}
+) {
+  const suffix = uniqueSuffix();
+  const defaults = {
+    policy_id: policyId,
+    difficulty_level: "normal" as const,
+    title: `テスト施策タイトル ${suffix}`,
+    summary: `テスト施策サマリー ${suffix}`,
+    content: `# テスト施策コンテンツ ${suffix}`,
+    ...overrides,
+  };
+  const { data, error } = await adminClient
+    .from("policy_contents")
+    .insert(defaults)
+    .select()
+    .single();
+  if (error) throw new Error(`policy_contents 作成失敗: ${error.message}`);
+  return data;
+}
+
+/** テスト用 interview_config（意見募集）を作成 */
+export async function createTestInterviewConfig(
+  overrides: Partial<{
+    name: string;
+    slug: string;
+    description: string;
+    status: "draft" | "open" | "closed";
+    chat_model: string;
+    starts_at: string;
+    ends_at: string;
+    deliberation_enabled: boolean;
+    estimated_duration: number;
+  }> = {}
+) {
+  const suffix = uniqueSuffix();
+  const defaults = {
+    name: `テスト意見募集 ${suffix}`,
+    slug: `test-config-${suffix}`,
+    status: "open" as const,
+    chat_model: "test-model",
+    ...overrides,
+  };
+  const { data, error } = await adminClient
+    .from("interview_configs")
+    .insert(defaults)
+    .select()
+    .single();
+  if (error) throw new Error(`interview_config 作成失敗: ${error.message}`);
+  return data;
+}
+
+/** 施策と意見募集を紐づける */
+export async function linkPolicyToInterviewConfig(
+  policyId: string,
+  interviewConfigId: string
+) {
+  const { error } = await adminClient
+    .from("policies_interview_configs")
+    .insert({ policy_id: policyId, interview_config_id: interviewConfigId });
+  if (error) {
+    throw new Error(`policies_interview_configs 作成失敗: ${error.message}`);
+  }
 }
 
 /**
  * テスト用インタビューデータを一括作成
- * bill → interview_config → interview_session の階層
+ * policy ─ policies_interview_configs ─ interview_config → interview_session
  */
-export async function createTestInterviewData(userId: string) {
-  const bill = await createTestBill();
-
-  const { data: config, error: configError } = await adminClient
-    .from("interview_configs")
-    .insert({
-      bill_id: bill.id,
-      status: "public",
-      name: `テスト設定 ${Date.now()}`,
-    })
-    .select()
-    .single();
-  if (configError || !config)
-    throw new Error(`interview_config 作成失敗: ${configError?.message}`);
+export async function createTestInterviewData(userId: string | null) {
+  const policy = await createTestPolicy();
+  const config = await createTestInterviewConfig();
+  await linkPolicyToInterviewConfig(policy.id, config.id);
 
   const { data: session, error: sessionError } = await adminClient
     .from("interview_sessions")
@@ -184,33 +214,36 @@ export async function createTestInterviewData(userId: string) {
   if (sessionError || !session)
     throw new Error(`interview_session 作成失敗: ${sessionError?.message}`);
 
-  return { bill, config, session };
+  return { policy, config, session };
 }
 
-/** テスト用 bill_contents を作成 */
-export async function createTestBillContent(
-  billId: string,
+/** テスト用 opinion（確定版の意見）を作成 */
+export async function createTestOpinion(
+  interviewSessionId: string,
   overrides: Partial<{
-    difficulty_level: "normal" | "hard";
-    title: string;
+    final_text: string;
     summary: string;
-    content: string;
+    role_title: string;
+    role_description: string;
+    content_richness: { total: number };
+    moderation_score: number;
+    review_status: "published" | "pending_review" | "hidden";
+    is_public_by_user: boolean;
+    is_public_by_admin: boolean;
+    is_data_reuse_consented: boolean;
   }> = {}
 ) {
   const defaults = {
-    bill_id: billId,
-    difficulty_level: "normal" as const,
-    title: `テスト議案タイトル ${Date.now()}`,
-    summary: `テスト議案サマリー ${Date.now()}`,
-    content: `# テスト議案コンテンツ ${Date.now()}`,
+    interview_session_id: interviewSessionId,
+    final_text: `テスト意見本文 ${uniqueSuffix()}`,
     ...overrides,
   };
   const { data, error } = await adminClient
-    .from("bill_contents")
+    .from("opinions")
     .insert(defaults)
     .select()
     .single();
-  if (error) throw new Error(`bill_contents 作成失敗: ${error.message}`);
+  if (error) throw new Error(`opinions 作成失敗: ${error.message}`);
   return data;
 }
 
@@ -223,7 +256,7 @@ export async function createTestTag(
   }> = {}
 ) {
   const defaults = {
-    label: `テストタグ-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    label: `テストタグ-${uniqueSuffix()}`,
     ...overrides,
   };
   const { data, error } = await adminClient
@@ -240,51 +273,28 @@ export async function cleanupTestTag(tagId: string): Promise<void> {
   await adminClient.from("tags").delete().eq("id", tagId);
 }
 
-/** テスト用 bills_tags を作成 */
-export async function createTestBillTag(billId: string, tagId: string) {
+/** テスト用 policies_tags を作成 */
+export async function createTestPolicyTag(policyId: string, tagId: string) {
   const { data, error } = await adminClient
-    .from("bills_tags")
-    .insert({ bill_id: billId, tag_id: tagId })
+    .from("policies_tags")
+    .insert({ policy_id: policyId, tag_id: tagId })
     .select()
     .single();
-  if (error) throw new Error(`bills_tags 作成失敗: ${error.message}`);
-  return data;
-}
-
-/** テスト用 mirai_stances を作成 */
-export async function createTestMiraiStance(
-  billId: string,
-  overrides: Partial<{
-    type: "for" | "against" | "neutral";
-    comment: string;
-  }> = {}
-) {
-  const defaults = {
-    bill_id: billId,
-    type: "for" as const,
-    comment: "テストコメント",
-    ...overrides,
-  };
-  const { data, error } = await adminClient
-    .from("mirai_stances")
-    .insert(defaults)
-    .select()
-    .single();
-  if (error) throw new Error(`mirai_stances 作成失敗: ${error.message}`);
+  if (error) throw new Error(`policies_tags 作成失敗: ${error.message}`);
   return data;
 }
 
 /** テスト用 preview_tokens を作成 */
 export async function createTestPreviewToken(
-  billId: string,
+  policyId: string,
   overrides: Partial<{
     token: string;
     expires_at: string;
   }> = {}
 ) {
   const defaults = {
-    bill_id: billId,
-    token: `test-token-${Date.now()}`,
+    policy_id: policyId,
+    token: `test-token-${uniqueSuffix()}`,
     expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
     ...overrides,
   };

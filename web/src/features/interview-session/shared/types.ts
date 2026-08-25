@@ -13,15 +13,17 @@ export type InterviewMessage =
 export type InterviewMessageInsert =
   Database["public"]["Tables"]["interview_messages"]["Insert"];
 
-export type InterviewReport =
-  Database["public"]["Tables"]["interview_report"]["Row"];
+// Epic #54 で interview_report → opinions、interview_opinion → opinion_segments に
+// 再定義された。型名（InterviewReport / InterviewOpinion）の改名は
+// Epic #8 完了後のフォローアップ。
+export type InterviewReport = Database["public"]["Tables"]["opinions"]["Row"];
 export type InterviewReportInsert =
-  Database["public"]["Tables"]["interview_report"]["Insert"];
+  Database["public"]["Tables"]["opinions"]["Insert"];
 
 export type InterviewOpinion =
-  Database["public"]["Tables"]["interview_opinion"]["Row"];
+  Database["public"]["Tables"]["opinion_segments"]["Row"];
 export type InterviewOpinionInsert =
-  Database["public"]["Tables"]["interview_opinion"]["Insert"];
+  Database["public"]["Tables"]["opinion_segments"]["Insert"];
 
 export type InterviewQuestion =
   Database["public"]["Tables"]["interview_questions"]["Row"];

@@ -18,9 +18,16 @@ import {
   findBillContentByDifficulty,
   findPublishedBillById,
 } from "@/features/bills/server/repositories/bill-repository";
+import {
+  createChatSession,
+  findLatestChatSessionId,
+  insertChatMessage,
+} from "@/features/chat/server/repositories/chat-session-repository";
 import { ChatError, ChatErrorCode } from "@/features/chat/shared/types/errors";
+import { extractUiMessageText } from "@/features/chat/shared/utils/extract-ui-message-text";
+import { isFirstChatTurn } from "@/features/chat/shared/utils/is-first-chat-turn";
 import { pickChatKnowledgeSource } from "@/features/chat/shared/utils/pick-chat-knowledge-source";
-import { findPublicInterviewConfigByBillId } from "@/features/interview-config/server/repositories/interview-config-repository";
+import { findOpenInterviewConfigByPolicyId } from "@/features/interview-config/server/repositories/interview-config-repository";
 import { env } from "@/lib/env";
 import {
   type CompiledPrompt,
@@ -122,6 +129,17 @@ export async function handleChatRequest({
   // Build tools configuration
   const tools = buildTools(shouldSuggestInterview);
 
+  // 対話ログを chat_sessions / chat_messages に残す。
+  // 保存の失敗はストリームを止めない（ログのみ）。
+  const chatSessionId = await resolveChatSessionId(context, messages, userId);
+  if (chatSessionId) {
+    await persistChatMessage(
+      chatSessionId,
+      "user",
+      extractUiMessageText(messages.at(-1))
+    );
+  }
+
   // Generate streaming response
   try {
     const result = streamText({
@@ -130,6 +148,9 @@ export async function handleChatRequest({
       messages: await convertToModelMessages(messages),
       tools,
       onFinish: async (event) => {
+        if (chatSessionId) {
+          await persistChatMessage(chatSessionId, "assistant", event.text);
+        }
         try {
           const providerCost = extractGatewayCost(event);
           await recordChatUsage({
@@ -159,6 +180,49 @@ export async function handleChatRequest({
       ChatErrorCode.LLM_GENERATION_FAILED,
       error instanceof Error ? error.message : String(error)
     );
+  }
+}
+
+/**
+ * 対話ログの保存先セッションを解決する。
+ * 会話の1ターン目は新規作成、2ターン目以降は直近のセッションへ追記する。
+ * 施策コンテキストが無いチャット（トップページ）は保存対象外。
+ */
+async function resolveChatSessionId(
+  context: ChatMessageMetadata,
+  messages: UIMessage<ChatMessageMetadata>[],
+  userId: string
+): Promise<string | null> {
+  const policyId = context.billContext?.id;
+  if (!policyId) {
+    return null;
+  }
+
+  try {
+    if (isFirstChatTurn(messages)) {
+      return await createChatSession({ policyId, userId });
+    }
+    return (
+      (await findLatestChatSessionId({ policyId, userId })) ??
+      (await createChatSession({ policyId, userId }))
+    );
+  } catch (error) {
+    console.error("Failed to resolve chat session:", error);
+    return null;
+  }
+}
+
+/** 対話ログを1件保存する（失敗してもストリームは継続する）。 */
+async function persistChatMessage(
+  sessionId: string,
+  role: "user" | "assistant",
+  message: string
+): Promise<void> {
+  if (!message) return;
+  try {
+    await insertChatMessage({ sessionId, role, message });
+  } catch (error) {
+    console.error("Failed to persist chat message:", error);
   }
 }
 
@@ -345,7 +409,7 @@ async function determineShouldSuggestInterview(
   }
 
   // サーバー側でインタビュー設定の存在を検証（クライアント側のメタデータを信頼しない）
-  const { data: interviewConfig } = await findPublicInterviewConfigByBillId(
+  const { data: interviewConfig } = await findOpenInterviewConfigByPolicyId(
     context.billContext.id
   );
   return !!interviewConfig;

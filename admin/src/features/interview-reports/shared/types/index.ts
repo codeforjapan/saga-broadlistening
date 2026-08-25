@@ -1,15 +1,12 @@
 import type { Database } from "@mirai-gikai/supabase";
 import type { SortConfig } from "@/lib/sort";
-import {
-  type InterviewReportStance,
-  interviewReportStances,
-} from "../constants";
 
 export type InterviewSession =
   Database["public"]["Tables"]["interview_sessions"]["Row"];
 
-export type InterviewReport =
-  Database["public"]["Tables"]["interview_report"]["Row"];
+// Epic #54 で interview_report は opinions に再定義された。
+// 名前の改名は Epic #8 完了後のフォローアップで行う。
+export type InterviewReport = Database["public"]["Tables"]["opinions"]["Row"];
 
 export type InterviewMessage =
   Database["public"]["Tables"]["interview_messages"]["Row"];
@@ -41,8 +38,16 @@ export type MessageSearchSession = InterviewSession & {
   matched_messages: MatchedUserMessage[];
 };
 
+export type OpinionSegment = {
+  title: string;
+  content: string;
+  source_message_id: string | null;
+};
+
 export type InterviewSessionDetail = InterviewSession & {
   interview_report: InterviewReport | null;
+  /** 論点単位の意見（旧 interview_report.opinions の JSONB） */
+  opinion_segments: OpinionSegment[];
   interview_messages: InterviewMessage[];
   reaction_counts: ReactionCounts | null;
   feedback_tags: string[];
@@ -55,20 +60,11 @@ export type SessionStatusFilter =
   | "in_progress"
   | "archived";
 export type VisibilityFilter = "all" | "public" | "private";
-export type StanceFilter = "all" | "for" | "against" | "neutral";
-export type RoleFilter =
-  | "all"
-  | "subject_expert"
-  | "work_related"
-  | "daily_life_affected"
-  | "general_citizen";
 export type ModerationFilter = "all" | "ok" | "warning" | "ng" | "unscored";
 
 export interface SessionFilterConfig {
   status: SessionStatusFilter;
   visibility: VisibilityFilter;
-  stance: StanceFilter;
-  role: RoleFilter;
   moderation: ModerationFilter;
 }
 
@@ -85,21 +81,6 @@ export const VISIBILITY_FILTER_VALUES: readonly VisibilityFilter[] = [
   "private",
 ] as const;
 
-export const STANCE_FILTER_VALUES: readonly StanceFilter[] = [
-  "all",
-  "for",
-  "against",
-  "neutral",
-] as const;
-
-export const ROLE_FILTER_VALUES: readonly RoleFilter[] = [
-  "all",
-  "subject_expert",
-  "work_related",
-  "daily_life_affected",
-  "general_citizen",
-] as const;
-
 export const MODERATION_FILTER_VALUES: readonly ModerationFilter[] = [
   "all",
   "ok",
@@ -111,28 +92,15 @@ export const MODERATION_FILTER_VALUES: readonly ModerationFilter[] = [
 export const DEFAULT_SESSION_FILTER: SessionFilterConfig = {
   status: "completed",
   visibility: "all",
-  stance: "all",
-  role: "all",
   moderation: "all",
 };
 
-// 発言検索のスタンスフィルタ。バッジ表示と同じ全スタンスを対象にする
-// （セッション一覧の StanceFilter は賛成/反対/中立のみ）
-export type MessageSearchStanceFilter = "all" | InterviewReportStance;
-
-export const MESSAGE_SEARCH_STANCE_FILTER_VALUES: readonly MessageSearchStanceFilter[] =
-  ["all", ...interviewReportStances] as const;
-
 // 発言検索のフィルタ。roleTitle は部分一致（空文字 = フィルタなし）
 export interface MessageSearchFilterConfig {
-  stance: MessageSearchStanceFilter;
-  role: RoleFilter;
   roleTitle: string;
 }
 
 export const DEFAULT_MESSAGE_SEARCH_FILTER: MessageSearchFilterConfig = {
-  stance: "all",
-  role: "all",
   roleTitle: "",
 };
 
@@ -141,26 +109,18 @@ export type InterviewStatistics = {
   completedSessions: number;
   completionRate: number;
   avgRating: number | null;
-  stanceFor: number;
-  stanceAgainst: number;
-  stanceNeutral: number;
   avgTotalContentRichness: number | null;
-  roleSubjectExpert: number;
-  roleWorkRelated: number;
-  roleDailyLifeAffected: number;
-  roleGeneralCitizen: number;
   avgMessageCount: number | null;
   medianDurationSeconds: number | null;
   totalDurationSeconds: number;
   publicByUserCount: number;
+  publishedCount: number;
   publicRate: number;
   feedbackIrrelevantQuestions: number;
   feedbackNotAligned: number;
   feedbackMisunderstood: number;
   feedbackTooManyQuestions: number;
   feedbackOther: number;
-  totalCostUsd: number;
-  avgCostUsd: number;
 };
 
 export type QuestionAnswerCount = {

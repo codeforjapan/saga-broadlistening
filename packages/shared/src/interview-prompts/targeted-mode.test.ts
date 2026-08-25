@@ -15,7 +15,7 @@ function baseParams(
       },
       knowledge_source: "参考資料",
     },
-    interviewConfig: { themes: ["テーマA"] },
+    interviewConfig: { description: "テーマA" },
     questions: [],
     currentStage: "chat",
     askedQuestionIds: new Set<string>(),

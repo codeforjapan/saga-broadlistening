@@ -1,10 +1,12 @@
 import {
   adminClient,
-  cleanupTestBill,
+  cleanupTestPolicy,
   cleanupTestUser,
-  createTestBill,
-  createTestBillContent,
+  createTestInterviewConfig,
+  createTestPolicy,
+  createTestPolicyContent,
   createTestUser,
+  linkPolicyToInterviewConfig,
   type TestUser,
 } from "@test-utils/utils";
 
@@ -22,7 +24,7 @@ type TestMessage = {
 type CreatePublicReportOptions = {
   isPublicByAdmin?: boolean;
   isPublicByUser?: boolean;
-  stance?: "for" | "against" | "neutral" | null;
+  reviewStatus?: "published" | "pending_review" | "hidden";
   summary?: string;
   roleTitle?: string;
   contentRichnessTotal?: number;
@@ -30,29 +32,23 @@ type CreatePublicReportOptions = {
 };
 
 export async function createPublicReportLoaderContext(
-  billContentTitle = "議案タイトル"
+  billContentTitle = "施策タイトル"
 ): Promise<PublicReportLoaderContext> {
   const user = await createTestUser();
-  const bill = await createTestBill();
+  const bill = await createTestPolicy();
 
   try {
-    await createTestBillContent(bill.id, { title: billContentTitle });
+    await createTestPolicyContent(bill.id, { title: billContentTitle });
 
-    const { data: config, error } = await adminClient
-      .from("interview_configs")
-      .insert({
-        bill_id: bill.id,
-        status: "public",
-        name: `公開レポート loader テスト ${Date.now()}`,
-      })
-      .select()
-      .single();
-    if (error) throw new Error(`interview_config 作成失敗: ${error.message}`);
+    const config = await createTestInterviewConfig({
+      name: `公開レポート loader テスト ${Date.now()}`,
+    });
+    await linkPolicyToInterviewConfig(bill.id, config.id);
 
     return { user, billId: bill.id, configId: config.id };
   } catch (error) {
     const cleanupResults = await Promise.allSettled([
-      cleanupTestBill(bill.id),
+      cleanupTestPolicy(bill.id),
       cleanupTestUser(user.id),
     ]);
     const rejected = cleanupResults.filter(
@@ -75,7 +71,7 @@ export async function cleanupPublicReportLoaderContext(
   if (!context) return;
 
   const billCleanupResults = await Promise.allSettled([
-    cleanupTestBill(context.billId),
+    cleanupTestPolicy(context.billId),
   ]);
   const userCleanupResults = await Promise.allSettled([
     cleanupTestUser(context.user.id),
@@ -116,15 +112,15 @@ export async function createPublicReports(
   }
 
   const { data: reports, error: reportError } = await adminClient
-    .from("interview_report")
+    .from("opinions")
     .insert(
       sessions.map((session, index) => ({
         interview_session_id: session.id,
         is_public_by_admin: options.isPublicByAdmin ?? true,
         is_public_by_user: options.isPublicByUser ?? true,
-        stance: options.stance === undefined ? "for" : options.stance,
-        role: "general_citizen" as const,
+        review_status: options.reviewStatus ?? "published",
         role_title: options.roleTitle ?? "会社員",
+        final_text: `公開意見の本文 ${index + 1}`,
         summary: options.summary
           ? `${options.summary}-${index + 1}`
           : `公開レポート ${index + 1}`,
@@ -140,7 +136,7 @@ export async function createPublicReports(
     )
     .select();
   if (reportError) {
-    throw new Error(`interview_report 作成失敗: ${reportError.message}`);
+    throw new Error(`opinions 作成失敗: ${reportError.message}`);
   }
 
   if (options.messages) {

@@ -38,7 +38,7 @@ export function buildDiverseRolesPlanPrompt(
   const billTitle = bill?.bill_content?.title || "";
   const billSummary = bill?.bill_content?.summary || "";
   const billContent = bill?.bill_content?.content || "";
-  const themes = interviewConfig?.themes || [];
+  const description = interviewConfig?.description || "";
   const knowledgeSource = bill?.knowledge_source || "";
 
   const slotLines = slotsToPlan
@@ -78,7 +78,7 @@ ${knowledgeSource || "（知識ソース未設定）"}
 </knowledge_source>
 
 ## インタビューテーマ
-${themes.length > 0 ? themes.map((t: string) => `- ${t}`).join("\n") : "（テーマ未設定）"}
+${description || "（テーマ未設定）"}
 
 ## 計画対象のスロット（${slotsToPlan.length} 件）
 ${slotLines}${preassignedSection}

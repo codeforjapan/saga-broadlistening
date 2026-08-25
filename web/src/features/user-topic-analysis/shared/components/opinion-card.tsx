@@ -1,69 +1,13 @@
-import { isPublicReportVisible } from "@mirai-gikai/shared/report-publication/auto-publish";
-import {
-  ChevronRight,
-  TrendingDown,
-  TrendingUp,
-  UserRound,
-} from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { getInterviewMessageLink } from "@/features/interview-config/shared/utils/interview-links";
+import { shouldDisplayPublicOpinions } from "@/features/interview-report/shared/utils/public-report-display";
 import { routes } from "@/lib/routes";
-import { cn } from "@/lib/utils";
 import type { PublicOpinion } from "../types";
 import { formatOpinionDate } from "../utils/format-opinion-date";
-import {
-  userCategoryColorClass,
-  userCategoryLabels,
-} from "../utils/topic-category";
+import { normalizeRoleTitle } from "../utils/topic-category";
 import { PersonAvatar } from "./person-avatar";
-
-function SentimentLabel({
-  sentiment,
-}: {
-  sentiment: PublicOpinion["bill_sentiment"];
-}) {
-  if (!sentiment) return null;
-  const Icon = sentiment === "期待" ? TrendingUp : TrendingDown;
-  return (
-    <span
-      className={cn(
-        "flex items-center gap-1 text-[13px] font-medium",
-        sentiment === "期待"
-          ? "text-primary-accent"
-          : "text-stance-against-light"
-      )}
-    >
-      <Icon className="size-4 shrink-0" />
-      {sentiment}
-    </span>
-  );
-}
-
-/**
- * カテゴリのグレーchip。
- * 既定では一般市民(citizen)は非表示だが、includeCitizen 指定時は「一般」も表示する。
- */
-function CategoryChip({
-  opinion,
-  includeCitizen = false,
-}: {
-  opinion: PublicOpinion;
-  includeCitizen?: boolean;
-}) {
-  if (opinion.user_category === "citizen" && !includeCitizen) return null;
-  return (
-    <span className="inline-flex items-center gap-1 rounded-xl bg-topic-chip-bg px-1.5 py-1 text-[13px] font-medium text-mirai-text">
-      <UserRound
-        className={cn(
-          "size-[13px] shrink-0",
-          userCategoryColorClass[opinion.user_category]
-        )}
-      />
-      {userCategoryLabels[opinion.user_category]}
-    </span>
-  );
-}
 
 function Quote({ quote }: { quote: string }) {
   return (
@@ -81,8 +25,8 @@ function Quote({ quote }: { quote: string }) {
 interface OpinionCardProps {
   opinion: PublicOpinion;
   /**
-   * 議案の公開レポート件数。レポート詳細ページの表示条件
-   * （管理者公開 × 公開件数しきい値）を満たすかの判定に使う。
+   * 施策の公開意見件数。意見詳細ページの表示条件
+   * （公開済み × 公開件数しきい値）を満たすかの判定に使う。
    */
   publicReportCount: number;
   /**
@@ -92,7 +36,11 @@ interface OpinionCardProps {
   now: Date;
 }
 
-/** トピック詳細の意見カード（意見タイトル上・役割chip・下部に日時＋レポートリンク）。 */
+/**
+ * トピック詳細の意見カード（意見タイトル上・立場・下部に日時＋意見詳細リンク）。
+ *
+ * Epic #54 で賛否・回答者カテゴリが廃止されたため、chip 類は立場のみ。
+ */
 export function OpinionCard({
   opinion,
   publicReportCount,
@@ -100,40 +48,35 @@ export function OpinionCard({
 }: OpinionCardProps) {
   const dateLabel = formatOpinionDate(opinion.created_at, now);
   const quote = opinion.contextual_quote?.trim();
+  const roleTitle = normalizeRoleTitle(opinion.role_title);
 
-  const reportVisible = isPublicReportVisible({
-    isPublicByAdmin: opinion.report_public,
-    isPublicByUser: true,
-    publicReportCount,
-  });
-  // レポートリンクは該当メッセージ位置へ飛ばす。
-  // source_message_id が無い場合はレポート先頭にフォールバックする。
+  const reportVisible =
+    opinion.opinion_public && shouldDisplayPublicOpinions(publicReportCount);
+  // 意見詳細リンクは該当メッセージ位置へ飛ばす。
+  // source_message_id が無い場合は意見詳細の先頭にフォールバックする。
   const reportHref = opinion.source_message_id
     ? getInterviewMessageLink(
-        opinion.interview_report_id,
+        opinion.opinion_id,
         opinion.source_message_id,
         undefined,
         opinion.contextual_quote
       )
-    : routes.publicReport(opinion.interview_report_id);
+    : routes.publicReport(opinion.opinion_id);
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-white p-4 shadow-sm">
       {/* アバター + 意見タイトル */}
       <div className="flex items-center gap-2.5">
-        <PersonAvatar sentiment={opinion.bill_sentiment} />
+        <PersonAvatar />
         <h3 className="min-w-0 flex-1 text-[15px] font-bold leading-6 text-mirai-text">
           {opinion.title}
         </h3>
       </div>
 
-      {/* stance・カテゴリ・立場 */}
-      {/* カテゴリは4区分すべて表示。詳細な肩書(role_title)は一般市民以外でのみ表示する。 */}
+      {/* 立場・日時 */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <SentimentLabel sentiment={opinion.bill_sentiment} />
-        <CategoryChip opinion={opinion} includeCitizen />
-        {opinion.user_category !== "citizen" && opinion.role_title && (
+        {roleTitle && (
           <span className="inline-flex items-center rounded bg-topic-chip-bg px-2 py-1 text-[13px] font-medium text-mirai-text-secondary">
-            {opinion.role_title}
+            {roleTitle}
           </span>
         )}
         {dateLabel && (
@@ -146,7 +89,7 @@ export function OpinionCard({
       {/* 引用 */}
       {quote && <Quote quote={quote} />}
 
-      {/* レポートリンク */}
+      {/* 意見詳細リンク */}
       {reportVisible && (
         <div className="flex items-center justify-end pt-3">
           <Link

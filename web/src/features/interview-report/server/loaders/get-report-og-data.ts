@@ -1,12 +1,12 @@
 import "server-only";
 
-import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import {
   getBillIdFromPublicReportSession,
   selectPrimaryBillContent,
+  shouldDisplayPublicOpinions,
 } from "../../shared/utils/public-report-display";
 import {
-  countPublicReportsByBillId,
+  countPublicOpinionsByInterviewConfigId,
   findBillWithContentById,
   findPublicReportWithSessionById,
 } from "../repositories/interview-report-repository";
@@ -17,7 +17,7 @@ export interface ReportOgData {
 }
 
 /**
- * OGP画像生成に必要なレポートデータを取得
+ * OGP画像生成に必要な意見データを取得
  */
 export async function getReportOgData(
   reportId: string
@@ -32,23 +32,21 @@ export async function getReportOgData(
     return null;
   }
 
-  const session = report.interview_sessions as {
-    started_at: string;
-    completed_at: string | null;
-    interview_configs: { bill_id: string } | null;
-  } | null;
+  const session = report.interview_sessions;
 
   let billName = "";
   const billId = getBillIdFromPublicReportSession(session);
-  if (billId) {
-    let publicReportCount: number;
+  if (billId && session) {
+    let publicOpinionCount: number;
     try {
-      publicReportCount = await countPublicReportsByBillId(billId);
+      publicOpinionCount = await countPublicOpinionsByInterviewConfigId(
+        session.interview_config_id
+      );
     } catch (error) {
-      console.error("Failed to count public reports for OGP:", error);
+      console.error("Failed to count public opinions for OGP:", error);
       return null;
     }
-    if (!shouldDisplayPublicReports(publicReportCount)) {
+    if (!shouldDisplayPublicOpinions(publicOpinionCount)) {
       return null;
     }
 
@@ -56,10 +54,10 @@ export async function getReportOgData(
     try {
       bill = await findBillWithContentById(billId);
     } catch (error) {
-      console.error("Failed to fetch bill for OGP:", error);
+      console.error("Failed to fetch policy for OGP:", error);
       return null;
     }
-    const billContent = selectPrimaryBillContent(bill.bill_contents);
+    const billContent = selectPrimaryBillContent(bill.policy_contents);
     billName = billContent?.title || bill.name;
   }
 

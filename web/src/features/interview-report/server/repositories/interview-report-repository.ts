@@ -1,42 +1,66 @@
 import "server-only";
 
-import { shouldAutoPublishOnUserSettingChange } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { createAdminClient } from "@mirai-gikai/supabase";
+import { resolveOpinionPublicSettingUpdate } from "../../shared/utils/resolve-review-status";
 import type { SortOrder } from "../../shared/utils/sort-order";
 
+// Epic #54 で interview_report → opinions に再定義され、公開状態の正本は
+// review_status になった。ファイル名・関数名（*Report*）の改名は
+// Epic #8 完了後のフォローアップ。
+
+/** 意見・セッション・意見募集・施策を一度に引くための select 句 */
+const OPINION_WITH_SESSION_SELECT =
+  "*, interview_sessions(user_id, started_at, completed_at, interview_config_id, interview_configs(policies_interview_configs(policy_id)))";
+
 /**
- * レポートIDからインタビューレポートとセッション情報を結合取得
+ * 意見IDから意見とセッション情報を結合取得
  */
 export async function findReportWithSessionById(reportId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_report")
-    .select(
-      "*, interview_sessions(user_id, started_at, completed_at, interview_configs(bill_id))"
-    )
+    .from("opinions")
+    .select(OPINION_WITH_SESSION_SELECT)
     .eq("id", reportId)
     .single();
 
   if (error) {
-    throw new Error(`Failed to fetch interview report: ${error.message}`);
+    throw new Error(`Failed to fetch opinion: ${error.message}`);
   }
 
   return data;
 }
 
 /**
- * セッションIDからインタビューレポートを取得
+ * セッションIDから意見を取得
  */
 export async function findReportBySessionId(sessionId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .select("*")
     .eq("interview_session_id", sessionId)
     .single();
 
   if (error) {
-    throw new Error(`Failed to fetch interview report: ${error.message}`);
+    throw new Error(`Failed to fetch opinion: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * 意見IDから論点単位の意見（opinion_segments）を取得（表示順）
+ */
+export async function findOpinionSegmentsByOpinionId(opinionId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("opinion_segments")
+    .select("title, content, source_message_id")
+    .eq("opinion_id", opinionId)
+    .order("opinion_index", { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to fetch opinion segments: ${error.message}`);
   }
 
   return data;
@@ -61,114 +85,87 @@ export async function findMessagesBySessionId(sessionId: string) {
 }
 
 /**
- * 議案IDから議案情報を取得（bill_contentsを結合）
+ * 施策IDから施策情報を取得（policy_contentsを結合）
  */
 export async function findBillWithContentById(billId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills")
+    .from("policies")
     .select(
-      "id, name, thumbnail_url, share_thumbnail_url, bill_contents(title)"
+      "id, name, thumbnail_url, share_thumbnail_url, policy_contents(title)"
     )
     .eq("id", billId)
     .single();
 
   if (error) {
-    throw new Error(`Failed to fetch bill: ${error.message}`);
+    throw new Error(`Failed to fetch policy: ${error.message}`);
   }
 
   return data;
 }
 
 /**
- * 議案IDから公開インタビューレポートを取得（helpful×5+total_content_richnessの重み付きスコア降順、件数制限あり）
- * 公開条件: is_public_by_admin = true AND is_public_by_user = true
+ * 意見募集IDから公開意見を取得（おすすめ順 / 新着順、件数制限あり）
+ * 公開条件: review_status = 'published'
  */
-export async function findPublicReportsByBillId(
-  billId: string,
+export async function findPublicOpinionsByConfigId(
+  interviewConfigId: string,
   limit: number = 3,
   offset: number = 0,
-  stance?: string,
   sortOrder: SortOrder = "recommended"
 ) {
   const supabase = createAdminClient();
   const { data, error } = await supabase.rpc(
-    "find_public_reports_by_bill_id_ordered_by_reactions",
+    "find_public_opinions_by_config_id_ordered_by_reactions",
     {
-      p_bill_id: billId,
+      p_interview_config_id: interviewConfigId,
       p_limit: limit,
       p_offset: offset,
-      p_stance: stance,
       p_sort_order: sortOrder,
     }
   );
 
   if (error) {
-    throw new Error(
-      `Failed to fetch public interview reports: ${error.message}`
-    );
+    throw new Error(`Failed to fetch public opinions: ${error.message}`);
   }
 
   return data;
 }
 
 /**
- * 議案IDからスタンスごとの公開レポート件数を取得
+ * 意見募集IDの公開意見件数を取得
  */
-export async function countPublicReportsByStance(billId: string) {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc("count_public_reports_by_stance", {
-    p_bill_id: billId,
-  });
-
-  if (error) {
-    throw new Error(
-      `Failed to count public reports by stance: ${error.message}`
-    );
-  }
-
-  return data;
-}
-
-/**
- * 議案IDの公開インタビューレポート件数を取得
- */
-// 公開レポート件数のカウントは web・admin MCP で共有するため
+// 公開意見件数のカウントは web・admin MCP で共有するため
 // @mirai-gikai/shared に集約。既存の呼び出し元はこの re-export 経由で参照する。
-export { countPublicReportsByBillId } from "@mirai-gikai/shared/report-publication/count-public-reports";
+export { countPublicOpinionsByInterviewConfigId } from "@mirai-gikai/shared/report-publication/count-public-reports";
 
 /**
- * 公開レポートをIDから取得（認証不要）
- * 公開条件: is_public_by_admin = true AND is_public_by_user = true
+ * 公開意見をIDから取得（認証不要）
+ * 公開条件: review_status = 'published'
  */
 export async function findPublicReportWithSessionById(reportId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_report")
-    .select(
-      "*, interview_sessions(started_at, completed_at, interview_configs(bill_id))"
-    )
+    .from("opinions")
+    .select(OPINION_WITH_SESSION_SELECT)
     .eq("id", reportId)
-    .eq("is_public_by_admin", true)
-    .eq("is_public_by_user", true)
+    .eq("review_status", "published")
     .single();
 
   if (error) {
-    // 公開条件を満たすレポートが存在しない場合（非公開・削除済み設定配下など）は
+    // 公開条件を満たす意見が存在しない場合（非公開・終了した意見募集配下など）は
     // null を返す。呼び出し側で notFound（404）として扱う。
     if (error.code === "PGRST116") {
       return null;
     }
-    throw new Error(
-      `Failed to fetch public interview report: ${error.message}`
-    );
+    throw new Error(`Failed to fetch public opinion: ${error.message}`);
   }
 
   return data;
 }
 
 /**
- * ユーザーの過去のインタビューレポートを取得（指定interview_config配下、新しい順）
+ * ユーザーの過去の意見を取得（指定interview_config配下、新しい順）
  */
 export async function findUserReportsByInterviewConfigId(
   interviewConfigId: string,
@@ -176,23 +173,23 @@ export async function findUserReportsByInterviewConfigId(
 ) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .select(
-      "id, stance, role, role_title, summary, created_at, interview_sessions!inner(interview_config_id, user_id)"
+      "id, role_title, summary, created_at, interview_sessions!inner(interview_config_id, user_id)"
     )
     .eq("interview_sessions.interview_config_id", interviewConfigId)
     .eq("interview_sessions.user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(`Failed to fetch user interview reports: ${error.message}`);
+    throw new Error(`Failed to fetch user opinions: ${error.message}`);
   }
 
   return data;
 }
 
 /**
- * レポートの公開設定を更新
+ * 意見の公開設定を更新
  */
 export async function updateReportPublicSetting(
   reportId: string,
@@ -202,49 +199,38 @@ export async function updateReportPublicSetting(
   const supabase = createAdminClient();
 
   const { data: report, error: fetchError } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .select(
-      "is_public_by_admin, admin_unpublished_at, moderation_score, total_content_richness"
+      "is_public_by_admin, review_status, moderation_score, total_content_richness"
     )
     .eq("id", reportId)
     .single();
 
   if (fetchError) {
     throw new Error(
-      `Failed to fetch report for public setting: ${fetchError.message}`
+      `Failed to fetch opinion for public setting: ${fetchError.message}`
     );
   }
 
   // 二次利用（オープンデータ提供）同意は、新規約の告知を表示したUIが
   // 明示的に渡した場合のみ更新する（告知を表示していない旧クライアント
   // からの呼び出しで同意ありと記録してしまうことを防ぐ）
-  const updateValues: {
-    is_public_by_user: boolean;
-    is_data_reuse_consented?: boolean;
-    is_public_by_admin?: boolean;
-  } = {
+  const updateValues = {
     is_public_by_user: isPublic,
     ...(typeof isDataReuseConsented === "boolean"
       ? { is_data_reuse_consented: isDataReuseConsented }
       : {}),
-  };
-
-  // 管理者が非公開にしたレポート（個別の公開停止・設定の論理削除に伴う一括停止）は
-  // admin_unpublished_at が記録されるため、ユーザー操作では再公開しない。
-  if (
-    shouldAutoPublishOnUserSettingChange({
-      isPublicByAdmin: report.is_public_by_admin,
-      adminUnpublishedAt: report.admin_unpublished_at,
+    ...resolveOpinionPublicSettingUpdate({
       isPublicByUser: isPublic,
+      isPublicByAdmin: report.is_public_by_admin,
+      reviewStatus: report.review_status,
       moderationScore: report.moderation_score,
       totalContentRichness: report.total_content_richness,
-    })
-  ) {
-    updateValues.is_public_by_admin = true;
-  }
+    }),
+  };
 
   const { error } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .update(updateValues)
     .eq("id", reportId);
 

@@ -4,29 +4,25 @@ import {
 } from "@mirai-gikai/shared/interview-report/opinion-tags-schema";
 import { generateObject } from "ai";
 import {
-  findUntaggedOpinions,
-  markOpinionsTagAttempted,
-  type TagTargetReport,
-  updateOpinionTags,
-} from "../repositories/opinion-tags-repository";
-import {
-  findBillNameById,
-  findInterviewConfigById,
+  findInterviewConfigNameById,
   findInterviewMessagesBySessionId,
   findInterviewSessionById,
 } from "../repositories/interview-repository";
 import {
-  OPINION_TAG_MODEL,
-  OPINION_TAG_TIMEOUT_MS,
-} from "../shared/constants";
+  findUntaggedOpinionSegments,
+  markOpinionSegmentsTagAttempted,
+  type TagTargetOpinion,
+  updateOpinionSegmentTags,
+} from "../repositories/opinion-tags-repository";
+import { OPINION_TAG_MODEL, OPINION_TAG_TIMEOUT_MS } from "../shared/constants";
 import { buildOpinionTagsPrompt } from "../utils/build-opinion-tags-prompt";
 import { prepareReextractionMessages } from "../utils/prepare-reextraction-messages";
 import { reconcileOpinionTags } from "../utils/reconcile-opinion-tags";
 
 export type TagExtractionResult = {
-  reportId: string;
+  opinionId: string;
   status: "updated" | "skipped" | "failed";
-  /** タグを書き込んだ意見の件数。 */
+  /** タグを書き込んだ論点の件数。 */
   tagged?: number;
   reason?: string;
 };
@@ -55,67 +51,73 @@ function createDefaultGenerateTags(model: string): GenerateTagsFn {
 }
 
 /**
- * 1レポート分の意見に、タグ（concern / proposal / reasoning_types）だけを付ける。
+ * 1意見分の論点に、タグ（concern / proposal / reasoning_types）だけを付ける。
  *
- * **意見の本文は再生成しない。** 既存の再抽出（reextractReportOpinions）はプロンプトごと
- * 意見を作り直すため、opinion_index に載る意見の中身が変わり、UUID を参照している
+ * **論点の本文は再生成しない。** 既存の再抽出（reextractReportOpinions）はプロンプトごと
+ * 論点を作り直すため、opinion_index に載る内容が変わり、UUID を参照している
  * topic_opinion の割当が実質ずれる（公開中のトピック分析の引用が差し替わる）。
  * タグ付けは既存行の UPDATE のみで、本文・UUID・並び順を一切動かさない。
  *
- * 恒久的にスキップ（対象意見なし・セッション/設定/メッセージ無し）の場合も
+ * 恒久的にスキップ（対象論点なし・セッション/設定/メッセージ無し）の場合も
  * ウォーターマークを進める。生成・更新の失敗時は進めない（次回再実行で再試行）。
  */
 export async function extractOpinionTagsForReport(
-  target: TagTargetReport,
+  target: TagTargetOpinion,
   deps: { generateTags?: GenerateTagsFn; model?: string } = {}
 ): Promise<TagExtractionResult> {
-  const { reportId, sessionId, role, roleTitle } = target;
+  const { opinionId, sessionId, roleTitle } = target;
   const generateTags =
     deps.generateTags ??
     createDefaultGenerateTags(deps.model ?? OPINION_TAG_MODEL);
   const nowIso = new Date().toISOString();
 
   try {
-    const opinions = await findUntaggedOpinions(reportId);
-    if (opinions.length === 0) {
-      return { reportId, status: "skipped", reason: "no untagged opinions" };
+    const segments = await findUntaggedOpinionSegments(opinionId);
+    if (segments.length === 0) {
+      return { opinionId, status: "skipped", reason: "no untagged opinions" };
     }
-    const requestedIndexes = opinions.map((o) => o.opinion_index);
+    const requestedIndexes = segments.map((o) => o.opinion_index);
 
     const session = await findInterviewSessionById(sessionId);
     if (!session) {
-      await markOpinionsTagAttempted(reportId, requestedIndexes, nowIso);
-      return { reportId, status: "skipped", reason: "session not found" };
+      await markOpinionSegmentsTagAttempted(
+        opinionId,
+        requestedIndexes,
+        nowIso
+      );
+      return { opinionId, status: "skipped", reason: "session not found" };
     }
 
-    const [interviewConfig, messages] = await Promise.all([
-      findInterviewConfigById(session.interview_config_id),
-      findInterviewMessagesBySessionId(sessionId),
-    ]);
-    if (!interviewConfig) {
-      await markOpinionsTagAttempted(reportId, requestedIndexes, nowIso);
-      return { reportId, status: "skipped", reason: "config not found" };
-    }
+    const messages = await findInterviewMessagesBySessionId(sessionId);
 
     // 発言原文が引けないと professional_expertise の判定材料が無く、
     // 根拠なしを焼き付けてしまうため再抽出側と同じく skip する。
     const chatMessages = prepareReextractionMessages(messages ?? []);
     if (chatMessages.length === 0) {
-      await markOpinionsTagAttempted(reportId, requestedIndexes, nowIso);
-      return { reportId, status: "skipped", reason: "no chat messages" };
+      await markOpinionSegmentsTagAttempted(
+        opinionId,
+        requestedIndexes,
+        nowIso
+      );
+      return { opinionId, status: "skipped", reason: "no chat messages" };
     }
 
-    const billName = await findBillNameById(interviewConfig.bill_id);
-    if (!billName) {
-      await markOpinionsTagAttempted(reportId, requestedIndexes, nowIso);
-      return { reportId, status: "skipped", reason: "bill not found" };
+    const interviewConfigName = await findInterviewConfigNameById(
+      session.interview_config_id
+    );
+    if (!interviewConfigName) {
+      await markOpinionSegmentsTagAttempted(
+        opinionId,
+        requestedIndexes,
+        nowIso
+      );
+      return { opinionId, status: "skipped", reason: "config not found" };
     }
 
     const prompt = buildOpinionTagsPrompt({
-      billName,
-      role,
+      interviewConfigName,
       roleTitle,
-      opinions,
+      opinions: segments,
       messages: chatMessages,
     });
 
@@ -125,13 +127,13 @@ export async function extractOpinionTagsForReport(
       result.tags
     );
 
-    await updateOpinionTags(reportId, updates, nowIso);
-    // LLM が返さなかった意見は次チャンクで滞留しないようウォーターマークだけ進める。
+    await updateOpinionSegmentTags(opinionId, updates, nowIso);
+    // LLM が返さなかった論点は次チャンクで滞留しないようウォーターマークだけ進める。
     if (missingIndexes.length > 0) {
       console.warn(
-        `[OpinionTagBackfill] report ${reportId}: no tags returned for opinion_index=${missingIndexes.join(",")}`
+        `[OpinionTagBackfill] opinion ${opinionId}: no tags returned for opinion_index=${missingIndexes.join(",")}`
       );
-      await markOpinionsTagAttempted(reportId, missingIndexes, nowIso);
+      await markOpinionSegmentsTagAttempted(opinionId, missingIndexes, nowIso);
     }
 
     // 1件もタグが取れなかった実行を updated として集計すると、モデルが全件空振り
@@ -139,19 +141,19 @@ export async function extractOpinionTagsForReport(
     // でも拾えない）。空振りは failed として集計に出す。
     if (updates.length === 0) {
       return {
-        reportId,
+        opinionId,
         status: "failed",
         tagged: 0,
         reason: "no tags returned for any opinion",
       };
     }
 
-    return { reportId, status: "updated", tagged: updates.length };
+    return { opinionId, status: "updated", tagged: updates.length };
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Unknown error";
     console.error(
-      `[OpinionTagBackfill] Failed to tag report ${reportId}: ${reason}`
+      `[OpinionTagBackfill] Failed to tag opinion ${opinionId}: ${reason}`
     );
-    return { reportId, status: "failed", reason };
+    return { opinionId, status: "failed", reason };
   }
 }

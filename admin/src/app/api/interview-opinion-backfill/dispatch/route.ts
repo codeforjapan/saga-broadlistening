@@ -1,7 +1,7 @@
 import { resolveBackfillParams } from "@mirai-gikai/topic-analysis-core/backfill-params";
 import {
   countPendingReextraction,
-  resetReextractionForBill,
+  resetReextractionForInterviewConfig,
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { executeTopicAnalysisJob } from "@/lib/cloud-run-job";
@@ -16,8 +16,9 @@ const json = (body: unknown, status = 200) =>
 
 /**
  * 意見再抽出バックフィルの入口（Admin 手動トリガ）。
- * リクエストボディで議案スコープ（billId）・対象範囲（scope）・使用モデル（model）を指定できる。
- * 対象レポートがあれば Cloud Run Job（backfill モード）を起動する。
+ * リクエストボディでテーマスコープ（interviewConfigId）・対象範囲（scope）・
+ * 使用モデル（model）を指定できる。
+ * 対象の意見があれば Cloud Run Job（backfill モード）を起動する。
  */
 export async function POST(request: Request) {
   try {
@@ -26,10 +27,14 @@ export async function POST(request: Request) {
     return json({ error: "Unauthorized" }, 401);
   }
 
-  // 空ボディ（旧クライアント互換）は既定値（全議案・未再抽出）として扱うが、
+  // 空ボディ（旧クライアント互換）は既定値（全テーマ・未再抽出）として扱うが、
   // 壊れた JSON や非オブジェクト（null / 配列 / プリミティブ）は黙って既定実行に
   // せず 400 で弾く（意図しない起動・プロパティアクセスでの 500 を防ぐ）。
-  let body: { billId?: unknown; scope?: unknown; model?: unknown } = {};
+  let body: {
+    interviewConfigId?: unknown;
+    scope?: unknown;
+    model?: unknown;
+  } = {};
   const raw = await request.text();
   if (raw.trim()) {
     let parsed: unknown;
@@ -48,38 +53,42 @@ export async function POST(request: Request) {
         400
       );
     }
-    body = parsed as { billId?: unknown; scope?: unknown; model?: unknown };
+    body = parsed as {
+      interviewConfigId?: unknown;
+      scope?: unknown;
+      model?: unknown;
+    };
   }
 
   const resolved = resolveBackfillParams({
-    billId: body.billId,
+    interviewConfigId: body.interviewConfigId,
     scope: body.scope,
     model: body.model,
   });
   if (!resolved.ok) {
     return json({ error: resolved.error }, 400);
   }
-  const { billId, scope, model } = resolved.params;
+  const { interviewConfigId, scope, model } = resolved.params;
 
   try {
     // scope="all" は起動前に同期的にウォーターマークをリセットする。
     // これで pending=全件 となり、UI が即座に進捗を分母込みで把握できるため、
-    // 「既に再抽出済みの議案で pending=0 を見て早期完了表示→重複起動」を防ぐ。
+    // 「既に再抽出済みのテーマで pending=0 を見て早期完了表示→重複起動」を防ぐ。
     // worker 側も冪等に再リセットするが、ここでの同期リセットが起動直後の競合を消す。
-    if (scope === "all" && billId) {
-      await resetReextractionForBill(billId);
+    if (scope === "all" && interviewConfigId) {
+      await resetReextractionForInterviewConfig(interviewConfigId);
     }
 
     // 対象件数（未再抽出件数）を確認し、0 件なら起動しない。
     // all はリセット後なので pending=全件、pending はそのまま未再抽出件数。
-    const pending = await countPendingReextraction(billId);
+    const pending = await countPendingReextraction(interviewConfigId);
     if (pending === 0) {
       return json({ started: false, pending });
     }
 
     const args = ["--mode=backfill", `--scope=${scope}`];
-    if (billId) {
-      args.push(`--bill-id=${billId}`);
+    if (interviewConfigId) {
+      args.push(`--interview-config-id=${interviewConfigId}`);
     }
     if (model) {
       args.push(`--model=${model}`);

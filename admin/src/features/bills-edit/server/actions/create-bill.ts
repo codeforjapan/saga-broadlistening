@@ -19,15 +19,8 @@ export async function createBill(input: BillCreateInput) {
     // バリデーション
     const validatedData = billCreateSchema.parse(input);
 
-    const insertData = {
-      ...validatedData,
-      submitted_date: validatedData.submitted_date
-        ? `${validatedData.submitted_date}T00:00:00+09:00`
-        : null,
-    };
-
     // Supabaseに挿入
-    await createBillRecord(insertData);
+    await createBillRecord(validatedData);
 
     // web側のキャッシュを無効化
     await invalidateWebCache([WEB_CACHE_TAGS.BILLS]);

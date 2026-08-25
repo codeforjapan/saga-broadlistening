@@ -1,17 +1,16 @@
-import type { Database } from "@mirai-gikai/supabase";
 import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import {
-  findLatestInterviewConfigByBillId,
-  findPublicInterviewConfigByBillId,
+  findLatestInterviewConfigByPolicyId,
+  findOpenInterviewConfigByPolicyId,
 } from "../repositories/interview-config-repository";
+import type { InterviewConfig } from "./get-interview-config";
 
-export type InterviewConfig =
-  Database["public"]["Tables"]["interview_configs"]["Row"];
+export type { InterviewConfig };
 
 /**
  * 管理者用のインタビュー設定取得
- * 複数設定がある場合は、公開設定を優先し、なければ最新の設定を返す
+ * 複数設定がある場合は、募集中の設定を優先し、なければ最新の設定を返す
  */
 export async function getInterviewConfigAdmin(
   billId: string
@@ -21,32 +20,29 @@ export async function getInterviewConfigAdmin(
 
 const _getCachedInterviewConfigAdmin = unstable_cache(
   async (billId: string): Promise<InterviewConfig | null> => {
-    // まず公開設定を探す
-    const { data: publicData, error: publicError } =
-      await findPublicInterviewConfigByBillId(billId);
+    // まず募集中の設定を探す
+    const { data: openData, error: openError } =
+      await findOpenInterviewConfigByPolicyId(billId);
 
-    if (publicData) {
-      return publicData;
+    if (openError) {
+      console.error("Failed to fetch interview config (admin):", openError);
+      return null;
     }
 
-    // 公開設定がなければ、最新の更新日の設定を返す
-    if (publicError?.code === "PGRST116") {
-      const { data: latestData, error: latestError } =
-        await findLatestInterviewConfigByBillId(billId);
-
-      if (latestError) {
-        if (latestError.code === "PGRST116") {
-          return null;
-        }
-        console.error("Failed to fetch interview config (admin):", latestError);
-        return null;
-      }
-
-      return latestData;
+    if (openData) {
+      return openData;
     }
 
-    console.error("Failed to fetch interview config (admin):", publicError);
-    return null;
+    // 募集中の設定がなければ、最新の設定を返す
+    const { data: latestData, error: latestError } =
+      await findLatestInterviewConfigByPolicyId(billId);
+
+    if (latestError) {
+      console.error("Failed to fetch interview config (admin):", latestError);
+      return null;
+    }
+
+    return latestData;
   },
   ["interview-config-admin"],
   {

@@ -3,8 +3,10 @@ import {
   adminClient,
   createTestUser,
   cleanupTestUser,
-  createTestBill,
-  cleanupTestBill,
+  createTestInterviewConfig,
+  createTestPolicy,
+  cleanupTestPolicy,
+  linkPolicyToInterviewConfig,
   type TestUser,
 } from "@test-utils/utils";
 import type { GetUserFn } from "../utils/verify-session-ownership";
@@ -30,26 +32,16 @@ describe("createInterviewSession 統合テスト", () => {
   beforeEach(async () => {
     testUser = await createTestUser();
 
-    const bill = await createTestBill();
-    billId = bill.id;
+    const policy = await createTestPolicy();
+    billId = policy.id;
 
-    const { data: config, error: configError } = await adminClient
-      .from("interview_configs")
-      .insert({
-        bill_id: billId,
-        status: "public",
-        name: `テスト設定 ${Date.now()}`,
-      })
-      .select()
-      .single();
-    if (configError || !config) {
-      throw new Error(`interview_config 作成失敗: ${configError?.message}`);
-    }
+    const config = await createTestInterviewConfig();
+    await linkPolicyToInterviewConfig(policy.id, config.id);
     configId = config.id;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId); // CASCADE で interview_configs, interview_sessions も削除
+    await cleanupTestPolicy(billId); // CASCADE で紐づけ・セッションも削除
     await cleanupTestUser(testUser.id);
   });
 

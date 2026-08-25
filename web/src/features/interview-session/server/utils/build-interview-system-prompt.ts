@@ -3,20 +3,12 @@ import "server-only";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import type { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import type { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { bulkModeLogic } from "./interview-logic/bulk-mode";
 import { loopModeLogic } from "./interview-logic/loop-mode";
-import { targetedModeLogic } from "./interview-logic/targeted-mode";
-
-const modeLogicMap = {
-  bulk: bulkModeLogic,
-  loop: loopModeLogic,
-  targeted: targetedModeLogic,
-} as const;
 
 /**
  * インタビュー用システムプロンプトを構築
  *
- * モードに応じて適切なロジックにルーティングする
+ * Epic #54 で interview_configs.mode が廃止されたため loop モードに一本化した。
  */
 export function buildInterviewSystemPrompt({
   bill,
@@ -35,11 +27,7 @@ export function buildInterviewSystemPrompt({
   askedQuestionIds: Set<string>;
   remainingMinutes?: number | null;
 }): string {
-  // DBの設定からモードを取得
-  const mode = interviewConfig?.mode ?? "loop";
-  const logic = modeLogicMap[mode] ?? bulkModeLogic;
-
-  return logic.buildSystemPrompt({
+  return loopModeLogic.buildSystemPrompt({
     bill,
     interviewConfig,
     questions,

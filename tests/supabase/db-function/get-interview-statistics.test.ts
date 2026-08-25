@@ -1,50 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestBill,
   cleanupTestUser,
-  createTestBill,
+  createTestInterviewConfig,
   createTestInterviewMessages,
+  createTestOpinion,
   createTestUser,
   type TestUser,
 } from "../utils";
-
-async function createTestInterviewConfig(billId: string) {
-  const { data, error } = await adminClient
-    .from("interview_configs")
-    .insert({
-      bill_id: billId,
-      status: "public",
-      name: `テスト設定 ${Date.now()}`,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_config 作成失敗: ${error.message}`);
-  return data;
-}
-
-async function createTestSession(
-  configId: string,
-  userId: string,
-  overrides: Partial<{
-    started_at: string;
-    completed_at: string;
-    rating: number;
-  }> = {}
-) {
-  const { data, error } = await adminClient
-    .from("interview_sessions")
-    .insert({
-      interview_config_id: configId,
-      user_id: userId,
-      started_at: new Date().toISOString(),
-      ...overrides,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_session 作成失敗: ${error.message}`);
-  return data;
-}
+import { cleanupTestInterviewConfig, createTestSession } from "./helpers";
 
 async function insertInterviewMessage(
   sessionId: string,
@@ -60,65 +24,43 @@ async function insertInterviewMessage(
   if (error) throw new Error(`interview_messages 作成失敗: ${error.message}`);
 }
 
-async function createTestReport(
-  sessionId: string,
-  overrides: Partial<{
-    stance: "for" | "against" | "neutral";
-    role:
-      | "subject_expert"
-      | "work_related"
-      | "daily_life_affected"
-      | "general_citizen";
-    content_richness: { total: number };
-    is_public_by_user: boolean;
-  }> = {}
-) {
-  const { data, error } = await adminClient
-    .from("interview_report")
-    .insert({
-      interview_session_id: sessionId,
-      ...overrides,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_report 作成失敗: ${error.message}`);
-  return data;
-}
-
 describe("get_interview_statistics() 関数", () => {
   let testUser: TestUser;
-  const billIds: string[] = [];
+  const configIds: string[] = [];
+
+  async function createConfig(): Promise<string> {
+    const config = await createTestInterviewConfig();
+    configIds.push(config.id);
+    return config.id;
+  }
 
   beforeEach(async () => {
     testUser = await createTestUser();
   });
 
   afterEach(async () => {
-    for (const billId of billIds) {
-      await cleanupTestBill(billId);
+    for (const configId of configIds) {
+      await cleanupTestInterviewConfig(configId);
     }
-    billIds.length = 0;
+    configIds.length = 0;
     await cleanupTestUser(testUser.id);
   });
 
   it("セッション数・完了数を正しく集計する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
-    // 完了セッション2件 + 未完了セッション1件
     const now = new Date();
     const fiveMinLater = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
-    await createTestSession(config.id, testUser.id, {
+    await createTestSession(configId, testUser.id, {
       completed_at: fiveMinLater,
     });
-    await createTestSession(config.id, testUser.id, {
+    await createTestSession(configId, testUser.id, {
       completed_at: fiveMinLater,
     });
-    await createTestSession(config.id, testUser.id);
+    await createTestSession(configId, testUser.id);
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
+      p_config_id: configId,
     });
 
     expect(error).toBeNull();
@@ -128,16 +70,14 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("満足度の平均を正しく計算する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
-    await createTestSession(config.id, testUser.id, { rating: 5 });
-    await createTestSession(config.id, testUser.id, { rating: 3 });
-    await createTestSession(config.id, testUser.id); // rating なし
+    await createTestSession(configId, testUser.id, { rating: 5 });
+    await createTestSession(configId, testUser.id, { rating: 3 });
+    await createTestSession(configId, testUser.id); // rating なし
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
+      p_config_id: configId,
     });
 
     expect(error).toBeNull();
@@ -145,84 +85,33 @@ describe("get_interview_statistics() 関数", () => {
     expect(Number(data?.[0].avg_rating)).toBeCloseTo(4.0, 1);
   });
 
-  it("スタンス分布を正しく集計する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("情報充実度の平均を正しく計算する", async () => {
+    const configId = await createConfig();
 
-    const s1 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s1.id, { stance: "for" });
-    const s2 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s2.id, { stance: "for" });
-    const s3 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s3.id, { stance: "against" });
-    const s4 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s4.id, { stance: "neutral" });
+    const s1 = await createTestSession(configId, testUser.id);
+    await createTestOpinion(s1.id, { content_richness: { total: 80 } });
+    const s2 = await createTestSession(configId, testUser.id);
+    await createTestOpinion(s2.id, { content_richness: { total: 60 } });
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
-    });
-
-    expect(error).toBeNull();
-    expect(data?.[0].stance_for_count).toBe(2);
-    expect(data?.[0].stance_against_count).toBe(1);
-    expect(data?.[0].stance_neutral_count).toBe(1);
-  });
-
-  it("平均スコアを正しく計算する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-
-    const s1 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s1.id, { content_richness: { total: 80 } });
-    const s2 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s2.id, { content_richness: { total: 60 } });
-
-    const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
+      p_config_id: configId,
     });
 
     expect(error).toBeNull();
     expect(Number(data?.[0].avg_total_content_richness)).toBeCloseTo(70.0, 0);
   });
 
-  it("役割分布を正しく集計する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-
-    const s1 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s1.id, { role: "subject_expert" });
-    const s2 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s2.id, { role: "general_citizen" });
-    const s3 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s3.id, { role: "general_citizen" });
-
-    const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
-    });
-
-    expect(error).toBeNull();
-    expect(data?.[0].role_subject_expert_count).toBe(1);
-    expect(data?.[0].role_work_related_count).toBe(0);
-    expect(data?.[0].role_daily_life_affected_count).toBe(0);
-    expect(data?.[0].role_general_citizen_count).toBe(2);
-  });
-
   it("平均メッセージ数を正しく計算する（0件セッション含む）", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
-    const s1 = await createTestSession(config.id, testUser.id);
+    const s1 = await createTestSession(configId, testUser.id);
     await createTestInterviewMessages(s1.id, 6);
-    const s2 = await createTestSession(config.id, testUser.id);
+    const s2 = await createTestSession(configId, testUser.id);
     await createTestInterviewMessages(s2.id, 4);
-    await createTestSession(config.id, testUser.id); // 0件
+    await createTestSession(configId, testUser.id); // 0件
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
+      p_config_id: configId,
     });
 
     expect(error).toBeNull();
@@ -230,40 +119,66 @@ describe("get_interview_statistics() 関数", () => {
     expect(Number(data?.[0].avg_message_count)).toBeCloseTo(3.3, 0);
   });
 
-  it("公開許可数を正しく集計する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("本人が公開に同意した件数（public_by_user_count）を集計する", async () => {
+    const configId = await createConfig();
 
-    const s1 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s1.id, { is_public_by_user: true });
-    const s2 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s2.id, { is_public_by_user: false });
-    const s3 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s3.id, { is_public_by_user: true });
+    const s1 = await createTestSession(configId, testUser.id);
+    await createTestOpinion(s1.id, { is_public_by_user: true });
+    const s2 = await createTestSession(configId, testUser.id);
+    await createTestOpinion(s2.id, { is_public_by_user: false });
+    const s3 = await createTestSession(configId, testUser.id);
+    await createTestOpinion(s3.id, { is_public_by_user: true });
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
+      p_config_id: configId,
     });
 
     expect(error).toBeNull();
     expect(data?.[0].public_by_user_count).toBe(2);
   });
 
-  it("別のconfigのデータは含まれない", async () => {
-    const bill1 = await createTestBill();
-    billIds.push(bill1.id);
-    const config1 = await createTestInterviewConfig(bill1.id);
-    await createTestSession(config1.id, testUser.id);
+  it("公開済み件数（published_count）を集計する", async () => {
+    const configId = await createConfig();
 
-    const bill2 = await createTestBill();
-    billIds.push(bill2.id);
-    const config2 = await createTestInterviewConfig(bill2.id);
-    await createTestSession(config2.id, testUser.id);
-    await createTestSession(config2.id, testUser.id);
+    const s1 = await createTestSession(configId, testUser.id);
+    await createTestOpinion(s1.id, {
+      review_status: "published",
+      is_public_by_user: true,
+      is_public_by_admin: true,
+    });
+    // 本人が公開に同意していても published でなければ数えない
+    const s2 = await createTestSession(configId, testUser.id);
+    await createTestOpinion(s2.id, {
+      review_status: "pending_review",
+      is_public_by_user: true,
+    });
+    const s3 = await createTestSession(configId, testUser.id);
+    await createTestOpinion(s3.id, {
+      review_status: "hidden",
+      is_public_by_user: true,
+    });
+    // 意見が未作成のセッション
+    await createTestSession(configId, testUser.id);
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config1.id,
+      p_config_id: configId,
+    });
+
+    expect(error).toBeNull();
+    expect(data?.[0].published_count).toBe(1);
+    expect(data?.[0].public_by_user_count).toBe(3);
+  });
+
+  it("別のconfigのデータは含まれない", async () => {
+    const configId1 = await createConfig();
+    await createTestSession(configId1, testUser.id);
+
+    const configId2 = await createConfig();
+    await createTestSession(configId2, testUser.id);
+    await createTestSession(configId2, testUser.id);
+
+    const { data, error } = await adminClient.rpc("get_interview_statistics", {
+      p_config_id: configId1,
     });
 
     expect(error).toBeNull();
@@ -271,13 +186,11 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("フィードバックタグ集計を正しく行う", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
-    const s1 = await createTestSession(config.id, testUser.id, { rating: 2 });
-    const s2 = await createTestSession(config.id, testUser.id, { rating: 1 });
-    const s3 = await createTestSession(config.id, testUser.id, { rating: 3 });
+    const s1 = await createTestSession(configId, testUser.id, { rating: 2 });
+    const s2 = await createTestSession(configId, testUser.id, { rating: 1 });
+    const s3 = await createTestSession(configId, testUser.id, { rating: 3 });
 
     // s1: irrelevant_questions, not_aligned
     await adminClient.from("interview_rating_feedbacks").insert([
@@ -298,7 +211,7 @@ describe("get_interview_statistics() 関数", () => {
       ]);
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
+      p_config_id: configId,
     });
 
     expect(error).toBeNull();
@@ -310,14 +223,12 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("フィードバックがない場合はゼロを返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
-    await createTestSession(config.id, testUser.id, { rating: 5 });
+    await createTestSession(configId, testUser.id, { rating: 5 });
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
+      p_config_id: configId,
     });
 
     expect(error).toBeNull();
@@ -328,148 +239,34 @@ describe("get_interview_statistics() 関数", () => {
     expect(data?.[0].feedback_other).toBe(0);
   });
 
-  it("コスト集計を正しく計算する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-
-    const s1 = await createTestSession(config.id, testUser.id);
-    const s2 = await createTestSession(config.id, testUser.id);
-    const s3 = await createTestSession(config.id, testUser.id); // コストなし
-
-    // s1: 2件のコストイベント
-    await adminClient.from("chat_usage_events").insert([
-      {
-        user_id: testUser.id,
-        session_id: s1.id,
-        model: "gpt-4o",
-        cost_usd: 0.05,
-        input_tokens: 100,
-        output_tokens: 50,
-        total_tokens: 150,
-      },
-      {
-        user_id: testUser.id,
-        session_id: s1.id,
-        model: "gpt-4o",
-        cost_usd: 0.03,
-        input_tokens: 80,
-        output_tokens: 40,
-        total_tokens: 120,
-      },
-    ]);
-    // s2: 1件のコストイベント
-    await adminClient.from("chat_usage_events").insert({
-      user_id: testUser.id,
-      session_id: s2.id,
-      model: "gpt-4o",
-      cost_usd: 0.02,
-      input_tokens: 60,
-      output_tokens: 30,
-      total_tokens: 90,
-    });
-
-    const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
-    });
-
-    expect(error).toBeNull();
-    // total: 0.05 + 0.03 + 0.02 = 0.10
-    expect(Number(data?.[0].total_cost_usd)).toBeCloseTo(0.1, 4);
-    // avg: 0.10 / 3 sessions = 0.033333
-    expect(Number(data?.[0].avg_cost_usd)).toBeCloseTo(0.033333, 4);
-  });
-
-  it("コストイベントがない場合はゼロを返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-
-    await createTestSession(config.id, testUser.id);
-
-    const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
-    });
-
-    expect(error).toBeNull();
-    expect(Number(data?.[0].total_cost_usd)).toBe(0);
-    expect(Number(data?.[0].avg_cost_usd)).toBe(0);
-  });
-
-  it("別configのコストデータは含まれない", async () => {
-    const bill1 = await createTestBill();
-    billIds.push(bill1.id);
-    const config1 = await createTestInterviewConfig(bill1.id);
-    const s1 = await createTestSession(config1.id, testUser.id);
-
-    const bill2 = await createTestBill();
-    billIds.push(bill2.id);
-    const config2 = await createTestInterviewConfig(bill2.id);
-    const s2 = await createTestSession(config2.id, testUser.id);
-
-    // config1のセッションに0.05、config2のセッションに0.10
-    await adminClient.from("chat_usage_events").insert([
-      {
-        user_id: testUser.id,
-        session_id: s1.id,
-        model: "gpt-4o",
-        cost_usd: 0.05,
-        input_tokens: 100,
-        output_tokens: 50,
-        total_tokens: 150,
-      },
-      {
-        user_id: testUser.id,
-        session_id: s2.id,
-        model: "gpt-4o",
-        cost_usd: 0.1,
-        input_tokens: 200,
-        output_tokens: 100,
-        total_tokens: 300,
-      },
-    ]);
-
-    const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config1.id,
-    });
-
-    expect(error).toBeNull();
-    expect(Number(data?.[0].total_cost_usd)).toBeCloseTo(0.05, 4);
-    expect(Number(data?.[0].avg_cost_usd)).toBeCloseTo(0.05, 4);
-  });
-
   it("総所要時間を完了セッションと途中離脱セッションの両方で集計する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
     const base = new Date("2026-05-20T00:00:00.000Z").getTime();
     const iso = (offsetSec: number) =>
       new Date(base + offsetSec * 1000).toISOString();
 
     // 完了セッション: 300秒
-    await createTestSession(config.id, testUser.id, {
+    await createTestSession(configId, testUser.id, {
       started_at: iso(0),
       completed_at: iso(300),
     });
     // 完了セッション: 120秒
-    await createTestSession(config.id, testUser.id, {
+    await createTestSession(configId, testUser.id, {
       started_at: iso(0),
       completed_at: iso(120),
     });
     // 途中離脱（未完了）: 最終メッセージ 180秒
-    const dropout = await createTestSession(config.id, testUser.id, {
+    const dropout = await createTestSession(configId, testUser.id, {
       started_at: iso(0),
     });
     await insertInterviewMessage(dropout.id, iso(60));
     await insertInterviewMessage(dropout.id, iso(180));
     // 途中離脱（メッセージなし）: 計算対象外
-    await createTestSession(config.id, testUser.id, {
-      started_at: iso(0),
-    });
+    await createTestSession(configId, testUser.id, { started_at: iso(0) });
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
+      p_config_id: configId,
     });
 
     expect(error).toBeNull();
@@ -478,12 +275,10 @@ describe("get_interview_statistics() 関数", () => {
   });
 
   it("該当セッションが無い場合 total_duration_seconds は 0", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+    const configId = await createConfig();
 
     const { data, error } = await adminClient.rpc("get_interview_statistics", {
-      p_config_id: config.id,
+      p_config_id: configId,
     });
 
     expect(error).toBeNull();
@@ -500,7 +295,8 @@ describe("get_interview_statistics() 関数", () => {
     expect(data?.[0].total_sessions).toBe(0);
     expect(data?.[0].completed_sessions).toBe(0);
     expect(data?.[0].avg_rating).toBeNull();
-    expect(data?.[0].stance_for_count).toBe(0);
+    expect(data?.[0].public_by_user_count).toBe(0);
+    expect(data?.[0].published_count).toBe(0);
     expect(Number(data?.[0].total_duration_seconds)).toBe(0);
   });
 });

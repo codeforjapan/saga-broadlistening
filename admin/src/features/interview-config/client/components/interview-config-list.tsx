@@ -48,7 +48,7 @@ import {
   duplicateInterviewConfig,
 } from "../../server/actions/upsert-interview-config";
 import type { InterviewConfig } from "../../shared/types";
-import { getModeLabel } from "../../shared/utils/get-mode-label";
+import { getStatusLabel } from "../../shared/utils/get-status-label";
 import {
   type BillOption,
   CopyConfigToBillDialog,
@@ -156,7 +156,6 @@ export function InterviewConfigList({
               <TableHeader>
                 <TableRow>
                   <TableHead>設定名</TableHead>
-                  <TableHead>モード</TableHead>
                   <TableHead>ステータス</TableHead>
                   <TableHead>セッション数</TableHead>
                   <TableHead>作成日</TableHead>
@@ -178,18 +177,13 @@ export function InterviewConfigList({
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {getModeLabel(config.mode)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
                       <Badge
                         variant={
-                          config.status === "public" ? "default" : "secondary"
+                          config.status === "open" ? "default" : "secondary"
                         }
                         className="w-16 justify-center"
                       >
-                        {config.status === "public" ? "公開" : "非公開"}
+                        {getStatusLabel(config.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-gray-600">

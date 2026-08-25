@@ -57,55 +57,59 @@ export async function findInterviewMessagesBySessionId(sessionId: string) {
 }
 
 /**
- * 議案と bill_contents（normal 優先）を取得し、プロンプト接地用に整形する。
+ * 施策と policy_contents（normal 優先）を取得し、プロンプト接地用に整形する。
  */
-export async function fetchBillWithContents(billId: string) {
+export async function fetchPolicyWithContents(policyId: string) {
   const supabase = createAdminClient();
 
-  const { data: bill, error: billError } = await supabase
-    .from("bills")
+  const { data: policy, error: policyError } = await supabase
+    .from("policies")
     .select("*")
-    .eq("id", billId)
+    .eq("id", policyId)
     .single();
 
-  if (billError) {
-    throw new Error(`Failed to fetch bill: ${billError.message}`);
+  if (policyError) {
+    throw new Error(`Failed to fetch policy: ${policyError.message}`);
   }
 
   const { data: contents, error: contentsError } = await supabase
-    .from("bill_contents")
+    .from("policy_contents")
     .select("*")
-    .eq("bill_id", billId);
+    .eq("policy_id", policyId);
 
   if (contentsError) {
-    throw new Error(`Failed to fetch bill contents: ${contentsError.message}`);
+    throw new Error(
+      `Failed to fetch policy contents: ${contentsError.message}`
+    );
   }
 
   const normalContent = contents.find((c) => c.difficulty_level === "normal");
 
   return {
-    bill,
-    billTitle: normalContent?.title ?? bill.name,
-    billContent: normalContent?.content ?? "",
-    billSummary: normalContent?.summary ?? "",
+    policy,
+    policyTitle: normalContent?.title ?? policy.name,
+    policyContent: normalContent?.content ?? "",
+    policySummary: normalContent?.summary ?? "",
   };
 }
 
 /**
- * 議案名だけを引く。
- * タグ付けはレポートごとに並列で走るため、議案本文まで取る fetchBillWithContents は
- * 使わない（使うのは name 1カラムだけ）。
+ * 意見募集（テーマ）名だけを引く。
+ * タグ付けは意見ごとに並列で走るため、テーマの説明・施策本文まで取る
+ * fetchInterviewConfigContext は使わない（使うのは name 1カラムだけ）。
  */
-export async function findBillNameById(billId: string): Promise<string | null> {
+export async function findInterviewConfigNameById(
+  interviewConfigId: string
+): Promise<string | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills")
+    .from("interview_configs")
     .select("name")
-    .eq("id", billId)
+    .eq("id", interviewConfigId)
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Failed to fetch bill name: ${error.message}`);
+    throw new Error(`Failed to fetch interview config name: ${error.message}`);
   }
   return data?.name ?? null;
 }

@@ -17,7 +17,8 @@ interface RunTopicAnalysisResult {
  * 結果のversionIdを返す
  */
 export async function runTopicAnalysisAction(
-  billId: string
+  billId: string,
+  configId: string
 ): Promise<RunTopicAnalysisResult> {
   await requireAdmin();
 
@@ -27,7 +28,7 @@ export async function runTopicAnalysisAction(
     const response = await fetch(`${baseUrl}/api/topic-analysis/run`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ billId }),
+      body: JSON.stringify({ billId, configId }),
     });
 
     const data = await response.json();

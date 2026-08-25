@@ -2,37 +2,42 @@ import "server-only";
 
 import { createAdminClient } from "@mirai-gikai/supabase";
 
+// Epic #54 で interview_configs.bill_id が廃止され、施策との紐づけは
+// policies_interview_configs（多対多）経由になった。
+// 1施策に複数の意見募集がある場合、既存 UI は最初の1件のみを使う
+// （複数テーマ表示の UI 対応は Epic #8 のフォローアップ）。
+
 /**
- * bill_idから公開ステータスのインタビュー設定を取得
+ * policy_idから募集中（status = 'open'）の意見募集を1件取得
  */
-export async function findPublicInterviewConfigByBillId(billId: string) {
+export async function findOpenInterviewConfigByPolicyId(policyId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_configs")
-    .select("*")
-    .eq("bill_id", billId)
-    .eq("status", "public")
-    .is("deleted_at", null)
-    .single();
+    .from("policies_interview_configs")
+    .select("interview_configs!inner(*)")
+    .eq("policy_id", policyId)
+    .eq("interview_configs.status", "open")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
-  return { data, error };
+  return { data: data?.interview_configs ?? null, error };
 }
 
 /**
- * bill_idから最新のインタビュー設定を取得（ステータス問わず）
+ * policy_idから最新の意見募集を1件取得（ステータス問わず）
  */
-export async function findLatestInterviewConfigByBillId(billId: string) {
+export async function findLatestInterviewConfigByPolicyId(policyId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_configs")
-    .select("*")
-    .eq("bill_id", billId)
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false })
+    .from("policies_interview_configs")
+    .select("interview_configs!inner(*)")
+    .eq("policy_id", policyId)
+    .order("created_at", { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  return { data, error };
+  return { data: data?.interview_configs ?? null, error };
 }
 
 /**

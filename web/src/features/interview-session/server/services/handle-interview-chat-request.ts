@@ -44,17 +44,8 @@ import {
   buildSummarySystemPrompt,
 } from "../utils/build-interview-system-prompt";
 import { collectAskedQuestionIds } from "../utils/interview-logic";
-import { bulkModeLogic } from "../utils/interview-logic/bulk-mode";
 import { loopModeLogic } from "../utils/interview-logic/loop-mode";
-import { targetedModeLogic } from "../utils/interview-logic/targeted-mode";
 import { saveInterviewMessage } from "./save-interview-message";
-
-// モードロジックのマップ
-const modeLogicMap = {
-  bulk: bulkModeLogic,
-  loop: loopModeLogic,
-  targeted: targetedModeLogic,
-} as const;
 
 /** テスト時にモック注入するための外部依存 */
 export type InterviewChatDeps = {
@@ -156,9 +147,8 @@ export async function handleInterviewChatRequest({
     loadSessionAndMessages(),
   ]);
 
-  // モードに応じたロジックを取得（DBの設定を使用）
-  const mode = interviewConfig.mode;
-  const logic = modeLogicMap[mode] ?? bulkModeLogic;
+  // Epic #54 で interview_configs.mode が廃止されたため loop モードに一本化
+  const logic = loopModeLogic;
 
   // 既に聞いた質問IDを収集
   const askedQuestionIds = collectAskedQuestionIds(dbMessages);

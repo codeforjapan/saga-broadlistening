@@ -5,7 +5,6 @@ import { CACHE_TAGS } from "@/lib/cache-tags";
 import type { BillWithContent } from "../../shared/types";
 import {
   findPublishedBillById,
-  findMiraiStanceByBillId,
   findTagsByBillId,
 } from "../repositories/bill-repository";
 import { getBillContentWithDifficulty } from "./helpers/get-bill-content";
@@ -21,11 +20,10 @@ const _getCachedBillById = unstable_cache(
     id: string,
     difficultyLevel: DifficultyLevelEnum
   ): Promise<BillWithContent | null> => {
-    // 基本的なbill情報、見解、コンテンツ、タグを並列取得
-    // 公開ステータスの議案のみを取得
-    const [bill, miraiStance, billContent, billTags] = await Promise.all([
+    // 基本的な施策情報、コンテンツ、タグを並列取得
+    // 公開ステータスの施策のみを取得
+    const [bill, billContent, billTags] = await Promise.all([
       findPublishedBillById(id),
-      findMiraiStanceByBillId(id),
       getBillContentWithDifficulty(id, difficultyLevel),
       findTagsByBillId(id),
     ]);
@@ -44,7 +42,6 @@ const _getCachedBillById = unstable_cache(
 
     return {
       ...bill,
-      mirai_stance: miraiStance || undefined,
       bill_content: billContent || undefined,
       tags,
     };

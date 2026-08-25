@@ -7,6 +7,7 @@ import { getInterviewConfig } from "@/features/interview-config/server/loaders/g
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
 import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
+import { DEFAULT_INTERVIEW_MODE } from "@/features/interview-session/shared/constants";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 
 interface InterviewChatPageProps {
@@ -30,11 +31,8 @@ export default async function InterviewChatPage({
     notFound();
   }
 
-  // ループモードの場合のみ質問数を取得（プログレスバー用）
-  const questions =
-    interviewConfig.mode === "loop"
-      ? await getInterviewQuestions(interviewConfig.id)
-      : [];
+  // 質問数を取得（プログレスバー用）
+  const questions = await getInterviewQuestions(interviewConfig.id);
 
   // インタビューチャットの初期化処理
   try {
@@ -49,7 +47,7 @@ export default async function InterviewChatPage({
         billTitle={bill.bill_content?.title ?? bill.name}
         sessionId={session.id}
         initialMessages={messages}
-        mode={interviewConfig.mode}
+        mode={DEFAULT_INTERVIEW_MODE}
         totalQuestions={questions.length}
         estimatedDuration={interviewConfig.estimated_duration}
         sessionStartedAt={session.started_at}

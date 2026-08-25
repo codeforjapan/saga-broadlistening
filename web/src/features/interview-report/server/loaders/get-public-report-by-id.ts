@@ -1,6 +1,5 @@
 import "server-only";
 
-import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { cache } from "react";
 import type { InterviewMessage } from "@/features/interview-session/shared/types";
 import type { InterviewReport } from "../../shared/types";
@@ -8,13 +7,21 @@ import {
   countUserMessageCharacters,
   getBillIdFromPublicReportSession,
   selectPrimaryBillContent,
+  shouldDisplayPublicOpinions,
 } from "../../shared/utils/public-report-display";
 import {
-  countPublicReportsByBillId,
+  countPublicOpinionsByInterviewConfigId,
   findBillWithContentById,
   findMessagesBySessionId,
+  findOpinionSegmentsByOpinionId,
   findPublicReportWithSessionById,
 } from "../repositories/interview-report-repository";
+
+export type PublicReportOpinion = {
+  title: string;
+  content: string;
+  source_message_id: string | null;
+};
 
 export type PublicReportData = InterviewReport & {
   bill_id: string;
@@ -27,30 +34,26 @@ export type PublicReportData = InterviewReport & {
     share_thumbnail_url: string | null;
     bill_content: { title: string } | null;
   };
+  opinions: PublicReportOpinion[];
   characterCount: number;
   messages: InterviewMessage[];
 };
 
 /**
- * 公開レポートをIDから取得（認証不要）
- * 公開条件: is_public_by_admin = true AND is_public_by_user = true
+ * 公開意見をIDから取得（認証不要）
+ * 公開条件: review_status = 'published'
  * React cache()でリクエスト内のDB呼び出しを重複排除
  */
 export const getPublicReportById = cache(
   async (reportId: string): Promise<PublicReportData | null> => {
-    // 公開条件を満たさない場合（非公開・削除済み設定配下など）は null が返る。
+    // 公開条件を満たさない場合（非公開・終了した意見募集配下など）は null が返る。
     // インフラ障害等の場合は repository が throw し、ここでは捕捉せず伝播させる。
     const report = await findPublicReportWithSessionById(reportId);
     if (!report) {
       return null;
     }
 
-    const session = report.interview_sessions as {
-      started_at: string;
-      completed_at: string | null;
-      interview_configs: { bill_id: string } | null;
-    } | null;
-
+    const session = report.interview_sessions;
     if (!session) {
       return null;
     }
@@ -60,20 +63,23 @@ export const getPublicReportById = cache(
       return null;
     }
 
-    let publicReportCount: number;
+    let publicOpinionCount: number;
     try {
-      publicReportCount = await countPublicReportsByBillId(billId);
+      publicOpinionCount = await countPublicOpinionsByInterviewConfigId(
+        session.interview_config_id
+      );
     } catch (error) {
-      console.error("Failed to count public reports:", error);
+      console.error("Failed to count public opinions:", error);
       return null;
     }
-    if (!shouldDisplayPublicReports(publicReportCount)) {
+    if (!shouldDisplayPublicOpinions(publicOpinionCount)) {
       return null;
     }
 
-    const [bill, messages] = await Promise.all([
+    const [bill, messages, segments] = await Promise.all([
       findBillWithContentById(billId),
       findMessagesBySessionId(report.interview_session_id),
+      findOpinionSegmentsByOpinionId(report.id),
     ]);
 
     const { interview_sessions: _, ...reportData } = report;
@@ -88,8 +94,9 @@ export const getPublicReportById = cache(
         name: bill.name,
         thumbnail_url: bill.thumbnail_url,
         share_thumbnail_url: bill.share_thumbnail_url,
-        bill_content: selectPrimaryBillContent(bill.bill_contents),
+        bill_content: selectPrimaryBillContent(bill.policy_contents),
       },
+      opinions: segments,
       characterCount: countUserMessageCharacters(messages),
       messages,
     };
