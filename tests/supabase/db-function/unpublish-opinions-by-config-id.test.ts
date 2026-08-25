@@ -44,7 +44,7 @@ describe("unpublish_opinions_by_config_id", () => {
     await cleanupTestUser(user.id);
   });
 
-  it("対象config配下の意見をhiddenにしis_public_by_adminを下げる", async () => {
+  it("公開中の意見をhiddenにしis_public_by_adminを下げる", async () => {
     const configId = await configs.createConfigId();
 
     const published = await createOpinionInConfig(configId, {
@@ -52,7 +52,23 @@ describe("unpublish_opinions_by_config_id", () => {
       is_public_by_admin: true,
       is_public_by_user: true,
     });
-    // レビュー保留中でも、職員の判断としてまとめて hidden にする
+
+    const { error } = await adminClient.rpc("unpublish_opinions_by_config_id", {
+      p_config_id: configId,
+    });
+    expect(error).toBeNull();
+
+    const updated = await readOpinion(published.id);
+    expect(updated.review_status).toBe("hidden");
+    expect(updated.is_public_by_admin).toBe(false);
+  });
+
+  it("レビュー保留中の意見はhiddenにしない", async () => {
+    const configId = await configs.createConfigId();
+
+    // pending_review まで hidden にすると、テーマを開き直しても
+    // bulk_publish_opinions（pending_review が条件）も本人操作による自動公開も
+    // 効かなくなり、公開に同意済みの意見を二度と公開できなくなる。
     const pending = await createOpinionInConfig(configId, {
       review_status: "pending_review",
       is_public_by_user: true,
@@ -63,11 +79,8 @@ describe("unpublish_opinions_by_config_id", () => {
     });
     expect(error).toBeNull();
 
-    for (const opinionId of [published.id, pending.id]) {
-      const updated = await readOpinion(opinionId);
-      expect(updated.review_status).toBe("hidden");
-      expect(updated.is_public_by_admin).toBe(false);
-    }
+    const after = await readOpinion(pending.id);
+    expect(after.review_status).toBe("pending_review");
   });
 
   it("すでにhiddenの意見は更新対象にならない", async () => {
