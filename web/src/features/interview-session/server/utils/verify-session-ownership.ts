@@ -48,7 +48,7 @@ export async function verifySessionOwnership(
 ) {
   const authResult = await getAuthenticatedUser(deps);
 
-  let session: { user_id: string } | null = null;
+  let session: { user_id: string | null } | null = null;
   try {
     session = await findSessionOwnerById(sessionId);
   } catch {

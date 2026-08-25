@@ -23,17 +23,17 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "127.0.0.1",
-        pathname: "/storage/v1/object/public/bill-thumbnails/**",
+        pathname: "/storage/v1/object/public/policy-thumbnails/**",
       },
       {
         protocol: "http",
         hostname: "127.0.0.1",
-        pathname: "/storage/v1/object/public/bill-thumbnails/**",
+        pathname: "/storage/v1/object/public/policy-thumbnails/**",
       },
       {
         protocol: "https",
         hostname: "*.supabase.co",
-        pathname: "/storage/v1/object/public/bill-thumbnails/**",
+        pathname: "/storage/v1/object/public/policy-thumbnails/**",
       },
       ...(isDev
         ? [

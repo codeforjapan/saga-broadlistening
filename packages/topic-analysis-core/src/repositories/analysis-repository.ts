@@ -1,6 +1,6 @@
 import { createAdminClient } from "@mirai-gikai/supabase";
 import type {
-  BillContext,
+  InterviewConfigContext,
   ProgressData,
   TargetOpinion,
 } from "../shared/types";
@@ -13,56 +13,53 @@ import {
 type VersionStatus = "pending" | "running" | "completed" | "failed";
 
 /**
- * §8 フィルタ後の分析対象意見を取得する。
- * interview_opinion
- * → interview_report(is_public_by_admin=true, is_public_by_user=true, moderation_status='ok')
- * → interview_sessions → interview_configs(bill_id) を辿る。
- * 管理者公開・ユーザー公開の両方に同意済みで、かつモデレーションOKの意見のみ分析対象とする。
- */
-/**
  * 1回の取得で読むページ幅。Supabase/PostgREST の既定行数上限（1000）に依存せず
  * 全件取得するため、この幅でページネーションする。1000 未満の安全な値にする。
  */
 const TARGET_OPINIONS_PAGE_SIZE = 500;
 
-const TARGET_OPINIONS_SELECT = `id, opinion_index, title, content, contextual_quote, bill_sentiment, richness, topic_extracted_at, interview_report_id,
-       interview_report!inner(
-         is_public_by_admin, is_public_by_user, moderation_status, role,
-         interview_sessions!inner(
-           interview_configs!inner(bill_id)
-         )
+const TARGET_OPINIONS_SELECT = `id, opinion_index, title, content, contextual_quote, richness, topic_extracted_at, opinion_id,
+       opinions!inner(
+         review_status, moderation_status,
+         interview_sessions!inner(interview_config_id)
        )`;
 
+/**
+ * §8 フィルタ後の分析対象意見を取得する。
+ * opinion_segments
+ * → opinions(review_status='published', moderation_status='ok')
+ * → interview_sessions(interview_config_id) を辿る。
+ * 公開済み（review_status が公開状態の正本）かつモデレーションOKの意見のみ分析対象とする。
+ */
 export async function fetchTargetOpinions(
-  billId: string
+  interviewConfigId: string
 ): Promise<TargetOpinion[]> {
   const supabase = createAdminClient();
   const all: TargetOpinion[] = [];
 
-  // keyset(カーソル)ページネーション。(interview_report_id, opinion_index) は一意なので、
+  // keyset(カーソル)ページネーション。(opinion_id, opinion_index) は一意なので、
   // 「直前ページ末尾より後ろ」を順に読む。offset 方式と違い、取得中に新規意見が挿入されても
-  // 既読行のズレ（重複・取りこぼし）が起きない（report_id はランダム UUID のため offset では危険）。
-  let cursor: { reportId: string; opinionIndex: number } | null = null;
+  // 既読行のズレ（重複・取りこぼし）が起きない（opinion_id はランダム UUID のため offset では危険）。
+  let cursor: { opinionId: string; opinionIndex: number } | null = null;
 
   for (;;) {
     let query = supabase
-      .from("interview_opinion")
+      .from("opinion_segments")
       .select(TARGET_OPINIONS_SELECT)
-      .eq("interview_report.is_public_by_admin", true)
-      .eq("interview_report.is_public_by_user", true)
-      .eq("interview_report.moderation_status", "ok")
+      .eq("opinions.review_status", "published")
+      .eq("opinions.moderation_status", "ok")
       .eq(
-        "interview_report.interview_sessions.interview_configs.bill_id",
-        billId
+        "opinions.interview_sessions.interview_config_id",
+        interviewConfigId
       )
-      .order("interview_report_id", { ascending: true })
+      .order("opinion_id", { ascending: true })
       .order("opinion_index", { ascending: true })
       .limit(TARGET_OPINIONS_PAGE_SIZE);
 
     if (cursor) {
-      // (report_id, opinion_index) > (cursor) をタプル比較で表現する。
+      // (opinion_id, opinion_index) > (cursor) をタプル比較で表現する。
       query = query.or(
-        `interview_report_id.gt.${cursor.reportId},and(interview_report_id.eq.${cursor.reportId},opinion_index.gt.${cursor.opinionIndex})`
+        `opinion_id.gt.${cursor.opinionId},and(opinion_id.eq.${cursor.opinionId},opinion_index.gt.${cursor.opinionIndex})`
       );
     }
 
@@ -73,18 +70,13 @@ export async function fetchTargetOpinions(
 
     const rows = data ?? [];
     for (const row of rows) {
-      const report = row.interview_report as unknown as {
-        role: string | null;
-      };
       all.push({
-        opinion_id: row.id,
-        interview_report_id: row.interview_report_id,
+        opinion_segment_id: row.id,
+        opinion_id: row.opinion_id,
         opinion_index: row.opinion_index,
         title: row.title,
         content: row.content,
         contextual_quote: row.contextual_quote,
-        bill_sentiment: row.bill_sentiment,
-        role: report?.role ?? null,
         richness: row.richness ?? null,
         topic_extracted_at: row.topic_extracted_at ?? null,
       });
@@ -93,7 +85,7 @@ export async function fetchTargetOpinions(
     if (rows.length < TARGET_OPINIONS_PAGE_SIZE) break;
     const last = rows[rows.length - 1];
     cursor = {
-      reportId: last.interview_report_id,
+      opinionId: last.opinion_id,
       opinionIndex: last.opinion_index,
     };
   }
@@ -107,12 +99,12 @@ export async function fetchTargetOpinions(
  * DB 関数 mark_opinions_extracted で単一トランザクション一括更新する（部分更新を残さない）。
  */
 export async function markOpinionsExtracted(
-  opinionIds: string[]
+  opinionSegmentIds: string[]
 ): Promise<void> {
-  if (opinionIds.length === 0) return;
+  if (opinionSegmentIds.length === 0) return;
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("mark_opinions_extracted", {
-    p_ids: opinionIds,
+    p_ids: opinionSegmentIds,
     p_extracted_at: new Date().toISOString(),
   });
   if (error) {
@@ -120,54 +112,81 @@ export async function markOpinionsExtracted(
   }
 }
 
-/** 全議案の id・タイトルを取得する（全議案トピック分析の対象列挙・ログ表示用）。 */
-export async function listAllBills(): Promise<
+/** 全意見募集の id・テーマ名を取得する（全テーマ分析の対象列挙・ログ表示用）。 */
+export async function listAllInterviewConfigs(): Promise<
   Array<{ id: string; name: string }>
 > {
   const supabase = createAdminClient();
-  const { data, error } = await supabase.from("bills").select("id, name");
+  const { data, error } = await supabase
+    .from("interview_configs")
+    .select("id, name");
   if (error) {
-    throw new Error(`Failed to list bills: ${error.message}`);
+    throw new Error(`Failed to list interview configs: ${error.message}`);
   }
-  return (data ?? []).map((b) => ({ id: b.id, name: b.name }));
+  return (data ?? []).map((c) => ({ id: c.id, name: c.name }));
 }
 
-/** 議案コンテキスト（プロンプト接地用）を取得する。本文は bill_contents（normal）から。 */
-export async function fetchBillContext(billId: string): Promise<BillContext> {
+/**
+ * 意見募集コンテキスト（プロンプト接地用）を取得する。
+ * テーマ名・説明に加えて、policies_interview_configs で紐づく施策の
+ * 名前と本文（policy_contents の normal 優先）を並べる。
+ * 施策0件の抽象テーマ型では policies が空配列になる。
+ */
+export async function fetchInterviewConfigContext(
+  interviewConfigId: string
+): Promise<InterviewConfigContext> {
   const supabase = createAdminClient();
-  const { data: bill, error } = await supabase
-    .from("bills")
-    .select("name")
-    .eq("id", billId)
-    .single();
+  // テーマ本体と紐づく施策は互いに独立なので並列で引く。
+  const [
+    { data: config, error },
+    { data: links, error: linksError },
+  ] = await Promise.all([
+    supabase
+      .from("interview_configs")
+      .select("name, description")
+      .eq("id", interviewConfigId)
+      .single(),
+    supabase
+      .from("policies_interview_configs")
+      .select(
+        "policies!inner(name, policy_contents(summary, content, difficulty_level))"
+      )
+      .eq("interview_config_id", interviewConfigId),
+  ]);
   if (error) {
-    throw new Error(`Failed to fetch bill: ${error.message}`);
+    throw new Error(`Failed to fetch interview config: ${error.message}`);
+  }
+  if (linksError) {
+    throw new Error(`Failed to fetch linked policies: ${linksError.message}`);
   }
 
-  const { data: contents, error: contentsError } = await supabase
-    .from("bill_contents")
-    .select("summary, content, difficulty_level")
-    .eq("bill_id", billId);
-  if (contentsError) {
-    throw new Error(`Failed to fetch bill contents: ${contentsError.message}`);
-  }
-  const normal =
-    contents?.find((c) => c.difficulty_level === "normal") ?? contents?.[0];
+  const policies = (links ?? []).map((link) => {
+    const contents = link.policies.policy_contents ?? [];
+    const normal =
+      contents.find((c) => c.difficulty_level === "normal") ?? contents[0];
+    return {
+      name: link.policies.name,
+      summary: normal?.summary ?? null,
+      body: normal?.content ?? null,
+    };
+  });
 
   return {
-    name: bill.name,
-    summary: normal?.summary ?? null,
-    body: normal?.content ?? null,
+    name: config.name,
+    description: config.description,
+    policies,
   };
 }
 
-/** bill 内で running/pending の version があれば返す（二重起動防止用・§5.3）。 */
-export async function findActiveVersionByBill(billId: string) {
+/** テーマ内で running/pending の version があれば返す（二重起動防止用・§5.3）。 */
+export async function findActiveVersionByInterviewConfig(
+  interviewConfigId: string
+) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("topic_analysis_version")
     .select("id, status, started_at, created_at")
-    .eq("bill_id", billId)
+    .eq("interview_config_id", interviewConfigId)
     .in("status", ["pending", "running"])
     .order("created_at", { ascending: false })
     .limit(1)
@@ -179,18 +198,23 @@ export async function findActiveVersionByBill(billId: string) {
   return data;
 }
 
-/** 新しい version を作成する（bill 内連番）。 */
-export async function createVersion(
-  billId: string,
-  trigger: "manual" | "cron",
-  model: string,
-  promptVersion: string
-) {
+/** 新しい version を作成する（テーマ内連番）。 */
+export async function createVersion({
+  interviewConfigId,
+  trigger,
+  model,
+  promptVersion,
+}: {
+  interviewConfigId: string;
+  trigger: "manual" | "cron";
+  model: string;
+  promptVersion: string;
+}) {
   const supabase = createAdminClient();
   const { data: last, error: lastError } = await supabase
     .from("topic_analysis_version")
     .select("version")
-    .eq("bill_id", billId)
+    .eq("interview_config_id", interviewConfigId)
     .order("version", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -202,7 +226,7 @@ export async function createVersion(
   const { data, error } = await supabase
     .from("topic_analysis_version")
     .insert({
-      bill_id: billId,
+      interview_config_id: interviewConfigId,
       version: nextVersion,
       status: "pending",
       trigger,
@@ -214,7 +238,7 @@ export async function createVersion(
 
   if (error) {
     // 一意制約違反（23505）= 同時実行で既に active な version が作られた／同一 version 番号が衝突した。
-    // one_active_version_per_bill による二重起動ガードに弾かれたケースなので、
+    // one_active_version_per_interview_config による二重起動ガードに弾かれたケースなので、
     // エラーにせず null を返して呼び出し側でスキップ扱いにする（TOCTOU 対策）。
     if (error.code === "23505") {
       return null;
@@ -299,7 +323,7 @@ export async function loadProgress(versionId: string): Promise<ProgressData> {
 export async function saveTopicsAndAssignments(
   versionId: string,
   topics: HierarchyTopicRow[],
-  assignments: Array<{ opinion_id: string; topic_index: number }>
+  assignments: Array<{ opinion_segment_id: string; topic_index: number }>
 ): Promise<void> {
   const supabase = createAdminClient();
 
@@ -370,7 +394,11 @@ export async function saveTopicsAndAssignments(
     .map((a) => {
       const topicId = idBySortOrder.get(a.topic_index);
       return topicId
-        ? { version_id: versionId, opinion_id: a.opinion_id, topic_id: topicId }
+        ? {
+            version_id: versionId,
+            opinion_segment_id: a.opinion_segment_id,
+            topic_id: topicId,
+          }
         : null;
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);
@@ -410,7 +438,7 @@ export async function finalizeVersion(
  * version を公開する（§7）。「旧公開版を降ろす → 対象を公開」を DB 関数で
  * 単一トランザクション実行し、公開版が0件になる瞬間を外部から不可視にする
  * （アプリ層で2回 update すると公開読み取りが一時的に404になるため・§8）。
- * one_published_per_bill（bill ごと公開は最大1版）も満たす。
+ * one_published_per_interview_config（テーマごと公開は最大1版）も満たす。
  */
 export async function publishVersion(versionId: string): Promise<void> {
   const supabase = createAdminClient();
@@ -447,7 +475,7 @@ export async function getVersionStatus(versionId: string) {
   const { data, error } = await supabase
     .from("topic_analysis_version")
     .select(
-      "id, bill_id, version, status, current_step, source_opinion_count, error_message, started_at, completed_at"
+      "id, interview_config_id, version, status, current_step, source_opinion_count, error_message, started_at, completed_at"
     )
     .eq("id", versionId)
     .single();
@@ -457,15 +485,17 @@ export async function getVersionStatus(versionId: string) {
   return data;
 }
 
-/** bill のバージョン一覧（結果ビュー用）。 */
-export async function listVersionsByBill(billId: string) {
+/** テーマのバージョン一覧（結果ビュー用）。 */
+export async function listVersionsByInterviewConfig(
+  interviewConfigId: string
+) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("topic_analysis_version")
     .select(
       "id, version, status, is_published, current_step, source_opinion_count, created_at, completed_at"
     )
-    .eq("bill_id", billId)
+    .eq("interview_config_id", interviewConfigId)
     .order("version", { ascending: false });
   if (error) {
     throw new Error(`Failed to list versions: ${error.message}`);
@@ -506,7 +536,7 @@ export async function getTopicsWithOpinions(versionId: string) {
     .select(
       `id, title, description, sort_order, parent_topic_id,
        topic_opinion(
-         interview_opinion(id, title, content, contextual_quote, bill_sentiment, richness)
+         opinion_segments(id, title, content, contextual_quote, richness)
        )`
     )
     .eq("version_id", versionId)

@@ -11,17 +11,17 @@ import { runTagBackfill } from "@mirai-gikai/topic-analysis-core/tag-backfill";
  * Cloud Run Job のエントリポイント。
  *
  * 起動例:
- *   tsx src/main.ts --mode=analyze --bill-id=<uuid> --version-id=<uuid>                 # フル分析（既定）
- *   tsx src/main.ts --mode=analyze --bill-id=<uuid> --version-id=<uuid> --strategy=incremental # 差分（増分）
- *   tsx src/main.ts --mode=analyze-all                                   # 全議案・差分（既定 incremental）
- *   tsx src/main.ts --mode=analyze-all --strategy=full                   # 全議案・フル
- *   tsx src/main.ts --mode=backfill                              # 未再抽出を全議案で処理
- *   tsx src/main.ts --mode=backfill --bill-id=<uuid>             # 指定議案の未再抽出のみ
- *   tsx src/main.ts --mode=backfill --bill-id=<uuid> --scope=all # 指定議案を全件やり直し
- *   tsx src/main.ts --mode=backfill --model=openai/gpt-5.2       # 使用モデルを指定（省略時は既定）
- *   tsx src/main.ts --mode=tag-backfill                          # タグ未抽出の意見を全議案で処理
- *   tsx src/main.ts --mode=tag-backfill --bill-id=<uuid>         # 指定議案のタグ未抽出のみ
- *   tsx src/main.ts --mode=tag-backfill --bill-id=<uuid> --scope=all # 指定議案のタグを全件やり直し
+ *   tsx src/main.ts --mode=analyze --interview-config-id=<uuid> --version-id=<uuid>                 # フル分析（既定）
+ *   tsx src/main.ts --mode=analyze --interview-config-id=<uuid> --version-id=<uuid> --strategy=incremental # 差分（増分）
+ *   tsx src/main.ts --mode=analyze-all                                   # 全テーマ・差分（既定 incremental）
+ *   tsx src/main.ts --mode=analyze-all --strategy=full                   # 全テーマ・フル
+ *   tsx src/main.ts --mode=backfill                                          # 未再抽出を全テーマで処理
+ *   tsx src/main.ts --mode=backfill --interview-config-id=<uuid>             # 指定テーマの未再抽出のみ
+ *   tsx src/main.ts --mode=backfill --interview-config-id=<uuid> --scope=all # 指定テーマを全件やり直し
+ *   tsx src/main.ts --mode=backfill --model=openai/gpt-5.2                   # 使用モデルを指定（省略時は既定）
+ *   tsx src/main.ts --mode=tag-backfill                                          # タグ未抽出の論点を全テーマで処理
+ *   tsx src/main.ts --mode=tag-backfill --interview-config-id=<uuid>             # 指定テーマのタグ未抽出のみ
+ *   tsx src/main.ts --mode=tag-backfill --interview-config-id=<uuid> --scope=all # 指定テーマのタグを全件やり直し
  *
  * 必須env: SUPABASE_URL, SUPABASE_SECRET_KEY, AI_GATEWAY_API_KEY
  */
@@ -69,19 +69,19 @@ async function main(): Promise<void> {
 
   if (mode === "analyze") {
     const versionId = args["version-id"];
-    const billId = args["bill-id"];
-    if (!versionId || !billId) {
+    const interviewConfigId = args["interview-config-id"];
+    if (!versionId || !interviewConfigId) {
       throw new Error(
-        "analyze mode requires --version-id=<uuid> and --bill-id=<uuid>"
+        "analyze mode requires --version-id=<uuid> and --interview-config-id=<uuid>"
       );
     }
     const strategy = parseStrategy(args.strategy, "full");
-    await runAnalysis(versionId, billId, strategy);
+    await runAnalysis(versionId, interviewConfigId, strategy);
     return;
   }
 
   if (mode === "analyze-all") {
-    // 全議案を順次分析（既定は増分）。version 行は各議案ごとに内部で作成する。
+    // 全テーマを順次分析（既定は増分）。version 行は各テーマごとに内部で作成する。
     const strategy = parseStrategy(args.strategy, "incremental");
     await runAnalyzeAll(strategy);
     return;
@@ -89,7 +89,7 @@ async function main(): Promise<void> {
 
   if (mode === "backfill") {
     const resolved = resolveBackfillParams({
-      billId: args["bill-id"],
+      interviewConfigId: args["interview-config-id"],
       scope: args.scope,
       model: args.model,
     });
@@ -100,11 +100,11 @@ async function main(): Promise<void> {
     return;
   }
 
-  // 既存意見へタグ（concern/proposal/reasoning_types）だけを追加する経路。
-  // 意見の本文は再生成しないため、公開中のトピック分析の引用が動かない。
+  // 既存の論点へタグ（concern/proposal/reasoning_types）だけを追加する経路。
+  // 論点の本文は再生成しないため、公開中のトピック分析の引用が動かない。
   if (mode === "tag-backfill") {
     const resolved = resolveBackfillParams({
-      billId: args["bill-id"],
+      interviewConfigId: args["interview-config-id"],
       scope: args.scope,
       model: args.model,
     });

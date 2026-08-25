@@ -6,54 +6,31 @@ import type {
   PublishedVersionMeta,
   RawOpinionRow,
   RawTopicRow,
-  UserCategory,
 } from "./public-types";
 
-/** interview_report.role → §9 の4区分。未知/null は一般市民に倒す。 */
-export function mapRoleToCategory(role: string | null): UserCategory {
-  switch (role) {
-    case "daily_life_affected":
-      return "affected";
-    case "work_related":
-      return "industry";
-    case "subject_expert":
-      return "expert";
-    default:
-      // general_citizen / null / 未知の値
-      return "citizen";
-  }
-}
-
 /**
- * §8 表示時フィルタの最終ゲート: 管理者公開 × ユーザー公開 × モデレーションOK のみ通す。
- * 分析後に管理者が非公開化・ユーザーが同意撤回した意見は即座に除外される。
+ * §8 表示時フィルタの最終ゲート: 公開済み（review_status='published'）×
+ * モデレーションOK のみ通す。分析後に職員が非公開化・ユーザーが同意撤回した
+ * 意見は即座に除外される。
  * web 公開ページのデフォルト述語。内部用途では別の述語を渡して上書きできる。
  */
 export function isDisplayable(o: RawOpinionRow): boolean {
-  return (
-    o.is_public_by_admin === true &&
-    o.is_public_by_user === true &&
-    o.moderation_status === "ok"
-  );
-}
-
-function toBillSentiment(value: string | null): "期待" | "懸念" | null {
-  return value === "期待" || value === "懸念" ? value : null;
+  return o.review_status === "published" && o.moderation_status === "ok";
 }
 
 /**
  * 公開中 version の生データ（§8 未フィルタ）から、表示用レスポンス（§13 A.4）を構築する純粋関数。
  *
- * - 各意見を §8（is_public_by_admin × is_public_by_user × moderation_status='ok'）でフィルタ。
- * - 件数・属性内訳・期待/懸念は **フィルタ後の集合から再計算**（保存値は使わない・§8）。
- * - フィルタ後に意見が0件になったトピックは応答に含めない。
- * - 未分類（topic 未割当）の意見はそもそも topic 配下に無いため自然に除外される（§9）。
- * - total_opinions はフィルタ後・トピック割当済みの意見総数。
+ * - 各論点を §8（review_status='published' × moderation_status='ok'）でフィルタ。
+ * - 件数は **フィルタ後の集合から再計算**（保存値は使わない・§8）。
+ * - フィルタ後に論点が0件になったトピックは応答に含めない。
+ * - 未分類（topic 未割当）の論点はそもそも topic 配下に無いため自然に除外される（§9）。
+ * - total_opinions はフィルタ後・トピック割当済みの論点総数。
  */
 export function buildPublicTopicAnalysis(
   meta: PublishedVersionMeta,
   rawTopics: RawTopicRow[],
-  // 含める意見の述語。デフォルトは web 公開ページの §8 フィルタ。
+  // 含める論点の述語。デフォルトは web 公開ページの §8 フィルタ。
   // 内部用途（admin MCP）では任意の述語を渡して取得条件を変えられる。
   includeOpinion: (o: RawOpinionRow) => boolean = isDisplayable
 ): PublicTopicAnalysis {
@@ -63,8 +40,8 @@ export function buildPublicTopicAnalysis(
   for (const rawTopic of rawTopics) {
     // フィルタ後、richness（情報充実度）降順で並べる。
     // 充実した引用が先頭になり、カード・詳細ともに優先表示される。
-    // null（旧データ・未生成）は最後尾。同点は元順序（report_id, opinion_index）を保つ
-    // ＝ V8 の安定ソートに依存。集計（件数・内訳・sentiment）は順序の影響を受けない。
+    // null（未生成）は最後尾。同点は元順序（opinion_id, opinion_index）を保つ
+    // ＝ V8 の安定ソートに依存。集計（件数）は順序の影響を受けない。
     const displayable = rawTopic.opinions
       .filter(includeOpinion)
       .slice()
@@ -74,29 +51,19 @@ export function buildPublicTopicAnalysis(
       continue;
     }
 
-    const counts = { affected: 0, industry: 0, expert: 0, citizen: 0 };
-    const sentiment = { 期待: 0, 懸念: 0 };
-    const opinions: PublicOpinion[] = displayable.map((o) => {
-      const category = mapRoleToCategory(o.role);
-      counts[category] += 1;
-      const billSentiment = toBillSentiment(o.bill_sentiment);
-      if (billSentiment) sentiment[billSentiment] += 1;
-      return {
-        id: o.id,
-        interview_report_id: o.interview_report_id,
-        report_public: o.is_public_by_admin,
-        created_at: o.created_at,
-        title: o.title,
-        content: o.content,
-        user_category: category,
-        role_title: normalizeRoleTitle(o.role_title),
-        bill_sentiment: billSentiment,
-        contextual_quote: o.contextual_quote,
-        richness: o.richness,
-        source_message_id: o.source_message_id,
-        question_snippet: null,
-      };
-    });
+    const opinions: PublicOpinion[] = displayable.map((o) => ({
+      id: o.id,
+      opinion_id: o.opinion_id,
+      opinion_public: o.review_status === "published",
+      created_at: o.created_at,
+      title: o.title,
+      content: o.content,
+      role_title: normalizeRoleTitle(o.role_title),
+      contextual_quote: o.contextual_quote,
+      richness: o.richness,
+      source_message_id: o.source_message_id,
+      question_snippet: null,
+    }));
 
     totalOpinions += displayable.length;
     topics.push({
@@ -104,11 +71,6 @@ export function buildPublicTopicAnalysis(
       title: rawTopic.title,
       description: rawTopic.description,
       opinion_count: displayable.length,
-      affected_count: counts.affected,
-      industry_count: counts.industry,
-      expert_count: counts.expert,
-      citizen_count: counts.citizen,
-      sentiment,
       opinions,
     });
   }
@@ -120,7 +82,7 @@ export function buildPublicTopicAnalysis(
   topics.sort((a, b) => b.opinion_count - a.opinion_count);
 
   return {
-    bill_id: meta.bill_id,
+    interview_config_id: meta.interview_config_id,
     version: meta.version,
     generated_at: meta.generated_at,
     total_opinions: totalOpinions,

@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { LanguageModelUsage, UIMessage } from "ai";
 import {
   adminClient,
-  cleanupTestBill,
-  createTestBill,
+  cleanupTestPolicy,
+  createTestPolicy,
   createTestUser,
   cleanupTestUser,
   type TestUser,
@@ -123,13 +123,16 @@ describe("handleChatRequest 統合テスト", () => {
       expect(receivedPromptNames[0]).toBe("bill-chat-system-normal");
     });
 
-    it("公開済みbillでトグルONなら knowledgeSource がサーバー側で取得されてプロンプト変数に渡る", async () => {
-      const bill = await createTestBill({ publish_status: "published" });
+    it("公開済み施策でAI質問機能ONなら knowledgeSource がサーバー側で取得されてプロンプト変数に渡る", async () => {
+      const bill = await createTestPolicy({
+        publish_status: "published",
+        published_at: new Date().toISOString(),
+      });
       await adminClient
-        .from("bills")
+        .from("policies")
         .update({
           knowledge_source: "補足ナレッジ本文",
-          use_knowledge_source_in_chat: true,
+          enable_ai_chat: true,
         })
         .eq("id", bill.id);
 
@@ -161,17 +164,20 @@ describe("handleChatRequest 統合テスト", () => {
 
         expect(receivedVariables[0]?.knowledgeSource).toBe("補足ナレッジ本文");
       } finally {
-        await cleanupTestBill(bill.id);
+        await cleanupTestPolicy(bill.id);
       }
     });
 
-    it("公開済みbillでトグルOFFなら knowledgeSource は空文字で渡る", async () => {
-      const bill = await createTestBill({ publish_status: "published" });
+    it("公開済み施策でAI質問機能OFFなら knowledgeSource は空文字で渡る", async () => {
+      const bill = await createTestPolicy({
+        publish_status: "published",
+        published_at: new Date().toISOString(),
+      });
       await adminClient
-        .from("bills")
+        .from("policies")
         .update({
           knowledge_source: "本文があってもOFFなら無視",
-          use_knowledge_source_in_chat: false,
+          enable_ai_chat: false,
         })
         .eq("id", bill.id);
 
@@ -203,21 +209,24 @@ describe("handleChatRequest 統合テスト", () => {
 
         expect(receivedVariables[0]?.knowledgeSource).toBe("");
       } finally {
-        await cleanupTestBill(bill.id);
+        await cleanupTestPolicy(bill.id);
       }
     });
 
     it("クライアント側で bill 関連フィールドを偽装してもサーバー側のDB値が優先される", async () => {
-      const bill = await createTestBill({ publish_status: "published" });
+      const bill = await createTestPolicy({
+        publish_status: "published",
+        published_at: new Date().toISOString(),
+      });
       await adminClient
-        .from("bills")
+        .from("policies")
         .update({
           knowledge_source: null,
-          use_knowledge_source_in_chat: false,
+          enable_ai_chat: false,
         })
         .eq("id", bill.id);
-      await adminClient.from("bill_contents").insert({
-        bill_id: bill.id,
+      await adminClient.from("policy_contents").insert({
+        policy_id: bill.id,
         difficulty_level: "normal",
         title: "サーバー側タイトル",
         summary: "サーバー側要約",
@@ -246,7 +255,7 @@ describe("handleChatRequest 統合テスト", () => {
               content: "クライアント側で書き換えた本文",
             },
             knowledge_source: "クライアントから注入した秘密",
-            use_knowledge_source_in_chat: true,
+            enable_ai_chat: true,
           } as unknown as ChatMessageMetadata["billContext"],
         });
 
@@ -263,7 +272,7 @@ describe("handleChatRequest 統合テスト", () => {
         expect(receivedVariables[0]?.billSummary).toBe("サーバー側要約");
         expect(receivedVariables[0]?.billContent).toBe("サーバー側本文");
       } finally {
-        await cleanupTestBill(bill.id);
+        await cleanupTestPolicy(bill.id);
       }
     });
 

@@ -29,13 +29,7 @@ export function convertPartialReport(
   partialReport:
     | {
         summary?: string | null;
-        stance?: "for" | "against" | "neutral" | null;
-        role?:
-          | "subject_expert"
-          | "work_related"
-          | "daily_life_affected"
-          | "general_citizen"
-          | null;
+        final_text?: string | null;
         role_description?: string | null;
         role_title?: string | null;
         opinions?: Array<
@@ -44,7 +38,6 @@ export function convertPartialReport(
               content?: string;
               source_message_id?: string | null;
               contextual_quote?: string | null;
-              bill_sentiment?: "期待" | "懸念" | null;
               richness?: number | null;
               concern?: string | null;
               proposal?: string | null;
@@ -67,7 +60,6 @@ export function convertPartialReport(
           content: op.content ?? "",
           source_message_id: op.source_message_id ?? null,
           contextual_quote: op.contextual_quote ?? null,
-          bill_sentiment: op.bill_sentiment ?? null,
           richness: op.richness ?? null,
           concern: op.concern ?? null,
           proposal: op.proposal ?? null,
@@ -79,8 +71,7 @@ export function convertPartialReport(
 
   const converted: InterviewReportViewData = {
     summary: partialReport.summary ?? null,
-    stance: partialReport.stance ?? null,
-    role: partialReport.role ?? null,
+    final_text: partialReport.final_text ?? "",
     role_description: partialReport.role_description ?? null,
     role_title: partialReport.role_title ?? null,
     opinions,

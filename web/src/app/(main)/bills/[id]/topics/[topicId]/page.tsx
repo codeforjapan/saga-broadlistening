@@ -3,27 +3,24 @@ import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { resolveBillShareImageUrl } from "@/features/bills/shared/utils/bill-share-image";
 import { TopicDetailPage } from "@/features/user-topic-analysis/server/components/topic-detail-page";
 import { getPublicTopicDetail } from "@/features/user-topic-analysis/server/loaders/get-public-topic-detail";
-import { parseTopicFilter } from "@/features/user-topic-analysis/shared/utils/filter-topics";
 import { env } from "@/lib/env";
 import { routes } from "@/lib/routes";
 
 interface TopicDetailRouteProps {
   params: Promise<{ id: string; topicId: string }>;
-  searchParams: Promise<{ filter?: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: TopicDetailRouteProps): Promise<Metadata> {
   const { id, topicId } = await params;
-  // タイトル/説明はフィルタに依存しないため絞り込みなし（all）で取得する。
   // DB取得は getPublicTopicAnalysis の React cache() でページ本体と共有され、
   // リクエスト内で重複クエリにならない。
   const [bill, location] = await Promise.all([
     getBillById(id),
     getPublicTopicDetail(id, topicId),
   ]);
-  const billName = bill?.bill_content?.title || bill?.name || "法案";
+  const billName = bill?.bill_content?.title || bill?.name || "施策";
   const topic = location?.topic;
 
   const title = topic
@@ -61,15 +58,7 @@ export async function generateMetadata({
 
 export default async function TopicDetailRoute({
   params,
-  searchParams,
 }: TopicDetailRouteProps) {
   const { id, topicId } = await params;
-  const { filter } = await searchParams;
-  return (
-    <TopicDetailPage
-      billId={id}
-      topicId={topicId}
-      filter={parseTopicFilter(filter)}
-    />
-  );
+  return <TopicDetailPage billId={id} topicId={topicId} />;
 }

@@ -20,11 +20,14 @@ export interface CompletedReportsForBillResult {
 }
 
 /**
- * 指定法案の「完了済みインタビュー + レポートあり」の一覧を取得する。
+ * 指定施策の「完了済みインタビュー + 意見あり」の一覧を取得する。
  *
- * シミュレーション画面で、編集中の config に紐づくものと法案全体のものの
- * 両方から選べるようにするため、bill_id で引いて config_id 情報も返す。
+ * シミュレーション画面で、編集中の config に紐づくものと施策全体のものの
+ * 両方から選べるようにするため、施策で引いて config_id 情報も返す。
  * クライアント側で configId フィルタを切り替えられる設計。
+ *
+ * 施策と意見募集は policies_interview_configs による多対多のため、
+ * 中間テーブル経由で絞り込む。
  */
 export async function getCompletedReportsForBill(
   billId: string
@@ -33,9 +36,9 @@ export async function getCompletedReportsForBill(
   const { data, error } = await supabase
     .from("interview_sessions")
     .select(
-      "id, completed_at, interview_config_id, interview_configs!inner(name, bill_id), interview_report!inner(id, role, role_title, stance, summary, total_content_richness)"
+      "id, completed_at, interview_config_id, interview_configs!inner(name, policies_interview_configs!inner(policy_id)), opinions!inner(id, role_title, summary, total_content_richness)"
     )
-    .eq("interview_configs.bill_id", billId)
+    .eq("interview_configs.policies_interview_configs.policy_id", billId)
     .not("completed_at", "is", null)
     .order("completed_at", { ascending: false })
     .limit(MAX_REPORTS_FOR_SIMULATION + 1);
@@ -52,9 +55,9 @@ export async function getCompletedReportsForBill(
     : rows;
 
   const reports: CompletedReportListItem[] = visibleRows.flatMap((session) => {
-    const report = Array.isArray(session.interview_report)
-      ? session.interview_report[0]
-      : session.interview_report;
+    const report = Array.isArray(session.opinions)
+      ? session.opinions[0]
+      : session.opinions;
     const config = Array.isArray(session.interview_configs)
       ? session.interview_configs[0]
       : session.interview_configs;
@@ -66,8 +69,6 @@ export async function getCompletedReportsForBill(
         configId: session.interview_config_id,
         configName: config?.name ?? null,
         roleTitle: report.role_title ?? null,
-        role: report.role ?? null,
-        stance: report.stance ?? null,
         summary: report.summary ?? null,
         totalContentRichness: report.total_content_richness ?? null,
         completedAt: session.completed_at ?? null,

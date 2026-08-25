@@ -1,4 +1,3 @@
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
 import type { AiModel } from "@/lib/ai/models";
 import type { PromptKind } from "../constants";
 import type {
@@ -22,8 +21,6 @@ export interface CompletedReportListItem {
   /** config 名。法案全体から選ぶとき、どの config のインタビューか判別する */
   configName: string | null;
   roleTitle: string | null;
-  role: string | null;
-  stance: string | null;
   summary: string | null;
   totalContentRichness: number | null;
   completedAt: string | null;
@@ -38,8 +35,6 @@ export interface OriginalInterviewSnapshot {
   configId: string;
   billId: string;
   summary: string | null;
-  stance: "for" | "against" | "neutral" | null;
-  role: string | null;
   roleTitle: string | null;
   roleDescription: string | null;
   opinions: Array<{
@@ -112,8 +107,8 @@ export interface SimulationMetrics {
  * 本番の「編集した config を保存せずにテストする」ユースケース向け。
  */
 export interface TransientConfigSnapshot {
-  mode: InterviewMode;
-  themes: string[] | null;
+  /** 職員が設定したテーマの説明文（interview_configs.description） */
+  description: string | null;
   /** インタビュー目安時間（分）。本番の「## タイムマネジメント」セクションに反映される */
   estimatedDurationMinutes: number | null;
   questions: Array<{
@@ -122,8 +117,6 @@ export interface TransientConfigSnapshot {
     question: string;
     quick_replies: string[] | null;
     follow_up_guide: string | null;
-    /** 対象者条件（任意）。targeted モード時にのみ意味を持つ */
-    target_audience?: string | null;
   }>;
 }
 

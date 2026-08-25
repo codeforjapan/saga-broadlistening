@@ -18,7 +18,7 @@ import {
   DEFAULT_MODEL_LABEL,
 } from "@/features/interview-config/shared/utils/chat-model-options";
 
-type BillOption = { id: string; name: string };
+type InterviewConfigOption = { id: string; name: string };
 
 type BackfillScope = "pending" | "all";
 
@@ -29,13 +29,17 @@ type BackfillStatus = {
 };
 
 const POLL_INTERVAL_MS = 5000;
-// 「全議案」を表す Select のセンチネル値（Radix は空文字の value を許さないため）。
-const ALL_BILLS = "__all__";
+// 「全テーマ」を表す Select のセンチネル値（Radix は空文字の value を許さないため）。
+const ALL_CONFIGS = "__all__";
 // 「既定モデル（OPINION_BACKFILL_MODEL）」を表すセンチネル値。
 const DEFAULT_MODEL = "__default__";
 
-export function OpinionBackfillRunner({ bills }: { bills: BillOption[] }) {
-  const [billValue, setBillValue] = useState<string>(ALL_BILLS);
+export function OpinionBackfillRunner({
+  interviewConfigs,
+}: {
+  interviewConfigs: InterviewConfigOption[];
+}) {
+  const [configValue, setConfigValue] = useState<string>(ALL_CONFIGS);
   const [scope, setScope] = useState<BackfillScope>("pending");
   const [modelValue, setModelValue] = useState<string>(DEFAULT_MODEL);
   const [status, setStatus] = useState<BackfillStatus | null>(null);
@@ -44,13 +48,16 @@ export function OpinionBackfillRunner({ bills }: { bills: BillOption[] }) {
   const [error, setError] = useState<string | null>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const billId = billValue === ALL_BILLS ? undefined : billValue;
+  const interviewConfigId =
+    configValue === ALL_CONFIGS ? undefined : configValue;
   const model = modelValue === DEFAULT_MODEL ? undefined : modelValue;
-  // 「全部」は議案指定時のみ許可（全議案 × 全部は高コストなので不可）。
-  const allScopeDisabled = !billId;
+  // 「全部」はテーマ指定時のみ許可（全テーマ × 全部は高コストなので不可）。
+  const allScopeDisabled = !interviewConfigId;
 
   const fetchStatus = useCallback(async (): Promise<BackfillStatus | null> => {
-    const query = billId ? `?billId=${encodeURIComponent(billId)}` : "";
+    const query = interviewConfigId
+      ? `?interviewConfigId=${encodeURIComponent(interviewConfigId)}`
+      : "";
     const res = await fetch(`/api/interview-opinion-backfill/status${query}`);
     if (!res.ok) {
       throw new Error(`ステータス取得に失敗しました (${res.status})`);
@@ -60,7 +67,7 @@ export function OpinionBackfillRunner({ bills }: { bills: BillOption[] }) {
     // 取得成功時は残留エラー表示をクリアする。
     setError(null);
     return data;
-  }, [billId]);
+  }, [interviewConfigId]);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -70,18 +77,18 @@ export function OpinionBackfillRunner({ bills }: { bills: BillOption[] }) {
     setIsRunning(false);
   }, []);
 
-  // 議案を「全議案」に戻したら、許可されない「全部」を pending に戻す。
-  const handleBillChange = useCallback(
+  // テーマを「全テーマ」に戻したら、許可されない「全部」を pending に戻す。
+  const handleConfigChange = useCallback(
     (value: string) => {
-      setBillValue(value);
-      if (value === ALL_BILLS && scope === "all") {
+      setConfigValue(value);
+      if (value === ALL_CONFIGS && scope === "all") {
         setScope("pending");
       }
     },
     [scope]
   );
 
-  // 議案変更時に進捗を取り直す（実行中ポーリング中は触らない）。
+  // テーマ変更時に進捗を取り直す（実行中ポーリング中は触らない）。
   useEffect(() => {
     if (isRunning) return;
     fetchStatus().catch((e) => setError(e.message));
@@ -112,7 +119,7 @@ export function OpinionBackfillRunner({ bills }: { bills: BillOption[] }) {
       const res = await fetch("/api/interview-opinion-backfill/dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billId, scope, model }),
+        body: JSON.stringify({ interviewConfigId, scope, model }),
       });
       if (!res.ok) {
         throw new Error(`実行開始に失敗しました (${res.status})`);
@@ -124,26 +131,26 @@ export function OpinionBackfillRunner({ bills }: { bills: BillOption[] }) {
     } finally {
       setIsStarting(false);
     }
-  }, [billId, scope, model, fetchStatus, startPolling]);
+  }, [interviewConfigId, scope, model, fetchStatus, startPolling]);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="backfill-bill">対象議案</Label>
+          <Label htmlFor="backfill-config">対象テーマ</Label>
           <Select
-            value={billValue}
-            onValueChange={handleBillChange}
+            value={configValue}
+            onValueChange={handleConfigChange}
             disabled={isRunning}
           >
-            <SelectTrigger id="backfill-bill">
-              <SelectValue placeholder="議案を選択" />
+            <SelectTrigger id="backfill-config">
+              <SelectValue placeholder="テーマを選択" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_BILLS}>全議案</SelectItem>
-              {bills.map((bill) => (
-                <SelectItem key={bill.id} value={bill.id}>
-                  {bill.name}
+              <SelectItem value={ALL_CONFIGS}>全テーマ</SelectItem>
+              {interviewConfigs.map((config) => (
+                <SelectItem key={config.id} value={config.id}>
+                  {config.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -169,7 +176,7 @@ export function OpinionBackfillRunner({ bills }: { bills: BillOption[] }) {
           </Select>
           {allScopeDisabled && (
             <p className="text-xs text-muted-foreground">
-              ※「全部」は議案を指定したときのみ選択できます。
+              ※「全部」はテーマを指定したときのみ選択できます。
             </p>
           )}
         </div>

@@ -1,26 +1,31 @@
 import "server-only";
 import { createAdminClient } from "@mirai-gikai/supabase";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
+import { groupTagsByBillId } from "../../shared/utils/group-tags";
+
+// Epic #54 でテーブルが bills → policies / bill_contents → policy_contents /
+// bills_tags → policies_tags に再定義された。
+// ファイル名・関数名（bill-repository / find*Bill*）の改名は Epic #8 完了後のフォローアップ。
 
 // ============================================================
-// Bills
+// Policies
 // ============================================================
 
 /**
- * 公開済み議案を難易度コンテンツ付きで取得
+ * 公開済み施策を難易度コンテンツ付きで取得
  */
 export async function findPublishedBillsWithContents(
   difficultyLevel: DifficultyLevelEnum
 ) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills")
+    .from("policies")
     .select(
       `
       *,
-      bill_contents!inner (
+      policy_contents!inner (
         id,
-        bill_id,
+        policy_id,
         title,
         summary,
         content,
@@ -31,23 +36,23 @@ export async function findPublishedBillsWithContents(
     `
     )
     .eq("publish_status", "published")
-    .eq("bill_contents.difficulty_level", difficultyLevel)
-    .order("submitted_date", { ascending: false, nullsFirst: false });
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .eq("policy_contents.difficulty_level", difficultyLevel);
 
   if (error) {
-    throw new Error(`Failed to fetch bills: ${error.message}`);
+    throw new Error(`Failed to fetch policies: ${error.message}`);
   }
 
   return data;
 }
 
 /**
- * 公開済み議案を1件取得
+ * 公開済み施策を1件取得
  */
 export async function findPublishedBillById(id: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills")
+    .from("policies")
     .select("*")
     .eq("id", id)
     .eq("publish_status", "published")
@@ -61,12 +66,12 @@ export async function findPublishedBillById(id: string) {
 }
 
 /**
- * 管理者用: ステータス問わず議案を1件取得
+ * 管理者用: ステータス問わず施策を1件取得
  */
 export async function findBillById(id: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills")
+    .from("policies")
     .select("*")
     .eq("id", id)
     .single();
@@ -79,32 +84,14 @@ export async function findBillById(id: string) {
 }
 
 /**
- * 議案のmirai_stanceを取得
- */
-export async function findMiraiStanceByBillId(billId: string) {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("mirai_stances")
-    .select("*")
-    .eq("bill_id", billId)
-    .single();
-
-  if (error) {
-    return null;
-  }
-
-  return data;
-}
-
-/**
- * 議案のタグを取得
+ * 施策のタグを取得
  */
 export async function findTagsByBillId(billId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills_tags")
+    .from("policies_tags")
     .select("tags(id, label)")
-    .eq("bill_id", billId);
+    .eq("policy_id", billId);
 
   if (error) {
     return null;
@@ -114,11 +101,11 @@ export async function findTagsByBillId(billId: string) {
 }
 
 // ============================================================
-// Bill Contents
+// Policy Contents
 // ============================================================
 
 /**
- * 指定された難易度の議案コンテンツを取得
+ * 指定された難易度の施策コンテンツを取得
  */
 export async function findBillContentByDifficulty(
   billId: string,
@@ -126,14 +113,14 @@ export async function findBillContentByDifficulty(
 ) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bill_contents")
+    .from("policy_contents")
     .select("*")
-    .eq("bill_id", billId)
+    .eq("policy_id", billId)
     .eq("difficulty_level", difficultyLevel)
     .single();
 
   if (error) {
-    console.error(`Failed to fetch bill content: ${error.message}`);
+    console.error(`Failed to fetch policy content: ${error.message}`);
     return null;
   }
 
@@ -144,10 +131,8 @@ export async function findBillContentByDifficulty(
 // Tags (bulk)
 // ============================================================
 
-import { groupTagsByBillId } from "../../shared/utils/group-tags";
-
 /**
- * 複数のbill_idに紐づくタグを一括取得し、bill_idごとにグループ化して返す
+ * 複数のpolicy_idに紐づくタグを一括取得し、policy_idごとにグループ化して返す
  */
 export async function findTagsByBillIds(
   billIds: string[]
@@ -158,124 +143,15 @@ export async function findTagsByBillIds(
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills_tags")
-    .select("bill_id, tags(id, label)")
-    .in("bill_id", billIds);
+    .from("policies_tags")
+    .select("policy_id, tags(id, label)")
+    .in("policy_id", billIds);
 
   if (error) {
     throw new Error(`Failed to fetch tags: ${error.message}`);
   }
 
   return groupTagsByBillId(data ?? []);
-}
-
-// ============================================================
-// Diet Session Bills
-// ============================================================
-
-/**
- * 国会会期IDに紐づく公開済み議案を取得
- */
-export async function findPublishedBillsByDietSession(
-  dietSessionId: string,
-  difficultyLevel: DifficultyLevelEnum
-) {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("bills")
-    .select(
-      `
-      *,
-      bill_contents!inner (
-        id,
-        bill_id,
-        title,
-        summary,
-        content,
-        difficulty_level,
-        created_at,
-        updated_at
-      )
-    `
-    )
-    .eq("diet_session_id", dietSessionId)
-    .eq("publish_status", "published")
-    .eq("bill_contents.difficulty_level", difficultyLevel)
-    .order("status_order", { ascending: true })
-    .order("submitted_date", { ascending: false, nullsFirst: false });
-
-  if (error) {
-    throw new Error(`Failed to fetch bills by diet session: ${error.message}`);
-  }
-
-  return data;
-}
-
-/**
- * 前回の国会会期の公開済み議案を取得（成立法案を優先、件数制限あり）
- */
-export async function findPreviousSessionBills(
-  dietSessionId: string,
-  difficultyLevel: DifficultyLevelEnum,
-  limit: number
-) {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("bills")
-    .select(
-      `
-      *,
-      bill_contents!inner (
-        id,
-        bill_id,
-        title,
-        summary,
-        content,
-        difficulty_level,
-        created_at,
-        updated_at
-      )
-    `
-    )
-    .eq("diet_session_id", dietSessionId)
-    .eq("publish_status", "published")
-    .eq("bill_contents.difficulty_level", difficultyLevel)
-    .order("status_order", { ascending: true })
-    .order("submitted_date", { ascending: false, nullsFirst: false })
-    .limit(limit);
-
-  if (error) {
-    console.error("Failed to fetch previous session bills:", error);
-    return [];
-  }
-
-  return data ?? [];
-}
-
-/**
- * 前回の国会会期の公開済み議案数を取得
- */
-export async function countPublishedBillsByDietSession(
-  dietSessionId: string,
-  difficultyLevel: DifficultyLevelEnum
-): Promise<number> {
-  const supabase = createAdminClient();
-  const { count, error } = await supabase
-    .from("bills")
-    .select("*, bill_contents!inner(difficulty_level)", {
-      count: "exact",
-      head: true,
-    })
-    .eq("diet_session_id", dietSessionId)
-    .eq("publish_status", "published")
-    .eq("bill_contents.difficulty_level", difficultyLevel);
-
-  if (error) {
-    console.error("Failed to count previous session bills:", error);
-    return 0;
-  }
-
-  return count ?? 0;
 }
 
 // ============================================================
@@ -302,24 +178,23 @@ export async function findFeaturedTags() {
 }
 
 /**
- * 特定タグに紐づく公開済み議案を取得（bill_contents + タグ付き）
+ * 特定タグに紐づく公開済み施策を取得（policy_contents + タグ付き）
  */
 export async function findPublishedBillsByTag(
   tagId: string,
-  difficultyLevel: DifficultyLevelEnum,
-  dietSessionId: string | null
+  difficultyLevel: DifficultyLevelEnum
 ) {
   const supabase = createAdminClient();
-  let query = supabase
-    .from("bills_tags")
+  const { data, error } = await supabase
+    .from("policies_tags")
     .select(
       `
-      bill_id,
-      bills!inner (
+      policy_id,
+      policies!inner (
         *,
-        bill_contents!inner (
+        policy_contents!inner (
           id,
-          bill_id,
+          policy_id,
           title,
           summary,
           content,
@@ -327,7 +202,7 @@ export async function findPublishedBillsByTag(
           created_at,
           updated_at
         ),
-        bills_tags!inner (
+        policies_tags!inner (
           tags (
             id,
             label
@@ -337,17 +212,11 @@ export async function findPublishedBillsByTag(
     `
     )
     .eq("tag_id", tagId)
-    .eq("bills.publish_status", "published")
-    .eq("bills.bill_contents.difficulty_level", difficultyLevel);
-
-  if (dietSessionId) {
-    query = query.eq("bills.diet_session_id", dietSessionId);
-  }
-
-  const { data, error } = await query;
+    .eq("policies.publish_status", "published")
+    .eq("policies.policy_contents.difficulty_level", difficultyLevel);
 
   if (error) {
-    console.error(`Failed to fetch bills for tag:`, error);
+    console.error(`Failed to fetch policies for tag:`, error);
     return null;
   }
 
@@ -355,21 +224,20 @@ export async function findPublishedBillsByTag(
 }
 
 /**
- * 注目の議案を取得（is_featured = true）
+ * 注目の施策を取得（is_featured = true）
  */
 export async function findFeaturedBillsWithContents(
-  difficultyLevel: DifficultyLevelEnum,
-  dietSessionId: string | null
+  difficultyLevel: DifficultyLevelEnum
 ) {
   const supabase = createAdminClient();
-  let query = supabase
-    .from("bills")
+  const { data, error } = await supabase
+    .from("policies")
     .select(
       `
       *,
-      bill_contents!inner (
+      policy_contents!inner (
         id,
-        bill_id,
+        policy_id,
         title,
         summary,
         content,
@@ -377,7 +245,7 @@ export async function findFeaturedBillsWithContents(
         created_at,
         updated_at
       ),
-      tags:bills_tags(
+      tags:policies_tags(
         tag:tags(
           id,
           label
@@ -386,57 +254,11 @@ export async function findFeaturedBillsWithContents(
     `
     )
     .eq("is_featured", true)
-    .eq("bill_contents.difficulty_level", difficultyLevel)
-    .order("submitted_date", { ascending: false, nullsFirst: false });
-
-  if (dietSessionId) {
-    query = query.eq("diet_session_id", dietSessionId);
-  }
-
-  const { data, error } = await query;
+    .eq("policy_contents.difficulty_level", difficultyLevel)
+    .order("published_at", { ascending: false, nullsFirst: false });
 
   if (error) {
-    console.error("Failed to fetch featured bills:", error);
-    return [];
-  }
-
-  return data ?? [];
-}
-
-// ============================================================
-// Coming Soon
-// ============================================================
-
-/**
- * Coming Soon議案を取得
- */
-export async function findComingSoonBills(dietSessionId: string | null) {
-  const supabase = createAdminClient();
-  let query = supabase
-    .from("bills")
-    .select(
-      `
-      id,
-      name,
-      originating_house,
-      shugiin_url,
-      bill_contents (
-        title,
-        difficulty_level
-      )
-    `
-    )
-    .eq("publish_status", "coming_soon")
-    .order("created_at", { ascending: false });
-
-  if (dietSessionId) {
-    query = query.eq("diet_session_id", dietSessionId);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Failed to fetch coming soon bills:", error);
+    console.error("Failed to fetch featured policies:", error);
     return [];
   }
 
@@ -455,7 +277,7 @@ export async function findPreviewToken(billId: string, token: string) {
   const { data, error } = await supabase
     .from("preview_tokens")
     .select("expires_at")
-    .eq("bill_id", billId)
+    .eq("policy_id", billId)
     .eq("token", token)
     .single();
 
@@ -471,11 +293,10 @@ export async function findPreviewToken(billId: string, token: string) {
 // ============================================================
 
 /**
- * 複数のbill_idに対して、公開中のインタビュー設定があるかを一括判定
+ * 複数のpolicy_idに対して、募集中の意見募集があるかを一括判定
  *
- * status="public" のみで判定する。論理削除（deleted_at）された設定は
- * 削除時に status="closed" へ変更されるため、ここで自然に除外される
- * （softDeleteInterviewConfigRecord 参照）。
+ * 施策と意見募集は policies_interview_configs による多対多。
+ * status="open"（旧 "public"）のものだけを対象にする。
  */
 export async function findBillIdsWithPublicInterview(
   billIds: string[]
@@ -486,15 +307,15 @@ export async function findBillIdsWithPublicInterview(
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_configs")
-    .select("bill_id")
-    .in("bill_id", billIds)
-    .eq("status", "public");
+    .from("policies_interview_configs")
+    .select("policy_id, interview_configs!inner(status)")
+    .in("policy_id", billIds)
+    .eq("interview_configs.status", "open");
 
   if (error) {
     console.error("Failed to fetch interview configs:", error);
     return new Set();
   }
 
-  return new Set(data.map((row) => row.bill_id));
+  return new Set(data.map((row) => row.policy_id));
 }

@@ -8,8 +8,6 @@ const baseSnapshot: OriginalInterviewSnapshot = {
   configId: "config-1",
   billId: "bill-1",
   summary: "業務負担が増えるのが心配だが、安全のためなら必要かも",
-  stance: "neutral",
-  role: "work_related",
   roleTitle: "看護師",
   roleDescription: "都内総合病院で 10 年勤務する看護師",
   opinions: [
@@ -32,7 +30,6 @@ describe("buildPersonaExtractorPrompt", () => {
     const result = buildPersonaExtractorPrompt(baseSnapshot);
     expect(result).toContain("看護師");
     expect(result).toContain("10 年勤務");
-    expect(result).toContain("neutral");
     expect(result).toContain("業務負担が増えるのが心配");
   });
 
@@ -70,7 +67,6 @@ describe("buildPersonaExtractorPrompt", () => {
     const result = buildPersonaExtractorPrompt({
       ...baseSnapshot,
       summary: null,
-      stance: null,
       roleTitle: null,
       roleDescription: null,
     });

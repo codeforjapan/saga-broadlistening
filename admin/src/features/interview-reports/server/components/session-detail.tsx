@@ -6,18 +6,15 @@ import { CopyMessageLinkButton } from "../../client/components/copy-message-link
 import { RegenerateContentRichnessButton } from "../../client/components/regenerate-content-richness-button";
 import { RegenerateModerationButton } from "../../client/components/regenerate-moderation-button";
 import { ReportVisibilityToggle } from "../../client/components/report-visibility-toggle";
-import { formatRoleLabel } from "../../shared/constants";
 import { FEEDBACK_TAG_LABELS } from "../../shared/constants/feedback-tags";
 import type { InterviewSessionDetail } from "../../shared/types";
 import { formatDuration, getSessionStatus } from "../../shared/types";
 import { getMessageDisplayText } from "../../shared/utils/get-message-display-text";
 import { getMessageAnchorId } from "../../shared/utils/message-anchor";
-import { parseOpinions } from "../../shared/utils/parse-opinions";
 import { HighlightedText } from "./highlighted-text";
 import { ModerationBadge } from "./moderation-badge";
 import { RatingStars } from "./rating-stars";
 import { SessionStatusBadge } from "./session-status-badge";
-import { StanceBadge } from "./stance-badge";
 
 interface SessionDetailProps {
   session: InterviewSessionDetail;
@@ -162,7 +159,7 @@ export function SessionDetail({
               reportId={report.id}
               sessionId={session.id}
               billId={billId}
-              isPublic={report.is_public_by_admin ?? false}
+              isPublic={report.review_status === "published"}
               isPublicByUser={report.is_public_by_user ?? false}
             />
           )}
@@ -172,16 +169,10 @@ export function SessionDetail({
             <div className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <div className="text-sm text-gray-500">スタンス</div>
-                  <div className="mt-1">
-                    <StanceBadge stance={report.stance} />
-                  </div>
-                </div>
-                <div>
                   <div className="text-sm text-gray-500">役割</div>
                   <div className="flex items-center gap-1 text-sm">
                     <User className="h-4 w-4 text-gray-400" />
-                    {formatRoleLabel(report.role, report.role_title) || "-"}
+                    {report.role_title || "-"}
                   </div>
                 </div>
                 <div>
@@ -215,11 +206,11 @@ export function SessionDetail({
                   {report.summary || "-"}
                 </div>
               </div>
-              {report.opinions && parseOpinions(report.opinions).length > 0 && (
+              {session.opinion_segments.length > 0 && (
                 <div>
                   <div className="text-sm text-gray-500 mb-1">意見</div>
                   <div className="space-y-3">
-                    {parseOpinions(report.opinions).map((opinion, index) => (
+                    {session.opinion_segments.map((opinion, index) => (
                       <div
                         key={`opinion-${index}-${opinion.title.slice(0, 20)}`}
                         className="bg-gray-50 p-3 rounded-lg"

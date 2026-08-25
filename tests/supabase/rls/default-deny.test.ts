@@ -1,31 +1,61 @@
-import { describe, expect, it } from "vitest";
+import type { Database } from "@mirai-gikai/supabase";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  cleanupTestUser,
+  createTestUser,
   getAnonClient,
   getAuthenticatedClient,
-  createTestUser,
-  cleanupTestUser,
 } from "../utils";
 
 /**
  * 全テーブルは RLS 有効 + ポリシーなし（default deny）。
  * anon / authenticated どちらからも SELECT・INSERT できないことを確認する。
+ *
+ * 対象は public スキーマの全テーブル。テーブルを追加したときに
+ * ここへ足し忘れると `_assertAllTablesCovered` が型エラーになる
+ * （手書きのリストが実スキーマから静かにずれるのを防ぐため）。
  */
 
+type PublicTable = keyof Database["public"]["Tables"];
+
 const tables = [
-  "bills",
-  "bill_contents",
-  "mirai_stances",
-  "chats",
+  "policies",
+  "policy_contents",
+  "policies_tags",
   "tags",
-  "bills_tags",
   "preview_tokens",
-  "diet_sessions",
+  "chat_sessions",
+  "chat_messages",
   "interview_configs",
+  "policies_interview_configs",
   "interview_questions",
   "interview_sessions",
   "interview_messages",
-  "interview_report",
-] as const;
+  "interview_rating_feedbacks",
+  "opinions",
+  "opinion_segments",
+  "opinion_reactions",
+  "topic_analysis_versions",
+  "topic_analysis_topics",
+  "topic_analysis_classifications",
+  "topic_analysis_version",
+  "topic",
+  "topic_opinion",
+  "portal_controls",
+  "audit_logs",
+  "guard_events",
+  "api_rate_limits",
+  "chat_usage_events",
+  // Issue #59 で削除予定の旧テーブル
+  "bills",
+  "bill_contents",
+  "bills_tags",
+  "chats",
+] as const satisfies readonly PublicTable[];
+
+/** 網羅チェック。未掲載のテーブルがあると never に代入できず型エラーになる */
+type UncoveredTable = Exclude<PublicTable, (typeof tables)[number]>;
+const _assertAllTablesCovered: UncoveredTable[] = [];
 
 describe("RLS default deny（全テーブル共通）", () => {
   describe("anon クライアント", () => {
@@ -43,22 +73,19 @@ describe("RLS default deny（全テーブル共通）", () => {
       });
     }
 
-    it("bills: INSERT が拒否される", async () => {
-      const { error } = await anon.from("bills").insert({
+    it("policies: INSERT が拒否される", async () => {
+      const { error } = await anon.from("policies").insert({
         name: "不正な挿入テスト",
-        originating_house: "HR",
-        status: "introduced",
+        slug: `rls-test-${Date.now()}`,
         publish_status: "draft",
       });
       expect(error).not.toBeNull();
     });
 
-    it("diet_sessions: INSERT が拒否される", async () => {
-      const { error } = await anon.from("diet_sessions").insert({
-        name: "不正な挿入テスト",
-        start_date: "2025-01-01",
-        end_date: "2025-06-30",
-        slug: "rls-test",
+    it("audit_logs: INSERT が拒否される", async () => {
+      const { error } = await anon.from("audit_logs").insert({
+        action: "不正な挿入テスト",
+        entity_type: "policy",
       });
       expect(error).not.toBeNull();
     });
@@ -91,24 +118,21 @@ describe("RLS default deny（全テーブル共通）", () => {
       });
     }
 
-    it("bills: INSERT が拒否される", async () => {
+    it("policies: INSERT が拒否される", async () => {
       const client = await getAuthenticatedClient(email, password);
-      const { error } = await client.from("bills").insert({
+      const { error } = await client.from("policies").insert({
         name: "不正な挿入テスト",
-        originating_house: "HR",
-        status: "introduced",
+        slug: `rls-test-${Date.now()}`,
         publish_status: "draft",
       });
       expect(error).not.toBeNull();
     });
 
-    it("diet_sessions: INSERT が拒否される", async () => {
+    it("audit_logs: INSERT が拒否される", async () => {
       const client = await getAuthenticatedClient(email, password);
-      const { error } = await client.from("diet_sessions").insert({
-        name: "不正な挿入テスト",
-        start_date: "2025-01-01",
-        end_date: "2025-06-30",
-        slug: "rls-test",
+      const { error } = await client.from("audit_logs").insert({
+        action: "不正な挿入テスト",
+        entity_type: "policy",
       });
       expect(error).not.toBeNull();
     });

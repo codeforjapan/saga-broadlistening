@@ -1,6 +1,7 @@
 import "server-only";
 
-import { isReportAutoPublishEligible } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { shouldAutoPublishOnUserSettingChange } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { resolveAdminVisibilityUpdate } from "@mirai-gikai/shared/report-publication/review-status";
 import { createAdminClient } from "@mirai-gikai/supabase";
 import type {
   MessageSearchFilterConfig,
@@ -10,23 +11,21 @@ import { DEFAULT_SESSION_FILTER } from "../../shared/types";
 import { escapeIlikePattern } from "../../shared/utils/escape-ilike-pattern";
 import { hasReportLevelSearchFilters } from "../../shared/utils/parse-message-search-filter-params";
 
+// Epic #54 で interview_report → opinions、report_reactions → opinion_reactions に
+// 再定義された。呼び出し側の変更を抑えるため、埋め込みは
+// `interview_report:opinions(...)` のエイリアスで受けている。
+// bill / report という名前の改名は Epic #8 完了後のフォローアップで行う。
+
 function toRpcFilterParams(filters: SessionFilterConfig) {
   return {
     p_status: filters.status !== "all" ? (filters.status as string) : undefined,
     p_visibility:
       filters.visibility !== "all" ? (filters.visibility as string) : undefined,
-    p_stance: filters.stance !== "all" ? (filters.stance as string) : undefined,
-    p_role: filters.role !== "all" ? (filters.role as string) : undefined,
   };
 }
 
 function hasReportLevelFilters(filters: SessionFilterConfig): boolean {
-  return (
-    filters.visibility !== "all" ||
-    filters.stance !== "all" ||
-    filters.role !== "all" ||
-    filters.moderation !== "all"
-  );
+  return filters.visibility !== "all" || filters.moderation !== "all";
 }
 
 export async function findInterviewSessionsWithReport(
@@ -42,8 +41,8 @@ export async function findInterviewSessionsWithReport(
   const supabase = createAdminClient();
   const useInnerJoin = hasReportLevelFilters(filters);
   const selectQuery = useInnerJoin
-    ? "*, interview_report!inner(*)"
-    : "*, interview_report(*)";
+    ? "*, interview_report:opinions!inner(*)"
+    : "*, interview_report:opinions(*)";
 
   let query = supabase
     .from("interview_sessions")
@@ -60,18 +59,11 @@ export async function findInterviewSessionsWithReport(
   }
 
   // レポートレベルフィルタ（inner join使用時のみ有効）
+  // 公開状態の正本は review_status
   if (filters.visibility === "public") {
-    query = query.eq("interview_report.is_public_by_admin", true);
+    query = query.eq("interview_report.review_status", "published");
   } else if (filters.visibility === "private") {
-    query = query.eq("interview_report.is_public_by_admin", false);
-  }
-
-  if (filters.stance !== "all") {
-    query = query.eq("interview_report.stance", filters.stance);
-  }
-
-  if (filters.role !== "all") {
-    query = query.eq("interview_report.role", filters.role);
+    query = query.neq("interview_report.review_status", "published");
   }
 
   if (filters.moderation === "unscored") {
@@ -129,7 +121,7 @@ export async function findInterviewSessionsWithReportByIds(
     .select(
       `
       *,
-      interview_report(*)
+      interview_report:opinions(*)
     `
     )
     .in("id", sessionIds);
@@ -141,87 +133,6 @@ export async function findInterviewSessionsWithReportByIds(
   // Preserve the order of sessionIds
   const dataMap = new Map(data.map((s) => [s.id, s]));
   return sessionIds.map((id) => dataMap.get(id)).filter(Boolean) as typeof data;
-}
-
-export async function findFilteredSessionIds(
-  configId: string,
-  filters: SessionFilterConfig = DEFAULT_SESSION_FILTER
-): Promise<string[]> {
-  const supabase = createAdminClient();
-
-  // レポートレベルフィルタがある場合はreport経由でセッションIDを取得
-  if (hasReportLevelFilters(filters)) {
-    let reportQuery = supabase
-      .from("interview_report")
-      .select("interview_session_id, interview_sessions!inner(id)")
-      .eq("interview_sessions.interview_config_id", configId);
-
-    if (filters.status === "completed") {
-      reportQuery = reportQuery.not(
-        "interview_sessions.completed_at",
-        "is",
-        null
-      );
-    } else if (filters.status === "in_progress") {
-      reportQuery = reportQuery
-        .is("interview_sessions.completed_at", null)
-        .is("interview_sessions.archived_at", null);
-    } else if (filters.status === "archived") {
-      reportQuery = reportQuery
-        .is("interview_sessions.completed_at", null)
-        .not("interview_sessions.archived_at", "is", null);
-    }
-
-    if (filters.visibility === "public") {
-      reportQuery = reportQuery.eq("is_public_by_admin", true);
-    } else if (filters.visibility === "private") {
-      reportQuery = reportQuery.eq("is_public_by_admin", false);
-    }
-
-    if (filters.stance !== "all") {
-      reportQuery = reportQuery.eq("stance", filters.stance);
-    }
-
-    if (filters.role !== "all") {
-      reportQuery = reportQuery.eq("role", filters.role);
-    }
-
-    if (filters.moderation === "unscored") {
-      reportQuery = reportQuery.is("moderation_score", null);
-    } else if (filters.moderation !== "all") {
-      reportQuery = reportQuery.eq("moderation_status", filters.moderation);
-    }
-
-    const { data, error } = await reportQuery;
-
-    if (error) {
-      throw new Error(`Failed to fetch filtered session ids: ${error.message}`);
-    }
-
-    return (data || []).map((row) => row.interview_session_id);
-  }
-
-  // セッションレベルフィルタのみの場合
-  let query = supabase
-    .from("interview_sessions")
-    .select("id")
-    .eq("interview_config_id", configId);
-
-  if (filters.status === "completed") {
-    query = query.not("completed_at", "is", null);
-  } else if (filters.status === "in_progress") {
-    query = query.is("completed_at", null).is("archived_at", null);
-  } else if (filters.status === "archived") {
-    query = query.is("completed_at", null).not("archived_at", "is", null);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Failed to fetch filtered session ids: ${error.message}`);
-  }
-
-  return (data || []).map((row) => row.id);
 }
 
 export async function findSessionIdsOrderedByTotalContentRichness(
@@ -315,8 +226,8 @@ export async function findHelpfulCountsByReportIds(
   if (reportIds.length === 0) return countsMap;
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc("count_reactions_by_report_ids", {
-    report_ids: reportIds,
+  const { data, error } = await supabase.rpc("count_reactions_by_opinion_ids", {
+    opinion_ids: reportIds,
   });
 
   if (error) {
@@ -325,7 +236,7 @@ export async function findHelpfulCountsByReportIds(
 
   for (const row of data) {
     if (row.reaction_type === "helpful") {
-      countsMap.set(row.interview_report_id, Number(row.cnt));
+      countsMap.set(row.opinion_id, Number(row.cnt));
     }
   }
 
@@ -351,7 +262,9 @@ export async function countInterviewSessionsByConfigId(
 ): Promise<number> {
   const supabase = createAdminClient();
   const useInnerJoin = hasReportLevelFilters(filters);
-  const selectQuery = useInnerJoin ? "*, interview_report!inner(*)" : "*";
+  const selectQuery = useInnerJoin
+    ? "*, interview_report:opinions!inner(*)"
+    : "*";
 
   let query = supabase
     .from("interview_sessions")
@@ -369,17 +282,9 @@ export async function countInterviewSessionsByConfigId(
 
   // レポートレベルフィルタ
   if (filters.visibility === "public") {
-    query = query.eq("interview_report.is_public_by_admin", true);
+    query = query.eq("interview_report.review_status", "published");
   } else if (filters.visibility === "private") {
-    query = query.eq("interview_report.is_public_by_admin", false);
-  }
-
-  if (filters.stance !== "all") {
-    query = query.eq("interview_report.stance", filters.stance);
-  }
-
-  if (filters.role !== "all") {
-    query = query.eq("interview_report.role", filters.role);
+    query = query.neq("interview_report.review_status", "published");
   }
 
   if (filters.moderation === "unscored") {
@@ -415,7 +320,7 @@ export async function findInterviewSessionById(sessionId: string) {
 export async function findInterviewReportBySessionId(sessionId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .select("*")
     .eq("interview_session_id", sessionId)
     .single();
@@ -428,6 +333,25 @@ export async function findInterviewReportBySessionId(sessionId: string) {
   }
 
   return data;
+}
+
+/**
+ * 意見に紐づく論点単位の意見（opinion_segments）を順番どおりに取得する。
+ * 旧 interview_report.opinions（JSONB）の置き換え。
+ */
+export async function findOpinionSegmentsByOpinionId(opinionId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("opinion_segments")
+    .select("title, content, source_message_id")
+    .eq("opinion_id", opinionId)
+    .order("opinion_index", { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to fetch opinion segments: ${error.message}`);
+  }
+
+  return data ?? [];
 }
 
 export async function findInterviewMessagesBySessionId(sessionId: string) {
@@ -457,7 +381,7 @@ export async function searchUserMessagesByConfigId(
   // embed のカラムはフィルタにのみ使うため取得しない（空の embed でも
   // inner join とネストしたフィルタは機能する）
   const selectQuery = hasReportLevelSearchFilters(filters)
-    ? "id, interview_session_id, content, created_at, interview_sessions!inner(interview_report!inner())"
+    ? "id, interview_session_id, content, created_at, interview_sessions!inner(interview_report:opinions!inner())"
     : "id, interview_session_id, content, created_at, interview_sessions!inner()";
 
   let queryBuilder = supabase
@@ -467,18 +391,6 @@ export async function searchUserMessagesByConfigId(
     .eq("interview_sessions.interview_config_id", configId)
     .ilike("content", `%${escapeIlikePattern(query)}%`);
 
-  if (filters.stance !== "all") {
-    queryBuilder = queryBuilder.eq(
-      "interview_sessions.interview_report.stance",
-      filters.stance
-    );
-  }
-  if (filters.role !== "all") {
-    queryBuilder = queryBuilder.eq(
-      "interview_sessions.interview_report.role",
-      filters.role
-    );
-  }
   if (filters.roleTitle !== "") {
     queryBuilder = queryBuilder.ilike(
       "interview_sessions.interview_report.role_title",
@@ -507,9 +419,9 @@ export async function findReactionCountsByReportId(
 ): Promise<{ helpful: number }> {
   const supabase = createAdminClient();
   const helpfulResult = await supabase
-    .from("report_reactions")
+    .from("opinion_reactions")
     .select("*", { count: "exact", head: true })
-    .eq("interview_report_id", reportId)
+    .eq("opinion_id", reportId)
     .eq("reaction_type", "helpful");
 
   if (helpfulResult.error) {
@@ -539,9 +451,9 @@ export async function findFeedbackTagsBySessionId(
   return (data || []).map((row) => row.tag);
 }
 
-export type InterviewMetricsByBillRow = {
-  bill_id: string;
-  bill_name: string;
+export type InterviewMetricsByConfigRow = {
+  interview_config_id: string;
+  interview_config_name: string;
   conducted_count: number;
   completed_count: number;
   completion_rate: number;
@@ -549,20 +461,21 @@ export type InterviewMetricsByBillRow = {
 };
 
 /**
- * 議案ごとのAIインタビュー実施数・完了数・完了率・総回答時間を取得する。
- * billId を指定すると単一議案に絞り込み、省略すると設定を持つ全議案を返す。
+ * 意見募集ごとのAIインタビュー実施数・完了数・完了率・総回答時間を取得する。
+ * configId を指定すると単一テーマに絞り込み、省略すると全テーマを返す。
  */
-export async function findInterviewMetricsByBill(
-  billId?: string
-): Promise<InterviewMetricsByBillRow[]> {
+export async function findInterviewMetricsByConfig(
+  configId?: string
+): Promise<InterviewMetricsByConfigRow[]> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc("get_interview_metrics_by_bill", {
-    p_bill_id: billId,
-  });
+  const { data, error } = await supabase.rpc(
+    "get_interview_metrics_by_config",
+    { p_interview_config_id: configId }
+  );
 
   if (error) {
     throw new Error(
-      `Failed to fetch interview metrics by bill: ${error.message}`
+      `Failed to fetch interview metrics by config: ${error.message}`
     );
   }
 
@@ -597,16 +510,36 @@ export async function findQuestionAnswerCounts(configId: string) {
 
 export async function updateReportVisibility(
   reportId: string,
-  isPublic: boolean
+  isPublic: boolean,
+  reviewedBy: string
 ): Promise<void> {
   const supabase = createAdminClient();
-  // 非公開にした管理者判断を admin_unpublished_at に記録し、ユーザー操作による
-  // 自動公開で公開停止が覆されないようにする。公開に戻した場合は記録を消す。
+
+  // published にできるのは市民本人の公開同意が揃っているときだけなので、
+  // 現在の is_public_by_user を読んでから遷移を決める。
+  const { data: opinion, error: fetchError } = await supabase
+    .from("opinions")
+    .select("is_public_by_user")
+    .eq("id", reportId)
+    .single();
+
+  if (fetchError) {
+    throw new Error(
+      `Failed to fetch opinion for visibility update: ${fetchError.message}`
+    );
+  }
+
+  // 職員が非公開にした判断は review_status='hidden' として残し、ユーザー操作による
+  // 自動公開で公開停止が覆されないようにする（旧 admin_unpublished_at の役割）。
   const { error } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .update({
-      is_public_by_admin: isPublic,
-      admin_unpublished_at: isPublic ? null : new Date().toISOString(),
+      ...resolveAdminVisibilityUpdate({
+        isPublic,
+        isPublicByUser: opinion.is_public_by_user,
+      }),
+      reviewed_by: reviewedBy,
+      reviewed_at: new Date().toISOString(),
     })
     .eq("id", reportId);
 
@@ -618,8 +551,10 @@ export async function updateReportVisibility(
 export async function findReportForModerationScoringById(reportId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_report")
-    .select("id, interview_session_id, summary, opinions, role_description")
+    .from("opinions")
+    .select(
+      "id, interview_session_id, summary, role_description, opinion_segments(opinion_index, title, content)"
+    )
     .eq("id", reportId)
     .single();
 
@@ -635,45 +570,8 @@ export async function findReportForModerationScoringById(reportId: string) {
   return data;
 }
 
-export async function findReportsForModerationScoring() {
-  const supabase = createAdminClient();
-  const PAGE_SIZE = 500;
-  type ReportRow = {
-    id: string;
-    interview_session_id: string;
-    summary: string | null;
-    opinions: unknown;
-    role_description: string | null;
-  };
-  const allData: ReportRow[] = [];
-  let offset = 0;
-
-  // Supabase max_rows 制限を超えるデータに対応するためページネーション
-  while (true) {
-    const { data, error } = await supabase
-      .from("interview_report")
-      .select("id, interview_session_id, summary, opinions, role_description")
-      .range(offset, offset + PAGE_SIZE - 1);
-
-    if (error) {
-      throw new Error(
-        `Failed to fetch reports for moderation scoring: ${error.message}`
-      );
-    }
-
-    allData.push(...data);
-
-    if (data.length < PAGE_SIZE) {
-      break;
-    }
-    offset += PAGE_SIZE;
-  }
-
-  return allData;
-}
-
 /**
- * interview_report テーブルからIDをページネーション付きで取得するヘルパー
+ * opinions テーブルからIDをページネーション付きで取得するヘルパー
  */
 async function fetchReportIdsPaginated(options?: {
   unscoredOnly?: boolean;
@@ -684,7 +582,7 @@ async function fetchReportIdsPaginated(options?: {
   let offset = 0;
 
   while (true) {
-    let query = supabase.from("interview_report").select("id");
+    let query = supabase.from("opinions").select("id");
 
     if (options?.unscoredOnly) {
       query = query.is("moderation_score", null);
@@ -732,7 +630,7 @@ export async function updateModerationScore(
 ): Promise<void> {
   const supabase = createAdminClient();
   const { error } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .update({
       moderation_score: params.score,
       moderation_reasoning: params.reasoning,
@@ -759,7 +657,7 @@ export async function updateContentRichness(
 ): Promise<void> {
   const supabase = createAdminClient();
   const { error } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .update({
       content_richness: contentRichness,
     })
@@ -777,9 +675,9 @@ export async function publishReportIfAutoPublishEligible(
 ): Promise<boolean> {
   const supabase = createAdminClient();
   const { data: report, error: fetchError } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .select(
-      "is_public_by_user, is_public_by_admin, moderation_score, total_content_richness"
+      "is_public_by_user, is_public_by_admin, moderation_score, total_content_richness, review_status"
     )
     .eq("id", reportId)
     .single();
@@ -790,9 +688,11 @@ export async function publishReportIfAutoPublishEligible(
     );
   }
 
+  // 職員が非公開にした意見（hidden）は自動公開の対象外
   if (
-    report.is_public_by_admin ||
-    !isReportAutoPublishEligible({
+    !shouldAutoPublishOnUserSettingChange({
+      isPublicByAdmin: report.is_public_by_admin,
+      reviewStatus: report.review_status,
       isPublicByUser: report.is_public_by_user,
       moderationScore: report.moderation_score,
       totalContentRichness: report.total_content_richness,
@@ -802,8 +702,8 @@ export async function publishReportIfAutoPublishEligible(
   }
 
   const { error } = await supabase
-    .from("interview_report")
-    .update({ is_public_by_admin: true })
+    .from("opinions")
+    .update({ is_public_by_admin: true, review_status: "published" })
     .eq("id", reportId);
 
   if (error) {

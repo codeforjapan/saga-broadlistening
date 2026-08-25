@@ -1,7 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
-import { getActiveDietSession } from "@/features/diet-sessions/server/loaders/get-active-diet-session";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import type { BillWithContent } from "../../shared/types";
 import {
@@ -11,27 +10,19 @@ import {
 } from "../repositories/bill-repository";
 
 /**
- * 注目の議案を取得する
- * is_featured = true でアクティブな国会会期の公開済み議案を最新順に取得
- * アクティブな国会会期がない場合は全件取得
+ * 注目の施策を取得する
+ * is_featured = true の公開済み施策を公開日の新しい順に取得
  */
 export async function getFeaturedBills(): Promise<BillWithContent[]> {
   // キャッシュ外でcookiesにアクセス
   const difficultyLevel = await getDifficultyLevel();
-  const activeSession = await getActiveDietSession();
 
-  return _getCachedFeaturedBills(difficultyLevel, activeSession?.id ?? null);
+  return _getCachedFeaturedBills(difficultyLevel);
 }
 
 const _getCachedFeaturedBills = unstable_cache(
-  async (
-    difficultyLevel: DifficultyLevelEnum,
-    dietSessionId: string | null
-  ): Promise<BillWithContent[]> => {
-    const data = await findFeaturedBillsWithContents(
-      difficultyLevel,
-      dietSessionId
-    );
+  async (difficultyLevel: DifficultyLevelEnum): Promise<BillWithContent[]> => {
+    const data = await findFeaturedBillsWithContents(difficultyLevel);
 
     if (data.length === 0) {
       return [];
@@ -46,11 +37,11 @@ const _getCachedFeaturedBills = unstable_cache(
 
     // データ構造を整形
     return data.map((item) => {
-      const { bill_contents, ...bill } = item;
+      const { policy_contents, ...bill } = item;
       return {
         ...bill,
-        bill_content: Array.isArray(bill_contents)
-          ? bill_contents[0]
+        bill_content: Array.isArray(policy_contents)
+          ? policy_contents[0]
           : undefined,
         tags: tagsByBillId.get(item.id) || [],
         hasPublicInterview: interviewBillIds.has(item.id),

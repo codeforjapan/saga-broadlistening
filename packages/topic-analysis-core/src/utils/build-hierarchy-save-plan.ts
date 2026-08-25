@@ -12,7 +12,7 @@ export type HierarchyTopicRow = TopicDraft & {
 export type HierarchySavePlan = {
   topics: HierarchyTopicRow[];
   /** 意見 → 葉トピック（中トピック）の sort_order。 */
-  pairs: Array<{ opinion_id: string; topic_index: number }>;
+  pairs: Array<{ opinion_segment_id: string; topic_index: number }>;
 };
 
 /**
@@ -60,7 +60,10 @@ export function buildHierarchySavePlan(
     if (!assignment.topic_local_id) continue;
     const topicIndex = sortOrderByLocalId.get(assignment.topic_local_id);
     if (topicIndex === undefined) continue;
-    pairs.push({ opinion_id: assignment.opinion_id, topic_index: topicIndex });
+    pairs.push({
+      opinion_segment_id: assignment.opinion_segment_id,
+      topic_index: topicIndex,
+    });
   }
 
   return { topics, pairs };

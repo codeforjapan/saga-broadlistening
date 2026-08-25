@@ -3,7 +3,7 @@ import "server-only";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
-  findBillsWithDietSessions,
+  findBills,
   updateBillPublishStatus,
 } from "@/features/bills/server/repositories/bill-repository";
 import {
@@ -32,25 +32,19 @@ export function registerBillsTools(server: McpServer): void {
     {
       title: "議案一覧を取得",
       description:
-        "mirai議会adminに登録されている議案を返す。各議案にdiet_session名も含む。publish_status / status でフィルタ可能。",
+        "mirai議会adminに登録されている議案（施策）を返す。publish_status でフィルタ可能。",
       inputSchema: {
         publish_status: z
-          .enum(["draft", "published", "coming_soon"])
+          .enum(["draft", "published"])
           .optional()
           .describe("公開ステータスでフィルタ"),
-        status: billUpdateSchema.shape.status
-          .optional()
-          .describe("審議ステータスでフィルタ"),
       },
     },
-    async ({ publish_status, status }) => {
-      const bills = await findBillsWithDietSessions();
-      const filtered = bills.filter((bill) => {
-        if (publish_status && bill.publish_status !== publish_status)
-          return false;
-        if (status && bill.status !== status) return false;
-        return true;
-      });
+    async ({ publish_status }) => {
+      const bills = await findBills();
+      const filtered = publish_status
+        ? bills.filter((bill) => bill.publish_status === publish_status)
+        : bills;
       return jsonResult(filtered);
     }
   );
@@ -104,12 +98,7 @@ export function registerBillsTools(server: McpServer): void {
       inputSchema: billCreateSchema.shape,
     },
     async (input) => {
-      const inserted = await createBillRecord({
-        ...input,
-        submitted_date: input.submitted_date
-          ? `${input.submitted_date}T00:00:00+09:00`
-          : null,
-      });
+      const inserted = await createBillRecord(input);
       await invalidateBillsCache();
       return jsonResult({ ok: true, bill: inserted });
     }
@@ -120,7 +109,7 @@ export function registerBillsTools(server: McpServer): void {
     {
       title: "議案を更新",
       description:
-        "指定IDの議案のメタ情報（name, status, originating_house 等）を部分更新する。指定したフィールドのみが更新され、省略したフィールドは変更されない。",
+        "指定IDの議案のメタ情報（name, department, contact, enable_ai_chat 等）を部分更新する。指定したフィールドのみが更新され、省略したフィールドは変更されない。",
       inputSchema: {
         billId: z.string().uuid(),
         ...billUpdateSchema.partial().shape,
@@ -136,11 +125,10 @@ export function registerBillsTools(server: McpServer): void {
     "update_bill_publish_status",
     {
       title: "議案の公開ステータスを変更",
-      description:
-        "議案の publish_status を draft / published / coming_soon に変更する。",
+      description: "議案の publish_status を draft / published に変更する。",
       inputSchema: {
         billId: z.string().uuid(),
-        publishStatus: z.enum(["draft", "published", "coming_soon"]),
+        publishStatus: z.enum(["draft", "published"]),
       },
     },
     async ({ billId, publishStatus }) => {
