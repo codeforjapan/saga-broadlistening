@@ -2,59 +2,45 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { registerTopicAnalysisTools } from "../../admin/src/features/mcp/server/tools/register-topic-analysis-tools";
 import { unwrapUntrustedData } from "../../admin/src/features/mcp/shared/utils/untrusted-data-block";
 import {
+  cleanupTestInterviewConfig,
+  createTestSession,
+} from "../supabase/db-function/helpers";
+import {
   adminClient,
-  cleanupTestBill,
   cleanupTestUser,
-  createTestBill,
+  createTestInterviewConfig,
+  createTestOpinion,
   createTestUser,
   type TestUser,
 } from "../supabase/utils";
 import { createTestRegistry, type TestMcpRegistry } from "./utils";
 
 /**
- * session + report + interview_opinion を1件作り、{ reportId, opinionId } を返す。
+ * session + opinion + opinion_segments を1件作り、{ opinionId, segmentId } を返す。
  * roleDescription / messages を渡すと立場説明・会話ログも投入する。
  */
-async function createReportWithOpinion(opts: {
+async function createOpinionWithSegment(opts: {
   configId: string;
   userId: string;
-  isPublicByUser: boolean;
-  isPublicByAdmin: boolean;
-  role: string;
-  stance?: string;
+  reviewStatus: "published" | "pending_review" | "hidden";
   title: string;
-  billSentiment?: string;
   roleDescription?: string;
   messages?: Array<{ role: "assistant" | "user"; content: string }>;
-}): Promise<{ reportId: string; opinionId: string }> {
-  const { data: session } = await adminClient
-    .from("interview_sessions")
-    .insert({
-      interview_config_id: opts.configId,
-      user_id: opts.userId,
-      started_at: new Date().toISOString(),
-      completed_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-  if (!session) throw new Error("session insert failed");
+}): Promise<{ opinionId: string; segmentId: string }> {
+  const session = await createTestSession(opts.configId, opts.userId, {
+    completed_at: new Date().toISOString(),
+  });
 
-  const { data: report } = await adminClient
-    .from("interview_report")
-    .insert({
-      interview_session_id: session.id,
-      is_public_by_user: opts.isPublicByUser,
-      is_public_by_admin: opts.isPublicByAdmin,
-      moderation_score: 5,
-      role: opts.role,
-      role_title: "育休経験者",
-      role_description: opts.roleDescription ?? null,
-      stance: opts.stance ?? null,
-      summary: `${opts.title}の要約`,
-    })
-    .select()
-    .single();
-  if (!report) throw new Error("report insert failed");
+  const opinion = await createTestOpinion(session.id, {
+    review_status: opts.reviewStatus,
+    is_public_by_user: true,
+    is_public_by_admin: opts.reviewStatus === "published",
+    moderation_score: 5,
+    role_title: "育休経験者",
+    role_description: opts.roleDescription,
+    summary: `${opts.title}の要約`,
+    final_text: `${opts.title}の意見本文`,
+  });
 
   if (opts.messages?.length) {
     const { error: messagesError } = await adminClient
@@ -69,26 +55,25 @@ async function createReportWithOpinion(opts: {
     if (messagesError) throw new Error("messages insert failed");
   }
 
-  const { data: opinion } = await adminClient
-    .from("interview_opinion")
+  const { data: segment } = await adminClient
+    .from("opinion_segments")
     .insert({
-      interview_report_id: report.id,
+      opinion_id: opinion.id,
       opinion_index: 0,
       title: opts.title,
       content: `${opts.title}の本文`,
-      bill_sentiment: opts.billSentiment ?? null,
     })
     .select("id")
     .single();
-  if (!opinion) throw new Error("opinion insert failed");
-  return { reportId: report.id, opinionId: opinion.id };
+  if (!segment) throw new Error("opinion_segment insert failed");
+  return { opinionId: opinion.id, segmentId: segment.id };
 }
 
 /**
- * 件数ゲート用に、最小構成の公開レポート（session + report）を n 件まとめて作る。
- * k-匿名性しきい値（公開レポート >= 20 件）を満たすための水増しに使う。
+ * 件数ゲート用に、最小構成の公開意見（session + opinion）を n 件まとめて作る。
+ * k-匿名性しきい値（公開意見 >= 20 件）を満たすための水増しに使う。
  */
-async function createPublicReports(
+async function createPublicOpinions(
   configId: string,
   userId: string,
   n: number
@@ -107,17 +92,18 @@ async function createPublicReports(
     .select("id");
   if (!sessions) throw new Error("sessions insert failed");
 
-  const { error } = await adminClient.from("interview_report").insert(
-    sessions.map((s) => ({
+  const { error } = await adminClient.from("opinions").insert(
+    sessions.map((s, i) => ({
       interview_session_id: s.id,
+      final_text: `件数ゲート用${i + 1}`,
+      summary: "件数ゲート用",
+      review_status: "published" as const,
       is_public_by_user: true,
       is_public_by_admin: true,
       moderation_score: 5,
-      role: "general_citizen",
-      summary: "件数ゲート用",
     }))
   );
-  if (error) throw new Error("reports insert failed");
+  if (error) throw new Error("opinions insert failed");
 }
 
 /**
@@ -139,13 +125,13 @@ function parseUntrustedBlock<T>(raw: string): T {
 describe("MCP topic-analysis tools（内部向け・識別子フリー読み取り）", () => {
   let registry: TestMcpRegistry;
   let testUser: TestUser;
-  let billWithAnalysis: string;
-  let billWithout: string;
-  let publicReportId: string;
-  let privateReportId: string;
-  // 公開レポート >= 20 件で k-匿名性ゲートを通過する議案と、その詳細対象レポート
-  let billDisplayable: string;
-  let detailReportId: string;
+  let configWithAnalysis: string;
+  let configWithout: string;
+  let publishedOpinionId: string;
+  let pendingOpinionId: string;
+  // 公開意見 >= 20 件で k-匿名性ゲートを通過するテーマと、その詳細対象意見
+  let configDisplayable: string;
+  let detailOpinionId: string;
 
   beforeAll(async () => {
     registry = createTestRegistry();
@@ -153,54 +139,40 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
 
     testUser = await createTestUser();
 
-    const bill = await createTestBill();
-    billWithAnalysis = bill.id;
-    const { data: config } = await adminClient
-      .from("interview_configs")
-      .insert({ bill_id: billWithAnalysis, status: "public", name: "mcp-ta" })
-      .select()
-      .single();
-    if (!config) throw new Error("config insert failed");
+    configWithAnalysis = (await createTestInterviewConfig({ name: "mcp-ta" }))
+      .id;
 
-    // §8 を通る公開意見 / ユーザー非公開 / 管理者非公開 の3件
-    const ok = await createReportWithOpinion({
-      configId: config.id,
+    // §8 を通る公開意見 / レビュー保留中 / 職員が非公開にしたもの の3件
+    const published = await createOpinionWithSegment({
+      configId: configWithAnalysis,
       userId: testUser.id,
-      isPublicByUser: true,
-      isPublicByAdmin: true,
-      role: "daily_life_affected",
-      stance: "for",
+      reviewStatus: "published",
       title: "公開OK",
-      billSentiment: "期待",
       roleDescription: "育休を取得した当事者です",
       messages: [
-        { role: "assistant", content: "この法案についてどう思いますか？" },
+        { role: "assistant", content: "この施策についてどう思いますか？" },
         { role: "user", content: "賛成です。負担が軽くなります" },
       ],
     });
-    publicReportId = ok.reportId;
-    const userPrivate = await createReportWithOpinion({
-      configId: config.id,
+    publishedOpinionId = published.opinionId;
+    const pending = await createOpinionWithSegment({
+      configId: configWithAnalysis,
       userId: testUser.id,
-      isPublicByUser: false,
-      isPublicByAdmin: true,
-      role: "general_citizen",
-      title: "ユーザー非公開",
+      reviewStatus: "pending_review",
+      title: "レビュー保留中",
     });
-    privateReportId = userPrivate.reportId;
-    const adminPrivate = await createReportWithOpinion({
-      configId: config.id,
+    pendingOpinionId = pending.opinionId;
+    const hidden = await createOpinionWithSegment({
+      configId: configWithAnalysis,
       userId: testUser.id,
-      isPublicByUser: true,
-      isPublicByAdmin: false,
-      role: "general_citizen",
-      title: "管理者非公開",
+      reviewStatus: "hidden",
+      title: "職員が非公開",
     });
 
     const { data: version } = await adminClient
       .from("topic_analysis_version")
       .insert({
-        bill_id: billWithAnalysis,
+        interview_config_id: configWithAnalysis,
         version: 1,
         status: "completed",
         trigger: "manual",
@@ -224,61 +196,55 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
     if (!topic) throw new Error("topic insert failed");
 
     await adminClient.from("topic_opinion").insert([
-      { version_id: version.id, topic_id: topic.id, opinion_id: ok.opinionId },
       {
         version_id: version.id,
         topic_id: topic.id,
-        opinion_id: userPrivate.opinionId,
+        opinion_segment_id: published.segmentId,
       },
       {
         version_id: version.id,
         topic_id: topic.id,
-        opinion_id: adminPrivate.opinionId,
+        opinion_segment_id: pending.segmentId,
+      },
+      {
+        version_id: version.id,
+        topic_id: topic.id,
+        opinion_segment_id: hidden.segmentId,
       },
     ]);
 
-    const bill2 = await createTestBill();
-    billWithout = bill2.id;
+    configWithout = (await createTestInterviewConfig({ name: "mcp-empty" })).id;
 
-    // k-匿名性ゲートを通過する議案（公開レポート 20 件）。
+    // k-匿名性ゲートを通過するテーマ（公開意見 20 件）。
     // 詳細対象 1 件（立場説明＋会話ログ）＋ 件数水増し 19 件 = 20 件。
-    const bill3 = await createTestBill();
-    billDisplayable = bill3.id;
-    const { data: config3 } = await adminClient
-      .from("interview_configs")
-      .insert({
-        bill_id: billDisplayable,
-        status: "public",
-        name: "mcp-detail",
-      })
-      .select()
-      .single();
-    if (!config3) throw new Error("config3 insert failed");
+    configDisplayable = (
+      await createTestInterviewConfig({ name: "mcp-detail" })
+    ).id;
 
-    const detail = await createReportWithOpinion({
-      configId: config3.id,
+    const detail = await createOpinionWithSegment({
+      configId: configDisplayable,
       userId: testUser.id,
-      isPublicByUser: true,
-      isPublicByAdmin: true,
-      role: "daily_life_affected",
-      stance: "for",
+      reviewStatus: "published",
       title: "詳細対象",
-      billSentiment: "期待",
       roleDescription: "育休を取得した当事者です",
       messages: [
-        { role: "assistant", content: "この法案についてどう思いますか？" },
+        { role: "assistant", content: "この施策についてどう思いますか？" },
         { role: "user", content: "賛成です。負担が軽くなります" },
         { role: "user", content: INJECTION_MESSAGE },
       ],
     });
-    detailReportId = detail.reportId;
-    await createPublicReports(config3.id, testUser.id, 19);
+    detailOpinionId = detail.opinionId;
+    await createPublicOpinions(configDisplayable, testUser.id, 19);
   });
 
   afterAll(async () => {
-    if (billWithAnalysis) await cleanupTestBill(billWithAnalysis);
-    if (billWithout) await cleanupTestBill(billWithout);
-    if (billDisplayable) await cleanupTestBill(billDisplayable);
+    for (const configId of [
+      configWithAnalysis,
+      configWithout,
+      configDisplayable,
+    ]) {
+      if (configId) await cleanupTestInterviewConfig(configId);
+    }
     if (testUser?.id) await cleanupTestUser(testUser.id);
   });
 
@@ -292,11 +258,13 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
     it("自由記述を返す全ツールが untrusted-user-data ブロックで返す", async () => {
       const raws = await Promise.all([
         registry.callToolRaw("get_topic_analysis", {
-          billId: billWithAnalysis,
+          interviewConfigId: configWithAnalysis,
         }),
-        registry.callToolRaw("list_respondents", { billId: billWithAnalysis }),
+        registry.callToolRaw("list_respondents", {
+          interviewConfigId: configWithAnalysis,
+        }),
         registry.callToolRaw("get_respondent_detail", {
-          reportId: detailReportId,
+          opinionId: detailOpinionId,
         }),
       ]);
 
@@ -308,7 +276,7 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
 
     it("回答者が仕込んだ終了タグではブロックが閉じず、会話ログは原文のまま返る", async () => {
       const raw = await registry.callToolRaw("get_respondent_detail", {
-        reportId: detailReportId,
+        opinionId: detailOpinionId,
       });
 
       const detail = parseUntrustedBlock<{
@@ -322,10 +290,10 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
     it("ブロックの nonce は応答ごとに変わる", async () => {
       const [first, second] = await Promise.all([
         registry.callToolRaw("get_respondent_detail", {
-          reportId: detailReportId,
+          opinionId: detailOpinionId,
         }),
         registry.callToolRaw("get_respondent_detail", {
-          reportId: detailReportId,
+          opinionId: detailOpinionId,
         }),
       ]);
 
@@ -335,56 +303,53 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
   });
 
   describe("get_topic_analysis", () => {
-    it("既定（フィルタ無し）では公開・非公開を問わず全意見を返す", async () => {
+    it("既定（フィルタ無し）では公開・非公開を問わず全論点を返す", async () => {
       const result = await registry.callTool<{
-        topics: Array<{
-          opinion_count: number;
-          affected_count: number;
-          citizen_count: number;
-          sentiment: { 期待: number; 懸念: number };
-        }>;
+        interview_config_id: string;
+        topics: Array<{ opinion_count: number }>;
         total_opinions: number;
-      }>("get_topic_analysis", { billId: billWithAnalysis });
+      }>("get_topic_analysis", { interviewConfigId: configWithAnalysis });
 
-      // ok（公開）/ ユーザー非公開 / 管理者非公開 の3意見すべて。
+      // 公開 / レビュー保留中 / 非公開 の3論点すべて。
+      expect(result.interview_config_id).toBe(configWithAnalysis);
       expect(result.total_opinions).toBe(3);
       expect(result.topics).toHaveLength(1);
       expect(result.topics[0].opinion_count).toBe(3);
-      expect(result.topics[0].affected_count).toBe(1);
-      expect(result.topics[0].citizen_count).toBe(2);
-      expect(result.topics[0].sentiment).toEqual({ 期待: 1, 懸念: 0 });
     });
 
-    it("公開フラグ＋モデレーションOKで絞り込める", async () => {
+    it("公開状態＋モデレーションOKで絞り込める", async () => {
       const result = await registry.callTool<{
         topics: Array<{
           opinion_count: number;
-          opinions: Array<{ title: string }>;
+          opinions: Array<{ title: string; opinion_public: boolean }>;
         }>;
         total_opinions: number;
       }>("get_topic_analysis", {
-        billId: billWithAnalysis,
-        isPublicByAdmin: true,
-        isPublicByUser: true,
+        interviewConfigId: configWithAnalysis,
+        reviewStatus: "published",
         moderationStatus: "ok",
       });
 
       expect(result.total_opinions).toBe(1);
       expect(result.topics[0].opinion_count).toBe(1);
       expect(result.topics[0].opinions[0].title).toBe("公開OK");
+      expect(result.topics[0].opinions[0].opinion_public).toBe(true);
     });
 
     it("requireDisplayThreshold 指定時、公開20件未満なら status=not_ready", async () => {
       const result = await registry.callTool<{ status: string }>(
         "get_topic_analysis",
-        { billId: billWithAnalysis, requireDisplayThreshold: true }
+        {
+          interviewConfigId: configWithAnalysis,
+          requireDisplayThreshold: true,
+        }
       );
       expect(result.status).toBe("not_ready");
     });
 
     it("個人情報（user_id・email・session）を返さない", async () => {
       const result = await registry.callTool("get_topic_analysis", {
-        billId: billWithAnalysis,
+        interviewConfigId: configWithAnalysis,
       });
       const serialized = JSON.stringify(result);
       expect(serialized).not.toContain("user_id");
@@ -396,7 +361,7 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
     it("版が無ければ status=not_ready を返す", async () => {
       const result = await registry.callTool<{ status: string }>(
         "get_topic_analysis",
-        { billId: billWithout }
+        { interviewConfigId: configWithout }
       );
       expect(result.status).toBe("not_ready");
     });
@@ -406,41 +371,43 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
     it("既定（フィルタ無し）では公開・非公開を問わず全件返す", async () => {
       const result = await registry.callTool<Array<{ id: string }>>(
         "list_respondents",
-        { billId: billWithAnalysis }
+        { interviewConfigId: configWithAnalysis }
       );
       const ids = result.map((r) => r.id);
-      expect(ids).toContain(publicReportId);
-      expect(ids).toContain(privateReportId);
+      expect(ids).toContain(publishedOpinionId);
+      expect(ids).toContain(pendingOpinionId);
     });
 
-    it("公開フラグで絞り込める", async () => {
+    it("公開状態で絞り込める", async () => {
       const result = await registry.callTool<
-        Array<{ id: string; summary: string | null; bill_sentiment: unknown }>
+        Array<{ id: string; summary: string | null; final_text: string }>
       >("list_respondents", {
-        billId: billWithAnalysis,
-        isPublicByAdmin: true,
-        isPublicByUser: true,
+        interviewConfigId: configWithAnalysis,
+        reviewStatus: "published",
       });
 
       const ids = result.map((r) => r.id);
-      expect(ids).toContain(publicReportId);
-      expect(ids).not.toContain(privateReportId);
-      const pub = result.find((r) => r.id === publicReportId);
+      expect(ids).toContain(publishedOpinionId);
+      expect(ids).not.toContain(pendingOpinionId);
+      const pub = result.find((r) => r.id === publishedOpinionId);
       expect(pub?.summary).toBe("公開OKの要約");
-      expect(pub?.bill_sentiment).toBe("期待");
+      expect(pub?.final_text).toBe("公開OKの意見本文");
     });
 
     it("requireDisplayThreshold 指定時、公開20件未満なら status=below_threshold", async () => {
       const result = await registry.callTool<{ status: string }>(
         "list_respondents",
-        { billId: billWithAnalysis, requireDisplayThreshold: true }
+        {
+          interviewConfigId: configWithAnalysis,
+          requireDisplayThreshold: true,
+        }
       );
       expect(result.status).toBe("below_threshold");
     });
 
     it("個人情報（user_id・email・session）を返さない", async () => {
       const result = await registry.callTool("list_respondents", {
-        billId: billWithAnalysis,
+        interviewConfigId: configWithAnalysis,
       });
       const serialized = JSON.stringify(result);
       expect(serialized).not.toContain("user_id");
@@ -454,37 +421,37 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
     it("既定（フィルタ無し）では公開条件に関わらず立場説明と会話ログを返す", async () => {
       const result = await registry.callTool<{
         id: string;
-        user_category: string;
+        role_title: string | null;
         role_description: string | null;
-        bill_sentiment: unknown;
+        final_text: string;
         messages: Array<{ speaker: string; content: string }>;
-      }>("get_respondent_detail", { reportId: publicReportId });
+      }>("get_respondent_detail", { opinionId: publishedOpinionId });
 
-      expect(result.id).toBe(publicReportId);
-      expect(result.user_category).toBe("affected");
+      expect(result.id).toBe(publishedOpinionId);
+      expect(result.role_title).toBe("育休経験者");
       expect(result.role_description).toBe("育休を取得した当事者です");
-      expect(result.bill_sentiment).toBe("期待");
+      expect(result.final_text).toBe("公開OKの意見本文");
       expect(
         result.messages.map((m) => ({ speaker: m.speaker, content: m.content }))
       ).toEqual([
-        { speaker: "assistant", content: "この法案についてどう思いますか？" },
+        { speaker: "assistant", content: "この施策についてどう思いますか？" },
         { speaker: "user", content: "賛成です。負担が軽くなります" },
       ]);
     });
 
-    it("既定では非公開レポートも返す（内部向け）", async () => {
+    it("既定では未公開の意見も返す（内部向け）", async () => {
       const result = await registry.callTool<{ id?: string; status?: string }>(
         "get_respondent_detail",
-        { reportId: privateReportId }
+        { opinionId: pendingOpinionId }
       );
-      expect(result.id).toBe(privateReportId);
+      expect(result.id).toBe(pendingOpinionId);
       expect(result.status).toBeUndefined();
     });
 
-    it("公開フラグフィルタで非公開レポートを除外できる（status=not_found）", async () => {
+    it("公開状態フィルタで未公開の意見を除外できる（status=not_found）", async () => {
       const result = await registry.callTool<{ status: string }>(
         "get_respondent_detail",
-        { reportId: privateReportId, isPublicByUser: true }
+        { opinionId: pendingOpinionId, reviewStatus: "published" }
       );
       expect(result.status).toBe("not_found");
     });
@@ -492,23 +459,23 @@ describe("MCP topic-analysis tools（内部向け・識別子フリー読み取�
     it("requireDisplayThreshold 指定時、公開20件未満は status=not_found", async () => {
       const result = await registry.callTool<{ status: string }>(
         "get_respondent_detail",
-        { reportId: publicReportId, requireDisplayThreshold: true }
+        { opinionId: publishedOpinionId, requireDisplayThreshold: true }
       );
       expect(result.status).toBe("not_found");
     });
 
-    it("requireDisplayThreshold 指定でも公開20件以上の議案は詳細を返す", async () => {
+    it("requireDisplayThreshold 指定でも公開20件以上のテーマは詳細を返す", async () => {
       const result = await registry.callTool<{ id?: string; status?: string }>(
         "get_respondent_detail",
-        { reportId: detailReportId, requireDisplayThreshold: true }
+        { opinionId: detailOpinionId, requireDisplayThreshold: true }
       );
-      expect(result.id).toBe(detailReportId);
+      expect(result.id).toBe(detailOpinionId);
       expect(result.status).toBeUndefined();
     });
 
     it("個人情報（user_id・email・session）を返さない", async () => {
       const result = await registry.callTool("get_respondent_detail", {
-        reportId: detailReportId,
+        opinionId: detailOpinionId,
       });
       const serialized = JSON.stringify(result);
       expect(serialized).not.toContain("user_id");

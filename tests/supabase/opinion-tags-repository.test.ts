@@ -1,17 +1,21 @@
 import {
   countPendingTagExtraction,
-  findReportsToTag,
-  findUntaggedOpinions,
-  markOpinionsTagAttempted,
-  resetTagExtractionForBill,
-  updateOpinionTags,
+  findOpinionsToTag,
+  findUntaggedOpinionSegments,
+  markOpinionSegmentsTagAttempted,
+  resetTagExtractionForInterviewConfig,
+  updateOpinionSegmentTags,
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  cleanupTestInterviewConfig,
+  createTestSession,
+} from "./db-function/helpers";
+import {
   adminClient,
-  cleanupTestBill,
   cleanupTestUser,
-  createTestBill,
+  createTestInterviewConfig,
+  createTestOpinion,
   createTestUser,
   type TestUser,
 } from "./utils";
@@ -20,190 +24,149 @@ import {
  * 意見タグ用リポジトリの統合テスト。
  *
  * ここで確かめたいのは PostgREST の実挙動に依存する部分。
- * - `interview_report!inner(interview_sessions!inner(interview_configs!inner(bill_id)))`
- *   という3段ネストの議案フィルタが実際に効くか
- * - レポート単位で束ねる dedup が chunk 件数分のレポートを返すか
+ * - `opinions!inner(interview_sessions!inner(interview_config_id))`
+ *   という2段ネストのテーマフィルタが実際に効くか
+ * - 意見単位で束ねる dedup が chunk 件数分の意見を返すか
  * - compare-and-set（tags_extracted_at IS NULL）が既存タグを上書きしないか
  * これらはユニットテストでは落ちない。
  */
 
-async function createReportWithOpinions(opts: {
+async function createOpinionWithSegments(opts: {
   configId: string;
   userId: string;
   isPublicByUser: boolean;
   createdAt: string;
-  opinionCount: number;
+  segmentCount: number;
   tagged?: boolean;
 }) {
-  const { data: session, error: sErr } = await adminClient
-    .from("interview_sessions")
-    .insert({
-      interview_config_id: opts.configId,
-      user_id: opts.userId,
-      started_at: opts.createdAt,
-      completed_at: opts.createdAt,
-    })
-    .select()
-    .single();
-  if (sErr || !session) throw new Error(`session 作成失敗: ${sErr?.message}`);
+  const session = await createTestSession(opts.configId, opts.userId, {
+    started_at: opts.createdAt,
+    completed_at: opts.createdAt,
+  });
+  const opinion = await createTestOpinion(session.id, {
+    is_public_by_user: opts.isPublicByUser,
+    summary: "サマリ",
+    role_title: "教員",
+  });
 
-  const { data: report, error: rErr } = await adminClient
-    .from("interview_report")
-    .insert({
-      interview_session_id: session.id,
-      is_public_by_user: opts.isPublicByUser,
-      summary: "サマリ",
-      stance: "for",
-      role: "work_related",
-      role_title: "教員",
-      opinions: [] as never,
-      created_at: opts.createdAt,
-    })
-    .select()
-    .single();
-  if (rErr || !report) throw new Error(`report 作成失敗: ${rErr?.message}`);
-
-  const rows = Array.from({ length: opts.opinionCount }, (_, i) => ({
-    interview_report_id: report.id,
+  const rows = Array.from({ length: opts.segmentCount }, (_, i) => ({
+    opinion_id: opinion.id,
     opinion_index: i,
-    title: `意見${i}`,
+    title: `論点${i}`,
     content: `内容${i}`,
     tags_extracted_at: opts.tagged ? opts.createdAt : null,
   }));
-  const { error: oErr } = await adminClient
-    .from("interview_opinion")
-    .insert(rows);
-  if (oErr) throw new Error(`opinion 作成失敗: ${oErr.message}`);
+  const { error } = await adminClient.from("opinion_segments").insert(rows);
+  if (error) throw new Error(`opinion_segments 作成失敗: ${error.message}`);
 
-  return report;
+  return opinion;
 }
 
 describe("opinion-tags repository 統合テスト", () => {
   let testUser: TestUser;
-  let billId: string;
   let configId: string;
-  let otherBillId: string;
   let otherConfigId: string;
 
   beforeAll(async () => {
     testUser = await createTestUser();
-    const bill = await createTestBill();
-    billId = bill.id;
-    const { data: config, error } = await adminClient
-      .from("interview_configs")
-      .insert({ bill_id: billId, status: "public", name: "tag-test" })
-      .select()
-      .single();
-    if (error || !config) throw new Error(`config 作成失敗: ${error?.message}`);
-    configId = config.id;
-
-    const otherBill = await createTestBill();
-    otherBillId = otherBill.id;
-    const { data: otherConfig, error: oErr } = await adminClient
-      .from("interview_configs")
-      .insert({
-        bill_id: otherBillId,
-        status: "public",
-        name: "tag-test-other",
-      })
-      .select()
-      .single();
-    if (oErr || !otherConfig)
-      throw new Error(`config 作成失敗: ${oErr?.message}`);
-    otherConfigId = otherConfig.id;
+    configId = (await createTestInterviewConfig({ name: "tag-test" })).id;
+    otherConfigId = (
+      await createTestInterviewConfig({ name: "tag-test-other" })
+    ).id;
   });
 
   afterAll(async () => {
-    await cleanupTestBill(billId);
-    await cleanupTestBill(otherBillId);
+    await cleanupTestInterviewConfig(configId);
+    await cleanupTestInterviewConfig(otherConfigId);
     await cleanupTestUser(testUser.id);
   });
 
   it("reasoning_types は NOT NULL DEFAULT '{}' で入る", async () => {
-    const report = await createReportWithOpinions({
+    const opinion = await createOpinionWithSegments({
       configId,
       userId: testUser.id,
       isPublicByUser: true,
       createdAt: "2024-01-01T00:00:00Z",
-      opinionCount: 1,
+      segmentCount: 1,
     });
 
     const { data } = await adminClient
-      .from("interview_opinion")
+      .from("opinion_segments")
       .select("reasoning_types, concern, proposal, tags_extracted_at")
-      .eq("interview_report_id", report.id)
+      .eq("opinion_id", opinion.id)
       .single();
 
     expect(data?.reasoning_types).toEqual([]);
     expect(data?.concern).toBeNull();
+    expect(data?.proposal).toBeNull();
     expect(data?.tags_extracted_at).toBeNull();
   });
 
-  it("countPendingTagExtraction は billId で絞り込める", async () => {
-    await createReportWithOpinions({
+  it("countPendingTagExtraction は interviewConfigId で絞り込める", async () => {
+    await createOpinionWithSegments({
       configId,
       userId: testUser.id,
       isPublicByUser: true,
       createdAt: "2024-02-01T00:00:00Z",
-      opinionCount: 3,
+      segmentCount: 3,
     });
-    await createReportWithOpinions({
+    await createOpinionWithSegments({
       configId: otherConfigId,
       userId: testUser.id,
       isPublicByUser: true,
       createdAt: "2024-02-01T00:00:00Z",
-      opinionCount: 2,
+      segmentCount: 2,
     });
 
-    const otherPending = await countPendingTagExtraction(otherBillId);
+    const otherPending = await countPendingTagExtraction(otherConfigId);
     expect(otherPending).toBe(2);
   });
 
-  it("findReportsToTag は該当議案の未タグレポートだけを返す", async () => {
-    const target = await createReportWithOpinions({
+  it("findOpinionsToTag は該当テーマの未タグ意見だけを返す", async () => {
+    const target = await createOpinionWithSegments({
       configId: otherConfigId,
       userId: testUser.id,
       isPublicByUser: true,
       createdAt: "2024-03-01T00:00:00Z",
-      opinionCount: 3,
+      segmentCount: 3,
     });
-    const alreadyTagged = await createReportWithOpinions({
+    const alreadyTagged = await createOpinionWithSegments({
       configId: otherConfigId,
       userId: testUser.id,
       isPublicByUser: true,
       createdAt: "2024-03-02T00:00:00Z",
-      opinionCount: 1,
+      segmentCount: 1,
       tagged: true,
     });
 
-    const reports = await findReportsToTag(50, otherBillId);
-    const ids = reports.map((r) => r.reportId);
+    const opinions = await findOpinionsToTag(50, otherConfigId);
+    const ids = opinions.map((o) => o.opinionId);
 
     expect(ids).toContain(target.id);
     expect(ids).not.toContain(alreadyTagged.id);
     // 立場はプロンプト接地に使うので載っていること
-    const found = reports.find((r) => r.reportId === target.id);
-    expect(found?.role).toBe("work_related");
+    const found = opinions.find((o) => o.opinionId === target.id);
     expect(found?.roleTitle).toBe("教員");
+    expect(found?.sessionId).toBe(target.interview_session_id);
   });
 
-  it("findReportsToTag は limit 件のレポートに束ねる（意見数ではない）", async () => {
-    // 1レポート3意見 × 2レポートあっても limit=1 ならレポート1件だけ返る
-    const reports = await findReportsToTag(1, otherBillId);
-    expect(reports).toHaveLength(1);
+  it("findOpinionsToTag は limit 件の意見に束ねる（論点数ではない）", async () => {
+    // 1意見3論点 × 複数意見あっても limit=1 なら意見1件だけ返る
+    const opinions = await findOpinionsToTag(1, otherConfigId);
+    expect(opinions).toHaveLength(1);
   });
 
-  it("updateOpinionTags はタグ列だけ更新し、本文を変えない", async () => {
-    const report = await createReportWithOpinions({
+  it("updateOpinionSegmentTags はタグ列だけ更新し、本文を変えない", async () => {
+    const opinion = await createOpinionWithSegments({
       configId,
       userId: testUser.id,
       isPublicByUser: true,
       createdAt: "2024-04-01T00:00:00Z",
-      opinionCount: 2,
+      segmentCount: 2,
     });
 
-    await updateOpinionTags(
-      report.id,
+    await updateOpinionSegmentTags(
+      opinion.id,
       [
         {
           opinionIndex: 0,
@@ -216,40 +179,40 @@ describe("opinion-tags repository 統合テスト", () => {
     );
 
     const { data } = await adminClient
-      .from("interview_opinion")
+      .from("opinion_segments")
       .select(
         "opinion_index, title, concern, reasoning_types, tags_extracted_at"
       )
-      .eq("interview_report_id", report.id)
+      .eq("opinion_id", opinion.id)
       .order("opinion_index");
 
-    expect(data?.[0].title).toBe("意見0");
+    expect(data?.[0].title).toBe("論点0");
     expect(data?.[0].concern).toBe("健康影響が心配");
     expect(data?.[0].reasoning_types).toEqual(["professional_expertise"]);
     expect(data?.[0].tags_extracted_at).not.toBeNull();
-    // 未指定の意見は触られない
+    // 未指定の論点は触られない
     expect(data?.[1].concern).toBeNull();
     expect(data?.[1].tags_extracted_at).toBeNull();
   });
 
   // バックフィルは本番稼働中に走るため、対象抽出から更新までの間に
   // ライブ生成が同じ行にタグを書き込むことがある。それを上書きしない。
-  it("updateOpinionTags はタグ付け済みの行を上書きしない", async () => {
-    const report = await createReportWithOpinions({
+  it("updateOpinionSegmentTags はタグ付け済みの行を上書きしない", async () => {
+    const opinion = await createOpinionWithSegments({
       configId,
       userId: testUser.id,
       isPublicByUser: true,
       createdAt: "2024-05-01T00:00:00Z",
-      opinionCount: 1,
+      segmentCount: 1,
       tagged: true,
     });
     await adminClient
-      .from("interview_opinion")
+      .from("opinion_segments")
       .update({ concern: "先に入っていた値" })
-      .eq("interview_report_id", report.id);
+      .eq("opinion_id", opinion.id);
 
-    await updateOpinionTags(
-      report.id,
+    await updateOpinionSegmentTags(
+      opinion.id,
       [
         {
           opinionIndex: 0,
@@ -262,40 +225,44 @@ describe("opinion-tags repository 統合テスト", () => {
     );
 
     const { data } = await adminClient
-      .from("interview_opinion")
+      .from("opinion_segments")
       .select("concern")
-      .eq("interview_report_id", report.id)
+      .eq("opinion_id", opinion.id)
       .single();
 
     expect(data?.concern).toBe("先に入っていた値");
   });
 
-  it("findUntaggedOpinions は未タグの意見だけを index 昇順で返す", async () => {
-    const report = await createReportWithOpinions({
+  it("findUntaggedOpinionSegments は未タグの論点だけを index 昇順で返す", async () => {
+    const opinion = await createOpinionWithSegments({
       configId,
       userId: testUser.id,
       isPublicByUser: true,
       createdAt: "2024-06-01T00:00:00Z",
-      opinionCount: 3,
+      segmentCount: 3,
     });
-    await markOpinionsTagAttempted(report.id, [1], "2024-06-02T00:00:00Z");
+    await markOpinionSegmentsTagAttempted(
+      opinion.id,
+      [1],
+      "2024-06-02T00:00:00Z"
+    );
 
-    const opinions = await findUntaggedOpinions(report.id);
+    const segments = await findUntaggedOpinionSegments(opinion.id);
 
-    expect(opinions.map((o) => o.opinion_index)).toEqual([0, 2]);
+    expect(segments.map((s) => s.opinion_index)).toEqual([0, 2]);
   });
 
-  it("resetTagExtractionForBill は該当議案のウォーターマークだけ戻す", async () => {
-    const beforeOther = await countPendingTagExtraction(otherBillId);
-    const beforeMain = await countPendingTagExtraction(billId);
+  it("resetTagExtractionForInterviewConfig は該当テーマのウォーターマークだけ戻す", async () => {
+    const beforeOther = await countPendingTagExtraction(otherConfigId);
+    const beforeMain = await countPendingTagExtraction(configId);
 
-    const reset = await resetTagExtractionForBill(otherBillId);
-    const afterOther = await countPendingTagExtraction(otherBillId);
-    const afterMain = await countPendingTagExtraction(billId);
+    const reset = await resetTagExtractionForInterviewConfig(otherConfigId);
+    const afterOther = await countPendingTagExtraction(otherConfigId);
+    const afterMain = await countPendingTagExtraction(configId);
 
     expect(reset).toBeGreaterThan(0);
     expect(afterOther).toBe(beforeOther + reset);
-    // 別議案は影響を受けない
+    // 別テーマは影響を受けない
     expect(afterMain).toBe(beforeMain);
   });
 });
