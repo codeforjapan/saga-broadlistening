@@ -205,7 +205,7 @@ create trigger update_interview_messages_updated_at before update on interview_m
 alter table interview_messages enable row level security;
 
 comment on table interview_messages is '対話セッション内で交わされたAIと市民のやり取り本文';
-comment on column interview_messages.content is '対話の本文（送信前にPII仮名化処理済み）';
+comment on column interview_messages.content is '対話の本文。市民が入力した原文をそのまま保持する（PII の仮名化は未実装。導入時は #46 のガードレール実装とあわせて検討する）';
 
 -- ============================================================
 -- interview_rating_feedbacks
@@ -675,9 +675,12 @@ begin
          (p_status = 'completed' and s.completed_at is not null) or
          (p_status = 'in_progress' and s.completed_at is null and s.archived_at is null) or
          (p_status = 'archived' and s.completed_at is null and s.archived_at is not null))
+    -- 意見が未作成のセッションは public / private のどちらにも含めない
+    -- （PostgREST 側の opinions!inner を使う集計と件数を一致させるため）
     and (p_visibility is null or
          (p_visibility = 'public' and o.review_status = 'published') or
-         (p_visibility = 'private' and (o.review_status is null or o.review_status <> 'published')))
+         (p_visibility = 'private'
+           and o.id is not null and o.review_status <> 'published'))
   order by
     case when p_ascending then coalesce(mc.cnt, 0) end asc,
     case when not p_ascending then coalesce(mc.cnt, 0) end desc,
@@ -707,9 +710,12 @@ begin
          (p_status = 'completed' and s.completed_at is not null) or
          (p_status = 'in_progress' and s.completed_at is null and s.archived_at is null) or
          (p_status = 'archived' and s.completed_at is null and s.archived_at is not null))
+    -- 意見が未作成のセッションは public / private のどちらにも含めない
+    -- （PostgREST 側の opinions!inner を使う集計と件数を一致させるため）
     and (p_visibility is null or
          (p_visibility = 'public' and o.review_status = 'published') or
-         (p_visibility = 'private' and (o.review_status is null or o.review_status <> 'published')))
+         (p_visibility = 'private'
+           and o.id is not null and o.review_status <> 'published'))
   order by
     case when p_ascending then o.total_content_richness end asc nulls last,
     case when not p_ascending then o.total_content_richness end desc nulls last,
@@ -746,9 +752,12 @@ begin
          (p_status = 'completed' and s.completed_at is not null) or
          (p_status = 'in_progress' and s.completed_at is null and s.archived_at is null) or
          (p_status = 'archived' and s.completed_at is null and s.archived_at is not null))
+    -- 意見が未作成のセッションは public / private のどちらにも含めない
+    -- （PostgREST 側の opinions!inner を使う集計と件数を一致させるため）
     and (p_visibility is null or
          (p_visibility = 'public' and o.review_status = 'published') or
-         (p_visibility = 'private' and (o.review_status is null or o.review_status <> 'published')))
+         (p_visibility = 'private'
+           and o.id is not null and o.review_status <> 'published'))
   order by
     case when p_ascending then coalesce(hc.cnt, 0) end asc,
     case when not p_ascending then coalesce(hc.cnt, 0) end desc,
@@ -778,9 +787,12 @@ begin
          (p_status = 'completed' and s.completed_at is not null) or
          (p_status = 'in_progress' and s.completed_at is null and s.archived_at is null) or
          (p_status = 'archived' and s.completed_at is null and s.archived_at is not null))
+    -- 意見が未作成のセッションは public / private のどちらにも含めない
+    -- （PostgREST 側の opinions!inner を使う集計と件数を一致させるため）
     and (p_visibility is null or
          (p_visibility = 'public' and o.review_status = 'published') or
-         (p_visibility = 'private' and (o.review_status is null or o.review_status <> 'published')))
+         (p_visibility = 'private'
+           and o.id is not null and o.review_status <> 'published'))
   order by
     case when p_ascending then o.moderation_score end asc nulls last,
     case when not p_ascending then o.moderation_score end desc nulls last,
@@ -1047,17 +1059,21 @@ create function unpublish_opinions_by_config_id(p_config_id uuid)
 returns void
 language sql
 as $$
+  -- 公開中のものだけを対象にする。
+  -- pending_review（レビュー待ち）まで hidden にすると、テーマを開き直しても
+  -- bulk_publish_opinions（pending_review が条件）も本人操作による自動公開も
+  -- 効かなくなり、公開に同意済みの意見が二度と公開できなくなる。
   update opinions o
   set review_status = 'hidden',
       is_public_by_admin = false
   from interview_sessions s
   where o.interview_session_id = s.id
     and s.interview_config_id = p_config_id
-    and o.review_status <> 'hidden';
+    and o.review_status = 'published';
 $$;
 
 comment on function unpublish_opinions_by_config_id(uuid) is
-  '意見募集の終了に伴い、配下の意見をまとめて非公開（hidden）にする。職員の判断として記録されるため、以後は本人操作による自動公開の対象外になる';
+  '意見募集の終了に伴い、配下の意見をまとめて非公開（hidden）にする。review_status = hidden により以後は本人操作による自動公開の対象外になる。個別レビューではないため reviewed_by / reviewed_at は記録しない';
 
 -- 増分トピック分析: 指定意見群のトピック抽出済みウォーターマークを一括記録
 create function mark_opinions_extracted(
@@ -1132,6 +1148,21 @@ as $$
     join interview_configs c on c.id = s.interview_config_id
     where o.review_status = 'published'
       and c.status <> 'draft'
+      -- 施策が紐づくテーマは、その施策が1件でも公開済みであること。
+      -- 施策0件（抽象テーマ型）はテーマ自体の公開状態だけで判断する
+      and (
+        not exists (
+          select 1 from policies_interview_configs pic
+          where pic.interview_config_id = c.id
+        )
+        or exists (
+          select 1
+          from policies_interview_configs pic
+          join policies p on p.id = pic.policy_id
+          where pic.interview_config_id = c.id
+            and p.publish_status = 'published'
+        )
+      )
     group by s.interview_config_id
     having count(*) >= p_min_public_opinions
   )

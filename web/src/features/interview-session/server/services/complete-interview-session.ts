@@ -13,6 +13,7 @@ import { extractReportFromMessage } from "../../shared/utils/report-extraction";
 import {
   findInterviewMessagesBySessionIdDesc,
   updateInterviewSessionCompleted,
+  findOpinionPublicationStateBySessionId,
   upsertInterviewReport,
 } from "../repositories/interview-session-repository";
 import { evaluateModerationScore } from "./evaluate-moderation-score";
@@ -84,6 +85,9 @@ export async function completeInterviewSession({
   // レポートを保存（UPSERT）
   // content_richnessはZodスキーマでバリデーション済み（totalは0-100の整数）
   // moderation_statusはgenerated columnのためscoreのみ保存
+  // 再完了時に職員の非公開判断（review_status = 'hidden'）を上書きしないよう、
+  // 保存前の公開状態を読んでから payload を組み立てる。
+  const current = await findOpinionPublicationStateBySessionId(sessionId);
   const report = await upsertInterviewReport(
     buildCompletedInterviewReportInsert({
       sessionId,
@@ -92,6 +96,12 @@ export async function completeInterviewSession({
       moderationReasoning,
       isPublicByUser,
       isDataReuseConsented,
+      current: current
+        ? {
+            isPublicByAdmin: current.is_public_by_admin,
+            reviewStatus: current.review_status,
+          }
+        : undefined,
     })
   );
 

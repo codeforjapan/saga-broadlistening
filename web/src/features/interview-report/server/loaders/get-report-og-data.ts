@@ -29,18 +29,24 @@ export async function getReportOgData(
     }
 
     const session = report.interview_sessions;
+    if (!session) {
+      return null;
+    }
+
+    // k-匿名性ゲートを満たさない意見は OGP でも中身を出さない。
+    // 施策が紐づかないテーマ（抽象テーマ型）でも必ず通すこと。ここを
+    // 施策の有無で分岐させると、施策0件のテーマだけゲートを素通りする。
+    const publicOpinionCount = await countPublicOpinionsByInterviewConfigId(
+      session.interview_config_id
+    );
+    if (!shouldDisplayPublicReports(publicOpinionCount)) {
+      return null;
+    }
+
+    // 施策名はテーマに施策が紐づいているときだけ出す（無ければ空文字）
     const billId = getBillIdFromPublicReportSession(session);
-
     let billName = "";
-    if (billId && session) {
-      const publicOpinionCount = await countPublicOpinionsByInterviewConfigId(
-        session.interview_config_id
-      );
-      // k-匿名性ゲートを満たさない意見は OGP でも中身を出さない。
-      if (!shouldDisplayPublicReports(publicOpinionCount)) {
-        return null;
-      }
-
+    if (billId) {
       const bill = await findBillWithContentById(billId);
       const billContent = selectPrimaryBillContent(bill.policy_contents);
       billName = billContent?.title || bill.name;

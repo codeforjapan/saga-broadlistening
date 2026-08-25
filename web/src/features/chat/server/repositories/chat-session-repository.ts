@@ -52,22 +52,20 @@ export async function insertChatMessage(params: {
 
 /**
  * 施策 × 利用者で進行中の対話セッションを1件引く（2ターン目以降の追記先）。
+ *
+ * userId を nullable にしない。NULL 許容にすると `user_id is null` の行が
+ * 全員に共有され、匿名利用者どうしが同じセッションに書き込んでしまう。
  */
 export async function findLatestChatSessionId(params: {
   policyId: string;
-  userId: string | null;
+  userId: string;
 }): Promise<string | null> {
   const supabase = createAdminClient();
-  let query = supabase
+  const { data, error } = await supabase
     .from("chat_sessions")
     .select("id")
-    .eq("policy_id", params.policyId);
-
-  query = params.userId
-    ? query.eq("user_id", params.userId)
-    : query.is("user_id", null);
-
-  const { data, error } = await query
+    .eq("policy_id", params.policyId)
+    .eq("user_id", params.userId)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();

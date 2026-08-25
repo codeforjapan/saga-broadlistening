@@ -59,7 +59,7 @@ alter table chat_messages enable row level security;
 comment on table chat_messages is '施策ページの「AIに質問する」機能における市民とAIの対話メッセージ';
 comment on column chat_messages.session_id is '対話セッションID';
 comment on column chat_messages.role is '発言者（user: 利用者, system: システム, assistant: AI）';
-comment on column chat_messages.message is '質問・回答の本文（送信前にPII仮名化処理済み）';
+comment on column chat_messages.message is '質問・回答の本文。市民が入力した原文をそのまま保持する（PII の仮名化は未実装。導入時は #46 のガードレール実装とあわせて検討する）';
 
 -- ============================================================
 -- AIコスト集計の Langfuse への移管（Issue #56）

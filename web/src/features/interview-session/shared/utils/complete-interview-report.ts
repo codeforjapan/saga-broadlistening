@@ -1,5 +1,6 @@
 import { enrichOpinionsWithSourceContent } from "@mirai-gikai/shared/interview-report/enrich-opinions";
-import { isReportAutoPublishEligible } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { shouldAutoPublishOnUserSettingChange } from "@mirai-gikai/shared/report-publication/auto-publish";
+import type { OpinionReviewStatus } from "@mirai-gikai/shared/report-publication/review-status";
 import type { InterviewReportData } from "../schemas";
 import type { InterviewMessage, InterviewReportInsert } from "../types";
 
@@ -15,6 +16,11 @@ type BuildCompletedInterviewReportInsertParams = {
   moderationReasoning: string | null;
   isPublicByUser?: boolean;
   isDataReuseConsented?: boolean;
+  /** 保存前の公開状態（新規作成時は undefined） */
+  current?: {
+    isPublicByAdmin: boolean;
+    reviewStatus: OpinionReviewStatus;
+  };
 };
 
 /**
@@ -30,8 +36,13 @@ export function buildCompletedInterviewReportInsert({
   moderationReasoning,
   isPublicByUser,
   isDataReuseConsented,
+  current,
 }: BuildCompletedInterviewReportInsertParams): InterviewReportInsert {
-  const shouldAutoPublish = isReportAutoPublishEligible({
+  // 職員が非公開にした意見（hidden）は、本人が再完了しても自動再公開しない。
+  // 判定は公開遷移の正本（@mirai-gikai/shared）へ寄せる。
+  const shouldAutoPublish = shouldAutoPublishOnUserSettingChange({
+    isPublicByAdmin: current?.isPublicByAdmin ?? false,
+    reviewStatus: current?.reviewStatus ?? "pending_review",
     isPublicByUser: isPublicByUser ?? false,
     moderationScore,
     totalContentRichness: reportData.content_richness.total,

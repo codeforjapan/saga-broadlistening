@@ -1,5 +1,7 @@
 import "server-only";
 
+import type { OpinionReviewStatus } from "@mirai-gikai/shared/report-publication/review-status";
+
 import { createAdminClient, type Database } from "@mirai-gikai/supabase";
 import type {
   InterviewMessage,
@@ -334,6 +336,32 @@ export async function insertInterviewRatingFeedbacks(
 /**
  * インタビューレポートをUPSERT
  */
+/**
+ * セッションに紐づく既存の意見の公開状態だけを引く（未作成なら null）。
+ * 再完了時に、職員が非公開にした判断（hidden）を上書きしないために使う。
+ */
+export async function findOpinionPublicationStateBySessionId(
+  sessionId: string
+): Promise<{
+  is_public_by_admin: boolean;
+  review_status: OpinionReviewStatus;
+} | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("opinions")
+    .select("is_public_by_admin, review_status")
+    .eq("interview_session_id", sessionId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Failed to fetch opinion publication state: ${error.message}`
+    );
+  }
+
+  return data;
+}
+
 export async function upsertInterviewReport(
   params: InterviewReportInsert
 ): Promise<InterviewReport> {

@@ -7,60 +7,65 @@ import { createAdminClient } from "@mirai-gikai/supabase";
 // 1施策に複数の意見募集がある場合、既存 UI は最初の1件のみを使う
 // （複数テーマ表示の UI 対応は Epic #8 のフォローアップ）。
 
-// 施策に紐づく意見募集を「新しい順」で1件に絞るための並び順。
-// 紐づけ行（policies_interview_configs）の created_at は一括投入で同値になりうるため、
-// 意見募集自体の created_at を第1キー、interview_config_id を第2キーにして
-// 順序を一意に決める。これがないと「最初の1件」が実行ごとに入れ替わる。
-const NEWEST_CONFIG_ORDER = [
-  {
-    column: "created_at",
-    options: { ascending: false, referencedTable: "interview_configs" },
-  },
-  { column: "interview_config_id", options: { ascending: false } },
-] as const;
-
 /**
- * policy_idから募集中（status = 'open'）の意見募集を1件取得
+ * 施策に紐づく意見募集を1件だけ引く。
+ *
+ * 並び順は紐づけ行（policies_interview_configs）の created_at 降順、
+ * 同値なら interview_config_id 降順。
+ *
+ * 埋め込み先（interview_configs）のカラムでは親行を並べ替えられない
+ * （PostgREST の `referencedTable` 付き order は to-one 埋め込みでは
+ *   実質無効）ため、親テーブル側のカラムだけで順序を決めている。
+ * 一括投入で created_at が同値になっても id でタイブレークするので、
+ * 「最初の1件」が実行ごとに入れ替わることはない。
  */
-export async function findOpenInterviewConfigByPolicyId(policyId: string) {
+async function findNewestInterviewConfigByPolicyId(
+  policyId: string,
+  status?: "open"
+) {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("policies_interview_configs")
     .select("interview_configs!inner(*)")
-    .eq("policy_id", policyId)
-    .eq("interview_configs.status", "open")
-    .order(NEWEST_CONFIG_ORDER[0].column, NEWEST_CONFIG_ORDER[0].options)
-    .order(NEWEST_CONFIG_ORDER[1].column, NEWEST_CONFIG_ORDER[1].options)
+    .eq("policy_id", policyId);
+
+  if (status) {
+    query = query.eq("interview_configs.status", status);
+  }
+
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .order("interview_config_id", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   return { data: data?.interview_configs ?? null, error };
+}
+
+/**
+ * policy_idから募集中（status = 'open'）の意見募集を1件取得。
+ * 「今参加できるテーマ」を出す導線（LP・チャット）で使う。
+ */
+export async function findOpenInterviewConfigByPolicyId(policyId: string) {
+  return findNewestInterviewConfigByPolicyId(policyId, "open");
 }
 
 /**
  * policy_idから最新の意見募集を1件取得（ステータス問わず）
  */
 export async function findLatestInterviewConfigByPolicyId(policyId: string) {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("policies_interview_configs")
-    .select("interview_configs!inner(*)")
-    .eq("policy_id", policyId)
-    .order(NEWEST_CONFIG_ORDER[0].column, NEWEST_CONFIG_ORDER[0].options)
-    .order(NEWEST_CONFIG_ORDER[1].column, NEWEST_CONFIG_ORDER[1].options)
-    .limit(1)
-    .maybeSingle();
-
-  return { data: data?.interview_configs ?? null, error };
+  return findNewestInterviewConfigByPolicyId(policyId);
 }
 
 /**
- * 施策に対応する意見募集を1件に決める（この解決ルールの正本）。
+ * 施策に対応する意見募集を1件に決める（複数テーマがある場合の解決ルール）。
  *
  * 募集中（open）を優先し、なければ最新のものを返す。
- * 施策IDを入口にする画面はすべてこれを通すこと。呼び出しごとに
- * 「最初の1件」を選び直すと、同じページの中でヘッダーと意見一覧が
- * 別のテーマを指すことがある。
+ * 「募集が終わっても結果は見せる」画面（意見一覧・トピック分析）はこれを使う。
+ * 参加導線だけは `findOpenInterviewConfigByPolicyId` を直接使い、
+ * 終了したテーマへ誘導しないようにしている。
+ *
+ * どちらを使う場合でも、選ばれるテーマは上の並び順で一致する。
  */
 export async function findPrimaryInterviewConfigByPolicyId(policyId: string) {
   const open = await findOpenInterviewConfigByPolicyId(policyId);
