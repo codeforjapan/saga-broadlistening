@@ -13,7 +13,7 @@ const STANCE_LABELS: Record<StanceBadgeProps["stance"], string> = {
 
 const STANCE_CLASS_NAMES: Record<StanceBadgeProps["stance"], string> = {
   for: "bg-green-50 text-green-700 border-green-200",
-  against: "bg-red-50 text-red-700 border-red-200",
+  against: "bg-yellow-400/20 text-system-warning border-yellow-400",
   neutral: "bg-gray-50 text-gray-700 border-gray-200",
 };
 

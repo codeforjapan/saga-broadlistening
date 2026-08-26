@@ -99,7 +99,7 @@ export function AllBillsAnalysisRunner() {
           実行を開始しました。全議案を順次処理するため完了まで時間がかかります。多重起動を避けるため、完了前の再実行は控えてください（再実行する場合はページを再読み込み）。進捗は各議案のトピック分析ページで確認してください。
         </p>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-system-warning">{error}</p>}
     </div>
   );
 }

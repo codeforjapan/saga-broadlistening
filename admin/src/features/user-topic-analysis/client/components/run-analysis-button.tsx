@@ -146,7 +146,7 @@ export function RunAnalysisButton({
           …（完了まで数分かかります）
         </p>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-system-warning">{error}</p>}
     </div>
   );
 }

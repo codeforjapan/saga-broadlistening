@@ -88,7 +88,7 @@ function FeedbackDistribution({
             </span>
             <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-feedback-bar rounded-full"
+                className="h-full bg-primary rounded-full"
                 style={{ width: `${pct}%` }}
               />
             </div>

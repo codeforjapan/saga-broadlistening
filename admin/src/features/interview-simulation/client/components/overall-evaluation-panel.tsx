@@ -20,7 +20,7 @@ const VERDICT_LABEL: Record<OverallEvaluation["verdict"], string> = {
 };
 
 const VERDICT_CLASSES: Record<OverallEvaluation["verdict"], string> = {
-  excellent: "bg-stance-for/10 text-stance-for",
+  excellent: "bg-green-100 text-green-700",
   good: "bg-primary/10 text-primary",
   fair: "bg-muted text-muted-foreground",
   poor: "bg-destructive/10 text-destructive",
@@ -109,7 +109,7 @@ function EvaluationBody({ evaluation }: { evaluation: OverallEvaluation }) {
           {evaluation.common_strengths.length > 0 && (
             <EvaluationList
               title="共通して引き出せた点"
-              icon={<Lightbulb className="h-3.5 w-3.5 text-stance-for" />}
+              icon={<Lightbulb className="h-3.5 w-3.5 text-green-700" />}
               items={evaluation.common_strengths}
             />
           )}

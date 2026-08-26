@@ -182,7 +182,7 @@ function StatusPill({ status }: { status: PersonaSlotState["status"] }) {
   const classes: Record<PersonaSlotState["status"], string> = {
     pending: "bg-muted text-muted-foreground",
     running: "bg-primary/10 text-primary",
-    complete: "bg-stance-for/10 text-stance-for",
+    complete: "bg-green-100 text-green-700",
     error: "bg-destructive/10 text-destructive",
   };
   const label = STATUS_LABEL[status];
