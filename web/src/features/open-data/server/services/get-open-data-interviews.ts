@@ -1,13 +1,12 @@
 import "server-only";
 
-import { MIN_PUBLIC_REPORTS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { MIN_PUBLIC_OPINIONS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
 import type {
   OpenDataInterviewItem,
   OpenDataInterviewsResult,
   OpenDataMessage,
 } from "../../shared/types/open-data";
 import type { OpenDataCursor } from "../../shared/utils/cursor";
-import { toOpenDataOpinions } from "../../shared/utils/opinions";
 import { paginateRows } from "../../shared/utils/paginate";
 import { toOpenDataMessage } from "../../shared/utils/to-open-data-message";
 import {
@@ -24,14 +23,14 @@ export async function getOpenDataInterviews(params: {
   cursor: OpenDataCursor | null;
 }): Promise<OpenDataInterviewsResult> {
   const rows = await findOpenDataReports({
-    minPublicReports: MIN_PUBLIC_REPORTS_FOR_DISPLAY,
+    minPublicOpinions: MIN_PUBLIC_OPINIONS_FOR_DISPLAY,
     limit: params.limit + 1,
     cursor: params.cursor,
   });
 
   const { pageRows, nextCursor } = paginateRows(rows, params.limit, (row) => ({
     createdAt: row.created_at,
-    id: row.report_id,
+    id: row.opinion_id,
   }));
 
   const messages = await findMessagesBySessionIds(
@@ -45,15 +44,13 @@ export async function getOpenDataInterviews(params: {
   }
 
   const items: OpenDataInterviewItem[] = pageRows.map((row) => ({
-    reportId: row.report_id,
-    billId: row.bill_id,
-    billName: row.bill_name,
-    stance: row.stance,
-    role: row.role,
+    opinionId: row.opinion_id,
+    interviewConfigId: row.interview_config_id,
+    interviewConfigName: row.interview_config_name,
     roleTitle: row.role_title,
     roleDescription: row.role_description,
     summary: row.summary,
-    opinions: toOpenDataOpinions(row.opinions),
+    finalText: row.final_text,
     messages: messagesBySession.get(row.interview_session_id) ?? [],
     createdAt: row.created_at,
   }));

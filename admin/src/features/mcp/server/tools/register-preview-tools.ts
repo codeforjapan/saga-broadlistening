@@ -13,7 +13,7 @@ export function registerPreviewTools(server: McpServer): void {
     {
       title: "議案のプレビューURLを発行",
       description:
-        "指定IDの議案のプレビューURLを発行する。下書き(draft)や公開前(coming_soon)の議案を確認するために使用。既存の有効なトークンがあればそれを再利用し、なければ新規発行する（30日有効）。type で議案詳細ページまたはインタビューページのURLを切り替え可能。",
+        "指定IDの議案のプレビューURLを発行する。下書き(draft)の議案を確認するために使用。既存の有効なトークンがあればそれを再利用し、なければ新規発行する（30日有効）。type で議案詳細ページまたはインタビューページのURLを切り替え可能。",
       inputSchema: {
         billId: z.string().uuid().describe("議案ID"),
         type: z

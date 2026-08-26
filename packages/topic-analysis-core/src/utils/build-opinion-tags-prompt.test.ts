@@ -91,15 +91,13 @@ describe("findUserMessageContent", () => {
 describe("buildOpinionTagsPrompt", () => {
   it("意見のタイトル・説明・引用・直前の質問・発言原文を含める", () => {
     const prompt = buildOpinionTagsPrompt({
-      billName: "学校教育法等の一部を改正する法律案",
-      role: "work_related",
+      interviewConfigName: "学校の学び方について",
       roleTitle: "小学校教員",
       opinions: [baseOpinion],
       messages,
     });
 
-    expect(prompt).toContain("学校教育法等の一部を改正する法律案");
-    expect(prompt).toContain("- role: work_related");
+    expect(prompt).toContain("学校の学び方について");
     expect(prompt).toContain("- role_title: 小学校教員");
     expect(prompt).toContain("opinion_index=0");
     expect(prompt).toContain(baseOpinion.title);
@@ -110,8 +108,7 @@ describe("buildOpinionTagsPrompt", () => {
 
   it("件数を明示する", () => {
     const prompt = buildOpinionTagsPrompt({
-      billName: "議案",
-      role: null,
+      interviewConfigName: "テーマ",
       roleTitle: null,
       opinions: [baseOpinion, { ...baseOpinion, opinion_index: 1 }],
       messages,
@@ -120,10 +117,9 @@ describe("buildOpinionTagsPrompt", () => {
     expect(prompt).toContain("opinion_index=1");
   });
 
-  it("role が未設定なら立場ブロックを出さない", () => {
+  it("role_title が未設定なら立場ブロックを出さない", () => {
     const prompt = buildOpinionTagsPrompt({
-      billName: "議案",
-      role: null,
+      interviewConfigName: "テーマ",
       roleTitle: null,
       opinions: [baseOpinion],
       messages,
@@ -133,8 +129,7 @@ describe("buildOpinionTagsPrompt", () => {
 
   it("引用・原文が解決できない意見でも壊れない", () => {
     const prompt = buildOpinionTagsPrompt({
-      billName: "議案",
-      role: null,
+      interviewConfigName: "テーマ",
       roleTitle: null,
       opinions: [
         {
@@ -153,8 +148,7 @@ describe("buildOpinionTagsPrompt", () => {
 
   it("professional_expertise を肩書だけで付けないよう指示する", () => {
     const prompt = buildOpinionTagsPrompt({
-      billName: "議案",
-      role: "subject_expert",
+      interviewConfigName: "テーマ",
       roleTitle: "研究者",
       opinions: [baseOpinion],
       messages,

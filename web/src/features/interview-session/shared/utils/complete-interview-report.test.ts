@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { InterviewReportData } from "../schemas";
-import { buildCompletedInterviewReportInsert } from "./complete-interview-report";
+import {
+  buildCompletedInterviewReportInsert,
+  buildCompletedOpinionSources,
+} from "./complete-interview-report";
 
 const reportData = {
   summary: "賛成の立場",
-  stance: "for",
-  role: "general_citizen",
+  final_text: "この施策には賛成です。理由は社会全体の利益になるからです。",
   role_description: "一般市民として関心がある",
   role_title: "会社員",
   opinions: [
@@ -14,7 +16,6 @@ const reportData = {
       content: "社会全体の利益になる",
       source_message_id: "message-user-1",
       contextual_quote: null,
-      bill_sentiment: null,
       richness: 70,
       concern: null,
       proposal: null,
@@ -32,21 +33,9 @@ const reportData = {
 } satisfies InterviewReportData;
 
 describe("buildCompletedInterviewReportInsert", () => {
-  it("ユーザー公開許可とスコア条件を満たすレポートに管理者公開フラグを付与する", () => {
+  it("ユーザー公開許可とスコア条件を満たす意見を公開済みにする", () => {
     const insert = buildCompletedInterviewReportInsert({
       sessionId: "session-1",
-      messages: [
-        {
-          id: "message-assistant-1",
-          role: "assistant",
-          content: JSON.stringify({ report: reportData }),
-        },
-        {
-          id: "message-user-1",
-          role: "user",
-          content: "この法案に賛成です",
-        },
-      ],
       reportData,
       moderationScore: 29,
       moderationReasoning: "問題なし",
@@ -56,49 +45,23 @@ describe("buildCompletedInterviewReportInsert", () => {
     expect(insert).toEqual(
       expect.objectContaining({
         interview_session_id: "session-1",
+        final_text:
+          "この施策には賛成です。理由は社会全体の利益になるからです。",
+        summary: "賛成の立場",
         is_public_by_user: true,
         is_public_by_admin: true,
+        review_status: "published",
         moderation_score: 29,
         moderation_reasoning: "問題なし",
         // 完了時は再抽出ウォーターマークを未処理へ戻す（再完了後もバックフィルで復旧可能にする）
         opinions_reextracted_at: null,
       })
     );
-    expect(insert.opinions).toEqual([
-      expect.objectContaining({
-        source_message_content: "この法案に賛成です",
-      }),
-    ]);
   });
 
-  it("根拠IDがユーザーメッセージに解決できない場合は根拠をnullへ正規化する", () => {
+  it("ユーザー公開許可がない場合は公開フラグを付与しない", () => {
     const insert = buildCompletedInterviewReportInsert({
       sessionId: "session-1",
-      messages: [
-        {
-          id: "message-user-1",
-          role: "assistant",
-          content: "assistantの本文",
-        },
-      ],
-      reportData,
-      moderationScore: 29,
-      moderationReasoning: "問題なし",
-      isPublicByUser: true,
-    });
-
-    expect(insert.opinions).toEqual([
-      expect.objectContaining({
-        source_message_id: null,
-        source_message_content: null,
-      }),
-    ]);
-  });
-
-  it("ユーザー公開許可がない場合は管理者公開フラグを付与しない", () => {
-    const insert = buildCompletedInterviewReportInsert({
-      sessionId: "session-1",
-      messages: [],
       reportData,
       moderationScore: 29,
       moderationReasoning: "問題なし",
@@ -111,28 +74,13 @@ describe("buildCompletedInterviewReportInsert", () => {
       })
     );
     expect(insert).not.toHaveProperty("is_public_by_admin");
+    expect(insert).not.toHaveProperty("review_status");
   });
 
-  it("公開設定未指定と根拠メッセージなしの意見を保存用payloadへ反映する", () => {
+  it("公開設定未指定のときは公開・二次利用のフラグを含めない", () => {
     const insert = buildCompletedInterviewReportInsert({
       sessionId: "session-1",
-      messages: [],
-      reportData: {
-        ...reportData,
-        opinions: [
-          {
-            title: "根拠なし",
-            content: "全体として賛成",
-            source_message_id: null,
-            contextual_quote: null,
-            bill_sentiment: null,
-            richness: null,
-            concern: null,
-            proposal: null,
-            reasoning_types: null,
-          },
-        ],
-      },
+      reportData,
       moderationScore: null,
       moderationReasoning: null,
     });
@@ -140,11 +88,6 @@ describe("buildCompletedInterviewReportInsert", () => {
     expect(insert).not.toHaveProperty("is_public_by_user");
     expect(insert).not.toHaveProperty("is_public_by_admin");
     expect(insert).not.toHaveProperty("is_data_reuse_consented");
-    expect(insert.opinions).toEqual([
-      expect.objectContaining({
-        source_message_content: null,
-      }),
-    ]);
   });
 
   it.each([
@@ -153,7 +96,6 @@ describe("buildCompletedInterviewReportInsert", () => {
   ])("二次利用許諾の指定(%s)を保存用payloadへ反映する", (isDataReuseConsented) => {
     const insert = buildCompletedInterviewReportInsert({
       sessionId: "session-1",
-      messages: [],
       reportData,
       moderationScore: 29,
       moderationReasoning: "問題なし",
@@ -166,5 +108,51 @@ describe("buildCompletedInterviewReportInsert", () => {
         is_data_reuse_consented: isDataReuseConsented,
       })
     );
+  });
+});
+
+describe("buildCompletedOpinionSources", () => {
+  it("根拠IDに対応するユーザーメッセージ本文を補完する", () => {
+    expect(
+      buildCompletedOpinionSources({
+        reportData,
+        messages: [
+          {
+            id: "message-assistant-1",
+            role: "assistant",
+            content: JSON.stringify({ report: reportData }),
+          },
+          {
+            id: "message-user-1",
+            role: "user",
+            content: "この法案に賛成です",
+          },
+        ],
+      })
+    ).toEqual([
+      expect.objectContaining({
+        source_message_content: "この法案に賛成です",
+      }),
+    ]);
+  });
+
+  it("根拠IDがユーザーメッセージに解決できない場合は根拠をnullへ正規化する", () => {
+    expect(
+      buildCompletedOpinionSources({
+        reportData,
+        messages: [
+          {
+            id: "message-user-1",
+            role: "assistant",
+            content: "assistantの本文",
+          },
+        ],
+      })
+    ).toEqual([
+      expect.objectContaining({
+        source_message_id: null,
+        source_message_content: null,
+      }),
+    ]);
   });
 });

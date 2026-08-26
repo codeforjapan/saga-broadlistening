@@ -1,18 +1,11 @@
-import { isPublicReportVisible } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { getInterviewMessageLink } from "@/features/interview-config/shared/utils/interview-links";
 import { ClampedQuote } from "../../client/components/clamped-quote";
 import type { PublicOpinion, PublicTopic } from "../types";
-import {
-  filterOpinions,
-  sentimentOfFilter,
-  type TopicFilter,
-  userCategoryOfFilter,
-} from "../utils/filter-topics";
 import { opinionAttributionLabel } from "../utils/topic-category";
-import { TopicCategoryChips, TopicSentiment } from "./topic-meta";
 
 /** 引用1件。messageHref があれば該当メッセージへのリンクにする。 */
 function QuoteItem({
@@ -52,45 +45,30 @@ interface TopicCardProps {
   href: string;
   /** 表示する代表意見の最大件数。 */
   maxQuotes?: number;
-  /**
-   * 一覧でフィルタが選択されている場合、その条件に該当する意見の引用を優先表示する。
-   * 該当する引用が無ければ全体から表示する。
-   */
-  filter?: TopicFilter;
-  /** 議案の公開レポート件数。引用→該当メッセージのリンク表示可否の判定に使う。 */
+  /** 施策の公開意見件数。引用→該当メッセージのリンク表示可否の判定に使う。 */
   publicReportCount?: number;
 }
 
+// Epic #54 で回答者カテゴリ・賛否の集計が廃止されたため、
+// カテゴリchip・期待懸念表示とそれに紐づくフィルタは持たない。
 export function TopicCard({
   topic,
   href,
   maxQuotes = 3,
-  filter = "all",
   publicReportCount = 0,
 }: TopicCardProps) {
-  const withQuote = (opinions: PublicOpinion[]) =>
-    opinions.filter((o) => o.contextual_quote?.trim());
-  // フィルタ該当意見の引用を優先し、無ければ全体から拾う
-  const matched = withQuote(filterOpinions(topic.opinions, filter));
-  const quotes = (
-    matched.length > 0 ? matched : withQuote(topic.opinions)
-  ).slice(0, maxQuotes);
+  const quotes = topic.opinions
+    .filter((o) => o.contextual_quote?.trim())
+    .slice(0, maxQuotes);
 
-  // フィルタ選択中の次元をカード側でもハイライトする
-  const highlightCategory = userCategoryOfFilter(filter);
-  const highlightSentiment = sentimentOfFilter(filter);
-
-  // レポート詳細が表示可能な意見のみ、該当メッセージへのリンクにする
+  // 意見詳細が表示可能な意見のみ、該当メッセージへのリンクにする
   const messageHrefFor = (opinion: PublicOpinion): string | null => {
     if (!opinion.source_message_id) return null;
-    const visible = isPublicReportVisible({
-      isPublicByAdmin: opinion.report_public,
-      isPublicByUser: true,
-      publicReportCount,
-    });
+    const visible =
+      opinion.opinion_public && shouldDisplayPublicReports(publicReportCount);
     if (!visible) return null;
     return getInterviewMessageLink(
-      opinion.interview_report_id,
+      opinion.opinion_id,
       opinion.source_message_id,
       undefined,
       opinion.contextual_quote
@@ -107,7 +85,7 @@ export function TopicCard({
         className="absolute inset-0 z-0 rounded-[14px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       />
 
-      {/* タイトル〜期待懸念〜カテゴリ（クリックはオーバーレイに通す） */}
+      {/* タイトル（クリックはオーバーレイに通す） */}
       <div className="pointer-events-none relative z-10 flex flex-col gap-2">
         <div className="flex items-start gap-2.5">
           <h3 className="min-w-0 flex-1 text-base font-bold leading-6 text-mirai-text">
@@ -121,14 +99,6 @@ export function TopicCard({
             <ChevronRight className="size-[18px] text-primary" />
           </span>
         </div>
-        <TopicSentiment
-          sentiment={topic.sentiment}
-          highlight={highlightSentiment}
-        />
-        <TopicCategoryChips
-          topic={topic}
-          highlightCategory={highlightCategory}
-        />
       </div>
 
       {/* 代表意見の引用（クリックで該当メッセージへ） */}

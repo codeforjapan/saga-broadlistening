@@ -86,8 +86,7 @@ describe("useInterviewChat", () => {
             text: "まとめました",
             report: {
               summary: "テスト要約",
-              stance: "for",
-              role: "general_citizen",
+              final_text: "テスト意見本文",
               role_description: "市民",
               role_title: "市民",
               opinions: [{ title: "意見1", content: "内容1" }],

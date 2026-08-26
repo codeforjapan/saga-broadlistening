@@ -1,7 +1,6 @@
 import "server-only";
 
 import type {
-  InterviewMode,
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
   InterviewQuestion as PromptInterviewQuestion,
@@ -10,10 +9,12 @@ import { parseAssistantMessageContent } from "@mirai-gikai/shared/interview-repo
 import {
   findInterviewConfigById,
   findInterviewQuestionsByConfigId,
+  findPolicyIdsByInterviewConfigId,
 } from "@/features/interview-config/server/repositories/interview-config-repository";
 import {
   findInterviewMessagesBySessionId,
   findInterviewSessionById,
+  findOpinionSegmentsByOpinionId,
 } from "@/features/interview-reports/server/repositories/interview-report-repository";
 import { fetchBillWithContents } from "@/features/topic-analysis/server/repositories/topic-analysis-repository";
 import type { OriginalInterviewSnapshot } from "../../shared/types";
@@ -24,7 +25,6 @@ export interface ReportDetailForSimulation {
   bill: PromptBillInput;
   interviewConfig: PromptInterviewConfig;
   questions: PromptInterviewQuestion[];
-  mode: InterviewMode;
   /** 保存済み config の estimated_duration（分）。本番のタイムマネジメント用 */
   estimatedDurationMinutes: number | null;
 }
@@ -49,7 +49,11 @@ export async function getReportDetailForSimulation(
 
   if (!interviewConfig) return null;
 
-  const billData = await fetchBillWithContents(interviewConfig.bill_id);
+  // 施策と意見募集は多対多。既存 UI は最初の1件だけを使う
+  const [policyId] = await findPolicyIdsByInterviewConfigId(interviewConfig.id);
+  if (!policyId) return null;
+
+  const billData = await fetchBillWithContents(policyId);
 
   // 元会話を interviewer / interviewee の text のみに正規化。
   // Summary フェーズ（report 生成・確認ターン）は除外する。
@@ -82,33 +86,20 @@ export async function getReportDetailForSimulation(
     return { role, content: m.content, quick_replies: null };
   });
 
-  // opinions は jsonb で保存されている想定。型は any なので最小整形
-  const rawOpinions = Array.isArray(report.opinions)
-    ? (report.opinions as Array<{
-        title?: string;
-        content?: string;
-        source_message_id?: string | null;
-      }>)
-    : [];
-  const opinions = rawOpinions.map((o) => ({
-    title: o?.title ?? "",
-    content: o?.content ?? "",
-    source_message_id: o?.source_message_id ?? null,
+  // 論点単位の意見は opinion_segments（旧 interview_report.opinions の JSONB）
+  const segments = await findOpinionSegmentsByOpinionId(report.id);
+  const opinions = segments.map((segment) => ({
+    title: segment.title,
+    content: segment.content,
+    source_message_id: segment.source_message_id,
   }));
 
   const snapshot: OriginalInterviewSnapshot = {
     reportId: report.id,
     sessionId: session.id,
     configId: interviewConfig.id,
-    billId: interviewConfig.bill_id,
+    billId: policyId,
     summary: report.summary ?? null,
-    stance:
-      report.stance === "for" ||
-      report.stance === "against" ||
-      report.stance === "neutral"
-        ? report.stance
-        : null,
-    role: report.role ?? null,
     roleTitle: report.role_title ?? null,
     roleDescription: report.role_description ?? null,
     opinions,
@@ -128,7 +119,7 @@ export async function getReportDetailForSimulation(
   };
 
   const promptInterviewConfig: PromptInterviewConfig = {
-    themes: interviewConfig.themes ?? null,
+    description: interviewConfig.description,
   };
 
   const promptQuestions: PromptInterviewQuestion[] = (questions ?? []).map(
@@ -137,7 +128,6 @@ export async function getReportDetailForSimulation(
       question: q.question,
       quick_replies: q.quick_replies ?? null,
       follow_up_guide: q.follow_up_guide ?? null,
-      target_audience: q.target_audience ?? null,
     })
   );
 
@@ -146,7 +136,6 @@ export async function getReportDetailForSimulation(
     bill,
     interviewConfig: promptInterviewConfig,
     questions: promptQuestions,
-    mode: interviewConfig.mode,
     estimatedDurationMinutes: interviewConfig.estimated_duration ?? null,
   };
 }

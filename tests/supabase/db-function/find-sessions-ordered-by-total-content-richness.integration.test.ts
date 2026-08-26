@@ -1,168 +1,59 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestBill,
   cleanupTestUser,
-  createTestBill,
+  createTestOpinion,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-
-async function createTestInterviewConfig(billId: string) {
-  const { data, error } = await adminClient
-    .from("interview_configs")
-    .insert({
-      bill_id: billId,
-      status: "public",
-      name: `テスト設定 ${Date.now()}`,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_config 作成失敗: ${error.message}`);
-  return data;
-}
+import { trackInterviewConfigs } from "./helpers";
 
 let sessionCounter = 0;
 
-async function createTestSession(
+/** 作成順を started_at で確定させたセッションを作る */
+async function createOrderedSession(
   configId: string,
   userId: string,
   completedAt?: string
 ) {
-  // テスト内で作成順序を保証するため、started_atをずらす
   sessionCounter++;
-  const startedAt = new Date(Date.now() - sessionCounter * 1000).toISOString();
-  const { data, error } = await adminClient
-    .from("interview_sessions")
-    .insert({
-      interview_config_id: configId,
-      user_id: userId,
-      started_at: startedAt,
-      completed_at: completedAt ?? null,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_session 作成失敗: ${error.message}`);
-  return data;
+  return await createTestSession(configId, userId, {
+    started_at: new Date(Date.now() - sessionCounter * 1000).toISOString(),
+    completed_at: completedAt ?? null,
+  });
 }
 
-async function createTestReport(
-  sessionId: string,
-  overrides: {
-    stance?: string;
-    role?: string;
-    is_public_by_admin?: boolean;
-    total_content_richness?: number;
-  } = {}
-) {
-  const { data, error } = await adminClient
-    .from("interview_report")
-    .insert({
-      interview_session_id: sessionId,
-      stance: overrides.stance ?? "for",
-      role: overrides.role ?? "general_citizen",
-      is_public_by_admin: overrides.is_public_by_admin ?? false,
-      content_richness: { total: overrides.total_content_richness ?? 50 },
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_report 作成失敗: ${error.message}`);
-  return data;
-}
-
-describe("find_sessions_ordered_by_total_content_richness() 関数", () => {
+describe("find_sessions_ordered_by_total_content_richness() フィルタパラメータ", () => {
   let testUser: TestUser;
-  const billIds: string[] = [];
+  const configs = trackInterviewConfigs();
 
   beforeEach(async () => {
     testUser = await createTestUser();
   });
 
   afterEach(async () => {
-    for (const billId of billIds) {
-      await cleanupTestBill(billId);
-    }
-    billIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(testUser.id);
   });
 
-  it("充実度の降順でセッションIDを返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("p_statusでcompletedセッションのみフィルタできる", async () => {
+    const configId = await configs.createConfigId();
 
-    const s1 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s1.id, { total_content_richness: 30 });
-
-    const s2 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s2.id, { total_content_richness: 80 });
-
-    const s3 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s3.id, { total_content_richness: 50 });
-
-    const { data, error } = await adminClient.rpc(
-      "find_sessions_ordered_by_total_content_richness",
-      {
-        p_config_id: config.id,
-        p_ascending: false,
-        p_offset: 0,
-        p_limit: 10,
-      }
-    );
-
-    expect(error).toBeNull();
-    expect(data).toHaveLength(3);
-    expect(data![0].session_id).toBe(s2.id);
-    expect(data![1].session_id).toBe(s3.id);
-    expect(data![2].session_id).toBe(s1.id);
-  });
-
-  it("充実度の昇順でセッションIDを返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-
-    const s1 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s1.id, { total_content_richness: 70 });
-
-    const s2 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s2.id, { total_content_richness: 20 });
-
-    const { data, error } = await adminClient.rpc(
-      "find_sessions_ordered_by_total_content_richness",
-      {
-        p_config_id: config.id,
-        p_ascending: true,
-        p_offset: 0,
-        p_limit: 10,
-      }
-    );
-
-    expect(error).toBeNull();
-    expect(data).toHaveLength(2);
-    expect(data![0].session_id).toBe(s2.id);
-    expect(data![1].session_id).toBe(s1.id);
-  });
-
-  it("p_statusでフィルタできる", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-
-    const completed = await createTestSession(
-      config.id,
+    const completed = await createOrderedSession(
+      configId,
       testUser.id,
       new Date().toISOString()
     );
-    await createTestReport(completed.id, { total_content_richness: 60 });
+    await createTestOpinion(completed.id, { content_richness: { total: 60 } });
 
-    const inProgress = await createTestSession(config.id, testUser.id);
-    await createTestReport(inProgress.id, { total_content_richness: 90 });
+    const inProgress = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(inProgress.id, { content_richness: { total: 90 } });
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_total_content_richness",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
@@ -172,86 +63,170 @@ describe("find_sessions_ordered_by_total_content_richness() 関数", () => {
 
     expect(error).toBeNull();
     expect(data).toHaveLength(1);
-    expect(data![0].session_id).toBe(completed.id);
+    expect(data?.[0].session_id).toBe(completed.id);
   });
 
-  it("p_stanceでフィルタできる", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("p_statusでin_progress/archivedを区別できる", async () => {
+    const configId = await configs.createConfigId();
 
-    const s1 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s1.id, {
-      total_content_richness: 40,
-      stance: "neutral",
+    const inProgress = await createOrderedSession(configId, testUser.id);
+    const archived = await createOrderedSession(configId, testUser.id);
+    await adminClient
+      .from("interview_sessions")
+      .update({ archived_at: new Date().toISOString() })
+      .eq("id", archived.id);
+
+    const { data: inProgressRows } = await adminClient.rpc(
+      "find_sessions_ordered_by_total_content_richness",
+      {
+        p_config_id: configId,
+        p_ascending: false,
+        p_offset: 0,
+        p_limit: 10,
+        p_status: "in_progress",
+      }
+    );
+    expect(inProgressRows).toHaveLength(1);
+    expect(inProgressRows?.[0].session_id).toBe(inProgress.id);
+
+    const { data: archivedRows } = await adminClient.rpc(
+      "find_sessions_ordered_by_total_content_richness",
+      {
+        p_config_id: configId,
+        p_ascending: false,
+        p_offset: 0,
+        p_limit: 10,
+        p_status: "archived",
+      }
+    );
+    expect(archivedRows).toHaveLength(1);
+    expect(archivedRows?.[0].session_id).toBe(archived.id);
+  });
+
+  it("p_visibility='public'は公開済み(published)の意見を持つセッションのみ返す", async () => {
+    const configId = await configs.createConfigId();
+
+    const published = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(published.id, {
+      review_status: "published",
+      content_richness: { total: 40 },
     });
 
-    const s2 = await createTestSession(config.id, testUser.id);
-    await createTestReport(s2.id, {
-      total_content_richness: 80,
-      stance: "for",
+    const pending = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(pending.id, {
+      review_status: "pending_review",
+      content_richness: { total: 80 },
     });
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_total_content_richness",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
-        p_stance: "neutral",
+        p_visibility: "public",
       }
     );
 
     expect(error).toBeNull();
     expect(data).toHaveLength(1);
-    expect(data![0].session_id).toBe(s1.id);
+    expect(data?.[0].session_id).toBe(published.id);
   });
 
-  it("offset/limitでページネーションが正しく動作する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("p_visibility='private'は未公開の意見のセッションのみを返す", async () => {
+    const configId = await configs.createConfigId();
 
-    const sessions = [];
-    for (let i = 0; i < 5; i++) {
-      const s = await createTestSession(config.id, testUser.id);
-      await createTestReport(s.id, { total_content_richness: (i + 1) * 20 });
-      sessions.push(s);
-    }
+    const published = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(published.id, { review_status: "published" });
 
-    // 降順: 100, 80, 60, 40, 20 → offset=1, limit=2 → 80, 60
+    const hidden = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(hidden.id, { review_status: "hidden" });
+
+    // 意見が未作成のセッションは public / private のどちらにも含めない
+    // （PostgREST 側の opinions!inner を使う件数集計と一致させるため）
+    const noOpinion = await createOrderedSession(configId, testUser.id);
+
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_total_content_richness",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
         p_ascending: false,
-        p_offset: 1,
-        p_limit: 2,
+        p_offset: 0,
+        p_limit: 10,
+        p_visibility: "private",
       }
     );
 
     expect(error).toBeNull();
-    expect(data).toHaveLength(2);
-    expect(data![0].session_id).toBe(sessions[3].id); // content_richness 80
-    expect(data![1].session_id).toBe(sessions[2].id); // content_richness 60
+    const sessionIds = (data ?? []).map((r) => r.session_id);
+    expect(sessionIds).toEqual([hidden.id]);
+    expect(sessionIds).not.toContain(noOpinion.id);
+    expect(sessionIds).not.toContain(published.id);
   });
 
-  it("レポートなしセッションはNULLS LASTで末尾に来る", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
+  it("複数フィルタを組み合わせて絞り込める", async () => {
+    const configId = await configs.createConfigId();
 
-    const withReport = await createTestSession(config.id, testUser.id);
-    await createTestReport(withReport.id, { total_content_richness: 50 });
+    // 完了 × 公開済み（唯一の該当）
+    const target = await createOrderedSession(
+      configId,
+      testUser.id,
+      new Date().toISOString()
+    );
+    await createTestOpinion(target.id, {
+      review_status: "published",
+      content_richness: { total: 50 },
+    });
 
-    const withoutReport = await createTestSession(config.id, testUser.id);
-    // レポートなし
+    // 完了だが未公開
+    const completedPrivate = await createOrderedSession(
+      configId,
+      testUser.id,
+      new Date().toISOString()
+    );
+    await createTestOpinion(completedPrivate.id, {
+      review_status: "pending_review",
+      content_richness: { total: 90 },
+    });
+
+    // 公開済みだが未完了
+    const inProgressPublic = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(inProgressPublic.id, {
+      review_status: "published",
+      content_richness: { total: 95 },
+    });
 
     const { data, error } = await adminClient.rpc(
       "find_sessions_ordered_by_total_content_richness",
       {
-        p_config_id: config.id,
+        p_config_id: configId,
+        p_ascending: false,
+        p_offset: 0,
+        p_limit: 10,
+        p_status: "completed",
+        p_visibility: "public",
+      }
+    );
+
+    expect(error).toBeNull();
+    expect(data).toHaveLength(1);
+    expect(data?.[0].session_id).toBe(target.id);
+  });
+
+  it("フィルタパラメータがNULLの場合はフィルタしない", async () => {
+    const configId = await configs.createConfigId();
+
+    const s1 = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(s1.id, { content_richness: { total: 30 } });
+
+    const s2 = await createOrderedSession(configId, testUser.id);
+    await createTestOpinion(s2.id, { content_richness: { total: 70 } });
+
+    const { data, error } = await adminClient.rpc(
+      "find_sessions_ordered_by_total_content_richness",
+      {
+        p_config_id: configId,
         p_ascending: false,
         p_offset: 0,
         p_limit: 10,
@@ -260,7 +235,7 @@ describe("find_sessions_ordered_by_total_content_richness() 関数", () => {
 
     expect(error).toBeNull();
     expect(data).toHaveLength(2);
-    expect(data![0].session_id).toBe(withReport.id);
-    expect(data![1].session_id).toBe(withoutReport.id);
+    expect(data?.[0].session_id).toBe(s2.id);
+    expect(data?.[1].session_id).toBe(s1.id);
   });
 });

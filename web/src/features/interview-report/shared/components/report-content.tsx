@@ -15,8 +15,6 @@ interface ReportContentProps {
   reportId: string;
   billId: string;
   summary: string | null;
-  stance: string | null;
-  role: string | null;
   roleTitle?: string | null;
   sessionStartedAt: string | null;
   characterCount: number;
@@ -46,8 +44,6 @@ export function ReportContent({
   reportId,
   billId,
   summary,
-  stance,
-  role,
   roleTitle,
   sessionStartedAt,
   characterCount,
@@ -69,11 +65,9 @@ export function ReportContent({
           </p>
         </SpeechBubble>
 
-        {/* スタンスと日時情報 */}
+        {/* 立場と日時情報 */}
         <ReportMetaInfo
           reportId={reportId}
-          stance={stance}
-          role={role}
           roleTitle={roleTitle}
           sessionStartedAt={sessionStartedAt}
           characterCount={characterCount}

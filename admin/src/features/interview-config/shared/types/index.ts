@@ -1,4 +1,3 @@
-import { INTERVIEW_MODES } from "@mirai-gikai/shared/interview-prompts/types";
 import type { Database } from "@mirai-gikai/supabase";
 import { z } from "zod";
 import { isValidChatModel } from "../utils/chat-model-options";
@@ -24,9 +23,16 @@ export const interviewConfigSchema = z.object({
     .string()
     .min(1, "設定名は必須です")
     .max(100, "設定名は100文字以内で入力してください"),
-  status: z.enum(["public", "closed"]),
-  mode: z.enum(INTERVIEW_MODES),
-  themes: z.array(z.string().min(1)).optional(),
+  slug: z
+    .string()
+    .min(1, "slugは必須です")
+    .max(100, "slugは100文字以内で入力してください"),
+  status: z.enum(["draft", "open", "closed"]),
+  description: z
+    .string()
+    .max(4000, "説明は4,000文字以内で入力してください")
+    .nullable()
+    .optional(),
   chat_model: z
     .string()
     .nullable()
@@ -53,10 +59,6 @@ export const interviewQuestionSchema = z.object({
     .max(2000, "フォローアップ指針は2000文字以内で入力してください")
     .optional(),
   quick_replies: z.array(z.string().min(1)).optional(),
-  target_audience: z
-    .string()
-    .max(500, "対象者条件は500文字以内で入力してください")
-    .optional(),
 });
 
 export const interviewQuestionsInputSchema = z.array(interviewQuestionSchema);

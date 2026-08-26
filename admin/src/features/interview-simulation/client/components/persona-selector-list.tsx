@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { StanceBadge } from "@/features/interview-reports/server/components/stance-badge";
 import {
   MAX_PERSONA_SLOTS,
   RECOMMENDED_PERSONA_SLOTS,
@@ -229,7 +228,6 @@ export function PersonaSelectorList({
                         <span className="font-medium">
                           {r.roleTitle ?? "立場不明"}
                         </span>
-                        <StanceBadge stance={r.stance} />
                         {r.totalContentRichness !== null && (
                           <Badge
                             variant="outline"

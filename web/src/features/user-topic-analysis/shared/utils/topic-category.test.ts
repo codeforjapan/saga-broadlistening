@@ -5,14 +5,12 @@ import { normalizeRoleTitle, opinionAttributionLabel } from "./topic-category";
 function makeOpinion(overrides: Partial<PublicOpinion> = {}): PublicOpinion {
   return {
     id: "o1",
-    interview_report_id: "r1",
-    report_public: true,
+    opinion_id: "op1",
+    opinion_public: true,
     created_at: null,
     title: "t",
     content: "c",
-    user_category: "expert",
     role_title: null,
-    bill_sentiment: null,
     contextual_quote: null,
     richness: null,
     source_message_id: null,
@@ -26,22 +24,16 @@ describe("opinionAttributionLabel", () => {
     expect(makeAttribution({ role_title: "育休経験者" })).toBe("育休経験者");
   });
 
-  it("role_title が null ならカテゴリラベルにフォールバック", () => {
-    expect(makeAttribution({ role_title: null, user_category: "expert" })).toBe(
-      "専門家"
-    );
+  it("role_title が null なら既定ラベルにフォールバック", () => {
+    expect(makeAttribution({ role_title: null })).toBe("市民");
   });
 
-  it("role_title が空白のみならカテゴリラベルにフォールバック（'（）'防止）", () => {
-    expect(
-      makeAttribution({ role_title: "  ", user_category: "industry" })
-    ).toBe("事業者");
+  it("role_title が空白のみなら既定ラベルにフォールバック（'（）'防止）", () => {
+    expect(makeAttribution({ role_title: "  " })).toBe("市民");
   });
 
-  it("汎用的な「一般市民」等の肩書はカテゴリラベル（市民）にフォールバック", () => {
-    expect(
-      makeAttribution({ role_title: "一般市民", user_category: "citizen" })
-    ).toBe("市民");
+  it("汎用的な「一般市民」等の肩書も既定ラベルにフォールバック", () => {
+    expect(makeAttribution({ role_title: "一般市民" })).toBe("市民");
   });
 
   function makeAttribution(overrides: Partial<PublicOpinion>) {

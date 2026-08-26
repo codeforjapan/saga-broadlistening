@@ -200,12 +200,20 @@ function _InterviewDurationSection({
   );
 }
 
+// Epic #54 で interview_configs.themes（配列）は description（自由記述）に置き換わった。
+// 改行区切りの各行をチェックリスト項目として表示する。
 function _InterviewThemesSection({
-  themes,
+  description,
 }: {
-  themes: string[] | null | undefined;
+  description: string | null | undefined;
 }) {
-  if (!themes || themes.length === 0) {
+  const themes =
+    description
+      ?.split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0) ?? [];
+
+  if (themes.length === 0) {
     return null;
   }
 
@@ -337,7 +345,7 @@ export function InterviewLPPage({
         <_InterviewDurationSection
           estimatedDuration={interviewConfig.estimated_duration}
         />
-        <_InterviewThemesSection themes={interviewConfig.themes} />
+        <_InterviewThemesSection description={interviewConfig.description} />
         <_InterviewNoticeSection />
         <_InterviewDisclosureLink
           billId={bill.id}

@@ -20,8 +20,8 @@ const _getCachedBillById = unstable_cache(
     id: string,
     difficultyLevel: DifficultyLevelEnum
   ): Promise<BillWithContent | null> => {
-    // 基本的なbill情報、コンテンツ、タグを並列取得
-    // 公開ステータスの議案のみを取得
+    // 基本的な施策情報、コンテンツ、タグを並列取得
+    // 公開ステータスの施策のみを取得
     const [bill, billContent, billTags] = await Promise.all([
       findPublishedBillById(id),
       getBillContentWithDifficulty(id, difficultyLevel),

@@ -1,9 +1,5 @@
 "use client";
 
-import {
-  type InterviewMode,
-  INTERVIEW_MODES,
-} from "@mirai-gikai/shared/interview-prompts/types";
 import { Loader2, Play, Settings2, Square } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -41,8 +37,7 @@ interface MultiSimulationViewProps {
   configId: string;
   /** 編集フォームの現在値を取り出す（未保存編集値を含む） */
   getFormValues: () => {
-    mode: string;
-    themes: string[];
+    description: string | null;
     chat_model: string | null;
     estimated_duration: number | null;
   } | null;
@@ -126,13 +121,7 @@ export function MultiSimulationView({
     }
 
     const snapshot: TransientConfigSnapshot = {
-      mode: (INTERVIEW_MODES as readonly string[]).includes(formValues.mode)
-        ? (formValues.mode as InterviewMode)
-        : "loop",
-      themes:
-        formValues.themes.length > 0
-          ? formValues.themes.filter((t) => t.length > 0)
-          : null,
+      description: formValues.description,
       estimatedDurationMinutes: formValues.estimated_duration,
       questions: currentQuestions.map((q, index) => ({
         id: `transient-${index}-${q.question.slice(0, 16)}`,
@@ -142,7 +131,6 @@ export function MultiSimulationView({
             ? q.quick_replies
             : null,
         follow_up_guide: q.follow_up_guide ?? null,
-        target_audience: q.target_audience ?? null,
       })),
     };
 

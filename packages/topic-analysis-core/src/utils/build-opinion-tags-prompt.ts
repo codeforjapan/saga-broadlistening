@@ -10,7 +10,7 @@ import type { ReextractionMessage } from "../shared/types";
  */
 const MAX_QUESTION_LOOKBACK = 2;
 
-/** タグ付け対象の意見（interview_opinion の既存行から作る）。 */
+/** タグ付け対象の論点（opinion_segments の既存行から作る）。 */
 export type OpinionToTag = {
   opinion_index: number;
   title: string;
@@ -20,10 +20,9 @@ export type OpinionToTag = {
 };
 
 export type OpinionTagsPromptInput = {
-  billName: string;
-  /** 回答者の立場タイプ（interview_report.role）。 */
-  role: string | null;
-  /** 回答者の立場の短縮タイトル（interview_report.role_title）。 */
+  /** 意見募集（テーマ）名。 */
+  interviewConfigName: string;
+  /** 回答者の立場の短縮タイトル（opinions.role_title）。 */
   roleTitle: string | null;
   opinions: OpinionToTag[];
   /** prepareReextractionMessages で整形済みの会話ログ。 */
@@ -125,13 +124,10 @@ function formatOpinionBlock(
  * 「直前の質問」だけを引いて渡す。根拠の判定に必要な文脈を保ちつつ入力を絞る。
  */
 export function buildOpinionTagsPrompt(input: OpinionTagsPromptInput): string {
-  const { billName, role, roleTitle, opinions, messages } = input;
+  const { interviewConfigName, roleTitle, opinions, messages } = input;
 
-  const roleLines = [];
-  if (role) roleLines.push(`- role: ${role}`);
-  if (roleTitle) roleLines.push(`- role_title: ${roleTitle}`);
-  const roleBlock = roleLines.length
-    ? `\n## 回答者の立場\n${roleLines.join("\n")}\n`
+  const roleBlock = roleTitle
+    ? `\n## 回答者の立場\n- role_title: ${roleTitle}\n`
     : "";
 
   const opinionBlocks = opinions
@@ -140,8 +136,8 @@ export function buildOpinionTagsPrompt(input: OpinionTagsPromptInput): string {
 
   return `${SYSTEM_INSTRUCTIONS}
 
-# 対象議案
-${billName}
+# 対象の意見募集テーマ
+${interviewConfigName}
 ${roleBlock}
 # タグ付けする意見（${opinions.length}件）
 

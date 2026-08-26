@@ -1,9 +1,9 @@
-import type { Route } from "next";
 import { Plus } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { routes } from "@/lib/routes";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
 import {
   Table,
   TableBody,
@@ -12,37 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { routes } from "@/lib/routes";
 import { BillActionsMenu } from "../../../client/components/bill-actions-menu/bill-actions-menu";
 import { PreviewButton } from "../../../client/components/bill-list/preview-button";
 import { PublishStatusBadge } from "../../../client/components/bill-list/publish-status-badge";
-import { SortableTableHead } from "@/components/ui/sortable-table-head";
 import { ViewButton } from "../../../client/components/bill-list/view-button";
-import { BILL_STATUS_CONFIG } from "../../../shared/constants/bill-config";
-import type {
-  BillSortConfig,
-  BillStatus,
-  BillWithDietSession,
-} from "../../../shared/types";
-import { getBillStatusLabel } from "../../../shared/types";
+import type { Bill, BillSortConfig } from "../../../shared/types";
 import { getBills } from "../../loaders/get-bills";
-
-function StatusBadge({
-  status,
-  originatingHouse,
-}: {
-  status: BillStatus;
-  originatingHouse: BillWithDietSession["originating_house"];
-}) {
-  const config = BILL_STATUS_CONFIG[status];
-  const Icon = config.icon;
-
-  return (
-    <div className="inline-flex items-center gap-1.5 py-1 rounded-full text-sm font-bold">
-      <Icon className="h-4 w-4" />
-      <span>{getBillStatusLabel(status, originatingHouse)}</span>
-    </div>
-  );
-}
 
 export async function BillList({ sortConfig }: { sortConfig: BillSortConfig }) {
   const bills = await getBills(sortConfig);
@@ -64,27 +40,14 @@ export async function BillList({ sortConfig }: { sortConfig: BillSortConfig }) {
           <TableHeader>
             <TableRow>
               <TableHead>議案名</TableHead>
-              <TableHead>国会会期</TableHead>
+              <TableHead>担当部署</TableHead>
+              <TableHead>公開ステータス</TableHead>
               <SortableTableHead
-                field="publish_status_order"
+                field="published_at"
                 currentField={sortConfig.field}
                 currentOrder={sortConfig.order}
               >
-                公開ステータス
-              </SortableTableHead>
-              <SortableTableHead
-                field="status_order"
-                currentField={sortConfig.field}
-                currentOrder={sortConfig.order}
-              >
-                審議ステータス
-              </SortableTableHead>
-              <SortableTableHead
-                field="submitted_date"
-                currentField={sortConfig.field}
-                currentOrder={sortConfig.order}
-              >
-                法案提出日
+                公開日
               </SortableTableHead>
               <TableHead className="w-[50px]" />
             </TableRow>
@@ -100,7 +63,7 @@ export async function BillList({ sortConfig }: { sortConfig: BillSortConfig }) {
   );
 }
 
-function BillRow({ bill }: { bill: BillWithDietSession }) {
+function BillRow({ bill }: { bill: Bill }) {
   return (
     <TableRow>
       <TableCell className="max-w-[400px]">
@@ -111,17 +74,14 @@ function BillRow({ bill }: { bill: BillWithDietSession }) {
           {bill.name}
         </Link>
       </TableCell>
-      <TableCell className="text-gray-600">
-        {bill.diet_sessions?.name ?? "-"}
-      </TableCell>
+      <TableCell className="text-gray-600">{bill.department ?? "-"}</TableCell>
       <TableCell>
         <div className="flex items-center gap-2">
           <PublishStatusBadge
             billId={bill.id}
             publishStatus={bill.publish_status}
           />
-          {(bill.publish_status === "draft" ||
-            bill.publish_status === "coming_soon") && (
+          {bill.publish_status === "draft" && (
             <PreviewButton billId={bill.id} />
           )}
           {bill.publish_status === "published" && (
@@ -129,15 +89,9 @@ function BillRow({ bill }: { bill: BillWithDietSession }) {
           )}
         </div>
       </TableCell>
-      <TableCell>
-        <StatusBadge
-          status={bill.status}
-          originatingHouse={bill.originating_house}
-        />
-      </TableCell>
       <TableCell className="text-gray-600">
-        {bill.submitted_date
-          ? new Date(bill.submitted_date).toLocaleDateString("ja-JP", {
+        {bill.published_at
+          ? new Date(bill.published_at).toLocaleDateString("ja-JP", {
               timeZone: "Asia/Tokyo",
             })
           : "-"}

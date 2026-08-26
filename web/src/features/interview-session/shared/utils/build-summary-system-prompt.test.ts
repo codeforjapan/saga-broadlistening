@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  BILL_STATUS_ORDER,
-  type BillWithContent,
-} from "@/features/bills/shared/types";
+import type { BillWithContent } from "@/features/bills/shared/types";
 import { buildSummarySystemPrompt } from "./build-summary-system-prompt";
 
 const makeBill = (
@@ -10,28 +7,23 @@ const makeBill = (
 ): BillWithContent => ({
   id: "bill-1",
   name: "テスト法案",
+  slug: "test-policy",
+  department: null,
+  contact: null,
   is_featured: false,
-  is_review_completed: true,
-  originating_house: "HR",
-  shugiin_url: null,
-  slug: null,
-  diet_session_id: null,
+  approved_by: null,
+  approved_at: null,
   publish_status: "published",
   published_at: null,
-  submitted_date: null,
   share_thumbnail_url: null,
-  status: "introduced",
-  status_note: null,
-  status_order: BILL_STATUS_ORDER.introduced,
-  publish_status_order: 2,
   thumbnail_url: null,
-  knowledge_source: null,
-  use_knowledge_source_in_chat: false,
+  knowledge_source: "厚生労働省の報告書",
+  enable_ai_chat: false,
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
   bill_content: {
     id: "bc-1",
-    bill_id: "bill-1",
+    policy_id: "bill-1",
     title: "テスト法案タイトル",
     summary: "テスト法案の要約です",
     content: "テスト法案の内容",
@@ -47,7 +39,7 @@ describe("buildSummarySystemPrompt", () => {
   it("正常なbill情報・テーマ・メッセージでプロンプトに全情報が含まれる", () => {
     const result = buildSummarySystemPrompt({
       bill: makeBill(),
-      interviewConfig: { themes: ["医療", "教育"] },
+      interviewConfig: { description: "- 医療\n- 教育" },
       messages: [
         { role: "assistant", content: "こんにちは" },
         { role: "user", content: "賛成です" },
@@ -66,7 +58,7 @@ describe("buildSummarySystemPrompt", () => {
   it("bill=nullの場合のフォールバック（空文字）", () => {
     const result = buildSummarySystemPrompt({
       bill: null,
-      interviewConfig: { themes: ["テーマ1"] },
+      interviewConfig: { description: "- テーマ1" },
       messages: [{ role: "user", content: "テスト" }],
     });
 
@@ -88,7 +80,7 @@ describe("buildSummarySystemPrompt", () => {
   it("テーマが複数ある場合、全テーマが「- テーマ名」形式で含まれる", () => {
     const result = buildSummarySystemPrompt({
       bill: makeBill(),
-      interviewConfig: { themes: ["経済", "環境", "安全保障"] },
+      interviewConfig: { description: "- 経済\n- 環境\n- 安全保障" },
       messages: [],
     });
 
@@ -100,7 +92,7 @@ describe("buildSummarySystemPrompt", () => {
   it("メッセージ空配列の場合エラーなく動く", () => {
     const result = buildSummarySystemPrompt({
       bill: makeBill(),
-      interviewConfig: { themes: ["テーマ1"] },
+      interviewConfig: { description: "- テーマ1" },
       messages: [],
     });
 
@@ -110,7 +102,7 @@ describe("buildSummarySystemPrompt", () => {
   it("会話履歴が 'role: content' フォーマットで含まれる", () => {
     const result = buildSummarySystemPrompt({
       bill: makeBill(),
-      interviewConfig: { themes: [] },
+      interviewConfig: { description: null },
       messages: [
         { role: "assistant", content: "質問1" },
         { role: "user", content: "回答1" },
@@ -127,7 +119,7 @@ describe("buildSummarySystemPrompt", () => {
   it("IDつきのuserメッセージが msg_id 付きフォーマットで含まれる", () => {
     const result = buildSummarySystemPrompt({
       bill: makeBill(),
-      interviewConfig: { themes: [] },
+      interviewConfig: { description: null },
       messages: [
         { role: "assistant", content: "質問1" },
         { role: "user", content: "回答1", id: "msg-uuid-1" },
@@ -145,7 +137,7 @@ describe("buildSummarySystemPrompt", () => {
   it("source_message_idの指示がプロンプトに含まれる", () => {
     const result = buildSummarySystemPrompt({
       bill: makeBill(),
-      interviewConfig: { themes: [] },
+      interviewConfig: { description: null },
       messages: [],
     });
 

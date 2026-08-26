@@ -1,45 +1,28 @@
-import type {
-  BillStatusEnum,
-  BillWithContent,
-} from "@/features/bills/shared/types";
-
-export const allBillStatuses: BillStatusEnum[] = [
-  "preparing",
-  "introduced",
-  "in_originating_house",
-  "in_receiving_house",
-  "enacted",
-  "rejected",
-];
+import type { BillWithContent } from "@/features/bills/shared/types";
 
 const baseBill: BillWithContent = {
   id: "mock-bill-001",
-  name: "サンプル法案（第XXX回国会提出）",
-  status: "in_originating_house",
-  originating_house: "HR",
+  name: "サンプル施策",
+  slug: "mock-policy-001",
+  department: "こども未来部",
+  contact: "kodomo@example.jp",
   is_featured: false,
-  is_review_completed: true,
+  approved_by: null,
+  approved_at: "2026-02-15T00:00:00Z",
   thumbnail_url: null,
   share_thumbnail_url: null,
-  published_at: "2026-02-15",
-  submitted_date: "2026-02-15",
+  published_at: "2026-02-15T00:00:00Z",
   publish_status: "published",
-  shugiin_url: null,
-  slug: null,
-  status_note: null,
-  status_order: 3,
-  publish_status_order: 2,
-  diet_session_id: "mock-session",
   knowledge_source: null,
-  use_knowledge_source_in_chat: false,
+  enable_ai_chat: false,
   created_at: "2026-02-15T00:00:00Z",
   updated_at: "2026-02-15T00:00:00Z",
   bill_content: {
     id: "mock-content-001",
-    bill_id: "mock-bill-001",
-    title: "サンプル法案のタイトル",
+    policy_id: "mock-bill-001",
+    title: "サンプル施策のタイトル",
     summary:
-      "この法案は開発プレビュー用のサンプルデータです。法案の要約文がここに表示されます。実際のデータではありません。",
+      "この施策は開発プレビュー用のサンプルデータです。施策の要約文がここに表示されます。実際のデータではありません。",
     content: "# サンプルコンテンツ\n\n本文がここに入ります。",
     difficulty_level: "normal",
     created_at: "2026-02-15T00:00:00Z",

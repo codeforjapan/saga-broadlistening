@@ -3,8 +3,8 @@ import { normalizeRichnessScore } from "../content-richness/normalize-richness-s
 import { normalizeReasoningTypes } from "./opinion-tags";
 import type { InterviewOpinionSource } from "./schema";
 
-export type InterviewOpinionInsert =
-  Database["public"]["Tables"]["interview_opinion"]["Insert"];
+export type OpinionSegmentInsert =
+  Database["public"]["Tables"]["opinion_segments"]["Insert"];
 
 export type BuildOpinionRowsOptions = {
   /**
@@ -21,24 +21,23 @@ export type BuildOpinionRowsOptions = {
 };
 
 /**
- * レポートの意見配列から interview_opinion の upsert 行を生成する純粋関数。
+ * レポートの意見配列から opinion_segments の upsert 行を生成する純粋関数。
  * opinion_index は配列順（0始まり）で安定させ、
- * dual-write 時の ON CONFLICT (interview_report_id, opinion_index) のキーにする（§3.1）。
+ * dual-write 時の ON CONFLICT (opinion_id, opinion_index) のキーにする（§3.1）。
  */
 export function buildInterviewOpinionRows(
-  reportId: string,
+  opinionId: string,
   opinions: InterviewOpinionSource[],
   options: BuildOpinionRowsOptions = {}
-): InterviewOpinionInsert[] {
+): OpinionSegmentInsert[] {
   const { tagsExtractedAtIso } = options;
   return opinions.map((opinion, index) => ({
-    interview_report_id: reportId,
+    opinion_id: opinionId,
     opinion_index: index,
     title: opinion.title,
     content: opinion.content,
     source_message_id: opinion.source_message_id ?? null,
     contextual_quote: opinion.contextual_quote ?? null,
-    bill_sentiment: opinion.bill_sentiment ?? null,
     richness: normalizeRichnessScore(opinion.richness),
     concern: opinion.concern ?? null,
     proposal: opinion.proposal ?? null,

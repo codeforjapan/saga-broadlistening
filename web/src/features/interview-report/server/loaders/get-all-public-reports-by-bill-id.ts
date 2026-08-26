@@ -1,19 +1,12 @@
 import "server-only";
 
 import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
-import {
-  buildPublicReportsPage,
-  buildStanceCounts,
-  createEmptyStanceCounts,
-} from "../../shared/utils/public-report-display";
+import { getLinkedInterviewConfigId } from "@/features/interview-config/server/loaders/get-linked-interview-config-id";
+import { buildPublicReportsPage } from "../../shared/utils/public-report-display";
 import type { SortOrder } from "../../shared/utils/sort-order";
-import type {
-  StanceCounts,
-  StanceFilter,
-} from "../../shared/utils/stance-filter";
 import {
-  countPublicReportsByStance,
-  findPublicReportsByBillId,
+  countPublicOpinionsByInterviewConfigId,
+  findPublicOpinionsByConfigId,
 } from "../repositories/interview-report-repository";
 import type { PublicInterviewReport } from "./get-public-reports-by-bill-id";
 
@@ -21,69 +14,65 @@ export const PAGE_SIZE = 20;
 
 export type PaginatedPublicReportsResult = {
   reports: PublicInterviewReport[];
-  stanceCounts: StanceCounts;
+  totalCount: number;
   hasMore: boolean;
 };
 
 /**
- * 議案IDから公開インタビューレポートの初回ページとスタンスごとの件数を取得
+ * 公開意見の指定ページと総件数を取得
+ *
+ * Epic #54 で賛否（stance）は廃止したため、絞り込みはソート順のみ。
  */
-export async function getInitialPublicReportsByBillId(
+async function getPublicReportsPage(
   billId: string,
-  stance: StanceFilter = "all",
-  sortOrder: SortOrder = "recommended"
+  offset: number,
+  sortOrder: SortOrder
 ): Promise<PaginatedPublicReportsResult> {
-  const stanceParam = stance === "all" ? undefined : stance;
-  const stanceRows = await countPublicReportsByStance(billId);
-  const stanceCounts = buildStanceCounts(stanceRows);
-
-  if (!shouldDisplayPublicReports(stanceCounts.all)) {
-    return {
-      reports: [],
-      stanceCounts: createEmptyStanceCounts(),
-      hasMore: false,
-    };
+  const interviewConfigId = await getLinkedInterviewConfigId(billId);
+  if (!interviewConfigId) {
+    return { reports: [], totalCount: 0, hasMore: false };
   }
 
-  const rawReports = await findPublicReportsByBillId(
-    billId,
+  const totalCount =
+    await countPublicOpinionsByInterviewConfigId(interviewConfigId);
+
+  if (!shouldDisplayPublicReports(totalCount)) {
+    return { reports: [], totalCount: 0, hasMore: false };
+  }
+
+  const rawReports = await findPublicOpinionsByConfigId(
+    interviewConfigId,
     PAGE_SIZE + 1,
-    0,
-    stanceParam,
+    offset,
     sortOrder
   );
   const { reports, hasMore } = buildPublicReportsPage(rawReports, PAGE_SIZE);
 
-  return { reports, stanceCounts, hasMore };
+  return { reports, totalCount, hasMore };
 }
 
 /**
- * ページネーション用: 次のページのレポートを取得
+ * 施策IDから公開意見の初回ページと総件数を取得
+ */
+export async function getInitialPublicReportsByBillId(
+  billId: string,
+  sortOrder: SortOrder = "recommended"
+): Promise<PaginatedPublicReportsResult> {
+  return getPublicReportsPage(billId, 0, sortOrder);
+}
+
+/**
+ * ページネーション用: 次のページの公開意見を取得
  */
 export async function getPublicReportsByBillIdPaginated(
   billId: string,
   offset: number,
-  stance: StanceFilter = "all",
   sortOrder: SortOrder = "recommended"
 ): Promise<{ reports: PublicInterviewReport[]; hasMore: boolean }> {
-  const stanceRows = await countPublicReportsByStance(billId);
-  const totalCount = stanceRows.reduce(
-    (sum, row) => sum + Number(row.count),
-    0
-  );
-  if (!shouldDisplayPublicReports(totalCount)) {
-    return { reports: [], hasMore: false };
-  }
-
-  const stanceParam = stance === "all" ? undefined : stance;
-  const rawReports = await findPublicReportsByBillId(
+  const { reports, hasMore } = await getPublicReportsPage(
     billId,
-    PAGE_SIZE + 1,
     offset,
-    stanceParam,
     sortOrder
   );
-  const { reports, hasMore } = buildPublicReportsPage(rawReports, PAGE_SIZE);
-
   return { reports, hasMore };
 }

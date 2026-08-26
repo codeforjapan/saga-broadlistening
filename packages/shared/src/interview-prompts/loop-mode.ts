@@ -24,7 +24,7 @@ export function buildLoopModeSystemPrompt(
   const billTitle = bill?.bill_content?.title || "";
   const billSummary = bill?.bill_content?.summary || "";
   const billContent = bill?.bill_content?.content || "";
-  const themes = interviewConfig?.themes || [];
+  const themeDescription = interviewConfig?.description || "";
   const knowledgeSource = bill?.knowledge_source || "";
 
   // Loop Mode: follow_up_guide を含める
@@ -88,7 +88,7 @@ ${knowledgeSource || "（知識ソース未設定）"}
 </knowledge_source>
 
 ## インタビューテーマ
-${themes.length > 0 ? themes.map((t: string) => `- ${t}`).join("\n") : "（テーマ未設定）"}
+${themeDescription || "（テーマ未設定）"}
 
 ## 専門知識レベルの検出
 インタビュイーの専門知識レベルを継続的に評価します。
