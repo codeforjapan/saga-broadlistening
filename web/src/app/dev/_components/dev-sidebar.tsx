@@ -28,7 +28,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                   className={cn(
                     "block px-3 py-1.5 rounded text-sm transition-colors",
                     pathname === item.path
-                      ? "bg-primary text-white"
+                      ? "bg-primary text-primary-foreground"
                       : "text-foreground hover:bg-background"
                   )}
                 >

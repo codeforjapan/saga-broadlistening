@@ -78,7 +78,7 @@ function FeedbackPhase({
             onClick={() => onToggleTag(tag)}
             className={`h-auto rounded-full border px-4 py-1 text-sm font-medium ${
               selectedTags.has(tag)
-                ? "border-primary bg-gradient-to-r from-mirai-gradient-start to-mirai-gradient-end text-foreground"
+                ? "border-primary bg-secondary text-foreground"
                 : "border-primary bg-white text-primary-accent"
             }`}
           >

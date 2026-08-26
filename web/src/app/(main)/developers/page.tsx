@@ -52,7 +52,7 @@ const links = [
 ];
 
 // Team Mirai デザインシステムの news-list パターン:
-// 区切り線（1px #e5e5e5 = neutral-200）で仕切った行 + 右端に teal のシェブロン。
+// 区切り線（border トークン）で仕切った行 + 右端にシェブロン。
 // ホバーはリンク色を teal-hover へ寄せる（不透明度やスケールは使わない）
 const rowClassName =
   "group flex items-center gap-4 border-b border-border py-4 transition-colors duration-150";
