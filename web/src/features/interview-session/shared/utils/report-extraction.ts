@@ -11,7 +11,7 @@ const reportExtractionSchema = z.object({
 });
 
 /**
- * 後方互換: 旧メッセージの opinions には contextual_quote / bill_sentiment /
+ * 後方互換: 旧メッセージの opinions には contextual_quote /
  * richness / concern / proposal / reasoning_types が存在しないため、
  * 欠落フィールドを null で補完してから検証する。
  * これにより新フィールド追加前に生成された要約メッセージでも抽出が失敗せず、
@@ -34,7 +34,6 @@ function backfillOpinionFields(parsed: unknown): unknown {
     opinion && typeof opinion === "object"
       ? {
           contextual_quote: null,
-          bill_sentiment: null,
           richness: null,
           concern: null,
           proposal: null,

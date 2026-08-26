@@ -2,18 +2,18 @@ import { isKnownModel } from "@mirai-gikai/shared/ai/models";
 import { z } from "zod";
 
 /**
- * 意見再抽出バックフィルの実行パラメータ（議案スコープ / 対象範囲 / モデル）。
+ * 意見再抽出バックフィルの実行パラメータ（テーマスコープ / 対象範囲 / モデル）。
  * worker（CLI 引数）と admin（API リクエスト）の両方から使う純粋な検証ロジック。
  *
- * - scope "pending": 未再抽出（opinions_reextracted_at IS NULL）のレポートだけを対象にする。
- * - scope "all": 既に再抽出済みのレポートも含めて全件やり直す。コストが大きいため
- *   議案指定（billId）必須とし、全議案 × all は許可しない。
+ * - scope "pending": 未再抽出（opinions_reextracted_at IS NULL）の意見だけを対象にする。
+ * - scope "all": 既に再抽出済みの意見も含めて全件やり直す。コストが大きいため
+ *   テーマ指定（interviewConfigId）必須とし、全テーマ × all は許可しない。
  * - model: 再抽出に使う AI モデル（未指定なら呼び出し側の既定モデル）。
  */
 export type BackfillScope = "pending" | "all";
 
 export type BackfillParams = {
-  billId?: string;
+  interviewConfigId?: string;
   scope: BackfillScope;
   model?: string;
 };
@@ -42,38 +42,44 @@ function trimOptionalString(
 }
 
 /**
- * 生の入力（billId / scope / model）を検証して BackfillParams に正規化する。
+ * 生の入力（interviewConfigId / scope / model）を検証して BackfillParams に正規化する。
  * 入力は JSON 由来で任意型のため非文字列も throw せず検証エラーで返す。
  * scope は "all" 以外（未指定含む）を "pending" に丸める。
  * model は未指定なら undefined（呼び出し側で既定モデルを適用）。
  */
 export function resolveBackfillParams(input: {
-  billId?: unknown;
+  interviewConfigId?: unknown;
   scope?: unknown;
   model?: unknown;
 }): BackfillParamsResult {
   const scope: BackfillScope = input.scope === "all" ? "all" : "pending";
 
-  const billIdResult = trimOptionalString(input.billId, "billId");
-  if (!billIdResult.ok) return billIdResult;
-  const billId = billIdResult.value;
+  const configIdResult = trimOptionalString(
+    input.interviewConfigId,
+    "interviewConfigId"
+  );
+  if (!configIdResult.ok) return configIdResult;
+  const interviewConfigId = configIdResult.value;
 
   const modelResult = trimOptionalString(input.model, "model");
   if (!modelResult.ok) return modelResult;
   const model = modelResult.value;
 
-  if (billId && !uuidSchema.safeParse(billId).success) {
-    return { ok: false, error: "billId は UUID 形式である必要があります" };
-  }
-  if (scope === "all" && !billId) {
+  if (interviewConfigId && !uuidSchema.safeParse(interviewConfigId).success) {
     return {
       ok: false,
-      error: "対象「全部」は議案を指定したときのみ実行できます",
+      error: "interviewConfigId は UUID 形式である必要があります",
+    };
+  }
+  if (scope === "all" && !interviewConfigId) {
+    return {
+      ok: false,
+      error: "対象「全部」は意見募集を指定したときのみ実行できます",
     };
   }
   if (model && !isKnownModel(model)) {
     return { ok: false, error: `未知のモデルIDです: ${model}` };
   }
 
-  return { ok: true, params: { billId, scope, model } };
+  return { ok: true, params: { interviewConfigId, scope, model } };
 }

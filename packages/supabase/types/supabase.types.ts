@@ -52,6 +52,36 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       bill_contents: {
         Row: {
           bill_id: string
@@ -96,7 +126,6 @@ export type Database = {
       bills: {
         Row: {
           created_at: string
-          diet_session_id: string | null
           id: string
           is_featured: boolean
           is_review_completed: boolean
@@ -119,7 +148,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          diet_session_id?: string | null
           id?: string
           is_featured?: boolean
           is_review_completed?: boolean
@@ -142,7 +170,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          diet_session_id?: string | null
           id?: string
           is_featured?: boolean
           is_review_completed?: boolean
@@ -163,15 +190,7 @@ export type Database = {
           updated_at?: string
           use_knowledge_source_in_chat?: boolean
         }
-        Relationships: [
-          {
-            foreignKeyName: "bills_diet_session_id_fkey"
-            columns: ["diet_session_id"]
-            isOneToOne: false
-            referencedRelation: "diet_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       bills_tags: {
         Row: {
@@ -202,6 +221,73 @@ export type Database = {
             columns: ["tag_id"]
             isOneToOne: false
             referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          role: Database["public"]["Enums"]["chat_role_enum"]
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          role: Database["public"]["Enums"]["chat_role_enum"]
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          role?: Database["public"]["Enums"]["chat_role_enum"]
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          policy_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          policy_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          policy_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_sessions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
             referencedColumns: ["id"]
           },
         ]
@@ -289,121 +375,101 @@ export type Database = {
           },
         ]
       }
-      diet_sessions: {
+      guard_events: {
         Row: {
+          action: Database["public"]["Enums"]["guard_action"]
+          chat_session_id: string | null
           created_at: string
-          end_date: string
+          detail: Json | null
+          detector: string
           id: string
-          is_active: boolean
-          name: string
-          shugiin_url: string | null
-          slug: string | null
-          start_date: string
-          updated_at: string
+          interview_session_id: string | null
+          product: Database["public"]["Enums"]["guard_product"]
+          stage: Database["public"]["Enums"]["guard_stage"]
         }
         Insert: {
+          action: Database["public"]["Enums"]["guard_action"]
+          chat_session_id?: string | null
           created_at?: string
-          end_date: string
+          detail?: Json | null
+          detector: string
           id?: string
-          is_active?: boolean
-          name: string
-          shugiin_url?: string | null
-          slug?: string | null
-          start_date: string
-          updated_at?: string
+          interview_session_id?: string | null
+          product: Database["public"]["Enums"]["guard_product"]
+          stage: Database["public"]["Enums"]["guard_stage"]
         }
         Update: {
+          action?: Database["public"]["Enums"]["guard_action"]
+          chat_session_id?: string | null
           created_at?: string
-          end_date?: string
+          detail?: Json | null
+          detector?: string
           id?: string
-          is_active?: boolean
-          name?: string
-          shugiin_url?: string | null
-          slug?: string | null
-          start_date?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      expert_registrations: {
-        Row: {
-          affiliation: string
-          created_at: string
-          email: string
-          id: string
-          name: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          affiliation: string
-          created_at?: string
-          email: string
-          id?: string
-          name: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          affiliation?: string
-          created_at?: string
-          email?: string
-          id?: string
-          name?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      interview_configs: {
-        Row: {
-          bill_id: string
-          chat_model: string | null
-          created_at: string
-          deleted_at: string | null
-          estimated_duration: number | null
-          id: string
-          mode: Database["public"]["Enums"]["interview_mode_enum"]
-          name: string
-          status: Database["public"]["Enums"]["interview_config_status_enum"]
-          themes: string[] | null
-          updated_at: string
-        }
-        Insert: {
-          bill_id: string
-          chat_model?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          estimated_duration?: number | null
-          id?: string
-          mode?: Database["public"]["Enums"]["interview_mode_enum"]
-          name: string
-          status?: Database["public"]["Enums"]["interview_config_status_enum"]
-          themes?: string[] | null
-          updated_at?: string
-        }
-        Update: {
-          bill_id?: string
-          chat_model?: string | null
-          created_at?: string
-          deleted_at?: string | null
-          estimated_duration?: number | null
-          id?: string
-          mode?: Database["public"]["Enums"]["interview_mode_enum"]
-          name?: string
-          status?: Database["public"]["Enums"]["interview_config_status_enum"]
-          themes?: string[] | null
-          updated_at?: string
+          interview_session_id?: string | null
+          product?: Database["public"]["Enums"]["guard_product"]
+          stage?: Database["public"]["Enums"]["guard_stage"]
         }
         Relationships: [
           {
-            foreignKeyName: "interview_configs_bill_id_fkey"
-            columns: ["bill_id"]
+            foreignKeyName: "guard_events_chat_session_id_fkey"
+            columns: ["chat_session_id"]
             isOneToOne: false
-            referencedRelation: "bills"
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guard_events_interview_session_id_fkey"
+            columns: ["interview_session_id"]
+            isOneToOne: false
+            referencedRelation: "interview_sessions"
             referencedColumns: ["id"]
           },
         ]
+      }
+      interview_configs: {
+        Row: {
+          chat_model: string
+          created_at: string
+          deliberation_enabled: boolean
+          description: string | null
+          ends_at: string | null
+          estimated_duration: number | null
+          id: string
+          name: string
+          slug: string
+          starts_at: string | null
+          status: Database["public"]["Enums"]["interview_config_status_enum"]
+          updated_at: string
+        }
+        Insert: {
+          chat_model: string
+          created_at?: string
+          deliberation_enabled?: boolean
+          description?: string | null
+          ends_at?: string | null
+          estimated_duration?: number | null
+          id?: string
+          name: string
+          slug: string
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["interview_config_status_enum"]
+          updated_at?: string
+        }
+        Update: {
+          chat_model?: string
+          created_at?: string
+          deliberation_enabled?: boolean
+          description?: string | null
+          ends_at?: string | null
+          estimated_duration?: number | null
+          id?: string
+          name?: string
+          slug?: string
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["interview_config_status_enum"]
+          updated_at?: string
+        }
+        Relationships: []
       }
       interview_messages: {
         Row: {
@@ -412,6 +478,7 @@ export type Database = {
           id: string
           interview_session_id: string
           role: Database["public"]["Enums"]["interview_role_enum"]
+          updated_at: string
         }
         Insert: {
           content: string
@@ -419,6 +486,7 @@ export type Database = {
           id?: string
           interview_session_id: string
           role: Database["public"]["Enums"]["interview_role_enum"]
+          updated_at?: string
         }
         Update: {
           content?: string
@@ -426,6 +494,7 @@ export type Database = {
           id?: string
           interview_session_id?: string
           role?: Database["public"]["Enums"]["interview_role_enum"]
+          updated_at?: string
         }
         Relationships: [
           {
@@ -433,68 +502,6 @@ export type Database = {
             columns: ["interview_session_id"]
             isOneToOne: false
             referencedRelation: "interview_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      interview_opinion: {
-        Row: {
-          bill_sentiment: string | null
-          concern: string | null
-          content: string
-          contextual_quote: string | null
-          created_at: string
-          id: string
-          interview_report_id: string
-          opinion_index: number
-          proposal: string | null
-          reasoning_types: string[]
-          richness: number | null
-          source_message_id: string | null
-          tags_extracted_at: string | null
-          title: string
-          topic_extracted_at: string | null
-        }
-        Insert: {
-          bill_sentiment?: string | null
-          concern?: string | null
-          content: string
-          contextual_quote?: string | null
-          created_at?: string
-          id?: string
-          interview_report_id: string
-          opinion_index: number
-          proposal?: string | null
-          reasoning_types?: string[]
-          richness?: number | null
-          source_message_id?: string | null
-          tags_extracted_at?: string | null
-          title: string
-          topic_extracted_at?: string | null
-        }
-        Update: {
-          bill_sentiment?: string | null
-          concern?: string | null
-          content?: string
-          contextual_quote?: string | null
-          created_at?: string
-          id?: string
-          interview_report_id?: string
-          opinion_index?: number
-          proposal?: string | null
-          reasoning_types?: string[]
-          richness?: number | null
-          source_message_id?: string | null
-          tags_extracted_at?: string | null
-          title?: string
-          topic_extracted_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "interview_opinion_interview_report_id_fkey"
-            columns: ["interview_report_id"]
-            isOneToOne: false
-            referencedRelation: "interview_report"
             referencedColumns: ["id"]
           },
         ]
@@ -508,7 +515,6 @@ export type Database = {
           question: string
           question_order: number
           quick_replies: string[] | null
-          target_audience: string | null
           updated_at: string
         }
         Insert: {
@@ -519,7 +525,6 @@ export type Database = {
           question: string
           question_order: number
           quick_replies?: string[] | null
-          target_audience?: string | null
           updated_at?: string
         }
         Update: {
@@ -530,7 +535,6 @@ export type Database = {
           question?: string
           question_order?: number
           quick_replies?: string[] | null
-          target_audience?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -549,111 +553,27 @@ export type Database = {
           id: string
           interview_session_id: string
           tag: Database["public"]["Enums"]["interview_feedback_tag_enum"]
+          updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           interview_session_id: string
           tag: Database["public"]["Enums"]["interview_feedback_tag_enum"]
+          updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           interview_session_id?: string
           tag?: Database["public"]["Enums"]["interview_feedback_tag_enum"]
+          updated_at?: string
         }
         Relationships: [
           {
             foreignKeyName: "interview_rating_feedbacks_interview_session_id_fkey"
             columns: ["interview_session_id"]
             isOneToOne: false
-            referencedRelation: "interview_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      interview_report: {
-        Row: {
-          admin_unpublished_at: string | null
-          content_richness: Json | null
-          created_at: string
-          id: string
-          interview_session_id: string
-          is_data_reuse_consented: boolean
-          is_public_by_admin: boolean
-          is_public_by_user: boolean
-          moderation_reasoning: string | null
-          moderation_score: number | null
-          moderation_status:
-            | Database["public"]["Enums"]["moderation_status_enum"]
-            | null
-          opinions: Json | null
-          opinions_reextracted_at: string | null
-          role: Database["public"]["Enums"]["interview_report_role_enum"] | null
-          role_description: string | null
-          role_title: string | null
-          stance: Database["public"]["Enums"]["stance_type_enum"] | null
-          summary: string | null
-          total_content_richness: number | null
-          updated_at: string
-        }
-        Insert: {
-          admin_unpublished_at?: string | null
-          content_richness?: Json | null
-          created_at?: string
-          id?: string
-          interview_session_id: string
-          is_data_reuse_consented?: boolean
-          is_public_by_admin?: boolean
-          is_public_by_user?: boolean
-          moderation_reasoning?: string | null
-          moderation_score?: number | null
-          moderation_status?:
-            | Database["public"]["Enums"]["moderation_status_enum"]
-            | null
-          opinions?: Json | null
-          opinions_reextracted_at?: string | null
-          role?:
-            | Database["public"]["Enums"]["interview_report_role_enum"]
-            | null
-          role_description?: string | null
-          role_title?: string | null
-          stance?: Database["public"]["Enums"]["stance_type_enum"] | null
-          summary?: string | null
-          total_content_richness?: number | null
-          updated_at?: string
-        }
-        Update: {
-          admin_unpublished_at?: string | null
-          content_richness?: Json | null
-          created_at?: string
-          id?: string
-          interview_session_id?: string
-          is_data_reuse_consented?: boolean
-          is_public_by_admin?: boolean
-          is_public_by_user?: boolean
-          moderation_reasoning?: string | null
-          moderation_score?: number | null
-          moderation_status?:
-            | Database["public"]["Enums"]["moderation_status_enum"]
-            | null
-          opinions?: Json | null
-          opinions_reextracted_at?: string | null
-          role?:
-            | Database["public"]["Enums"]["interview_report_role_enum"]
-            | null
-          role_description?: string | null
-          role_title?: string | null
-          stance?: Database["public"]["Enums"]["stance_type_enum"] | null
-          summary?: string | null
-          total_content_richness?: number | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "interview_report_interview_session_id_fkey"
-            columns: ["interview_session_id"]
-            isOneToOne: true
             referencedRelation: "interview_sessions"
             referencedColumns: ["id"]
           },
@@ -666,11 +586,10 @@ export type Database = {
           created_at: string
           id: string
           interview_config_id: string
-          langfuse_session_id: string | null
           rating: number | null
           started_at: string
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -678,11 +597,10 @@ export type Database = {
           created_at?: string
           id?: string
           interview_config_id: string
-          langfuse_session_id?: string | null
           rating?: number | null
           started_at?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -690,11 +608,10 @@ export type Database = {
           created_at?: string
           id?: string
           interview_config_id?: string
-          langfuse_session_id?: string | null
           rating?: number | null
           started_at?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -706,104 +623,421 @@ export type Database = {
           },
         ]
       }
-      mirai_stances: {
+      opinion_reactions: {
         Row: {
-          bill_id: string
-          comment: string | null
           created_at: string
           id: string
-          type: Database["public"]["Enums"]["stance_type_enum"]
-          updated_at: string
+          opinion_id: string
+          reaction_type: string
+          user_id: string | null
         }
         Insert: {
-          bill_id: string
-          comment?: string | null
           created_at?: string
           id?: string
-          type: Database["public"]["Enums"]["stance_type_enum"]
-          updated_at?: string
+          opinion_id: string
+          reaction_type: string
+          user_id?: string | null
         }
         Update: {
-          bill_id?: string
-          comment?: string | null
           created_at?: string
           id?: string
-          type?: Database["public"]["Enums"]["stance_type_enum"]
-          updated_at?: string
+          opinion_id?: string
+          reaction_type?: string
+          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "mirai_stances_bill_id_fkey"
-            columns: ["bill_id"]
-            isOneToOne: true
-            referencedRelation: "bills"
+            foreignKeyName: "opinion_reactions_opinion_id_fkey"
+            columns: ["opinion_id"]
+            isOneToOne: false
+            referencedRelation: "opinions"
             referencedColumns: ["id"]
           },
         ]
       }
+      opinion_segments: {
+        Row: {
+          concern: string | null
+          content: string
+          contextual_quote: string | null
+          created_at: string
+          id: string
+          opinion_id: string
+          opinion_index: number
+          proposal: string | null
+          reasoning_types: string[]
+          richness: number | null
+          source_message_id: string | null
+          tags_extracted_at: string | null
+          title: string
+          topic_extracted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          concern?: string | null
+          content: string
+          contextual_quote?: string | null
+          created_at?: string
+          id?: string
+          opinion_id: string
+          opinion_index: number
+          proposal?: string | null
+          reasoning_types?: string[]
+          richness?: number | null
+          source_message_id?: string | null
+          tags_extracted_at?: string | null
+          title: string
+          topic_extracted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          concern?: string | null
+          content?: string
+          contextual_quote?: string | null
+          created_at?: string
+          id?: string
+          opinion_id?: string
+          opinion_index?: number
+          proposal?: string | null
+          reasoning_types?: string[]
+          richness?: number | null
+          source_message_id?: string | null
+          tags_extracted_at?: string | null
+          title?: string
+          topic_extracted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opinion_segments_opinion_id_fkey"
+            columns: ["opinion_id"]
+            isOneToOne: false
+            referencedRelation: "opinions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opinion_segments_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: false
+            referencedRelation: "interview_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opinions: {
+        Row: {
+          content_richness: Json | null
+          created_at: string
+          final_text: string
+          id: string
+          interview_session_id: string
+          is_data_reuse_consented: boolean
+          is_public_by_admin: boolean
+          is_public_by_user: boolean
+          moderation_reasoning: string | null
+          moderation_score: number | null
+          moderation_status:
+            | Database["public"]["Enums"]["moderation_status_enum"]
+            | null
+          opinions_reextracted_at: string | null
+          review_status: Database["public"]["Enums"]["opinion_review_status"]
+          reviewed_at: string | null
+          reviewed_by: string | null
+          role_description: string | null
+          role_title: string | null
+          summary: string | null
+          total_content_richness: number | null
+          updated_at: string
+        }
+        Insert: {
+          content_richness?: Json | null
+          created_at?: string
+          final_text: string
+          id?: string
+          interview_session_id: string
+          is_data_reuse_consented?: boolean
+          is_public_by_admin?: boolean
+          is_public_by_user?: boolean
+          moderation_reasoning?: string | null
+          moderation_score?: number | null
+          moderation_status?:
+            | Database["public"]["Enums"]["moderation_status_enum"]
+            | null
+          opinions_reextracted_at?: string | null
+          review_status?: Database["public"]["Enums"]["opinion_review_status"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          role_description?: string | null
+          role_title?: string | null
+          summary?: string | null
+          total_content_richness?: number | null
+          updated_at?: string
+        }
+        Update: {
+          content_richness?: Json | null
+          created_at?: string
+          final_text?: string
+          id?: string
+          interview_session_id?: string
+          is_data_reuse_consented?: boolean
+          is_public_by_admin?: boolean
+          is_public_by_user?: boolean
+          moderation_reasoning?: string | null
+          moderation_score?: number | null
+          moderation_status?:
+            | Database["public"]["Enums"]["moderation_status_enum"]
+            | null
+          opinions_reextracted_at?: string | null
+          review_status?: Database["public"]["Enums"]["opinion_review_status"]
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          role_description?: string | null
+          role_title?: string | null
+          summary?: string | null
+          total_content_richness?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opinions_interview_session_id_fkey"
+            columns: ["interview_session_id"]
+            isOneToOne: true
+            referencedRelation: "interview_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policies: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          contact: string | null
+          created_at: string
+          department: string | null
+          enable_ai_chat: boolean
+          id: string
+          is_featured: boolean
+          knowledge_source: string | null
+          name: string
+          publish_status: Database["public"]["Enums"]["policy_publish_status"]
+          published_at: string | null
+          share_thumbnail_url: string | null
+          slug: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          contact?: string | null
+          created_at?: string
+          department?: string | null
+          enable_ai_chat?: boolean
+          id?: string
+          is_featured?: boolean
+          knowledge_source?: string | null
+          name: string
+          publish_status?: Database["public"]["Enums"]["policy_publish_status"]
+          published_at?: string | null
+          share_thumbnail_url?: string | null
+          slug: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          contact?: string | null
+          created_at?: string
+          department?: string | null
+          enable_ai_chat?: boolean
+          id?: string
+          is_featured?: boolean
+          knowledge_source?: string | null
+          name?: string
+          publish_status?: Database["public"]["Enums"]["policy_publish_status"]
+          published_at?: string | null
+          share_thumbnail_url?: string | null
+          slug?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      policies_interview_configs: {
+        Row: {
+          created_at: string
+          interview_config_id: string
+          policy_id: string
+        }
+        Insert: {
+          created_at?: string
+          interview_config_id: string
+          policy_id: string
+        }
+        Update: {
+          created_at?: string
+          interview_config_id?: string
+          policy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policies_interview_configs_interview_config_id_fkey"
+            columns: ["interview_config_id"]
+            isOneToOne: false
+            referencedRelation: "interview_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_interview_configs_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policies_tags: {
+        Row: {
+          created_at: string
+          policy_id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string
+          policy_id: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string
+          policy_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policies_tags_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "policies_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      policy_contents: {
+        Row: {
+          content: string
+          created_at: string
+          difficulty_level: Database["public"]["Enums"]["difficulty_level_enum"]
+          id: string
+          policy_id: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          difficulty_level?: Database["public"]["Enums"]["difficulty_level_enum"]
+          id?: string
+          policy_id: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          difficulty_level?: Database["public"]["Enums"]["difficulty_level_enum"]
+          id?: string
+          policy_id?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "policy_contents_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portal_controls: {
+        Row: {
+          created_at: string
+          emergency_stop: boolean
+          id: string
+          interview_stop: boolean
+          notice_message: string | null
+          policy_chat_stop: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          emergency_stop?: boolean
+          id?: string
+          interview_stop?: boolean
+          notice_message?: string | null
+          policy_chat_stop?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          emergency_stop?: boolean
+          id?: string
+          interview_stop?: boolean
+          notice_message?: string | null
+          policy_chat_stop?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       preview_tokens: {
         Row: {
-          bill_id: string
           created_at: string
           created_by: string | null
           expires_at: string
           id: string
+          policy_id: string
           token: string
+          updated_at: string
         }
         Insert: {
-          bill_id: string
-          created_at?: string
-          created_by?: string | null
-          expires_at: string
-          id?: string
-          token: string
-        }
-        Update: {
-          bill_id?: string
           created_at?: string
           created_by?: string | null
           expires_at?: string
           id?: string
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "preview_tokens_bill_id_fkey"
-            columns: ["bill_id"]
-            isOneToOne: false
-            referencedRelation: "bills"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      report_reactions: {
-        Row: {
-          created_at: string
-          id: string
-          interview_report_id: string
-          reaction_type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          interview_report_id: string
-          reaction_type: string
-          user_id: string
+          policy_id: string
+          token: string
+          updated_at?: string
         }
         Update: {
           created_at?: string
+          created_by?: string | null
+          expires_at?: string
           id?: string
-          interview_report_id?: string
-          reaction_type?: string
-          user_id?: string
+          policy_id?: string
+          token?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "report_reactions_interview_report_id_fkey"
-            columns: ["interview_report_id"]
+            foreignKeyName: "preview_tokens_policy_id_fkey"
+            columns: ["policy_id"]
             isOneToOne: false
-            referencedRelation: "interview_report"
+            referencedRelation: "policies"
             referencedColumns: ["id"]
           },
         ]
@@ -882,32 +1116,38 @@ export type Database = {
       }
       topic_analysis_classifications: {
         Row: {
+          created_at: string
           id: string
-          interview_report_id: string
-          opinion_index: number
+          opinion_id: string
+          opinion_index: number | null
           topic_id: string
+          updated_at: string
           version_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
-          interview_report_id: string
-          opinion_index: number
+          opinion_id: string
+          opinion_index?: number | null
           topic_id: string
+          updated_at?: string
           version_id: string
         }
         Update: {
+          created_at?: string
           id?: string
-          interview_report_id?: string
-          opinion_index?: number
+          opinion_id?: string
+          opinion_index?: number | null
           topic_id?: string
+          updated_at?: string
           version_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "topic_analysis_classifications_interview_report_id_fkey"
-            columns: ["interview_report_id"]
+            foreignKeyName: "topic_analysis_classifications_opinion_id_fkey"
+            columns: ["opinion_id"]
             isOneToOne: false
-            referencedRelation: "interview_report"
+            referencedRelation: "opinions"
             referencedColumns: ["id"]
           },
           {
@@ -929,29 +1169,32 @@ export type Database = {
       topic_analysis_topics: {
         Row: {
           created_at: string
-          description_md: string
+          description_md: string | null
           id: string
           name: string
           representative_opinions: Json
           sort_order: number
+          updated_at: string
           version_id: string
         }
         Insert: {
           created_at?: string
-          description_md: string
+          description_md?: string | null
           id?: string
           name: string
           representative_opinions?: Json
           sort_order?: number
+          updated_at?: string
           version_id: string
         }
         Update: {
           created_at?: string
-          description_md?: string
+          description_md?: string | null
           id?: string
           name?: string
           representative_opinions?: Json
           sort_order?: number
+          updated_at?: string
           version_id?: string
         }
         Relationships: [
@@ -966,12 +1209,12 @@ export type Database = {
       }
       topic_analysis_version: {
         Row: {
-          bill_id: string
           completed_at: string | null
           created_at: string
           current_step: string | null
           error_message: string | null
           id: string
+          interview_config_id: string
           is_published: boolean
           model: string | null
           progress: Json | null
@@ -983,12 +1226,12 @@ export type Database = {
           version: number
         }
         Insert: {
-          bill_id: string
           completed_at?: string | null
           created_at?: string
           current_step?: string | null
           error_message?: string | null
           id?: string
+          interview_config_id: string
           is_published?: boolean
           model?: string | null
           progress?: Json | null
@@ -1000,12 +1243,12 @@ export type Database = {
           version: number
         }
         Update: {
-          bill_id?: string
           completed_at?: string | null
           created_at?: string
           current_step?: string | null
           error_message?: string | null
           id?: string
+          interview_config_id?: string
           is_published?: boolean
           model?: string | null
           progress?: Json | null
@@ -1018,92 +1261,92 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "topic_analysis_version_bill_id_fkey"
-            columns: ["bill_id"]
+            foreignKeyName: "topic_analysis_version_interview_config_id_fkey"
+            columns: ["interview_config_id"]
             isOneToOne: false
-            referencedRelation: "bills"
+            referencedRelation: "interview_configs"
             referencedColumns: ["id"]
           },
         ]
       }
       topic_analysis_versions: {
         Row: {
-          bill_id: string
           completed_at: string | null
           created_at: string
           current_step: string | null
           error_message: string | null
           id: string
           intermediate_results: Json | null
+          interview_config_id: string
           phase_data: Json | null
           started_at: string | null
-          status: string
+          status: Database["public"]["Enums"]["topic_analysis_status"]
           summary_md: string | null
           updated_at: string
           version: number
         }
         Insert: {
-          bill_id: string
           completed_at?: string | null
           created_at?: string
           current_step?: string | null
           error_message?: string | null
           id?: string
           intermediate_results?: Json | null
+          interview_config_id: string
           phase_data?: Json | null
           started_at?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["topic_analysis_status"]
           summary_md?: string | null
           updated_at?: string
           version: number
         }
         Update: {
-          bill_id?: string
           completed_at?: string | null
           created_at?: string
           current_step?: string | null
           error_message?: string | null
           id?: string
           intermediate_results?: Json | null
+          interview_config_id?: string
           phase_data?: Json | null
           started_at?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["topic_analysis_status"]
           summary_md?: string | null
           updated_at?: string
           version?: number
         }
         Relationships: [
           {
-            foreignKeyName: "topic_analysis_versions_bill_id_fkey"
-            columns: ["bill_id"]
+            foreignKeyName: "topic_analysis_versions_interview_config_id_fkey"
+            columns: ["interview_config_id"]
             isOneToOne: false
-            referencedRelation: "bills"
+            referencedRelation: "interview_configs"
             referencedColumns: ["id"]
           },
         ]
       }
       topic_opinion: {
         Row: {
-          opinion_id: string
+          opinion_segment_id: string
           topic_id: string
           version_id: string
         }
         Insert: {
-          opinion_id: string
+          opinion_segment_id: string
           topic_id: string
           version_id: string
         }
         Update: {
-          opinion_id?: string
+          opinion_segment_id?: string
           topic_id?: string
           version_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "topic_opinion_opinion_id_fkey"
-            columns: ["opinion_id"]
+            foreignKeyName: "topic_opinion_opinion_segment_id_fkey"
+            columns: ["opinion_segment_id"]
             isOneToOne: false
-            referencedRelation: "interview_opinion"
+            referencedRelation: "opinion_segments"
             referencedColumns: ["id"]
           },
           {
@@ -1131,7 +1374,16 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: boolean
       }
-      bulk_publish_reports: {
+      bulk_publish_opinions: {
+        Args: {
+          p_config_id: string
+          p_max_moderation_score: number
+          p_min_content_richness: number
+          p_reviewed_by?: string
+        }
+        Returns: number
+      }
+      count_bulk_publish_opinion_targets: {
         Args: {
           p_config_id: string
           p_max_moderation_score: number
@@ -1139,26 +1391,11 @@ export type Database = {
         }
         Returns: number
       }
-      count_bulk_publish_targets: {
-        Args: {
-          p_config_id: string
-          p_max_moderation_score: number
-          p_min_content_richness: number
-        }
-        Returns: number
-      }
-      count_public_reports_by_stance: {
-        Args: { p_bill_id: string }
-        Returns: {
-          count: number
-          stance: string
-        }[]
-      }
-      count_reactions_by_report_ids: {
-        Args: { report_ids: string[] }
+      count_reactions_by_opinion_ids: {
+        Args: { opinion_ids: string[] }
         Returns: {
           cnt: number
-          interview_report_id: string
+          opinion_id: string
           reaction_type: string
         }[]
       }
@@ -1173,41 +1410,37 @@ export type Database = {
         Args: { content: string }
         Returns: string
       }
-      find_open_data_interview_reports: {
+      find_open_data_opinions: {
         Args: {
           p_cursor_created_at?: string
           p_cursor_id?: string
           p_limit: number
-          p_min_public_reports: number
+          p_min_public_opinions: number
         }
         Returns: {
-          bill_id: string
-          bill_name: string
           created_at: string
+          final_text: string
+          interview_config_id: string
+          interview_config_name: string
           interview_session_id: string
-          opinions: Json
-          report_id: string
-          role: string
+          opinion_id: string
           role_description: string
           role_title: string
-          stance: string
           summary: string
         }[]
       }
-      find_public_reports_by_bill_id_ordered_by_reactions: {
+      find_public_opinions_by_config_id_ordered_by_reactions: {
         Args: {
-          p_bill_id: string
+          p_interview_config_id: string
           p_limit?: number
           p_offset?: number
           p_sort_order?: string
-          p_stance?: string
         }
         Returns: {
           created_at: string
+          final_text: string
           id: string
-          role: Database["public"]["Enums"]["interview_report_role_enum"]
           role_title: string
-          stance: Database["public"]["Enums"]["stance_type_enum"]
           summary: string
           total_content_richness: number
         }[]
@@ -1218,8 +1451,6 @@ export type Database = {
           p_config_id: string
           p_limit?: number
           p_offset?: number
-          p_role?: string
-          p_stance?: string
           p_status?: string
           p_visibility?: string
         }
@@ -1233,8 +1464,6 @@ export type Database = {
           p_config_id: string
           p_limit?: number
           p_offset?: number
-          p_role?: string
-          p_stance?: string
           p_status?: string
           p_visibility?: string
         }
@@ -1248,8 +1477,6 @@ export type Database = {
           p_config_id: string
           p_limit?: number
           p_offset?: number
-          p_role?: string
-          p_stance?: string
           p_status?: string
           p_visibility?: string
         }
@@ -1263,8 +1490,6 @@ export type Database = {
           p_config_id: string
           p_limit?: number
           p_offset?: number
-          p_role?: string
-          p_stance?: string
           p_status?: string
           p_visibility?: string
         }
@@ -1281,17 +1506,6 @@ export type Database = {
           last_sign_in_at: string
         }[]
       }
-      get_chat_usage_metrics: {
-        Args: { p_bill_id?: string; p_from?: string; p_to?: string }
-        Returns: {
-          event_count: number
-          prompt_name: string
-          total_cost_usd: number
-          total_tokens: number
-          unique_session_count: number
-          unique_user_count: number
-        }[]
-      }
       get_interview_message_counts: {
         Args: { session_ids: string[] }
         Returns: {
@@ -1299,21 +1513,20 @@ export type Database = {
           message_count: number
         }[]
       }
-      get_interview_metrics_by_bill: {
-        Args: { p_bill_id?: string }
+      get_interview_metrics_by_config: {
+        Args: { p_interview_config_id?: string }
         Returns: {
-          bill_id: string
-          bill_name: string
           completed_count: number
           completion_rate: number
           conducted_count: number
+          interview_config_id: string
+          interview_config_name: string
           total_duration_seconds: number
         }[]
       }
       get_interview_statistics: {
         Args: { p_config_id: string }
         Returns: {
-          avg_cost_usd: number
           avg_message_count: number
           avg_rating: number
           avg_total_content_richness: number
@@ -1325,14 +1538,7 @@ export type Database = {
           feedback_too_many_questions: number
           median_duration_seconds: number
           public_by_user_count: number
-          role_daily_life_affected_count: number
-          role_general_citizen_count: number
-          role_subject_expert_count: number
-          role_work_related_count: number
-          stance_against_count: number
-          stance_for_count: number
-          stance_neutral_count: number
-          total_cost_usd: number
+          published_count: number
           total_duration_seconds: number
           total_sessions: number
         }[]
@@ -1360,15 +1566,11 @@ export type Database = {
         Args: { p_version_id: string }
         Returns: undefined
       }
-      set_active_diet_session: {
-        Args: { target_session_id: string }
-        Returns: undefined
-      }
       sum_chat_usage_cost: {
         Args: { from_iso: string; to_iso: string }
         Returns: number
       }
-      unpublish_reports_by_config_id: {
+      unpublish_opinions_by_config_id: {
         Args: { p_config_id: string }
         Returns: undefined
       }
@@ -1384,8 +1586,11 @@ export type Database = {
         | "preparing"
       chat_role_enum: "user" | "system" | "assistant"
       difficulty_level_enum: "normal" | "hard"
+      guard_action: "allow" | "rewrite" | "notice" | "block" | "hold_for_review"
+      guard_product: "policy_chat" | "interview"
+      guard_stage: "input" | "in_dialogue" | "output"
       house_enum: "HR" | "HC"
-      interview_config_status_enum: "public" | "closed"
+      interview_config_status_enum: "draft" | "open" | "closed"
       interview_feedback_tag_enum:
         | "irrelevant_questions"
         | "not_aligned"
@@ -1400,6 +1605,8 @@ export type Database = {
         | "general_citizen"
       interview_role_enum: "assistant" | "user"
       moderation_status_enum: "ok" | "warning" | "ng"
+      opinion_review_status: "published" | "pending_review" | "hidden"
+      policy_publish_status: "draft" | "published"
       stance_type_enum:
         | "for"
         | "against"
@@ -1551,8 +1758,11 @@ export const Constants = {
       ],
       chat_role_enum: ["user", "system", "assistant"],
       difficulty_level_enum: ["normal", "hard"],
+      guard_action: ["allow", "rewrite", "notice", "block", "hold_for_review"],
+      guard_product: ["policy_chat", "interview"],
+      guard_stage: ["input", "in_dialogue", "output"],
       house_enum: ["HR", "HC"],
-      interview_config_status_enum: ["public", "closed"],
+      interview_config_status_enum: ["draft", "open", "closed"],
       interview_feedback_tag_enum: [
         "irrelevant_questions",
         "not_aligned",
@@ -1569,6 +1779,8 @@ export const Constants = {
       ],
       interview_role_enum: ["assistant", "user"],
       moderation_status_enum: ["ok", "warning", "ng"],
+      opinion_review_status: ["published", "pending_review", "hidden"],
+      policy_publish_status: ["draft", "published"],
       stance_type_enum: [
         "for",
         "against",

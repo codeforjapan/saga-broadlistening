@@ -1,12 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   adminClient,
-  createTestUser,
   cleanupTestUser,
   createTestInterviewData,
-  cleanupTestBill,
+  createTestUser,
   type TestUser,
 } from "@test-utils/utils";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createGenerateMock } from "@/test-utils/mock-language-model";
 import { generateInitialQuestion } from "./generate-initial-question";
 
@@ -31,18 +30,20 @@ describe("generateInitialQuestion 統合テスト", () => {
   let testUser: TestUser;
   let sessionId: string;
   let billId: string;
+  let cleanupInterviewData: () => Promise<void>;
   let interviewConfigId: string;
 
   beforeEach(async () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.bill.id;
+    billId = data.policy.id;
+    cleanupInterviewData = data.cleanup;
     interviewConfigId = data.config.id;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId);
+    await cleanupInterviewData();
     await cleanupTestUser(testUser.id);
   });
 

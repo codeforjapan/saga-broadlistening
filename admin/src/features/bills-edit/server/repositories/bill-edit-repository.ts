@@ -1,13 +1,15 @@
 import "server-only";
 
 import { createAdminClient } from "@mirai-gikai/supabase";
+// Epic #54 で参照先が bills/bill_contents/bills_tags → policies 系になった。
+// bill という名前の改名は Epic #8 完了後のフォローアップで行う。
 import type { BillInsert } from "../../shared/types";
 import type { DifficultyLevel } from "../../shared/types/bill-contents";
 
 export async function findBillById(id: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills")
+    .from("policies")
     .select("*")
     .eq("id", id)
     .single();
@@ -22,9 +24,9 @@ export async function findBillById(id: string) {
 export async function findBillContentsByBillId(billId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bill_contents")
+    .from("policy_contents")
     .select("*")
-    .eq("bill_id", billId)
+    .eq("policy_id", billId)
     .order("difficulty_level");
 
   if (error) {
@@ -37,9 +39,9 @@ export async function findBillContentsByBillId(billId: string) {
 export async function findBillTagIdsByBillId(billId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills_tags")
+    .from("policies_tags")
     .select("tag_id")
-    .eq("bill_id", billId);
+    .eq("policy_id", billId);
 
   if (error) {
     throw new Error(`Failed to fetch bill tag ids: ${error.message}`);
@@ -51,7 +53,7 @@ export async function findBillTagIdsByBillId(billId: string) {
 export async function findBillBySlug(slug: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills")
+    .from("policies")
     .select("*")
     .eq("slug", slug)
     .single();
@@ -66,7 +68,7 @@ export async function findBillBySlug(slug: string) {
 export async function createBillRecord(insertData: BillInsert) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills")
+    .from("policies")
     .insert(insertData)
     .select("id")
     .single();
@@ -84,7 +86,7 @@ export async function updateBillRecord(
 ) {
   const supabase = createAdminClient();
   const { error } = await supabase
-    .from("bills")
+    .from("policies")
     .update(updateData)
     .eq("id", id);
 
@@ -101,9 +103,9 @@ export async function upsertBillContent(params: {
   content: string;
 }) {
   const supabase = createAdminClient();
-  const { error } = await supabase.from("bill_contents").upsert(
+  const { error } = await supabase.from("policy_contents").upsert(
     {
-      bill_id: params.billId,
+      policy_id: params.billId,
       difficulty_level: params.difficultyLevel,
       title: params.title,
       summary: params.summary,
@@ -111,7 +113,7 @@ export async function upsertBillContent(params: {
       updated_at: new Date().toISOString(),
     },
     {
-      onConflict: "bill_id,difficulty_level",
+      onConflict: "policy_id,difficulty_level",
     }
   );
 
@@ -125,9 +127,9 @@ export async function upsertBillContent(params: {
 export async function findBillsTagsByBillId(billId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills_tags")
+    .from("policies_tags")
     .select("tag_id")
-    .eq("bill_id", billId);
+    .eq("policy_id", billId);
 
   if (error) {
     throw new Error(`Failed to fetch bill tags: ${error.message}`);
@@ -139,9 +141,9 @@ export async function findBillsTagsByBillId(billId: string) {
 export async function deleteBillsTags(billId: string, tagIds: string[]) {
   const supabase = createAdminClient();
   const { error } = await supabase
-    .from("bills_tags")
+    .from("policies_tags")
     .delete()
-    .eq("bill_id", billId)
+    .eq("policy_id", billId)
     .in("tag_id", tagIds);
 
   if (error) {
@@ -152,11 +154,11 @@ export async function deleteBillsTags(billId: string, tagIds: string[]) {
 export async function createBillsTags(billId: string, tagIds: string[]) {
   const supabase = createAdminClient();
   const billTags = tagIds.map((tagId) => ({
-    bill_id: billId,
+    policy_id: billId,
     tag_id: tagId,
   }));
 
-  const { error } = await supabase.from("bills_tags").insert(billTags);
+  const { error } = await supabase.from("policies_tags").insert(billTags);
 
   if (error) {
     throw new Error(`Failed to create bill tags: ${error.message}`);

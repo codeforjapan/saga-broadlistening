@@ -20,10 +20,12 @@ export async function POST(request: Request) {
 
   let versionId: string;
   let billId: string;
+  let configId: string;
   try {
     const body = await request.json();
     versionId = body.versionId;
     billId = body.billId;
+    configId = body.configId;
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
@@ -33,8 +35,8 @@ export async function POST(request: Request) {
 
   try {
     await registerNodeTelemetry();
-    await executePhase1(versionId, billId);
-    await triggerNextPhase(2, versionId, billId);
+    await executePhase1(versionId, billId, configId);
+    await triggerNextPhase(2, versionId, billId, configId);
     return new Response(JSON.stringify({ success: true }), {
       headers: { "Content-Type": "application/json" },
     });

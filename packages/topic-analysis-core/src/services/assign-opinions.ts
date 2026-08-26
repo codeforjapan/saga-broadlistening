@@ -5,8 +5,8 @@ import {
   TOPIC_MODEL,
 } from "../shared/constants";
 import type {
-  BillContext,
   FinalTopicWithId,
+  InterviewConfigContext,
   OpinionAssignment,
   TargetOpinion,
 } from "../shared/types";
@@ -17,7 +17,7 @@ import { buildAssignPrompt } from "./prompts";
 async function assignBatch(
   opinions: TargetOpinion[],
   finalTopics: FinalTopicWithId[],
-  bill: BillContext,
+  context: InterviewConfigContext,
   validTopicIds: Set<string>,
   batchIndex: number
 ): Promise<OpinionAssignment[]> {
@@ -33,7 +33,7 @@ async function assignBatch(
       () =>
         generateText({
           model: TOPIC_MODEL,
-          prompt: buildAssignPrompt(bill, finalTopics, opinionsText),
+          prompt: buildAssignPrompt(context, finalTopics, opinionsText),
           experimental_telemetry: {
             isEnabled: true,
             functionId: "user-topic-analysis-assign",
@@ -54,7 +54,7 @@ async function assignBatch(
   }
 
   return opinions.map((o, i) => ({
-    opinion_id: o.opinion_id,
+    opinion_segment_id: o.opinion_segment_id,
     topic_local_id: assignmentMap.get(i + 1) ?? null,
   }));
 }
@@ -63,12 +63,12 @@ async function assignBatch(
 export async function assignOpinions(
   opinions: TargetOpinion[],
   finalTopics: FinalTopicWithId[],
-  bill: BillContext
+  context: InterviewConfigContext
 ): Promise<OpinionAssignment[]> {
   if (opinions.length === 0) return [];
   if (finalTopics.length === 0) {
     return opinions.map((o) => ({
-      opinion_id: o.opinion_id,
+      opinion_segment_id: o.opinion_segment_id,
       topic_local_id: null,
     }));
   }
@@ -76,7 +76,7 @@ export async function assignOpinions(
   const validTopicIds = new Set(finalTopics.map((t) => t.local_id));
   const batches = chunk(opinions, ASSIGN_BATCH_SIZE);
   const perBatch = await mapWithConcurrency(batches, MAX_CONCURRENCY, (b, i) =>
-    assignBatch(b, finalTopics, bill, validTopicIds, i)
+    assignBatch(b, finalTopics, context, validTopicIds, i)
   );
   return perBatch.flat();
 }

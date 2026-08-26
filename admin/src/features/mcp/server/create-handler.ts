@@ -5,10 +5,7 @@ import {
   experimental_withMcpAuth as withMcpAuth,
 } from "mcp-handler";
 import { registerBillsTools } from "./tools/register-bills-tools";
-import { registerChatUsageTools } from "./tools/register-chat-usage-tools";
-import { registerDietSessionsTools } from "./tools/register-diet-sessions-tools";
 import { registerInterviewMetricsTools } from "./tools/register-interview-metrics-tools";
-import { registerMiraiStanceTools } from "./tools/register-mirai-stance-tools";
 import { registerPreviewTools } from "./tools/register-preview-tools";
 import { registerTagsTools } from "./tools/register-tags-tools";
 import { registerTopicAnalysisTools } from "./tools/register-topic-analysis-tools";
@@ -18,10 +15,7 @@ export function createAdminMcpHandler() {
   const baseHandler = createMcpHandler(
     (server) => {
       registerBillsTools(server);
-      registerChatUsageTools(server);
-      registerDietSessionsTools(server);
       registerInterviewMetricsTools(server);
-      registerMiraiStanceTools(server);
       registerPreviewTools(server);
       registerTagsTools(server);
       registerTopicAnalysisTools(server);

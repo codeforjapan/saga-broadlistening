@@ -1,34 +1,34 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { adminClient, cleanupTestBill, createTestBill } from "../utils";
+import { adminClient, cleanupTestPolicy, createTestPolicy } from "../utils";
 
 describe("update_updated_at_column トリガー", () => {
-  let billId: string | undefined;
+  let policyId: string | undefined;
 
   afterEach(async () => {
-    if (billId) {
-      await cleanupTestBill(billId);
-      billId = undefined;
+    if (policyId) {
+      await cleanupTestPolicy(policyId);
+      policyId = undefined;
     }
   });
 
   it("UPDATE 時に updated_at が自動で更新される", async () => {
-    const bill = await createTestBill();
-    billId = bill.id;
-    const originalUpdatedAt = bill.updated_at;
+    const policy = await createTestPolicy();
+    policyId = policy.id;
+    const originalUpdatedAt = policy.updated_at;
 
     // 少し待ってから更新（タイムスタンプの差を確実にする）
     await new Promise((r) => setTimeout(r, 100));
 
     const { error } = await adminClient
-      .from("bills")
-      .update({ name: "更新後の議案名" })
-      .eq("id", bill.id);
+      .from("policies")
+      .update({ name: "更新後の施策名" })
+      .eq("id", policy.id);
     expect(error).toBeNull();
 
     const { data: updated } = await adminClient
-      .from("bills")
+      .from("policies")
       .select("updated_at")
-      .eq("id", bill.id)
+      .eq("id", policy.id)
       .single();
 
     expect(updated).not.toBeNull();
@@ -40,11 +40,11 @@ describe("update_updated_at_column トリガー", () => {
 
   it("INSERT 時に updated_at にデフォルト値が設定される", async () => {
     const before = new Date();
-    const bill = await createTestBill();
-    billId = bill.id;
+    const policy = await createTestPolicy();
+    policyId = policy.id;
     const after = new Date();
 
-    const updatedAt = new Date(bill.updated_at).getTime();
+    const updatedAt = new Date(policy.updated_at).getTime();
     expect(updatedAt).toBeGreaterThanOrEqual(before.getTime() - 1000);
     expect(updatedAt).toBeLessThanOrEqual(after.getTime() + 1000);
   });

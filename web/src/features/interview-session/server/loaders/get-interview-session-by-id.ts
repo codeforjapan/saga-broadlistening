@@ -43,19 +43,18 @@ export async function getInterviewSessionById(
     return null;
   }
 
-  // interview_configsからbill_idを抽出
-  const interviewConfig = session.interview_configs as {
-    bill_id: string;
-  } | null;
-  if (!interviewConfig) {
-    console.error("Interview config not found for session");
+  // 意見募集に紐づく施策IDを抽出（多対多のため最初の1件を使う）
+  const { interview_configs: interviewConfig, ...sessionData } = session;
+  const policyId =
+    interviewConfig?.policies_interview_configs?.[0]?.policy_id ?? null;
+  if (!policyId) {
+    console.error("Policy not found for interview session");
     return null;
   }
 
   // セッションデータを返す（bill_idを追加）
-  const { interview_configs: _, ...sessionData } = session;
   return {
     ...sessionData,
-    bill_id: interviewConfig.bill_id,
+    bill_id: policyId,
   };
 }

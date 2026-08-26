@@ -5,46 +5,41 @@ import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/type
 import type { OpenDataCursor } from "../../shared/utils/cursor";
 
 export type OpenDataReportRow = {
-  report_id: string;
-  bill_id: string;
-  bill_name: string;
-  stance: string | null;
-  role: string | null;
+  opinion_id: string;
+  interview_config_id: string;
+  interview_config_name: string;
   role_title: string | null;
   role_description: string | null;
   summary: string | null;
-  opinions: unknown;
+  final_text: string;
   interview_session_id: string;
   created_at: string;
 };
 
 /**
- * 二次利用許諾済みの公開レポートを新しい順に取得する。
- * フィルタ条件（公開フラグ × 二次利用許諾 × 公開議案 × k-匿名性ゲート）は
+ * 二次利用許諾済みの公開意見を新しい順に取得する。
+ * フィルタ条件（公開状態 × 二次利用許諾 × 意見募集の公開 × k-匿名性ゲート）は
  * DB function 側に集約している。
  */
 export async function findOpenDataReports(params: {
-  minPublicReports: number;
+  minPublicOpinions: number;
   limit: number;
   cursor: OpenDataCursor | null;
 }): Promise<OpenDataReportRow[]> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc(
-    "find_open_data_interview_reports",
-    {
-      p_min_public_reports: params.minPublicReports,
-      p_limit: params.limit,
-      ...(params.cursor
-        ? {
-            p_cursor_created_at: params.cursor.createdAt,
-            p_cursor_id: params.cursor.id,
-          }
-        : {}),
-    }
-  );
+  const { data, error } = await supabase.rpc("find_open_data_opinions", {
+    p_min_public_opinions: params.minPublicOpinions,
+    p_limit: params.limit,
+    ...(params.cursor
+      ? {
+          p_cursor_created_at: params.cursor.createdAt,
+          p_cursor_id: params.cursor.id,
+        }
+      : {}),
+  });
 
   if (error) {
-    throw new Error(`Failed to fetch open data reports: ${error.message}`);
+    throw new Error(`Failed to fetch open data opinions: ${error.message}`);
   }
   return data ?? [];
 }
@@ -82,21 +77,19 @@ const openDataBillSelect = <C extends string>(contentColumns: C) =>
   `
   id,
   name,
-  status,
-  status_note,
-  originating_house,
-  submitted_date,
+  slug,
+  department,
+  contact,
   published_at,
   created_at,
-  bill_contents!inner (${contentColumns}),
-  mirai_stances (type, comment),
-  bills_tags (tags (id, label))
+  policy_contents!inner (${contentColumns}),
+  policies_tags (tags (id, label))
 ` as const;
 
 /**
- * 公開中の議案を難易度別コンテンツ・チームみらいの賛否・タグ付きで
+ * 公開中の施策を難易度別コンテンツ・タグ付きで
  * 新しい順（created_at DESC, id DESC）に取得する。
- * 指定難易度のコンテンツが存在しない議案は含めない。
+ * 指定難易度のコンテンツが存在しない施策は含めない。
  */
 export async function findOpenDataPublishedBills(params: {
   limit: number;
@@ -105,10 +98,10 @@ export async function findOpenDataPublishedBills(params: {
 }) {
   const supabase = createAdminClient();
   let query = supabase
-    .from("bills")
+    .from("policies")
     .select(openDataBillSelect("title, summary"))
     .eq("publish_status", "published")
-    .eq("bill_contents.difficulty_level", params.difficulty);
+    .eq("policy_contents.difficulty_level", params.difficulty);
 
   if (params.cursor) {
     // カーソル値は decodeCursor で ISO タイムスタンプ・UUID 形式に
@@ -125,13 +118,13 @@ export async function findOpenDataPublishedBills(params: {
     .limit(params.limit);
 
   if (error) {
-    throw new Error(`Failed to fetch open data bills: ${error.message}`);
+    throw new Error(`Failed to fetch open data policies: ${error.message}`);
   }
   return data;
 }
 
 /**
- * 公開中の議案を1件、難易度別コンテンツ・チームみらいの賛否・タグ付きで取得する。
+ * 公開中の施策を1件、難易度別コンテンツ・タグ付きで取得する。
  * 非公開・存在しない・指定難易度のコンテンツがない場合は null。
  */
 export async function findOpenDataPublishedBillById(params: {
@@ -140,15 +133,15 @@ export async function findOpenDataPublishedBillById(params: {
 }) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("bills")
+    .from("policies")
     .select(openDataBillSelect("title, summary, content"))
     .eq("id", params.billId)
     .eq("publish_status", "published")
-    .eq("bill_contents.difficulty_level", params.difficulty)
+    .eq("policy_contents.difficulty_level", params.difficulty)
     .maybeSingle();
 
   if (error) {
-    throw new Error(`Failed to fetch open data bill: ${error.message}`);
+    throw new Error(`Failed to fetch open data policy: ${error.message}`);
   }
   return data;
 }

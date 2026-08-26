@@ -1,18 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { buildInterviewOpinionRows } from "./build-opinion-rows";
 
-const REPORT_ID = "11111111-1111-1111-1111-111111111111";
+const OPINION_ID = "11111111-1111-1111-1111-111111111111";
 const TAGGED_AT = "2026-08-06T01:00:00.000Z";
 
 describe("buildInterviewOpinionRows", () => {
   it("意見配列を opinion_index 付きの行に変換する", () => {
-    const rows = buildInterviewOpinionRows(REPORT_ID, [
+    const rows = buildInterviewOpinionRows(OPINION_ID, [
       {
         title: "賛成の理由",
         content: "社会全体の利益になる",
         source_message_id: "msg-1",
-        contextual_quote: "（法案について）賛成です",
-        bill_sentiment: "期待",
+        contextual_quote: "（施策について）賛成です",
         richness: 80,
         concern: null,
         proposal: "審査の基準を先に示してほしい",
@@ -23,7 +22,6 @@ describe("buildInterviewOpinionRows", () => {
         content: "コストが心配",
         source_message_id: "msg-2",
         contextual_quote: null,
-        bill_sentiment: "懸念",
         richness: 42.6,
         concern: "価格転嫁で負担が増える",
         proposal: null,
@@ -33,13 +31,12 @@ describe("buildInterviewOpinionRows", () => {
 
     expect(rows).toEqual([
       {
-        interview_report_id: REPORT_ID,
+        opinion_id: OPINION_ID,
         opinion_index: 0,
         title: "賛成の理由",
         content: "社会全体の利益になる",
         source_message_id: "msg-1",
-        contextual_quote: "（法案について）賛成です",
-        bill_sentiment: "期待",
+        contextual_quote: "（施策について）賛成です",
         richness: 80,
         concern: null,
         proposal: "審査の基準を先に示してほしい",
@@ -47,13 +44,12 @@ describe("buildInterviewOpinionRows", () => {
         tags_extracted_at: null,
       },
       {
-        interview_report_id: REPORT_ID,
+        opinion_id: OPINION_ID,
         opinion_index: 1,
         title: "懸念点",
         content: "コストが心配",
         source_message_id: "msg-2",
         contextual_quote: null,
-        bill_sentiment: "懸念",
         // 小数は四捨五入される
         richness: 43,
         concern: "価格転嫁で負担が増える",
@@ -65,18 +61,17 @@ describe("buildInterviewOpinionRows", () => {
   });
 
   it("新フィールドが無い旧データは null で補完する", () => {
-    const rows = buildInterviewOpinionRows(REPORT_ID, [
+    const rows = buildInterviewOpinionRows(OPINION_ID, [
       { title: "意見", content: "内容", source_message_id: null },
     ]);
 
     expect(rows[0]).toEqual({
-      interview_report_id: REPORT_ID,
+      opinion_id: OPINION_ID,
       opinion_index: 0,
       title: "意見",
       content: "内容",
       source_message_id: null,
       contextual_quote: null,
-      bill_sentiment: null,
       richness: null,
       concern: null,
       proposal: null,
@@ -86,7 +81,7 @@ describe("buildInterviewOpinionRows", () => {
   });
 
   it("source_message_id が未指定でも null に倒す", () => {
-    const rows = buildInterviewOpinionRows(REPORT_ID, [
+    const rows = buildInterviewOpinionRows(OPINION_ID, [
       { title: "意見", content: "内容" },
     ]);
 
@@ -94,7 +89,7 @@ describe("buildInterviewOpinionRows", () => {
   });
 
   it("空配列なら空配列を返す", () => {
-    expect(buildInterviewOpinionRows(REPORT_ID, [])).toEqual([]);
+    expect(buildInterviewOpinionRows(OPINION_ID, [])).toEqual([]);
   });
 
   describe("タグのウォーターマーク", () => {
@@ -102,7 +97,7 @@ describe("buildInterviewOpinionRows", () => {
     // タグ付け済みとしてマークし、タグ付けバックフィルの対象から外す。
     it("tagsExtractedAtIso を渡すと tags_extracted_at に入る", () => {
       const rows = buildInterviewOpinionRows(
-        REPORT_ID,
+        OPINION_ID,
         [{ title: "意見", content: "内容", reasoning_types: ["none"] }],
         { tagsExtractedAtIso: TAGGED_AT }
       );
@@ -111,7 +106,7 @@ describe("buildInterviewOpinionRows", () => {
     });
 
     it("省略時は未抽出（null）のままにする", () => {
-      const rows = buildInterviewOpinionRows(REPORT_ID, [
+      const rows = buildInterviewOpinionRows(OPINION_ID, [
         { title: "意見", content: "内容" },
       ]);
 
@@ -123,7 +118,7 @@ describe("buildInterviewOpinionRows", () => {
     // タグ空のまま「抽出済み」になりバックフィルから永久に漏れる。
     it("reasoning_types が無い意見にはウォーターマークを立てない", () => {
       const rows = buildInterviewOpinionRows(
-        REPORT_ID,
+        OPINION_ID,
         [{ title: "意見", content: "内容", reasoning_types: null }],
         { tagsExtractedAtIso: TAGGED_AT }
       );
@@ -133,7 +128,7 @@ describe("buildInterviewOpinionRows", () => {
 
     it("同じレポート内でもタグの有無で行ごとに出し分ける", () => {
       const rows = buildInterviewOpinionRows(
-        REPORT_ID,
+        OPINION_ID,
         [
           { title: "旧", content: "内容", reasoning_types: null },
           { title: "新", content: "内容", reasoning_types: ["none"] },
@@ -148,7 +143,7 @@ describe("buildInterviewOpinionRows", () => {
 
   describe("reasoning_types の正規化", () => {
     it("null は空配列にする", () => {
-      const rows = buildInterviewOpinionRows(REPORT_ID, [
+      const rows = buildInterviewOpinionRows(OPINION_ID, [
         { title: "意見", content: "内容", reasoning_types: null },
       ]);
 
@@ -156,7 +151,7 @@ describe("buildInterviewOpinionRows", () => {
     });
 
     it("未知の値を落とす", () => {
-      const rows = buildInterviewOpinionRows(REPORT_ID, [
+      const rows = buildInterviewOpinionRows(OPINION_ID, [
         {
           title: "意見",
           content: "内容",

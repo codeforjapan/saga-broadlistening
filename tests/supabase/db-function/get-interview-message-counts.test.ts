@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestBill,
   cleanupTestUser,
   createTestInterviewData,
   createTestInterviewMessages,
@@ -11,34 +10,37 @@ import {
 
 describe("get_interview_message_counts() 関数", () => {
   let testUser: TestUser;
-  let billIds: string[] = [];
+  let cleanups: Array<() => Promise<void>> = [];
+
+  /** 施策 ─ 意見募集 ─ セッションを作り、後片付け対象に登録する */
+  async function createInterviewData() {
+    const data = await createTestInterviewData(testUser.id);
+    cleanups.push(data.cleanup);
+    return data;
+  }
 
   beforeEach(async () => {
     testUser = await createTestUser();
-    billIds = [];
+    cleanups = [];
   });
 
   afterEach(async () => {
-    for (const billId of billIds) {
-      await cleanupTestBill(billId);
+    for (const cleanup of cleanups) {
+      await cleanup();
     }
     await cleanupTestUser(testUser.id);
   });
 
   it("複数セッションのメッセージ数を正しく返す", async () => {
-    const data1 = await createTestInterviewData(testUser.id);
-    billIds.push(data1.bill.id);
+    const data1 = await createInterviewData();
     await createTestInterviewMessages(data1.session.id, 3);
 
-    const data2 = await createTestInterviewData(testUser.id);
-    billIds.push(data2.bill.id);
+    const data2 = await createInterviewData();
     await createTestInterviewMessages(data2.session.id, 5);
 
     const { data, error } = await adminClient.rpc(
       "get_interview_message_counts",
-      {
-        session_ids: [data1.session.id, data2.session.id],
-      }
+      { session_ids: [data1.session.id, data2.session.id] }
     );
 
     expect(error).toBeNull();
@@ -55,8 +57,7 @@ describe("get_interview_message_counts() 関数", () => {
   });
 
   it("メッセージが0件のセッションは結果に含まれない", async () => {
-    const data1 = await createTestInterviewData(testUser.id);
-    billIds.push(data1.bill.id);
+    const data1 = await createInterviewData();
     // メッセージを追加しない
 
     const { data, error } = await adminClient.rpc(
@@ -81,9 +82,7 @@ describe("get_interview_message_counts() 関数", () => {
   it("存在しない UUID を渡してもエラーにならない", async () => {
     const { data, error } = await adminClient.rpc(
       "get_interview_message_counts",
-      {
-        session_ids: ["00000000-0000-0000-0000-000000000000"],
-      }
+      { session_ids: ["00000000-0000-0000-0000-000000000000"] }
     );
 
     expect(error).toBeNull();

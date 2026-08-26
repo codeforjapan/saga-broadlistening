@@ -28,11 +28,6 @@ export const previewRegistry: PreviewGroup[] = [
         label: "BillCard",
         description: "法案カードコンポーネント",
       },
-      {
-        path: "/dev/features/bills/bill-status-badge",
-        label: "BillStatusBadge",
-        description: "法案ステータスバッジ全バリアント",
-      },
     ],
   },
   {

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "みらい議会オープンデータAPI",
-    "version": "1.1.0",
-    "description": "みらい議会のデータをプログラムから取得できるオープンデータAPIです。\n\nAPIキーの発行や事前登録は不要ですが、レートリミットがあります。\n\n- IPあたり毎分30リクエスト、API全体で毎分300リクエスト\n- 超過時は 429 を返し、`Retry-After` ヘッダーで再試行までの秒数を示します\n\n### AIインタビューデータAPI\n\nみらい議会のAIインタビューを通じて取得した回答データのうち、回答者本人が公開に同意し、二次利用を許諾したものを取得できます。\n\n- データはクリエイティブ・コモンズ 表示 4.0 国際ライセンス（CC BY 4.0）の下で提供されます\n- 利用には[みらい議会AIインタビューデータ利用規約](/developers/interview-data-terms)への同意が必要です。同意の表明として、すべてのリクエストに `agreeToTerms=true` を付与してください\n- 成果物には利用規約第4条に基づく出典表示を行ってください\n\n  ```text\n  # 表示例\n  データ出典：「みらい議会AIインタビュー（チームみらい）」\n  提供元URL：https://gikai.team-mir.ai/\n  規約URL：https://gikai.team-mir.ai/developers/interview-data-terms\n  ライセンス：CC BY 4.0（https://creativecommons.org/licenses/by/4.0/deed.ja）\n  ```\n\n#### 提供されるデータの範囲\n\n- 回答者本人が公開に同意し、二次利用（オープンデータとしての第三者提供）を許諾したインタビューのみ\n- 公開中の議案に紐づくもののみ\n- 議案あたりの公開レポート数が一定数以上ある議案のみ（少数回答の議案は回答者保護のため除外されます）\n\n回答者が公開設定を変更した場合、そのデータは以降のレスポンスに含まれなくなります。データセットを継続的に利用する場合は、提供対象から除外されたデータを利用し続けないことを推奨します。\n\n### 議案データAPI\n\nみらい議会で公開中の議案の一覧・詳細と、議案に対するチームみらいの賛否を取得できます。\n\n- 公開中の議案のみが対象です。議案が非公開になった場合、そのデータは以降のレスポンスに含まれなくなります\n- `difficulty` パラメータで解説コンテンツの難易度（`normal`: 中学生レベル / `hard`: 専門用語を含む詳細な内容）を選択できます"
+    "version": "2.0.0",
+    "description": "みらい議会のデータをプログラムから取得できるオープンデータAPIです。\n\nAPIキーの発行や事前登録は不要ですが、レートリミットがあります。\n\n- IPあたり毎分30リクエスト、API全体で毎分300リクエスト\n- 超過時は 429 を返し、`Retry-After` ヘッダーで再試行までの秒数を示します\n\n### AIインタビューデータAPI\n\nみらい議会のAIインタビューを通じて取得した回答データのうち、回答者本人が公開に同意し、二次利用を許諾したものを取得できます。\n\n- データはクリエイティブ・コモンズ 表示 4.0 国際ライセンス（CC BY 4.0）の下で提供されます\n- 利用には[みらい議会AIインタビューデータ利用規約](/developers/interview-data-terms)への同意が必要です。同意の表明として、すべてのリクエストに `agreeToTerms=true` を付与してください\n- 成果物には利用規約第4条に基づく出典表示を行ってください\n\n  ```text\n  # 表示例\n  データ出典：「みらい議会AIインタビュー（チームみらい）」\n  提供元URL：https://gikai.team-mir.ai/\n  規約URL：https://gikai.team-mir.ai/developers/interview-data-terms\n  ライセンス：CC BY 4.0（https://creativecommons.org/licenses/by/4.0/deed.ja）\n  ```\n\n#### 提供されるデータの範囲\n\n- 回答者本人が公開に同意し、二次利用（オープンデータとしての第三者提供）を許諾したインタビューのみ\n- 下書き以外の意見募集（テーマ）に紐づくもののみ\n- 意見募集あたりの公開意見数が一定数以上あるテーマのみ（少数回答のテーマは回答者保護のため除外されます）\n\n回答者が公開設定を変更した場合、そのデータは以降のレスポンスに含まれなくなります。データセットを継続的に利用する場合は、提供対象から除外されたデータを利用し続けないことを推奨します。\n\n### 施策データAPI\n\nみらい議会で公開中の施策の一覧・詳細を取得できます。\n\n- 公開中の施策のみが対象です。施策が非公開になった場合、そのデータは以降のレスポンスに含まれなくなります\n- `difficulty` パラメータで解説コンテンツの難易度（`normal`: 中学生レベル / `hard`: 専門用語を含む詳細な内容）を選択できます"
   },
   "servers": [
     {
@@ -15,7 +15,7 @@
     "/api/open-data/interviews": {
       "get": {
         "summary": "インタビューデータの取得",
-        "description": "二次利用許諾済みの公開インタビューデータを新しい順に返します。`nextCursor` を次のリクエストの `cursor` に指定することで全件を取得できます。",
+        "description": "二次利用許諾済みの公開意見を新しい順に返します。`nextCursor` を次のリクエストの `cursor` に指定することで全件を取得できます。",
         "operationId": "listOpenDataInterviews",
         "parameters": [
           {
@@ -25,11 +25,17 @@
             "description": "みらい議会AIインタビューデータ利用規約への同意の表明。`true` を指定します。",
             "schema": {
               "type": "string",
-              "enum": ["true"]
+              "enum": [
+                "true"
+              ]
             }
           },
-          { "$ref": "#/components/parameters/Limit" },
-          { "$ref": "#/components/parameters/Cursor" }
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          }
         ],
         "responses": {
           "200": {
@@ -46,7 +52,9 @@
             "description": "パラメータ不正（limit の範囲外・cursor の形式不正）",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
@@ -56,7 +64,9 @@
               "application/json": {
                 "schema": {
                   "allOf": [
-                    { "$ref": "#/components/schemas/ErrorResponse" },
+                    {
+                      "$ref": "#/components/schemas/ErrorResponse"
+                    },
                     {
                       "type": "object",
                       "properties": {
@@ -71,27 +81,39 @@
               }
             }
           },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/api/open-data/bills": {
       "get": {
-        "summary": "議案一覧の取得",
-        "description": "公開中の議案を新しい順（作成日時の降順）に返します。各議案には難易度別の解説（タイトル・概要）、チームみらいの賛否、タグが含まれます。`nextCursor` を次のリクエストの `cursor` に指定することで全件を取得できます。",
+        "summary": "施策一覧の取得",
+        "description": "公開中の施策を新しい順（作成日時の降順）に返します。各施策には難易度別の解説（タイトル・概要）とタグが含まれます。`nextCursor` を次のリクエストの `cursor` に指定することで全件を取得できます。",
         "operationId": "listOpenDataBills",
         "parameters": [
-          { "$ref": "#/components/parameters/Limit" },
-          { "$ref": "#/components/parameters/Cursor" },
-          { "$ref": "#/components/parameters/Difficulty" }
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Difficulty"
+          }
         ],
         "responses": {
           "200": {
             "description": "取得成功",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/OpenDataBillsResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/OpenDataBillsResponse"
+                }
               }
             }
           },
@@ -99,39 +121,49 @@
             "description": "パラメータ不正（limit の範囲外・cursor の形式不正・difficulty の不正値）",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     },
     "/api/open-data/bills/{billId}": {
       "get": {
-        "summary": "議案詳細の取得",
-        "description": "公開中の議案を1件返します。一覧の項目に加えて、議案の本文解説（Markdown）が含まれます。",
+        "summary": "施策詳細の取得",
+        "description": "公開中の施策を1件返します。一覧の項目に加えて、施策の本文解説（Markdown）が含まれます。",
         "operationId": "getOpenDataBill",
         "parameters": [
           {
             "name": "billId",
             "in": "path",
             "required": true,
-            "description": "議案のID（UUID）。",
+            "description": "施策のID（UUID）。",
             "schema": {
               "type": "string",
               "format": "uuid"
             }
           },
-          { "$ref": "#/components/parameters/Difficulty" }
+          {
+            "$ref": "#/components/parameters/Difficulty"
+          }
         ],
         "responses": {
           "200": {
             "description": "取得成功",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/OpenDataBillDetail" }
+                "schema": {
+                  "$ref": "#/components/schemas/OpenDataBillDetail"
+                }
               }
             }
           },
@@ -139,20 +171,28 @@
             "description": "パラメータ不正（billId がUUID形式でない・difficulty の不正値）",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
           "404": {
-            "description": "議案が存在しない、または公開されていない",
+            "description": "施策が存在しない、または公開されていない",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
-          "429": { "$ref": "#/components/responses/TooManyRequests" },
-          "500": { "$ref": "#/components/responses/InternalServerError" }
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
+          }
         }
       }
     }
@@ -187,7 +227,10 @@
         "description": "解説コンテンツの難易度。`normal`: 中学生レベル / `hard`: 専門用語を含む詳細な内容。",
         "schema": {
           "type": "string",
-          "enum": ["normal", "hard"],
+          "enum": [
+            "normal",
+            "hard"
+          ],
           "default": "normal"
         }
       }
@@ -198,12 +241,16 @@
         "headers": {
           "Retry-After": {
             "description": "再試行までの秒数",
-            "schema": { "type": "integer" }
+            "schema": {
+              "type": "integer"
+            }
           }
         },
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
           }
         }
       },
@@ -211,7 +258,9 @@
         "description": "サーバーエラー",
         "content": {
           "application/json": {
-            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
           }
         }
       }
@@ -219,14 +268,24 @@
     "schemas": {
       "OpenDataInterviewsResponse": {
         "type": "object",
-        "required": ["items", "nextCursor", "license", "termsUrl"],
+        "required": [
+          "items",
+          "nextCursor",
+          "license",
+          "termsUrl"
+        ],
         "properties": {
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/OpenDataInterviewItem" }
+            "items": {
+              "$ref": "#/components/schemas/OpenDataInterviewItem"
+            }
           },
           "nextCursor": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "次ページのカーソル。最終ページでは null。"
           },
           "license": {
@@ -243,73 +302,75 @@
       "OpenDataInterviewItem": {
         "type": "object",
         "required": [
-          "reportId",
-          "billId",
-          "billName",
-          "opinions",
+          "opinionId",
+          "interviewConfigId",
+          "interviewConfigName",
+          "finalText",
           "messages",
           "createdAt"
         ],
         "properties": {
-          "reportId": {
+          "opinionId": {
             "type": "string",
             "format": "uuid",
-            "description": "インタビューレポートのID"
+            "description": "意見のID"
           },
-          "billId": {
+          "interviewConfigId": {
             "type": "string",
             "format": "uuid",
-            "description": "議案のID"
+            "description": "意見募集（テーマ）のID"
           },
-          "billName": {
+          "interviewConfigName": {
             "type": "string",
-            "description": "議案名"
-          },
-          "stance": {
-            "type": ["string", "null"],
-            "description": "議案への立場（for / against / neutral など）"
-          },
-          "role": {
-            "type": ["string", "null"],
-            "description": "回答者の立場の分類（daily_life_affected / work_related / subject_expert / general_citizen など）"
+            "description": "意見募集（テーマ）名"
           },
           "roleTitle": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "回答者の立場の見出し"
           },
           "roleDescription": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "回答者の立場の説明"
           },
           "summary": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "意見の要約"
           },
-          "opinions": {
-            "type": "array",
-            "description": "抽出された意見の一覧",
-            "items": {
-              "type": "object",
-              "required": ["title", "content"],
-              "properties": {
-                "title": { "type": "string", "description": "意見の見出し" },
-                "content": { "type": "string", "description": "意見の本文" }
-              }
-            }
+          "finalText": {
+            "type": "string",
+            "description": "回答者が最終確認・修正して提出した意見の本文"
           },
           "messages": {
             "type": "array",
             "description": "インタビューの対話ログ（時系列順）",
             "items": {
               "type": "object",
-              "required": ["role", "content"],
+              "required": [
+                "role",
+                "content"
+              ],
               "properties": {
                 "role": {
                   "type": "string",
-                  "enum": ["assistant", "user"],
+                  "enum": [
+                    "assistant",
+                    "user"
+                  ],
                   "description": "発話者（assistant: AI / user: 回答者）"
                 },
-                "content": { "type": "string", "description": "発話内容" }
+                "content": {
+                  "type": "string",
+                  "description": "発話内容"
+                }
               }
             }
           },
@@ -322,14 +383,22 @@
       },
       "OpenDataBillsResponse": {
         "type": "object",
-        "required": ["items", "nextCursor"],
+        "required": [
+          "items",
+          "nextCursor"
+        ],
         "properties": {
           "items": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/OpenDataBillItem" }
+            "items": {
+              "$ref": "#/components/schemas/OpenDataBillItem"
+            }
           },
           "nextCursor": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "次ページのカーソル。最終ページでは null。"
           }
         }
@@ -339,28 +408,28 @@
         "required": [
           "billId",
           "name",
+          "slug",
           "title",
           "summary",
-          "status",
-          "statusLabel",
-          "statusNote",
-          "originatingHouse",
-          "originatingHouseLabel",
-          "submittedDate",
+          "department",
+          "contact",
           "publishedAt",
           "tags",
-          "miraiStance",
           "createdAt"
         ],
         "properties": {
           "billId": {
             "type": "string",
             "format": "uuid",
-            "description": "議案のID"
+            "description": "施策のID"
           },
           "name": {
             "type": "string",
-            "description": "議案の正式名称"
+            "description": "施策の正式名称"
+          },
+          "slug": {
+            "type": "string",
+            "description": "公開ページのURLに使う短い文字列"
           },
           "title": {
             "type": "string",
@@ -368,69 +437,51 @@
           },
           "summary": {
             "type": "string",
-            "description": "議案の概要（難易度別コンテンツ由来）"
+            "description": "施策の概要（難易度別コンテンツ由来）。未設定の場合は空文字"
           },
-          "status": {
-            "type": "string",
-            "enum": [
-              "preparing",
-              "introduced",
-              "in_originating_house",
-              "in_receiving_house",
-              "enacted",
-              "rejected"
+          "department": {
+            "type": [
+              "string",
+              "null"
             ],
-            "description": "審議状況"
+            "description": "施策を担当する部署名"
           },
-          "statusLabel": {
-            "type": "string",
-            "description": "審議状況の日本語ラベル（衆議院審議中 / 成立 など）"
-          },
-          "statusNote": {
-            "type": ["string", "null"],
-            "description": "審議状況の補足"
-          },
-          "originatingHouse": {
-            "type": "string",
-            "enum": ["HR", "HC"],
-            "description": "提出元の議院（HR: 衆議院 / HC: 参議院）"
-          },
-          "originatingHouseLabel": {
-            "type": "string",
-            "description": "提出元議院の日本語ラベル"
-          },
-          "submittedDate": {
-            "type": ["string", "null"],
-            "format": "date",
-            "description": "提出日"
+          "contact": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "市民からの問い合わせ先"
           },
           "publishedAt": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "format": "date-time",
             "description": "みらい議会での公開日時（ISO 8601）"
           },
           "tags": {
             "type": "array",
-            "description": "議案のタグ",
+            "description": "施策のタグ",
             "items": {
               "type": "object",
-              "required": ["id", "label"],
+              "required": [
+                "id",
+                "label"
+              ],
               "properties": {
                 "id": {
                   "type": "string",
                   "format": "uuid",
                   "description": "タグのID"
                 },
-                "label": { "type": "string", "description": "タグ名" }
+                "label": {
+                  "type": "string",
+                  "description": "タグ名"
+                }
               }
             }
-          },
-          "miraiStance": {
-            "oneOf": [
-              { "$ref": "#/components/schemas/OpenDataMiraiStance" },
-              { "type": "null" }
-            ],
-            "description": "チームみらいの賛否。未表明の場合は null。"
           },
           "createdAt": {
             "type": "string",
@@ -439,44 +490,20 @@
           }
         }
       },
-      "OpenDataMiraiStance": {
-        "type": "object",
-        "required": ["type", "label", "comment"],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": [
-              "for",
-              "against",
-              "neutral",
-              "conditional_for",
-              "conditional_against",
-              "considering",
-              "continued_deliberation",
-              "free_vote"
-            ],
-            "description": "賛否の種別"
-          },
-          "label": {
-            "type": "string",
-            "description": "賛否種別の日本語ラベル（賛成 / 反対 / 条件付き賛成 など）"
-          },
-          "comment": {
-            "type": ["string", "null"],
-            "description": "賛否についての補足コメント"
-          }
-        }
-      },
       "OpenDataBillDetail": {
         "allOf": [
-          { "$ref": "#/components/schemas/OpenDataBillItem" },
+          {
+            "$ref": "#/components/schemas/OpenDataBillItem"
+          },
           {
             "type": "object",
-            "required": ["content"],
+            "required": [
+              "content"
+            ],
             "properties": {
               "content": {
                 "type": "string",
-                "description": "議案の本文解説（Markdown、難易度別コンテンツ由来）"
+                "description": "施策の本文解説（Markdown、難易度別コンテンツ由来）"
               }
             }
           }
@@ -484,7 +511,9 @@
       },
       "ErrorResponse": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
           "error": {
             "type": "string",

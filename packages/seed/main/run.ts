@@ -1,664 +1,379 @@
+import { randomUUID } from "node:crypto";
+import { seedLocalAdminUser } from "../shared/admin-user";
+import type { AdminClient } from "../shared/helper";
+import { clearAllData, createAdminClient } from "../shared/helper";
 import {
-  bills,
-  tags,
-  dietSessions,
-  createMiraiStances,
-  createBillsTags,
+  createSeedReporter,
+  expectOk,
+  expectRows,
+  withDefaults,
+} from "../shared/insert-seed";
+import { seedDemoRespondents } from "../shared/respondents";
+import {
+  BULK_OPINION_CONFIG_SLUG,
+  createBulkOpinionInterviewConfig,
+  createBulkOpinionMessages,
+  createBulkOpinionQuestions,
+  createBulkOpinionSessions,
+  createBulkOpinions,
+  createRealisticMessages,
+  createRealisticOpinion,
+  createRealisticSession,
+} from "./bulk-opinion-data";
+import {
+  AI_CHAT_POLICY_NAME,
+  additionalInterviewConfigs,
+  createAdditionalDemoMessages,
+  createAdditionalDemoOpinions,
+  createAdditionalDemoSessions,
+  createChatMessages,
+  createChatSessions,
+  createDemoMessages,
+  createDemoOpinion,
+  createDemoSession,
   createInterviewConfig,
+  INTERVIEW_CONFIG_DEFAULTS,
+  createInterviewMessages,
   createInterviewQuestions,
   createInterviewSessions,
-  createInterviewMessages,
-  createInterviewReports,
-  createDemoSession,
-  createDemoMessages,
-  createDemoReport,
-  createAdditionalDemoSessions,
-  createAdditionalDemoMessages,
-  createAdditionalDemoReports,
-  DEMO_REPORT_ID,
-  DEMO_REPORT_ID_WORK,
-  DEMO_REPORT_ID_DAILY,
-  DEMO_REPORT_ID_CITIZEN,
+  createOpinionReactions,
+  createOpinions,
+  createPoliciesInterviewConfigs,
+  createPoliciesTags,
+  DEFAULT_CONFIG_SLUG,
+  DEMO_OPINION_ID,
+  DEMO_OPINION_ID_CITIZEN,
+  DEMO_OPINION_ID_DAILY,
+  DEMO_OPINION_ID_WORK,
+  policies,
+  tags,
 } from "./data";
-import { createBillContents } from "./bill-contents-data";
-import {
-  createShippingBillInterviewConfig,
-  createShippingBillQuestions,
-  createShippingBillSessions,
-  createShippingBillMessages,
-  createShippingBillReports,
-  createRealisticShippingBillSession,
-  createRealisticShippingBillMessages,
-  createRealisticShippingBillReport,
-  getRealisticShippingBillSourceMessageLinks,
-} from "./shipping-bill-data";
-import { createAdminClient, clearAllData } from "../shared/helper";
-import { seedLocalAdminUser } from "../shared/admin-user";
+import { createPolicyContents } from "./policy-contents-data";
+import type { OpinionSeed, OpinionSegmentSeed } from "./seed-types";
+
+/** 投入済みメッセージを (セッションID, 本文) から引くためのキー */
+function messageKey(sessionId: string, content: string): string {
+  return `${sessionId}\n${content}`;
+}
+
+/**
+ * 意見と論点をまとめて投入する。
+ *
+ * `opinion_segments.source_message_id` は対話メッセージの INSERT 後にしか
+ * 分からないため、seed が持つ「元メッセージ本文」から解決する。
+ * 解決できないのは seed データの不整合なので fail fast させる
+ * （silent に進むと source_message_id が欠落した状態で投入される）。
+ */
+async function insertOpinionsWithSegments(
+  supabase: AdminClient,
+  seeds: OpinionSeed[],
+  messageIdByKey: Map<string, string>
+): Promise<{ opinionCount: number; segmentCount: number }> {
+  // PostgREST の一括 INSERT は行ごとにキーが違うと不足キーを NULL で埋めるため、
+  // 固定IDを持つデモ意見とそれ以外が混ざると id が NULL になる。
+  // NOT NULL かつ DEFAULT を持つカラムは、ここで全行ぶん明示的に埋める。
+  const opinionRows = seeds.map((seed) => ({
+    review_status: "pending_review" as const,
+    is_public_by_user: false,
+    is_public_by_admin: false,
+    is_data_reuse_consented: false,
+    ...seed.opinion,
+    id: seed.opinion.id ?? randomUUID(),
+  }));
+
+  const insertedOpinions = await expectRows(
+    "insert opinions",
+    supabase
+      .from("opinions")
+      .insert(opinionRows)
+      .select("id, interview_session_id")
+  );
+
+  const opinionIdBySessionId = new Map(
+    insertedOpinions.map((opinion) => [
+      opinion.interview_session_id,
+      opinion.id,
+    ])
+  );
+
+  const segments = seeds.flatMap((seed) => {
+    const sessionId = seed.opinion.interview_session_id;
+    const opinionId = opinionIdBySessionId.get(sessionId);
+    if (!opinionId) {
+      throw new Error(`Inserted opinion not found for session ${sessionId}`);
+    }
+    return seed.segments.map((segment) =>
+      buildSegmentInsert(segment, opinionId, sessionId, messageIdByKey)
+    );
+  });
+
+  await expectOk(
+    "insert opinion segments",
+    supabase.from("opinion_segments").insert(segments)
+  );
+
+  return {
+    opinionCount: insertedOpinions.length,
+    segmentCount: segments.length,
+  };
+}
+
+function buildSegmentInsert(
+  segment: OpinionSegmentSeed,
+  opinionId: string,
+  sessionId: string,
+  messageIdByKey: Map<string, string>
+) {
+  const { sourceMessageContent, ...rest } = segment;
+  if (!sourceMessageContent) {
+    return { ...rest, opinion_id: opinionId };
+  }
+
+  const sourceMessageId = messageIdByKey.get(
+    messageKey(sessionId, sourceMessageContent)
+  );
+  if (!sourceMessageId) {
+    throw new Error(
+      `Failed to resolve source message for session ${sessionId}: ${sourceMessageContent}`
+    );
+  }
+
+  return { ...rest, opinion_id: opinionId, source_message_id: sourceMessageId };
+}
 
 async function seedDatabase() {
   const supabase = createAdminClient();
+  // 投入ログの出力とサマリー用の件数の記録をまとめて受け持つ
+  const reporter = createSeedReporter();
   console.log("🌱 Starting database seeding...");
 
   try {
     await clearAllData(supabase);
 
-    // ローカル開発用の admin ユーザー（ローカル接続時のみ作成される）
+    // ローカル開発用のユーザー（ローカル接続時のみ作成される）
     await seedLocalAdminUser(supabase);
+    const respondentIds = await seedDemoRespondents(supabase);
 
-    // Insert tags
-    console.log("🏷️  Inserting tags...");
-    const { data: insertedTags, error: tagsError } = await supabase
-      .from("tags")
-      .insert(tags)
-      .select("id, label");
+    // === tags ===
+    const insertedTags = await reporter.insert({
+      startMessage: "🏷️  Inserting tags...",
+      label: "tags",
+      query: supabase.from("tags").insert(tags).select("id, label"),
+    });
 
-    if (tagsError) {
-      throw new Error(`Failed to insert tags: ${tagsError.message}`);
-    }
+    // === policies ===
+    const insertedPolicies = await reporter.insert({
+      emoji: "📄",
+      label: "policies",
+      query: supabase.from("policies").insert(policies).select("id, name"),
+    });
 
-    if (!insertedTags) {
-      throw new Error("No tags were inserted");
-    }
+    // === policy_contents ===
+    await reporter.insert({
+      emoji: "📚",
+      label: "policy contents",
+      query: supabase
+        .from("policy_contents")
+        .insert(createPolicyContents(insertedPolicies))
+        .select("id"),
+    });
 
-    console.log(`✅ Inserted ${insertedTags.length} tags`);
+    // === policies_tags ===
+    await reporter.insert({
+      emoji: "🔗",
+      label: "policies-tags relations",
+      query: supabase
+        .from("policies_tags")
+        .insert(createPoliciesTags(insertedPolicies, insertedTags))
+        .select(),
+    });
 
-    // Insert diet sessions
-    console.log("🏛️  Inserting diet sessions...");
-    const { data: insertedDietSessions, error: dietSessionsError } =
-      await supabase.from("diet_sessions").insert(dietSessions).select("id");
-
-    if (dietSessionsError) {
-      throw new Error(
-        `Failed to insert diet sessions: ${dietSessionsError.message}`
-      );
-    }
-
-    if (!insertedDietSessions) {
-      throw new Error("No diet sessions were inserted");
-    }
-
-    console.log(`✅ Inserted ${insertedDietSessions.length} diet sessions`);
-
-    // Insert bills
-    console.log("📄 Inserting bills...");
-    const { data: insertedBills, error: billsError } = await supabase
-      .from("bills")
-      .insert(bills)
-      .select("id, name");
-
-    if (billsError) {
-      throw new Error(`Failed to insert bills: ${billsError.message}`);
-    }
-
-    if (!insertedBills) {
-      throw new Error("No bills were inserted");
-    }
-
-    console.log(`✅ Inserted ${insertedBills.length} bills`);
-
-    // Link first 3 bills to the 219 diet session (current session)
-    const session219Id = insertedDietSessions[0]?.id;
-    if (session219Id) {
-      const billsToLink = insertedBills.slice(0, 3);
-      for (const bill of billsToLink) {
-        await supabase
-          .from("bills")
-          .update({ diet_session_id: session219Id })
-          .eq("id", bill.id);
-      }
-      console.log(`🔗 Linked ${billsToLink.length} bills to 219 diet session`);
-    }
-
-    // Link last 5 bills to the 218 diet session (previous session)
-    const session218Id = insertedDietSessions[1]?.id;
-    if (session218Id) {
-      const bills218 = insertedBills.slice(-5);
-      for (const bill of bills218) {
-        await supabase
-          .from("bills")
-          .update({ diet_session_id: session218Id })
-          .eq("id", bill.id);
-      }
-      console.log(`🔗 Linked ${bills218.length} bills to 218 diet session`);
-    }
-
-    const knowledgeSourceByBillName: Record<
-      string,
-      { knowledge_source: string; use_knowledge_source_in_chat: boolean }
-    > = {
-      "ガソリン税暫定税率廃止法案": {
-        knowledge_source:
-          "この法案についてあなたの意見を聞かせてください。",
-        use_knowledge_source_in_chat: true,
-      },
-      "船荷証券の電子化に関する法律案": {
-        knowledge_source:
-          "船荷証券（B/L）の電子化に関する法律案について、あなたの意見を聞かせてください。",
-        use_knowledge_source_in_chat: true,
-      },
-    };
-    for (const bill of insertedBills) {
-      const ks = knowledgeSourceByBillName[bill.name];
-      if (!ks) continue;
-      const { error: ksError } = await supabase
-        .from("bills")
-        .update(ks)
-        .eq("id", bill.id);
-      if (ksError) {
-        throw new Error(
-          `Failed to update knowledge_source for bill ${bill.name} (${bill.id}): ${ksError.message}`
-        );
-      }
-    }
-
-    // Insert bill_contents
-    console.log("📚 Inserting bill contents...");
-    const billContents = createBillContents(insertedBills);
-
-    const { data: insertedContents, error: contentsError } = await supabase
-      .from("bill_contents")
-      .insert(billContents)
-      .select("id");
-
-    if (contentsError) {
-      throw new Error(
-        `Failed to insert bill contents: ${contentsError.message}`
-      );
-    }
-
-    if (!insertedContents) {
-      throw new Error("No bill contents were inserted");
-    }
-
-    console.log(`✅ Inserted ${insertedContents.length} bill contents`);
-
-    // Insert mirai_stances
-    console.log("🎯 Inserting mirai stances...");
-    const miraiStances = createMiraiStances(insertedBills);
-
-    const { data: insertedStances, error: stancesError } = await supabase
-      .from("mirai_stances")
-      .insert(miraiStances)
-      .select("id");
-
-    if (stancesError) {
-      throw new Error(
-        `Failed to insert mirai stances: ${stancesError.message}`
-      );
-    }
-
-    if (!insertedStances) {
-      throw new Error("No mirai stances were inserted");
-    }
-
-    console.log(`✅ Inserted ${insertedStances.length} mirai stances`);
-
-    // Insert bills_tags (関連付け)
-    console.log("🔗 Inserting bills-tags relations...");
-    const billsTags = createBillsTags(insertedBills, insertedTags);
-
-    const { data: insertedBillsTags, error: billsTagsError } = await supabase
-      .from("bills_tags")
-      .insert(billsTags)
-      .select();
-
-    if (billsTagsError) {
-      throw new Error(
-        `Failed to insert bills-tags relations: ${billsTagsError.message}`
-      );
-    }
-
-    if (!insertedBillsTags) {
-      throw new Error("No bills-tags relations were inserted");
-    }
-
-    console.log(`✅ Inserted ${insertedBillsTags.length} bills-tags relations`);
-
-    // Insert interview config (for first bill)
-    console.log("💬 Inserting interview config...");
-    const interviewConfigData = createInterviewConfig(insertedBills);
-    let insertedQuestionsCount = 0;
-    let insertedSessionsCount = 0;
-    let insertedMessagesCount = 0;
-    let insertedReportsCount = 0;
-
-    if (interviewConfigData) {
-      const { data: insertedConfig, error: configError } = await supabase
+    // === interview_configs ===
+    const insertedConfigs = await reporter.insert({
+      emoji: "💬",
+      label: "interview configs",
+      query: supabase
         .from("interview_configs")
-        .insert(interviewConfigData)
+        .insert(
+          withDefaults(INTERVIEW_CONFIG_DEFAULTS, [
+            createInterviewConfig(),
+            createBulkOpinionInterviewConfig(),
+            ...additionalInterviewConfigs,
+          ])
+        )
+        .select("id, slug"),
+    });
+
+    const configIdBySlug = new Map(
+      insertedConfigs.map((config) => [config.slug, config.id])
+    );
+    const defaultConfigId = configIdBySlug.get(DEFAULT_CONFIG_SLUG);
+    const bulkConfigId = configIdBySlug.get(BULK_OPINION_CONFIG_SLUG);
+    if (!defaultConfigId || !bulkConfigId) {
+      throw new Error("Interview configs were not inserted as expected");
+    }
+
+    // === policies_interview_configs ===
+    await reporter.insert({
+      startMessage: "🔗 Linking policies and interview configs...",
+      label: "policy-config links",
+      query: supabase
+        .from("policies_interview_configs")
+        .insert(
+          createPoliciesInterviewConfigs(insertedPolicies, configIdBySlug)
+        )
+        .select(),
+    });
+
+    // === interview_questions ===
+    await reporter.insert({
+      emoji: "❓",
+      label: "interview questions",
+      query: supabase
+        .from("interview_questions")
+        .insert([
+          ...createInterviewQuestions(defaultConfigId),
+          ...createBulkOpinionQuestions(bulkConfigId),
+        ])
+        .select("id"),
+    });
+
+    // === interview_sessions ===
+    // ID は seed 側で採番済み。INSERT の戻り順に依存せず紐付けられる
+    console.log("🗣️  Inserting interview sessions...");
+    const defaultSessions = createInterviewSessions(
+      defaultConfigId,
+      respondentIds
+    );
+    const demoSessions = [
+      createDemoSession(defaultConfigId, respondentIds),
+      ...createAdditionalDemoSessions(defaultConfigId, respondentIds),
+    ];
+    const bulkSessions = createBulkOpinionSessions(bulkConfigId, respondentIds);
+    const realisticSession = createRealisticSession(
+      bulkConfigId,
+      respondentIds
+    );
+    const allSessions = [
+      ...defaultSessions,
+      ...demoSessions,
+      ...bulkSessions,
+      realisticSession,
+    ];
+
+    await expectOk(
+      "insert interview sessions",
+      supabase.from("interview_sessions").insert(allSessions)
+    );
+    console.log(`✅ Inserted ${allSessions.length} interview sessions`);
+    reporter.record("interview sessions", allSessions.length);
+
+    const defaultSessionIds = defaultSessions.map((session) => session.id);
+    const bulkSessionIds = bulkSessions.map((session) => session.id);
+
+    // === interview_messages ===
+    const insertedMessages = await reporter.insert({
+      emoji: "💬",
+      label: "interview messages",
+      query: supabase
+        .from("interview_messages")
+        .insert([
+          ...createInterviewMessages(defaultSessionIds),
+          ...createDemoMessages(),
+          ...createAdditionalDemoMessages(),
+          ...createBulkOpinionMessages(bulkSessionIds),
+          ...createRealisticMessages(realisticSession.id),
+        ])
+        .select("id, interview_session_id, content"),
+    });
+
+    const messageIdByKey = new Map(
+      insertedMessages.map((message) => [
+        messageKey(message.interview_session_id, message.content),
+        message.id,
+      ])
+    );
+
+    // === opinions / opinion_segments ===
+    // 2 テーブルをまとめて投入するため、ログとサマリーは呼び出し側で扱う
+    console.log("📊 Inserting opinions and opinion segments...");
+    const opinionSeeds: OpinionSeed[] = [
+      ...createOpinions(defaultSessionIds),
+      createDemoOpinion(),
+      ...createAdditionalDemoOpinions(),
+      ...createBulkOpinions(bulkSessionIds),
+      createRealisticOpinion(realisticSession.id),
+    ];
+    const { opinionCount, segmentCount } = await insertOpinionsWithSegments(
+      supabase,
+      opinionSeeds,
+      messageIdByKey
+    );
+    console.log(
+      `✅ Inserted ${opinionCount} opinions and ${segmentCount} opinion segments`
+    );
+    reporter.record("opinions", opinionCount);
+    reporter.record("opinion segments", segmentCount);
+
+    // === opinion_reactions ===
+    console.log("👍 Inserting opinion reactions...");
+    const publishedOpinions = await expectRows(
+      "fetch published opinions",
+      supabase
+        .from("opinions")
         .select("id")
-        .single();
+        .eq("review_status", "published")
+        .limit(20)
+    );
 
-      if (configError) {
-        throw new Error(
-          `Failed to insert interview config: ${configError.message}`
-        );
-      }
+    const reactions = createOpinionReactions(
+      publishedOpinions.map((opinion) => opinion.id),
+      respondentIds
+    );
+    if (reactions.length > 0) {
+      await expectOk(
+        "insert opinion reactions",
+        supabase.from("opinion_reactions").insert(reactions)
+      );
+    }
+    console.log(`✅ Inserted ${reactions.length} opinion reactions`);
+    reporter.record("opinion reactions", reactions.length);
 
-      if (insertedConfig) {
-        console.log(`✅ Inserted interview config`);
-
-        // Insert interview questions
-        console.log("❓ Inserting interview questions...");
-        const questionsData = createInterviewQuestions(insertedConfig.id);
-
-        const { data: insertedQuestions, error: questionsError } =
-          await supabase
-            .from("interview_questions")
-            .insert(questionsData)
-            .select("id");
-
-        if (questionsError) {
-          throw new Error(
-            `Failed to insert interview questions: ${questionsError.message}`
-          );
-        }
-
-        if (insertedQuestions) {
-          insertedQuestionsCount = insertedQuestions.length;
-          console.log(`✅ Inserted ${insertedQuestionsCount} interview questions`);
-        }
-
-        // Insert interview sessions
-        console.log("🗣️ Inserting interview sessions...");
-        const sessionsData = createInterviewSessions(insertedConfig.id);
-
-        const { data: insertedSessions, error: sessionsError } = await supabase
-          .from("interview_sessions")
-          .insert(sessionsData)
-          .select("id");
-
-        if (sessionsError) {
-          throw new Error(
-            `Failed to insert interview sessions: ${sessionsError.message}`
-          );
-        }
-
-        if (insertedSessions && insertedSessions.length > 0) {
-          insertedSessionsCount = insertedSessions.length;
-          console.log(`✅ Inserted ${insertedSessionsCount} interview sessions`);
-
-          // Insert interview messages
-          console.log("💬 Inserting interview messages...");
-          const sessionIds = insertedSessions.map((s) => s.id);
-          const messagesData = createInterviewMessages(sessionIds);
-
-          const { data: insertedMessages, error: messagesError } =
-            await supabase
-              .from("interview_messages")
-              .insert(messagesData)
-              .select("id");
-
-          if (messagesError) {
-            throw new Error(
-              `Failed to insert interview messages: ${messagesError.message}`
-            );
-          }
-
-          if (insertedMessages) {
-            insertedMessagesCount = insertedMessages.length;
-            console.log(`✅ Inserted ${insertedMessagesCount} interview messages`);
-          }
-
-          // Insert interview reports
-          console.log("📊 Inserting interview reports...");
-          const reportsData = createInterviewReports(sessionIds);
-
-          const { data: insertedReports, error: reportsError } = await supabase
-            .from("interview_report")
-            .insert(reportsData)
-            .select("id");
-
-          if (reportsError) {
-            throw new Error(
-              `Failed to insert interview reports: ${reportsError.message}`
-            );
-          }
-
-          if (insertedReports) {
-            insertedReportsCount = insertedReports.length;
-            console.log(`✅ Inserted ${insertedReportsCount} interview reports`);
-          }
-
-          // Insert demo session, messages, and report with fixed IDs
-          console.log("🎯 Inserting demo data with fixed IDs...");
-
-          const demoSession = createDemoSession(insertedConfig.id);
-          const { error: demoSessionError } = await supabase
-            .from("interview_sessions")
-            .insert(demoSession);
-
-          if (demoSessionError) {
-            throw new Error(
-              `Failed to insert demo session: ${demoSessionError.message}`
-            );
-          }
-
-          const demoMessages = createDemoMessages();
-          const { error: demoMessagesError } = await supabase
-            .from("interview_messages")
-            .insert(demoMessages);
-
-          if (demoMessagesError) {
-            throw new Error(
-              `Failed to insert demo messages: ${demoMessagesError.message}`
-            );
-          }
-
-          const demoReport = createDemoReport();
-          const { error: demoReportError } = await supabase
-            .from("interview_report")
-            .insert(demoReport);
-
-          if (demoReportError) {
-            throw new Error(
-              `Failed to insert demo report: ${demoReportError.message}`
-            );
-          }
-
-          console.log(`✅ Inserted demo data`);
-          console.log(`   Demo report URL: /report/${DEMO_REPORT_ID}#chat-log`);
-
-          // Insert additional demo sessions, messages, and reports (for 4 role types)
-          console.log("🎭 Inserting additional demo data for all role types...");
-
-          const additionalDemoSessions = createAdditionalDemoSessions(insertedConfig.id);
-          const { error: additionalSessionsError } = await supabase
-            .from("interview_sessions")
-            .insert(additionalDemoSessions);
-
-          if (additionalSessionsError) {
-            throw new Error(
-              `Failed to insert additional demo sessions: ${additionalSessionsError.message}`
-            );
-          }
-
-          const additionalDemoMessages = createAdditionalDemoMessages();
-          const { error: additionalMessagesError } = await supabase
-            .from("interview_messages")
-            .insert(additionalDemoMessages);
-
-          if (additionalMessagesError) {
-            throw new Error(
-              `Failed to insert additional demo messages: ${additionalMessagesError.message}`
-            );
-          }
-
-          const additionalDemoReports = createAdditionalDemoReports();
-          const { error: additionalReportsError } = await supabase
-            .from("interview_report")
-            .insert(additionalDemoReports);
-
-          if (additionalReportsError) {
-            throw new Error(
-              `Failed to insert additional demo reports: ${additionalReportsError.message}`
-            );
-          }
-
-          console.log(`✅ Inserted additional demo data for all 4 role types`);
-          console.log(`   subject_expert: /report/${DEMO_REPORT_ID}#chat-log`);
-          console.log(
-            `   work_related: /report/${DEMO_REPORT_ID_WORK}#chat-log`
-          );
-          console.log(
-            `   daily_life_affected: /report/${DEMO_REPORT_ID_DAILY}#chat-log`
-          );
-          console.log(
-            `   general_citizen: /report/${DEMO_REPORT_ID_CITIZEN}#chat-log`
-          );
-        }
-      }
-    } else {
-      console.log("⚠️ Skipped interview config (no bills found)");
+    // === chat_sessions / chat_messages ===
+    console.log("🤖 Inserting policy chat sessions...");
+    const aiChatPolicy = insertedPolicies.find(
+      (policy) => policy.name === AI_CHAT_POLICY_NAME
+    );
+    if (!aiChatPolicy) {
+      throw new Error(`Policy not found: ${AI_CHAT_POLICY_NAME}`);
     }
 
-    // === 船荷証券法案のインタビューデータ（トピック解析テスト用）===
-    console.log("🚢 Inserting shipping bill interview data...");
-    const shippingConfig = createShippingBillInterviewConfig(insertedBills);
-    let shippingSessionsCount = 0;
-    let shippingReportsCount = 0;
+    const insertedChatSessions = await expectRows(
+      "insert chat sessions",
+      supabase
+        .from("chat_sessions")
+        .insert(createChatSessions(aiChatPolicy.id, respondentIds))
+        .select("id")
+    );
 
-    if (shippingConfig) {
-      const { data: insertedShippingConfig, error: shippingConfigError } =
-        await supabase
-          .from("interview_configs")
-          .insert(shippingConfig)
-          .select("id")
-          .single();
-
-      if (shippingConfigError) {
-        throw new Error(
-          `Failed to insert shipping bill config: ${shippingConfigError.message}`
-        );
-      }
-
-      if (insertedShippingConfig) {
-        // Questions
-        const shippingQuestions = createShippingBillQuestions(
-          insertedShippingConfig.id
-        );
-        const { error: sqError } = await supabase
-          .from("interview_questions")
-          .insert(shippingQuestions);
-        if (sqError) {
-          throw new Error(
-            `Failed to insert shipping questions: ${sqError.message}`
-          );
-        }
-
-        // Sessions (100件)
-        const shippingSessions = createShippingBillSessions(
-          insertedShippingConfig.id
-        );
-        const { data: insertedShippingSessions, error: ssError } =
-          await supabase
-            .from("interview_sessions")
-            .insert(shippingSessions)
-            .select("id");
-        if (ssError) {
-          throw new Error(
-            `Failed to insert shipping sessions: ${ssError.message}`
-          );
-        }
-
-        if (insertedShippingSessions) {
-          shippingSessionsCount = insertedShippingSessions.length;
-          const shippingSessionIds = insertedShippingSessions.map(
-            (s) => s.id
-          );
-
-          // Messages
-          const shippingMessages =
-            createShippingBillMessages(shippingSessionIds);
-          const { error: smError } = await supabase
-            .from("interview_messages")
-            .insert(shippingMessages);
-          if (smError) {
-            throw new Error(
-              `Failed to insert shipping messages: ${smError.message}`
-            );
-          }
-
-          // ユーザーメッセージのIDを取得して source_message_id を紐付け
-          const { data: userMessages, error: umError } = await supabase
-            .from("interview_messages")
-            .select("id, interview_session_id, content")
-            .in("interview_session_id", shippingSessionIds)
-            .eq("role", "user")
-            .neq("content", "賛成です。")
-            .neq("content", "反対です。")
-            .neq("content", "条件付きで賛成です。")
-            .neq("content", "判断が難しいです。")
-            .order("created_at", { ascending: true })
-            .order("id", { ascending: true });
-          if (umError) {
-            throw new Error(
-              `Failed to fetch user messages: ${umError.message}`
-            );
-          }
-
-          // セッションID → ユーザーメッセージIDリストのマップを構築
-          const sessionMessageMap = new Map<
-            string,
-            Array<{ id: string; content: string }>
-          >();
-          for (const msg of userMessages || []) {
-            const list = sessionMessageMap.get(msg.interview_session_id) || [];
-            list.push({ id: msg.id, content: msg.content });
-            sessionMessageMap.set(msg.interview_session_id, list);
-          }
-
-          // Reports (100件、各3 opinions) — source_message_id を含む
-          const shippingReports = createShippingBillReports(shippingSessionIds);
-          for (const report of shippingReports) {
-            const msgs = sessionMessageMap.get(
-              report.interview_session_id
-            );
-            if (msgs && Array.isArray(report.opinions)) {
-              const opinions = (
-                report.opinions as Array<{
-                  title: string;
-                  content: string;
-                  source_message_content?: string;
-                  source_message_id?: string;
-                }>
-              ).map((opinion) => ({ ...opinion }));
-              report.opinions = opinions;
-              for (let j = 0; j < opinions.length; j++) {
-                if (msgs[j]) {
-                  opinions[j].source_message_id = msgs[j].id;
-                  opinions[j].source_message_content = msgs[j].content;
-                }
-              }
-            }
-          }
-
-          const { data: insertedShippingReports, error: srError } =
-            await supabase
-              .from("interview_report")
-              .insert(shippingReports)
-              .select("id");
-          if (srError) {
-            throw new Error(
-              `Failed to insert shipping reports: ${srError.message}`
-            );
-          }
-
-          if (insertedShippingReports) {
-            shippingReportsCount = insertedShippingReports.length;
-          }
-        }
-
-        // --- リアル系インタビュー（back-and-forth が自然な 1 セッション） ---
-        console.log("🎤 Inserting realistic shipping bill interview...");
-        const realisticSession = createRealisticShippingBillSession(
-          insertedShippingConfig.id
-        );
-        const { data: insertedRealisticSession, error: realisticSessionError } =
-          await supabase
-            .from("interview_sessions")
-            .insert(realisticSession)
-            .select("id")
-            .single();
-        if (realisticSessionError || !insertedRealisticSession) {
-          throw new Error(
-            `Failed to insert realistic session: ${realisticSessionError?.message}`
-          );
-        }
-
-        const realisticMessages = createRealisticShippingBillMessages(
-          insertedRealisticSession.id
-        );
-        // 1 回の bulk insert だと全行が同一 created_at になり、return 順も UUID 依存で不定
-        // → id + content を返してもらい、後で content で対象を特定する
-        const { data: insertedRealisticMessages, error: realisticMessagesError } =
-          await supabase
-            .from("interview_messages")
-            .insert(realisticMessages)
-            .select("id, content");
-        if (realisticMessagesError || !insertedRealisticMessages) {
-          throw new Error(
-            `Failed to insert realistic messages: ${realisticMessagesError?.message}`
-          );
-        }
-
-        // opinions の source_message_id を後付け。
-        // content は会話ログ内で一意な前提（リアル seed データ用なので成り立つ）。
-        // conversationIndex → 対象 content → inserted row.id という経路で特定する。
-        // 未解決は seed データ不整合なので fail fast させる（silent に進むと
-        // interview_report.opinions.source_message_id が欠落した状態で投入される）。
-        const realisticReport = createRealisticShippingBillReport(
-          insertedRealisticSession.id
-        );
-        const links = getRealisticShippingBillSourceMessageLinks();
-        if (!Array.isArray(realisticReport.opinions)) {
-          throw new Error(
-            "Realistic report opinions must be an array to wire source_message_id"
-          );
-        }
-        const opinions = realisticReport.opinions as Array<{
-          title: string;
-          content: string;
-          source_message_id?: string;
-          source_message_content?: string;
-        }>;
-        const contentToId = new Map(
-          insertedRealisticMessages.map((m) => [m.content, m.id])
-        );
-        for (const { conversationIndex, opinionIndex } of links) {
-          const msgContent = realisticMessages[conversationIndex]?.content;
-          if (!msgContent) {
-            throw new Error(
-              `Realistic seed: conversationIndex ${conversationIndex} out of range`
-            );
-          }
-          const msgId = contentToId.get(msgContent);
-          if (!msgId) {
-            throw new Error(
-              `Realistic seed: failed to resolve inserted message for conversationIndex=${conversationIndex}`
-            );
-          }
-          const opinion = opinions[opinionIndex];
-          if (!opinion) {
-            throw new Error(
-              `Realistic seed: opinionIndex ${opinionIndex} out of range`
-            );
-          }
-          opinion.source_message_id = msgId;
-          opinion.source_message_content = msgContent;
-        }
-        const { error: realisticReportError } = await supabase
-          .from("interview_report")
-          .insert(realisticReport);
-        if (realisticReportError) {
-          throw new Error(
-            `Failed to insert realistic report: ${realisticReportError.message}`
-          );
-        }
-
-        console.log(
-          `✅ Shipping bill: ${shippingSessionsCount} sessions (+1 realistic), ${shippingReportsCount} reports (each with 3 opinions) + 1 realistic report`
-        );
-      } else {
-        console.log(
-          `✅ Shipping bill: ${shippingSessionsCount} sessions, ${shippingReportsCount} reports (each with 3 opinions)`
-        );
-      }
-    }
+    const chatMessages = createChatMessages(
+      insertedChatSessions.map((session) => session.id)
+    );
+    await expectOk(
+      "insert chat messages",
+      supabase.from("chat_messages").insert(chatMessages)
+    );
+    console.log(
+      `✅ Inserted ${insertedChatSessions.length} chat sessions and ${chatMessages.length} chat messages`
+    );
 
     console.log("🎉 Database seeding completed successfully!");
-    console.log("\n📊 Summary:");
-    console.log(`  Diet Sessions: ${insertedDietSessions.length}`);
-    console.log(`  Tags: ${insertedTags.length}`);
-    console.log(`  Bills: ${insertedBills.length}`);
-    console.log(`  Bill Contents: ${insertedContents.length}`);
-    console.log(`  Mirai Stances: ${insertedStances.length}`);
-    console.log(`  Bills-Tags Relations: ${insertedBillsTags.length}`);
-    console.log(`  Interview Config: ${interviewConfigData ? 1 : 0}`);
-    console.log(`  Interview Questions: ${insertedQuestionsCount}`);
-    console.log(`  Interview Sessions: ${insertedSessionsCount}`);
-    console.log(`  Interview Messages: ${insertedMessagesCount}`);
-    console.log(`  Interview Reports: ${insertedReportsCount}`);
+    reporter.printSummary();
+    console.log("\n🔗 Demo opinion URLs:");
+    console.log(`  /report/${DEMO_OPINION_ID}#chat-log`);
+    console.log(`  /report/${DEMO_OPINION_ID_WORK}#chat-log`);
+    console.log(`  /report/${DEMO_OPINION_ID_DAILY}#chat-log`);
+    console.log(`  /report/${DEMO_OPINION_ID_CITIZEN}#chat-log`);
   } catch (error) {
     console.error("❌ Error seeding database:", error);
     process.exit(1);

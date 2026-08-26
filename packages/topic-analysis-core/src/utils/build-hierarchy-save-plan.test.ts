@@ -53,19 +53,19 @@ describe("buildHierarchySavePlan", () => {
   // 大トピックに意見を直接紐づけると親子で二重計上される。
   it("意見は葉（中トピック）にだけ紐づく", () => {
     const { pairs } = buildHierarchySavePlan(hierarchy, [
-      { opinion_id: "o1", topic_local_id: "tA" },
-      { opinion_id: "o2", topic_local_id: "tC" },
+      { opinion_segment_id: "o1", topic_local_id: "tA" },
+      { opinion_segment_id: "o2", topic_local_id: "tC" },
     ]);
 
     expect(pairs).toEqual([
-      { opinion_id: "o1", topic_index: 1 },
-      { opinion_id: "o2", topic_index: 4 },
+      { opinion_segment_id: "o1", topic_index: 1 },
+      { opinion_segment_id: "o2", topic_index: 4 },
     ]);
   });
 
   it("未割当の意見は紐付けを作らない", () => {
     const { pairs } = buildHierarchySavePlan(hierarchy, [
-      { opinion_id: "o1", topic_local_id: null },
+      { opinion_segment_id: "o1", topic_local_id: null },
     ]);
 
     expect(pairs).toEqual([]);
@@ -73,7 +73,7 @@ describe("buildHierarchySavePlan", () => {
 
   it("階層に存在しない local_id への割当は捨てる", () => {
     const { pairs } = buildHierarchySavePlan(hierarchy, [
-      { opinion_id: "o1", topic_local_id: "tZZZ" },
+      { opinion_segment_id: "o1", topic_local_id: "tZZZ" },
     ]);
 
     expect(pairs).toEqual([]);
@@ -87,9 +87,9 @@ describe("buildHierarchySavePlan", () => {
 describe("countAssignmentsByLocalId", () => {
   it("local_id ごとに件数を数える", () => {
     const counts = countAssignmentsByLocalId([
-      { opinion_id: "o1", topic_local_id: "tA" },
-      { opinion_id: "o2", topic_local_id: "tA" },
-      { opinion_id: "o3", topic_local_id: "tB" },
+      { opinion_segment_id: "o1", topic_local_id: "tA" },
+      { opinion_segment_id: "o2", topic_local_id: "tA" },
+      { opinion_segment_id: "o3", topic_local_id: "tB" },
     ]);
 
     expect(counts.get("tA")).toBe(2);
@@ -98,7 +98,7 @@ describe("countAssignmentsByLocalId", () => {
 
   it("未割当は数えない", () => {
     const counts = countAssignmentsByLocalId([
-      { opinion_id: "o1", topic_local_id: null },
+      { opinion_segment_id: "o1", topic_local_id: null },
     ]);
 
     expect(counts.size).toBe(0);
@@ -122,9 +122,9 @@ describe("buildHierarchySavePlan（親なしのフラット階層）", () => {
 
   it("意見はそのままトップレベルのトピックに紐づく", () => {
     const { pairs } = buildHierarchySavePlan(flat, [
-      { opinion_id: "o1", topic_local_id: "tB" },
+      { opinion_segment_id: "o1", topic_local_id: "tB" },
     ]);
 
-    expect(pairs).toEqual([{ opinion_id: "o1", topic_index: 1 }]);
+    expect(pairs).toEqual([{ opinion_segment_id: "o1", topic_index: 1 }]);
   });
 });

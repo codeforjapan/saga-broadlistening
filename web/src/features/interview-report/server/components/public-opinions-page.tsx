@@ -12,23 +12,20 @@ import { routes } from "@/lib/routes";
 import { PublicOpinionsList } from "../../client/components/public-opinions-list";
 import { OpinionsBreadcrumb } from "../../shared/components/opinions-breadcrumb";
 import type { SortOrder } from "../../shared/utils/sort-order";
-import type { StanceFilter } from "../../shared/utils/stance-filter";
 import { getInitialPublicReportsByBillId } from "../loaders/get-all-public-reports-by-bill-id";
 
 interface PublicOpinionsPageProps {
   billId: string;
-  initialFilter: StanceFilter;
   initialSort: SortOrder;
 }
 
 export async function PublicOpinionsPage({
   billId,
-  initialFilter,
   initialSort,
 }: PublicOpinionsPageProps) {
   const [bill, initialData, interviewConfig] = await Promise.all([
     getBillById(billId),
-    getInitialPublicReportsByBillId(billId, initialFilter, initialSort),
+    getInitialPublicReportsByBillId(billId, initialSort),
     getInterviewConfig(billId),
   ]);
 
@@ -66,7 +63,7 @@ export async function PublicOpinionsPage({
       )}
 
       <Container>
-        {/* 法案タイトル（法案詳細へのリンク） */}
+        {/* 施策タイトル（施策詳細へのリンク） */}
         <div className="py-6">
           <Link href={routes.billDetail(billId)}>
             <h1 className="text-2xl font-bold leading-[1.5] text-black hover:underline">
@@ -80,14 +77,13 @@ export async function PublicOpinionsPage({
           )}
         </div>
 
-        {/* 意見一覧（フィルター付き・スクロールページネーション） */}
+        {/* 意見一覧（スクロールページネーション） */}
         <PublicOpinionsList
           billId={billId}
           initialReports={initialData.reports}
           initialReactionsRecord={reactionsRecord}
-          stanceCounts={initialData.stanceCounts}
+          totalCount={initialData.totalCount}
           initialHasMore={initialData.hasMore}
-          initialFilter={initialFilter}
           initialSort={initialSort}
         />
 

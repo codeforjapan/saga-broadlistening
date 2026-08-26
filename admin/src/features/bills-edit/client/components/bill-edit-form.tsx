@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 
-import type { DietSession } from "@/features/diet-sessions/shared/types";
 import { updateBill } from "../../server/actions/update-bill";
 import {
   type Bill,
@@ -19,38 +18,23 @@ import { BillFormFields } from "./bill-form-fields";
 
 interface BillEditFormProps {
   bill: Bill;
-  dietSessions: DietSession[];
 }
 
-export function BillEditForm({ bill, dietSessions }: BillEditFormProps) {
+export function BillEditForm({ bill }: BillEditFormProps) {
   const { isSubmitting, error, handleSubmit, handleCancel } = useBillForm();
-
-  // If bill has no diet_session_id, default to the latest session (first in the list)
-  const defaultDietSessionId =
-    bill.diet_session_id ??
-    (dietSessions.length > 0 ? dietSessions[0].id : null);
 
   const form = useForm<BillUpdateInput>({
     resolver: zodResolver(billUpdateSchema),
     defaultValues: {
       name: bill.name,
-      status: bill.status,
-      originating_house: bill.originating_house,
-      status_note: bill.status_note,
-      submitted_date: bill.submitted_date
-        ? new Date(bill.submitted_date).toLocaleDateString("sv-SE", {
-            timeZone: "Asia/Tokyo",
-          })
-        : "",
+      slug: bill.slug,
+      department: bill.department,
+      contact: bill.contact,
       thumbnail_url: bill.thumbnail_url,
       share_thumbnail_url: bill.share_thumbnail_url,
-      shugiin_url: bill.shugiin_url,
-      slug: bill.slug,
       is_featured: bill.is_featured,
-      is_review_completed: bill.is_review_completed,
-      diet_session_id: defaultDietSessionId,
       knowledge_source: bill.knowledge_source ?? "",
-      use_knowledge_source_in_chat: bill.use_knowledge_source_in_chat,
+      enable_ai_chat: bill.enable_ai_chat,
     },
   });
 
@@ -69,11 +53,7 @@ export function BillEditForm({ bill, dietSessions }: BillEditFormProps) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <BillFormFields
-              control={form.control}
-              billId={bill.id}
-              dietSessions={dietSessions}
-            />
+            <BillFormFields control={form.control} billId={bill.id} />
 
             {error && (
               <div className="rounded-md bg-red-50 p-4 text-sm text-red-800">

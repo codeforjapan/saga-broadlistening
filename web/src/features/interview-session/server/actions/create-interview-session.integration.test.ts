@@ -1,14 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   adminClient,
-  createTestUser,
   cleanupTestUser,
-  createTestBill,
-  cleanupTestBill,
+  createTestPolicyWithConfig,
+  createTestUser,
   type TestUser,
 } from "@test-utils/utils";
-import type { GetUserFn } from "../utils/verify-session-ownership";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createInterviewSessionCore } from "../services/create-interview-session-core";
+import type { GetUserFn } from "../utils/verify-session-ownership";
 
 function createGetUser(userId: string): GetUserFn {
   return async () => ({
@@ -24,32 +23,21 @@ const getUnauthenticatedUser: GetUserFn = async () => ({
 
 describe("createInterviewSession 統合テスト", () => {
   let testUser: TestUser;
-  let billId: string;
   let configId: string;
+  let cleanupPolicyWithConfig: () => Promise<void>;
 
   beforeEach(async () => {
     testUser = await createTestUser();
 
-    const bill = await createTestBill();
-    billId = bill.id;
-
-    const { data: config, error: configError } = await adminClient
-      .from("interview_configs")
-      .insert({
-        bill_id: billId,
-        status: "public",
-        name: `テスト設定 ${Date.now()}`,
-      })
-      .select()
-      .single();
-    if (configError || !config) {
-      throw new Error(`interview_config 作成失敗: ${configError?.message}`);
-    }
+    const { config, cleanup } = await createTestPolicyWithConfig();
     configId = config.id;
+    cleanupPolicyWithConfig = cleanup;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId); // CASCADE で interview_configs, interview_sessions も削除
+    // 意見募集を先に消す。施策 ↔ 意見募集は多対多で、施策の CASCADE は
+    // 中間テーブルまでしか届かずセッションが残るため。
+    await cleanupPolicyWithConfig();
     await cleanupTestUser(testUser.id);
   });
 
