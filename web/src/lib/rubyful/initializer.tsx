@@ -1,6 +1,7 @@
 "use client";
 
 import Script from "next/script";
+import { useEffect } from "react";
 import { sendFuriganaStateEvent } from "@/lib/analytics/preference-state-events";
 import { useOnPageView } from "@/lib/analytics/use-on-page-view";
 import { rubyfulClient } from "./index";
@@ -27,6 +28,29 @@ export function RubyfulInitializer() {
   useOnPageView(() => {
     sendFuriganaStateEvent(rubyfulClient.getIsEnabledFromStorage());
   });
+
+  // ルビON状態を <html data-ruby-enabled> に反映（行間切り替え用）
+  useEffect(() => {
+    rubyfulClient.applyStoredStateToDocument();
+  }, []);
+
+  // ベンダースクリプトが注入する <rt> に aria-hidden を付与する。
+  // 読み（ふりがな）が本文と二重に読み上げられるのを防ぐ（D-10）。
+  // 手書きルビ（manual-ruby.tsx）は JSX 側で付与済みだが、
+  // 自動注入分はここで補完しないと意味がない
+  useEffect(() => {
+    const markRt = (root: ParentNode) => {
+      root
+        .querySelectorAll("rt.rubyful-rt:not([aria-hidden])")
+        .forEach((rt) => {
+          rt.setAttribute("aria-hidden", "true");
+        });
+    };
+    markRt(document);
+    const observer = new MutationObserver(() => markRt(document));
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <Script
