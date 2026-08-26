@@ -190,12 +190,17 @@ Roleの信頼条件が `main`ブランチ限定のため、dev/stg環境への�
      --profile <profile> --region ap-northeast-1
    aws logs tail /mirai-gikai/topic-analysis-worker-<env> --follow --profile <profile> --region ap-northeast-1
    ```
-4. **EventBridge Scheduler → Batch SubmitJobの疎通確認（要実施）**: `CfnSchedule` の
-   Batchターゲットは universal target（`arn:aws:scheduler:::aws-sdk:batch:submitJob`）を
-   使っており、`Input` のキー名（`jobName`/`jobQueue`/`jobDefinition`/`containerOverrides`）が
-   実際のBatch SubmitJob APIの期待する形式と一致するかはコード上のドキュメント調査でのみ確認済みで、
-   実機での発火確認はまだ行っていない。`topicAnalysisSchedulerEnabled` を一時的に `true` にして
-   数分後に発火するようスケジュールし、実際にジョブが起動することを確認すること。
+4. **EventBridge Scheduler → Batch SubmitJobの実際の発火確認（要実施）**: `CfnSchedule` の
+   Batchターゲットは universal target（`arn:aws:scheduler:::aws-sdk:batch:submitJob`）を使う。
+   `Input` のキー名は当初camelCase（`jobName`等）で実装したが、実際のprd環境への初回デプロイで
+   `Invalid RequestJson provided. ... missing the following field(s): JobName, JobQueue,
+   JobDefinition` というCloudFormationのバリデーションエラーになり、AWS Batchは
+   JSON protocol（RESTではない）のAPIのためPascalCase（`JobName`/`JobQueue`/`JobDefinition`/
+   `ContainerOverrides`/`Command`）が必要と判明した（ECS RunTaskのcamelCaseとは異なる）。
+   修正後はCloudFormationのリソース作成自体は通ることを確認したが、
+   **スケジュールが実際に発火してBatchジョブが起動することまではまだ確認していない**。
+   `topicAnalysisSchedulerEnabled` を一時的に `true` にして数分後に発火するようスケジュールし、
+   実際にジョブが起動する（CloudWatch Logsにログが出る）ことを確認すること。
 5. **定期実行を有効化する場合**は、GCP Cloud Scheduler側を`SCHEDULER_PAUSED=1`で
    一時停止してから `lib/config/environments/<env>.ts` の `topicAnalysisSchedulerEnabled`
    を `true` にしてデプロイする（両方が有効だと同一議案の分析が二重実行される）。
