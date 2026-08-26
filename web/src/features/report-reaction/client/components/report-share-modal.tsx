@@ -1,7 +1,8 @@
 "use client";
 
-import type { MouseEvent, KeyboardEvent } from "react";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import Image from "next/image";
+import type { KeyboardEvent, MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import {
   shareNative,
@@ -33,8 +34,8 @@ export function ReportShareModal({
   if (!isOpen) return null;
 
   const shareMessage = shareMessageProp
-    ? `みらい議会AIインタビュー「${shareMessageProp}」`
-    : `みらい議会AIインタビュー「${billName}」`;
+    ? `${SITE_NAME} AIインタビュー「${shareMessageProp}」`
+    : `${SITE_NAME} AIインタビュー「${billName}」`;
 
   const shareButtons = [
     {
@@ -83,14 +84,16 @@ export function ReportShareModal({
       <div className="flex w-[500px] max-w-full flex-col items-center gap-6 rounded-2xl bg-white px-3 py-9">
         <div className="flex w-full flex-col items-center gap-6">
           {/* タイトル */}
-          <h2 className="text-2xl font-bold text-gray-800">意見をシェアする</h2>
+          <h2 className="text-2xl font-bold text-foreground">
+            意見をシェアする
+          </h2>
 
           {/* OGPプレビュー画像 */}
           <OgpPreviewCard ogImageUrl={ogImageUrl} billName={billName} />
 
           {/* シェアセクション */}
           <div className="flex w-full flex-col items-center gap-4">
-            <p className="text-center text-base font-bold text-gray-800">
+            <p className="text-center text-base font-bold text-foreground">
               法案に対する意見をシェアしよう
             </p>
 

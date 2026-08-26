@@ -1,8 +1,8 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { logoImageProps } from "@/lib/logo";
 import Image from "next/image";
 import Link from "next/link";
-import { logoImageProps } from "@/lib/logo";
 import { routes } from "@/lib/routes";
-import { SERVICE_NAME } from "@/lib/site";
 
 /**
  * デスクトップメニュー: ロゴ (画面左上)
@@ -26,7 +26,7 @@ export function DesktopMenuLogo() {
             letterSpacing: "0.05em",
           }}
         >
-          {SERVICE_NAME}
+          {SITE_NAME}
         </h1>
         <p
           className="font-bold text-black"

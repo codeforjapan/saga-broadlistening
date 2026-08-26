@@ -1,3 +1,4 @@
+import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/shared/site";
 import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginForm } from "@/features/auth/client/components/login-form";
@@ -11,7 +12,7 @@ export default function LoginPage() {
             管理者ログイン
           </CardTitle>
           <p className="text-sm text-muted-foreground text-center">
-            みらい議会 Admin
+            {SITE_NAME} Admin
           </p>
         </CardHeader>
         <CardContent>
@@ -20,9 +21,7 @@ export default function LoginPage() {
           </Suspense>
 
           <div className="mt-6 text-center">
-            <p className="text-xs text-muted-foreground">
-              © 2025 チームみらい. All rights reserved.
-            </p>
+            <p className="text-xs text-muted-foreground">{COPYRIGHT_TEXT}</p>
           </div>
         </CardContent>
       </Card>

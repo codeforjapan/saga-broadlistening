@@ -169,7 +169,7 @@ export function ConfigGenerationChat({
         )}
 
         {error && (
-          <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
+          <div className="text-sm text-system-warning bg-yellow-400/20 p-3 rounded">
             エラーが発生しました。もう一度お試しください。
           </div>
         )}

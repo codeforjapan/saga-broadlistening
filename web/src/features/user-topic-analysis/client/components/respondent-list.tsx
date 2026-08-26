@@ -26,7 +26,7 @@ export function RespondentList({ respondents, nowMs }: RespondentListProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] font-bold text-topic-label">
+      <p className="text-[13px] font-bold text-muted-foreground">
         {respondents.length}人のインタビューの回答
       </p>
 
@@ -40,7 +40,7 @@ export function RespondentList({ respondents, nowMs }: RespondentListProps) {
             />
           ))
         ) : (
-          <p className="py-8 text-center text-mirai-text-muted">
+          <p className="py-8 text-center text-muted-foreground">
             該当する回答はありません
           </p>
         )}
@@ -52,7 +52,7 @@ export function RespondentList({ respondents, nowMs }: RespondentListProps) {
             type="button"
             variant="outline"
             onClick={loadMore}
-            className="h-auto w-full gap-2.5 rounded-[100px] border-mirai-text bg-white px-6 py-3 text-[15px] font-medium text-mirai-text hover:bg-mirai-surface-gray"
+            className="h-auto w-full gap-2.5 rounded-[100px] border-foreground bg-white px-6 py-3 text-[15px] font-medium text-foreground hover:bg-muted"
           >
             あと {remaining} 人のインタビュー回答を見る
             <ChevronDown className="size-[15px] shrink-0" />

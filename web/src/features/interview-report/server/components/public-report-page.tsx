@@ -51,7 +51,7 @@ export async function PublicReportPage({
   ];
 
   return (
-    <div className="min-h-dvh bg-mirai-surface pt-24 md:pt-0">
+    <div className="min-h-dvh bg-background pt-24 md:pt-0">
       <Container>
         <div className="flex flex-col gap-8 pb-8 md:pt-8">
           {/* パンくず + 法案タイトル */}
@@ -66,7 +66,7 @@ export async function PublicReportPage({
             </Link>
           </div>
 
-          <h1 className="text-[22px] font-bold leading-9 text-mirai-text">
+          <h1 className="text-[22px] font-bold leading-9 text-foreground">
             💬インタビューレポート
           </h1>
 

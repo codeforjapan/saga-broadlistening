@@ -62,7 +62,7 @@ function StaticDisclosureSection() {
               </li>
               <li>
                 <span className="font-bold">活用の範囲：</span>
-                回答内容は、党内における政策検討、およびAIを用いた統計的分析に限定して活用いたします。
+                回答内容は、佐賀市における政策検討、およびAIを用いた統計的分析に限定して活用いたします。
               </li>
               <li>
                 <span className="font-bold">分析プロセスの透明化：</span>
@@ -79,7 +79,7 @@ function StaticDisclosureSection() {
                 </li>
                 <li>
                   <span className="font-bold">公開を希望する場合：</span>
-                  回答データは「みらい議会」上に掲載され、他のユーザーが閲覧可能な状態で公開されます。これにより、利用者間での意見の共有および議論の活性化を図ります。
+                  回答データは本サービス上に掲載され、他のユーザーが閲覧可能な状態で公開されます。これにより、利用者間での意見の共有および議論の活性化を図ります。
                 </li>
               </ul>
             </div>
@@ -164,7 +164,7 @@ export function InterviewDisclosurePage({
   ...props
 }: InterviewDisclosurePageProps) {
   return (
-    <div className="flex flex-col gap-8 pb-8 bg-mirai-light-gradient">
+    <div className="flex flex-col gap-8 pb-8 bg-secondary">
       <div className="flex flex-col gap-8 px-4 pt-24 md:pt-12 max-w-[600px] mx-auto w-full">
         <DisclosureBreadcrumb billId={billId} previewToken={previewToken} />
         <StaticDisclosureSection />

@@ -73,7 +73,7 @@ export function InterviewQuestionForm({
     >
       <div className="space-y-2">
         <Label htmlFor={questionId}>
-          質問文 <span className="text-red-500">*</span>
+          質問文 <span className="text-system-warning">*</span>
         </Label>
         <Input
           id={questionId}

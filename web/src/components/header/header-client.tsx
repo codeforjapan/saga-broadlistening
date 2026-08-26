@@ -1,5 +1,7 @@
 "use client";
 
+import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { logoImageProps } from "@/lib/logo";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,10 +10,8 @@ import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/type
 import { InterviewHeaderActions } from "@/features/interview-session/client/components/interview-header-actions";
 import { sendDifficultyStateEvent } from "@/lib/analytics/preference-state-events";
 import { useOnPageView } from "@/lib/analytics/use-on-page-view";
-import { logoImageProps } from "@/lib/logo";
 import { isInterviewPage, isMainPage } from "@/lib/page-layout-utils";
 import { routes } from "@/lib/routes";
-import { SERVICE_NAME } from "@/lib/site";
 import { HamburgerMenu } from "./hamburger-menu";
 
 interface HeaderClientProps {
@@ -34,8 +34,8 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
       <div className="rounded-2xl bg-white shadow-sm mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* ロゴ。小さく出すためタグライン抜き。ワードマークを含むのでサービス名は併記しない */}
-          <Link href={routes.home()} aria-label={`${SERVICE_NAME} ホーム`}>
-            <Image alt={SERVICE_NAME} {...logoImageProps("compact", 32)} />
+          <Link href={routes.home()} aria-label={`${SITE_NAME} ホーム`}>
+            <Image alt={SITE_NAME} {...logoImageProps("compact", 32)} />
           </Link>
 
           {/* Navigation */}

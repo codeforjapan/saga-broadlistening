@@ -304,7 +304,7 @@ export function InterviewConfigList({
                   </p>
                 ) : (
                   deleteTargetSessionCount > 0 && (
-                    <p className="font-medium text-red-600">
+                    <p className="font-medium text-destructive">
                       この設定には{deleteTargetSessionCount}
                       件のセッションが紐づいています。
                     </p>
@@ -341,7 +341,7 @@ export function InterviewConfigList({
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting || !deleteConfirmed}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {isDeleting ? "削除中..." : "削除する"}
             </AlertDialogAction>

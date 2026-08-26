@@ -6,11 +6,11 @@ import Link from "next/link";
 
 /** 回答者の多様性を表す装飾用アバタークラスタの色。 */
 const AVATAR_CLASSES = [
-  "bg-mirai-gradient",
-  "bg-topic-industry",
+  "bg-sky-400",
+  "bg-sky-700",
   "bg-primary",
-  "bg-topic-affected",
-  "bg-stance-against-light",
+  "bg-system-warning",
+  "bg-lavender-500",
 ];
 
 interface InterviewCountPillProps {
@@ -34,7 +34,7 @@ export function InterviewCountPill({ count, href }: InterviewCountPillProps) {
           />
         ))}
       </span>
-      <span className="flex items-center gap-0.5 text-[11px] font-bold text-mirai-text">
+      <span className="flex items-center gap-0.5 text-[11px] font-bold text-foreground">
         <span>
           <span className="font-bold">{count}人</span>
           のAIインタビュー回答から

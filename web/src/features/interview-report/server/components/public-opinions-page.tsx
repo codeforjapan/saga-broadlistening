@@ -49,7 +49,7 @@ export async function PublicOpinionsPage({
   }
 
   return (
-    <div className="min-h-dvh bg-mirai-surface">
+    <div className="min-h-dvh bg-background">
       {/* ヒーロー画像 */}
       {bill.thumbnail_url && (
         <div className="relative w-full h-[200px] md:h-[320px]">
@@ -71,7 +71,7 @@ export async function PublicOpinionsPage({
             </h1>
           </Link>
           {bill.name !== billTitle && (
-            <p className="mt-2 text-xs font-medium leading-[1.67] text-mirai-text-muted">
+            <p className="mt-2 text-xs font-medium leading-[1.67] text-muted-foreground">
               {bill.name}
             </p>
           )}

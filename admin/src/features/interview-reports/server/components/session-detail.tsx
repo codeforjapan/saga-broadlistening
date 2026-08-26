@@ -267,7 +267,7 @@ export function SessionDetail({
                             ? "bg-green-500"
                             : report.moderation_status === "warning"
                               ? "bg-orange-500"
-                              : "bg-red-500"
+                              : "bg-system-warning"
                         }`}
                         style={{
                           width: `${report.moderation_score}%`,

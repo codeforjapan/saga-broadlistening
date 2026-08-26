@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { OG_COLORS } from "@mirai-gikai/design-tokens/brand-meta";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { ImageResponse } from "next/og";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";
 import { truncateText } from "@/features/interview-report/shared/utils/truncate-text";
 import { logoImageProps } from "@/lib/logo";
-import { SERVICE_NAME } from "@/lib/site";
 
 /**
  * OGP画像のテキスト制限
@@ -14,27 +15,7 @@ const OG_BILL_NAME_MAX_LENGTH = 40;
 const OG_BILL_NAME_WIDTH = 820;
 const OG_BILL_NAME_MAX_HEIGHT = 96;
 
-/**
- * OGP画像の配色
- *
- * Satori(next/og)はCSS変数を解決できないため、`globals.css` のカラートークンと
- * 手で同期させる必要がある。frame は `--color-mirai-gradient-start/end`
- * (#3b82f6 / #93c5fd) と同じ青系グラデーション。
- */
-export const OG_COLORS = {
-  /** 1200x630 の地 */
-  canvas: "linear-gradient(177deg, #e8f1fd 0%, #f4f8fe 100%)",
-  /** カードのグラデ枠 / 右上バッジ */
-  frame: "linear-gradient(-30deg, #93c5fd 1%, #3b82f6 99%)",
-  /** カード本体 */
-  card: "#ffffff",
-  /** 本文テキスト。--color-mirai-text (#1f2937) */
-  text: "#1f2937",
-  /** 施策名の強調テキスト。--primary-accent (#1e40af) */
-  textAccent: "#1e40af",
-} as const;
-
-/** OGP右下に配置するロゴの表示サイズと、カード端からのオフセット(px) */
+/** OGP右下に配置するロゴの表示高さと、カード端からのオフセット(px) */
 const OG_LOGO = { height: 88, bottom: 26, right: 34 } as const;
 
 const FONT_FETCH_TIMEOUT_MS = 3000;
@@ -151,7 +132,7 @@ export async function GET(request: Request) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundImage: OG_COLORS.canvas,
+        backgroundImage: `linear-gradient(177deg, ${OG_COLORS.canvasFrom} 0%, ${OG_COLORS.canvasTo} 100%)`,
       }}
     >
       {/* グラデーションborder用ラッパー */}
@@ -161,7 +142,7 @@ export async function GET(request: Request) {
           width: 1140,
           height: 560,
           borderRadius: 30,
-          backgroundImage: OG_COLORS.frame,
+          backgroundImage: `linear-gradient(-30deg, ${OG_COLORS.frameFrom} 1%, ${OG_COLORS.frameTo} 99%)`,
           padding: 6,
           position: "relative",
         }}
@@ -172,7 +153,7 @@ export async function GET(request: Request) {
             flexDirection: "column",
             width: "100%",
             height: "100%",
-            backgroundColor: OG_COLORS.card,
+            backgroundColor: OG_COLORS.background,
             borderRadius: 24,
             padding: "48px 56px",
           }}
@@ -201,7 +182,7 @@ export async function GET(request: Request) {
               maxHeight: OG_BILL_NAME_MAX_HEIGHT,
               fontSize: 32,
               fontWeight: 800,
-              color: OG_COLORS.textAccent,
+              color: OG_COLORS.accent,
               lineHeight: 1.5,
               overflow: "hidden",
               wordBreak: "break-all",
@@ -215,7 +196,7 @@ export async function GET(request: Request) {
         {logoDataUrl && (
           // biome-ignore lint/performance/noImgElement: ignore
           <img
-            alt={SERVICE_NAME}
+            alt={`${SITE_NAME}ロゴ`}
             src={logoDataUrl}
             width={logoWidth}
             height={logoHeight}

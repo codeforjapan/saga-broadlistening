@@ -45,7 +45,7 @@ function BooleanIcon({ value }: { value: boolean }) {
   if (value) {
     return <CheckCircle2 className="h-5 w-5 text-green-500" />;
   }
-  return <XCircle className="h-5 w-5 text-red-400" />;
+  return <XCircle className="h-5 w-5 text-system-warning" />;
 }
 
 function buildPageUrl(

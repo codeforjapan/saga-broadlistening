@@ -1,7 +1,6 @@
 import { Container } from "@/components/layouts/container";
 import { About } from "@/components/top/about";
 import { Hero } from "@/components/top/hero";
-import { TeamMirai } from "@/components/top/team-mirai";
 import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
 import { BillDisclaimer } from "@/features/bills/client/components/bill-detail/bill-disclaimer";
 import { BillsByTagSection } from "@/features/bills/server/components/bills-by-tag-section";
@@ -41,11 +40,8 @@ export default async function Home() {
       </Container>
 
       <Container>
-        {/* みらい議会とは セクション */}
+        {/* 本システムについて セクション */}
         <About />
-
-        {/* チームみらいについて セクション */}
-        <TeamMirai />
 
         {/* 免責事項 */}
         <BillDisclaimer />

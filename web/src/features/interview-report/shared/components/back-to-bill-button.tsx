@@ -20,10 +20,10 @@ export function BackToBillButton({ billId, from }: BackToBillButtonProps) {
   return (
     <Link
       href={href as Route}
-      className="flex items-center justify-center gap-2.5 px-6 py-3 border border-gray-800 rounded-full bg-white w-full"
+      className="flex items-center justify-center gap-2.5 px-6 py-3 border border-foreground rounded-full bg-white w-full"
     >
-      <Undo2 className="w-5 h-5 text-gray-800" />
-      <span className="text-base font-bold text-gray-800">{label}</span>
+      <Undo2 className="w-5 h-5 text-foreground" />
+      <span className="text-base font-bold text-foreground">{label}</span>
     </Link>
   );
 }

@@ -39,14 +39,14 @@ export function MakePublicModal({
 
         <div className="space-y-4 mt-6">
           <ConsentCheckListItem>
-            公開を許可した場合、今後みらい議会にあなたのご意見の要約とインタビュー原文が匿名で掲載されることがあります。
+            公開を許可した場合、今後本サービスにあなたのご意見の要約とインタビュー原文が匿名で掲載されることがあります。
           </ConsentCheckListItem>
           <OpenDataNoticeItem />
           <ConsentCheckListItem>
             さまざまな意見が公開されることで、より深い法案議論が実現できます。
           </ConsentCheckListItem>
           <p className="text-sm text-black">
-            非公開で提出した場合でも、ご意見は党内での政策検討に活用させていただきます。
+            非公開で提出した場合でも、ご意見は佐賀市の政策検討に活用させていただきます。
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export function MakePublicModal({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="w-full text-gray-500"
+            className="w-full text-muted-foreground"
           >
             非公開のまま戻る
           </Button>

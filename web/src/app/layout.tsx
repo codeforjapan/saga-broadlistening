@@ -1,20 +1,31 @@
 import "./globals.css";
+import {
+  PROGRESS_BAR_COLOR,
+  THEME_COLOR,
+} from "@mirai-gikai/design-tokens/brand-meta";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import type { Metadata, Viewport } from "next";
-import { Lexend_Giga, Noto_Sans_JP, Noto_Serif_JP } from "next/font/google";
+import { Noto_Sans_JP, Noto_Serif_JP, Zen_Maru_Gothic } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactNode } from "react";
 import { env } from "@/lib/env";
 
+// 本文。D-7 により基準ウェイトは 500（強調 700）
 const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
   subsets: ["latin"],
   weight: ["400", "500", "700"],
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 });
 
-const lexendGiga = Lexend_Giga({
-  variable: "--font-lexend-giga",
+// 見出し（D-15）。見出し要素のみに適用するため 700 のみ読み込む
+const zenMaruGothic = Zen_Maru_Gothic({
+  variable: "--font-zen-maru-gothic",
   subsets: ["latin"],
-  weight: ["400", "500", "700", "800", "900"],
+  weight: ["700"],
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 });
 
 // トピックの代表意見など、引用文を明朝体で表示するために使用
@@ -22,26 +33,26 @@ const notoSerifJP = Noto_Serif_JP({
   variable: "--font-noto-serif-jp",
   subsets: ["latin"],
   weight: ["500", "600"],
+  display: "swap",
+  fallback: ["serif"],
 });
 
 const isDev = process.env.NODE_ENV === "development";
 const isStaging = process.env.VERCEL_TARGET_ENV === "staging";
-const siteTitle = "佐賀市公聴システム（仮）";
 const siteDescription =
   "地域で今どんな政策や法案が検討されているか、わかりやすく伝える公聴プラットフォーム";
-const siteName = "佐賀市公聴システム（仮）";
 const ogImage = {
   url: "/ogp.jpg",
   width: 1200,
   height: 630,
-  alt: "佐賀市公聴システム（仮）のOGPイメージ",
+  alt: `${SITE_NAME}のOGPイメージ`,
 };
 
 export const metadata: Metadata = {
   metadataBase: new URL(env.webUrl),
-  title: siteTitle,
+  title: SITE_NAME,
   description: siteDescription,
-  keywords: [siteName, "議案", "政治", "佐賀市", "政策", "解説", "公聴"],
+  keywords: [SITE_NAME, "議案", "政治", "佐賀市", "政策", "解説", "公聴"],
   icons: {
     icon: isDev
       ? "/icons/pwa/icon_dev_192_v3.png"
@@ -54,14 +65,14 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.json",
   openGraph: {
-    title: siteTitle,
+    title: SITE_NAME,
     description: siteDescription,
     images: [ogImage],
-    siteName,
+    siteName: SITE_NAME,
   },
   twitter: {
     card: "summary_large_image",
-    title: siteTitle,
+    title: SITE_NAME,
     description: siteDescription,
     images: [ogImage.url],
   },
@@ -82,7 +93,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#1d4ed8",
+  themeColor: THEME_COLOR,
 };
 
 export default function RootLayout({
@@ -93,9 +104,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body
-        className={`${notoSansJP.variable} ${lexendGiga.variable} ${notoSerifJP.variable} font-sans antialiased bg-mirai-surface-light`}
+        className={`${notoSansJP.variable} ${zenMaruGothic.variable} ${notoSerifJP.variable} font-sans antialiased bg-background text-foreground`}
       >
-        <NextTopLoader showSpinner={false} color="#1d4ed8" />
+        <NextTopLoader showSpinner={false} color={PROGRESS_BAR_COLOR} />
         {children}
       </body>
     </html>

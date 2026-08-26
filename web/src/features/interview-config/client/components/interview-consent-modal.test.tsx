@@ -22,7 +22,7 @@ describe("InterviewConsentModal", () => {
     ).toBeNull();
     expect(
       screen.queryByRole("link", {
-        name: "みらい議会AIインタビューデータ利用規約",
+        name: "AIインタビューデータ利用規約",
       })
     ).toBeNull();
   });

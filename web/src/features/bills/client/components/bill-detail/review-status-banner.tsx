@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Info } from "lucide-react";
+import { useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -43,9 +43,9 @@ function ReviewCheckIcon({
  */
 export function ReviewInProgressBanner() {
   return (
-    <div className="flex gap-2 items-center rounded-2xl bg-mirai-surface-gray px-4 py-2">
-      <Info className="size-5 shrink-0 text-mirai-text" />
-      <p className="text-[13px] font-medium leading-[1.5] text-mirai-text">
+    <div className="flex gap-2 items-center rounded-2xl bg-muted px-4 py-2">
+      <Info className="size-5 shrink-0 text-foreground" />
+      <p className="text-[13px] font-medium leading-[1.5] text-foreground">
         この記事は現在、複数有識者によるレビュー中です。今後内容が変更されることがあります。
       </p>
     </div>
@@ -116,7 +116,7 @@ export function ReviewCompleteBadge({
       <TooltipContent
         side="bottom"
         align="start"
-        className="bg-mirai-surface-gray text-mirai-text font-medium text-xs rounded-lg px-4 py-2"
+        className="bg-muted text-foreground font-medium text-xs rounded-lg px-4 py-2"
       >
         この記事は複数有識者によるレビューが
         <br />

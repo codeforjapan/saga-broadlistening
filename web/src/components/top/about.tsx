@@ -1,6 +1,5 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import Image from "next/image";
-import { EXTERNAL_LINKS } from "@/config/external-links";
-import { LinkButton } from "./link-button";
 
 export function About() {
   return (
@@ -31,22 +30,10 @@ export function About() {
               できる限りわかりやすく
             </h3>
             <p className="text-[15px] leading-[28px] text-black">
-              佐賀市公聴システム（仮）は、地域で今どんな政策や法案が検討されているか、わかりやすく伝える公聴プラットフォームです。市民の意見を届けることを目指して、継続的にアップデートしていきます。
+              {SITE_NAME}
+              は、地域で今どんな政策や法案が検討されているか、わかりやすく伝える公聴プラットフォームです。市民の意見を届けることを目指して、継続的にアップデートしていきます。
             </p>
           </div>
-
-          {/* もっと詳しく知るボタン */}
-          <LinkButton
-            href={EXTERNAL_LINKS.ABOUT_NOTE}
-            icon={{
-              src: "/icons/note-icon.png",
-              alt: "note",
-              width: 25,
-              height: 25,
-            }}
-          >
-            本システムについて
-          </LinkButton>
         </div>
       </div>
     </div>

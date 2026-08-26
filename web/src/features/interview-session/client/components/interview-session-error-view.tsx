@@ -29,10 +29,12 @@ export function InterviewSessionErrorView({
           <AlertCircle className="w-10 h-10 text-red-500" />
         </div>
         <div className="flex flex-col items-center gap-2">
-          <h2 className="text-xl font-bold text-gray-800">
+          <h2 className="text-xl font-bold text-foreground">
             セッションを読み込めませんでした
           </h2>
-          <p className="text-gray-600 text-center max-w-sm">{message}</p>
+          <p className="text-muted-foreground text-center max-w-sm">
+            {message}
+          </p>
         </div>
       </div>
 
