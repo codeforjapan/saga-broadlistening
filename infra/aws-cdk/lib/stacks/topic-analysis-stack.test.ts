@@ -72,7 +72,7 @@ describe("TopicAnalysisStack", () => {
     expect(taskRole.Properties.ManagedPolicyArns).toHaveLength(1);
   });
 
-  it("タスク定義がcpu 1024・memory 2048で、既定コマンドがanalyze-allのworkerコンテナを持つ", () => {
+  it("Compute EnvironmentがNATなしのパブリックサブネットでFargate構成になっている", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test4",
       "dev"
@@ -80,26 +80,17 @@ describe("TopicAnalysisStack", () => {
 
     const template = Template.fromStack(topicAnalysisStack);
 
-    template.hasResourceProperties("AWS::ECS::TaskDefinition", {
-      Family: `mirai-gikai-topic-analysis-worker-${envConfig.envName}`,
-      Cpu: "1024",
-      Memory: "2048",
-      RequiresCompatibilities: ["FARGATE"],
-      ContainerDefinitions: Match.arrayWith([
-        Match.objectLike({
-          Name: "worker",
-          Command: ["--mode=analyze-all"],
-          Secrets: Match.arrayWith([
-            Match.objectLike({ Name: "SUPABASE_URL" }),
-            Match.objectLike({ Name: "SUPABASE_SECRET_KEY" }),
-            Match.objectLike({ Name: "AI_GATEWAY_API_KEY" }),
-          ]),
-        }),
-      ]),
+    template.hasResourceProperties("AWS::Batch::ComputeEnvironment", {
+      ComputeEnvironmentName: `mirai-gikai-topic-analysis-${envConfig.envName}`,
+      Type: "managed",
+      ComputeResources: Match.objectLike({
+        Type: "FARGATE",
+        MaxvCpus: 4,
+      }),
     });
   });
 
-  it("EventBridge Schedulerのcron式・タイムゾーン・ターゲットが正しい", () => {
+  it("Job Queueが唯一のCompute Environmentに紐づく", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test5",
       "dev"
@@ -107,31 +98,78 @@ describe("TopicAnalysisStack", () => {
 
     const template = Template.fromStack(topicAnalysisStack);
 
+    template.hasResourceProperties("AWS::Batch::JobQueue", {
+      JobQueueName: `mirai-gikai-topic-analysis-${envConfig.envName}`,
+      ComputeEnvironmentOrder: Match.arrayWith([
+        Match.objectLike({ Order: 1 }),
+      ]),
+    });
+  });
+
+  it("Job Definitionがvcpu1・memory2048で、既定コマンドがanalyze-allのコンテナを持つ", () => {
+    const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
+      "Test6",
+      "dev"
+    );
+
+    const template = Template.fromStack(topicAnalysisStack);
+
+    template.hasResourceProperties("AWS::Batch::JobDefinition", {
+      JobDefinitionName: `mirai-gikai-topic-analysis-worker-${envConfig.envName}`,
+      PlatformCapabilities: ["FARGATE"],
+      ContainerProperties: Match.objectLike({
+        Command: ["--mode=analyze-all"],
+        NetworkConfiguration: { AssignPublicIp: "ENABLED" },
+        ResourceRequirements: Match.arrayWith([
+          Match.objectLike({ Type: "MEMORY", Value: "2048" }),
+          Match.objectLike({ Type: "VCPU", Value: "1" }),
+        ]),
+        Secrets: Match.arrayWith([
+          Match.objectLike({ Name: "SUPABASE_URL" }),
+          Match.objectLike({ Name: "SUPABASE_SECRET_KEY" }),
+          Match.objectLike({ Name: "AI_GATEWAY_API_KEY" }),
+        ]),
+      }),
+    });
+  });
+
+  it("EventBridge Schedulerのcron式・タイムゾーン・Batch SubmitJobターゲットが正しい", () => {
+    const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
+      "Test7",
+      "dev"
+    );
+
+    const template = Template.fromStack(topicAnalysisStack);
+
+    // InputはjobQueue/jobDefinitionのARNをトークンとして含むためFn::Joinに
+    // なる。固定文字列部分だけを正規表現で照合する（jobQueue/jobDefinitionの
+    // ARN自体はFn::GetAtt/Refとして別要素になるため、ここでは照合しない）。
     template.hasResourceProperties("AWS::Scheduler::Schedule", {
       ScheduleExpression: "cron(0 6 * * ? *)",
       ScheduleExpressionTimezone: "Asia/Tokyo",
       State: "DISABLED",
       Target: Match.objectLike({
-        EcsParameters: Match.objectLike({
-          LaunchType: "FARGATE",
-          NetworkConfiguration: {
-            AwsvpcConfiguration: Match.objectLike({
-              AssignPublicIp: "ENABLED",
-            }),
-          },
-        }),
-        Input: JSON.stringify({
-          containerOverrides: [
-            { name: "worker", command: ["--mode=analyze-all"] },
+        Arn: "arn:aws:scheduler:::aws-sdk:batch:submitJob",
+        Input: {
+          "Fn::Join": [
+            "",
+            Match.arrayWith([
+              Match.stringLikeRegexp(
+                `"jobName":"topic-analysis-analyze-all-${envConfig.envName}"`
+              ),
+              Match.stringLikeRegexp(
+                String.raw`"containerOverrides":\{"command":\["--mode=analyze-all"\]\}\}`
+              ),
+            ]),
           ],
-        }),
+        },
       }),
     });
     expect(envConfig.topicAnalysisSchedulerEnabled).toBe(false);
   });
 
-  it("EventBridge Schedulerロールのecs:RunTaskとiam:PassRoleがワイルドカードでない", () => {
-    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test6", "dev");
+  it("EventBridge Schedulerロールのbatch:SubmitJobがワイルドカードでなくJobQueue/JobDefinitionに限定される", () => {
+    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test8", "dev");
 
     const template = Template.fromStack(topicAnalysisStack);
 
@@ -139,32 +177,10 @@ describe("TopicAnalysisStack", () => {
       PolicyDocument: {
         Statement: Match.arrayWith([
           Match.objectLike({
-            Sid: "RunTopicAnalysisTask",
+            Sid: "SubmitTopicAnalysisJob",
             Effect: "Allow",
-            Action: "ecs:RunTask",
+            Action: "batch:SubmitJob",
             Resource: Match.not(Match.arrayWith(["*"])),
-            Condition: {
-              ArnEquals: Match.objectLike({
-                "ecs:cluster": Match.anyValue(),
-              }),
-            },
-          }),
-        ]),
-      },
-    });
-    template.hasResourceProperties("AWS::IAM::Policy", {
-      PolicyDocument: {
-        Statement: Match.arrayWith([
-          Match.objectLike({
-            Sid: "PassTaskRoles",
-            Effect: "Allow",
-            Action: "iam:PassRole",
-            Resource: Match.not("*"),
-            Condition: {
-              StringEquals: {
-                "iam:PassedToService": "ecs-tasks.amazonaws.com",
-              },
-            },
           }),
         ]),
       },
@@ -173,7 +189,7 @@ describe("TopicAnalysisStack", () => {
 
   it("prd環境ではEventBridge Schedulerの既定値も無効(DISABLED)のままにする", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
-      "Test7",
+      "Test9",
       "prd"
     );
 

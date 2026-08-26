@@ -22,7 +22,7 @@ infra/aws-cdk/
 │   └── stacks/
 │       ├── bedrock-stack.ts         # Bedrockのモデル呼び出し用IAM権限（ManagedPolicy）を定義
 │       ├── lambda-stack.ts          # Bedrock疎通確認用Lambda関数を定義
-│       ├── topic-analysis-stack.ts  # トピック分析worker用ECS Fargate + EventBridge Scheduler基盤
+│       ├── topic-analysis-stack.ts  # トピック分析worker用 AWS Batch (Fargate) + EventBridge Scheduler基盤
 │       └── test-support.ts          # スタックのテスト用セットアップヘルパー
 └── src/handlers/
     └── bedrock-health-check/
@@ -154,9 +154,12 @@ Roleの信頼条件が `main`ブランチ限定のため、dev/stg環境への�
 - `LambdaStack`: Bedrockとの疎通確認用の最小限のLambda関数（`bedrock-health-check`）のみを実装。
   実際の業務ロジックは未定のため、今後の要件に応じてLambda関数を追加・置き換えしてください。
 - `TopicAnalysisStack`: トピック分析・意見再抽出バックフィルworker（`worker/`）をGCP Cloud Run Job
-  （`infra/cloud-run`）からECS Fargateへ移行する基盤。ECRリポジトリ・VPC（NATなし・パブリック
-  サブネットのみ）・ECSクラスタ・タスク定義・EventBridge Schedulerを作成する
-  （GitHub Issue #48）。admin からの手動起動（`ecs:RunTask`）への切替はGitHub Issue #49で対応する。
+  （`infra/cloud-run`）からAWS Batch (Fargate)へ移行する基盤。ECRリポジトリ・VPC（NATなし・
+  パブリックサブネットのみ）・Compute Environment・Job Queue・Job Definition・
+  EventBridge Schedulerを作成する（GitHub Issue #48 / #66）。
+  当初はECS RunTaskを直接使う構成（#48）だったが、呼び出しのたびにsubnet/SGを渡す必要があり
+  admin側（#49）にもインフラの詳細が漏れ出す問題があったため、AWS Batchへ移行した（#66）。
+  admin からの手動起動（`batch:SubmitJob`）はGitHub Issue #49で対応する。
 
 ### TopicAnalysisStackのデプロイ後にやること
 
@@ -167,7 +170,7 @@ Roleの信頼条件が `main`ブランチ限定のため、dev/stg環境への�
      --secret-string "<値>" --profile <対象アカウント用プロファイル>
    # SUPABASE_SECRET_KEY / AI_GATEWAY_API_KEY も同様に設定する
    ```
-2. **workerイメージをECRにpush**（初回はタスク定義が参照する`:latest`タグが無いと起動に失敗する）:
+2. **workerイメージをECRにpush**（初回はJob Definitionが参照する`:latest`タグが無いと起動に失敗する）:
    ```bash
    aws ecr get-login-password --region ap-northeast-1 --profile <profile> | \
      docker login --username AWS --password-stdin <account>.dkr.ecr.ap-northeast-1.amazonaws.com
@@ -177,6 +180,22 @@ Roleの信頼条件が `main`ブランチ限定のため、dev/stg環境への�
    ```
    以降は `.github/workflows/deploy_worker_ecs.yml`（mainブランチ・prd環境のみ）が
    `worker/` 配下の変更を検知して自動push する。
-3. **定期実行を有効化する場合**は、GCP Cloud Scheduler側を`SCHEDULER_PAUSED=1`で
+3. **手動でジョブを実行して動作確認する**（Batchなのでsubnet/SGの指定は不要）:
+   ```bash
+   aws batch submit-job \
+     --job-name manual-test \
+     --job-queue mirai-gikai-topic-analysis-<env> \
+     --job-definition mirai-gikai-topic-analysis-worker-<env> \
+     --container-overrides command=--mode=analyze-all \
+     --profile <profile> --region ap-northeast-1
+   aws logs tail /mirai-gikai/topic-analysis-worker-<env> --follow --profile <profile> --region ap-northeast-1
+   ```
+4. **EventBridge Scheduler → Batch SubmitJobの疎通確認（要実施）**: `CfnSchedule` の
+   Batchターゲットは universal target（`arn:aws:scheduler:::aws-sdk:batch:submitJob`）を
+   使っており、`Input` のキー名（`jobName`/`jobQueue`/`jobDefinition`/`containerOverrides`）が
+   実際のBatch SubmitJob APIの期待する形式と一致するかはコード上のドキュメント調査でのみ確認済みで、
+   実機での発火確認はまだ行っていない。`topicAnalysisSchedulerEnabled` を一時的に `true` にして
+   数分後に発火するようスケジュールし、実際にジョブが起動することを確認すること。
+5. **定期実行を有効化する場合**は、GCP Cloud Scheduler側を`SCHEDULER_PAUSED=1`で
    一時停止してから `lib/config/environments/<env>.ts` の `topicAnalysisSchedulerEnabled`
    を `true` にしてデプロイする（両方が有効だと同一議案の分析が二重実行される）。
