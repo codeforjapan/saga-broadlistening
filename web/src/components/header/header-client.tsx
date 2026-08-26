@@ -31,7 +31,7 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
 
   return (
     <header className="px-3 fixed top-4 left-0 right-0 z-40 max-w-[1440px] mx-auto">
-      <div className="rounded-2xl bg-white shadow-sm mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="rounded-2xl bg-secondary shadow-sm mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* ロゴ。小さく出すためタグライン抜き。ワードマークを含むのでサービス名は併記しない */}
           <Link href={routes.home()} aria-label={`${SITE_NAME} ホーム`}>
