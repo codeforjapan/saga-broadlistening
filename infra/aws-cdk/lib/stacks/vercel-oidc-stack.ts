@@ -2,21 +2,29 @@ import * as cdk from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Construct } from "constructs";
 import { EnvConfig } from "../config/types";
+import { createSubmitTopicAnalysisJobPolicyStatement } from "./topic-analysis-stack";
 
 export interface VercelOidcStackProps extends cdk.StackProps {
   readonly envConfig: EnvConfig;
   readonly bedrockInvokeModelPolicy: iam.IManagedPolicy;
+  /** admin からトピック分析workerを手動起動するためのBatch Job Queue ARN（#48/#66）。 */
+  readonly topicAnalysisJobQueueArn: string;
+  /** 同上のJob Definition ARN。 */
+  readonly topicAnalysisJobDefinitionArn: string;
 }
 
 const VERCEL_TEAM_SLUG = "c4j";
 const VERCEL_PROJECT_NAMES = ["saga-kocho-web", "saga-kocho-admin"];
 
 /**
- * Vercel (saga-kocho-web/saga-kocho-admin) からBedrockをOIDC Federationで呼び出すためのIAMロールを管理するスタック。
+ * Vercel (saga-kocho-web/saga-kocho-admin) からOIDC Federationで呼び出すためのIAMロールを管理するスタック。
  * Vercelが発行するOIDCトークンをsts:AssumeRoleWithWebIdentityで交換する構成にすることで、
  * 静的なAWSアクセスキーをVercel側の環境変数に置かずに済む。
  * Vercel側では @vercel/oidc-aws-credentials-provider の awsCredentialsProvider({ roleArn, audience: "sts.amazonaws.com" })
  * にこのスタックが出力するロールARNを渡す。
+ * Bedrock呼び出し（web/admin）に加え、トピック分析workerの手動起動（admin、#49）用に
+ * batch:SubmitJobも付与する。ロール名・Output名は既存のVercel環境変数を壊さないため
+ * "Bedrock"のまま維持しているが、実際にはBedrock専用ロールではなくなっている。
  */
 export class VercelOidcStack extends cdk.Stack {
   public readonly bedrockAccessRole: iam.Role;
@@ -63,11 +71,21 @@ export class VercelOidcStack extends cdk.Stack {
     // 3. Bedrock呼び出し権限を付与
     this.bedrockAccessRole.addManagedPolicy(bedrockInvokeModelPolicy);
 
-    // 4. Output Role ARN (Vercelプロジェクトの AWS_ROLE_ARN 環境変数に設定する)
+    // 4. トピック分析worker手動起動用のbatch:SubmitJob権限を付与（#48/#66/#49）。
+    // PolicyStatementの中身はEventBridge SchedulerのSchedulerExecutionRoleと
+    // 共通のためtopic-analysis-stack.tsに一元化している。
+    this.bedrockAccessRole.addToPolicy(
+      createSubmitTopicAnalysisJobPolicyStatement(
+        props.topicAnalysisJobQueueArn,
+        props.topicAnalysisJobDefinitionArn
+      )
+    );
+
+    // 5. Output Role ARN (Vercelプロジェクトの AWS_ROLE_ARN 環境変数に設定する)
     new cdk.CfnOutput(this, "VercelBedrockAccessRoleArn", {
       value: this.bedrockAccessRole.roleArn,
       description:
-        "ARN of the IAM Role for Vercel OIDC Federation to invoke Bedrock",
+        "ARN of the IAM Role for Vercel OIDC Federation (Bedrock invoke + topic-analysis Batch SubmitJob)",
       exportName: `MiraiGikaiVercelBedrockAccessRoleArn-${envName}`,
     });
   }

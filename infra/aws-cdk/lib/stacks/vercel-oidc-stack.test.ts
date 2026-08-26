@@ -65,6 +65,49 @@ describe("VercelOidcStack", () => {
     expect(bedrockAccessRole.Properties.ManagedPolicyArns).toHaveLength(1);
   });
 
+  it("トピック分析workerのbatch:SubmitJob権限をJob Queue/Job Definition ARNちょうど2つに限定して付与する", () => {
+    const { vercelOidcStack } = createTestVercelOidcStack("Test3b", "dev");
+
+    const template = Template.fromStack(vercelOidcStack);
+
+    // Job Queue/Job DefinitionはTopicAnalysisStackからのクロススタック参照
+    // （Fn::ImportValue）になるため、リテラル値の完全一致ではなく「ちょうど2要素
+    // （＝Job Queue ARNとJob Definition ARN）で、ワイルドカードでない」ことを検証する。
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: "SubmitTopicAnalysisJob",
+            Effect: "Allow",
+            Action: "batch:SubmitJob",
+            Resource: [Match.anyValue(), Match.anyValue()],
+          }),
+        ]),
+      },
+      Roles: Match.arrayWith([
+        { Ref: Match.stringLikeRegexp("VercelBedrockAccessRole") },
+      ]),
+    });
+  });
+
+  it("Vercelロールのポリシーにiam:PassRoleを含めない", () => {
+    const { vercelOidcStack } = createTestVercelOidcStack("Test3c", "dev");
+
+    const template = Template.fromStack(vercelOidcStack);
+
+    template.hasResourceProperties("AWS::IAM::Policy", {
+      PolicyDocument: {
+        Statement: Match.not(
+          Match.arrayWith([
+            Match.objectLike({
+              Action: Match.stringLikeRegexp("PassRole"),
+            }),
+          ])
+        ),
+      },
+    });
+  });
+
   it("Role ARNをCfnOutputとして出力する", () => {
     const { vercelOidcStack, envConfig } = createTestVercelOidcStack(
       "Test4",

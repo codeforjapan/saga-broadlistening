@@ -38,22 +38,31 @@ export function createTestGitHubOidcStack(idPrefix: string, envName: EnvName) {
 }
 
 /**
- * テスト用にBedrockStackとVercelOidcStackを組み立てるヘルパー。
- * VercelOidcStackはBedrockStackのポリシーに依存するため、両方をまとめて構築する。
+ * テスト用にBedrockStack・GitHubOidcStack・TopicAnalysisStack・VercelOidcStackを
+ * 組み立てるヘルパー。VercelOidcStackはBedrockStackのポリシーとTopicAnalysisStackの
+ * Job Queue/Job Definition ARNに依存するため、4つまとめて構築する。
  */
 export function createTestVercelOidcStack(idPrefix: string, envName: EnvName) {
-  const { app, envConfig, bedrockStack } = createTestBedrockStack(
-    idPrefix,
-    envName
-  );
+  const { app, envConfig, bedrockStack, githubOidcStack, topicAnalysisStack } =
+    createTestTopicAnalysisStack(idPrefix, envName);
 
   const vercelOidcStack = new VercelOidcStack(app, `${idPrefix}VercelOidc`, {
     env: { account: envConfig.account, region: envConfig.region },
     envConfig,
     bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
+    topicAnalysisJobQueueArn: topicAnalysisStack.jobQueue.jobQueueArn,
+    topicAnalysisJobDefinitionArn:
+      topicAnalysisStack.jobDefinition.jobDefinitionArn,
   });
 
-  return { app, envConfig, bedrockStack, vercelOidcStack };
+  return {
+    app,
+    envConfig,
+    bedrockStack,
+    githubOidcStack,
+    topicAnalysisStack,
+    vercelOidcStack,
+  };
 }
 
 /**

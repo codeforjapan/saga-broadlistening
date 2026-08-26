@@ -188,6 +188,26 @@ describe("TopicAnalysisStack", () => {
     });
   });
 
+  it("Job Queue/Job Definition ARNをCfnOutputとして出力する", () => {
+    const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
+      "Test10",
+      "dev"
+    );
+
+    const template = Template.fromStack(topicAnalysisStack);
+
+    template.hasOutput("JobQueueArnOutput", {
+      Export: {
+        Name: `MiraiGikaiTopicAnalysisJobQueueArn-${envConfig.envName}`,
+      },
+    });
+    template.hasOutput("JobDefinitionArnOutput", {
+      Export: {
+        Name: `MiraiGikaiTopicAnalysisJobDefinitionArn-${envConfig.envName}`,
+      },
+    });
+  });
+
   it("prd環境ではEventBridge Schedulerの既定値も無効(DISABLED)のままにする", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test9",

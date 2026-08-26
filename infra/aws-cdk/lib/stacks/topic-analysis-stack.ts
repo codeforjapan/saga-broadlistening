@@ -27,9 +27,7 @@ const COMPUTE_ENVIRONMENT_MAX_VCPUS = 4;
 const VPC_MAX_AZS = 2;
 // EventBridge SchedulerからAWS Batchを呼ぶuniversal target。
 // CfnSchedule.TargetPropertyにはECS RunTaskのecsParametersに相当する
-// Batch専用のテンプレート済みターゲットが無いため、aws-sdk universal targetを使う
-// （実装時点でAWS公式ドキュメントとコミュニティ事例で存在は確認済みだが、
-// Input JSONのキー名の大文字小文字はcdk deploy後に実機で疎通確認すること）。
+// Batch専用のテンプレート済みターゲットが無いため、aws-sdk universal targetを使う。
 const BATCH_SUBMIT_JOB_TARGET_ARN = "arn:aws:scheduler:::aws-sdk:batch:submitJob";
 
 // worker(src/main.ts)が起動時に必須チェックする環境変数。SUPABASE_* に加え、
@@ -42,6 +40,25 @@ const WORKER_SECRETS = [
   { id: "AiGatewayApiKeySecret", envVar: "AI_GATEWAY_API_KEY" },
 ] as const;
 type WorkerSecretEnvVar = (typeof WORKER_SECRETS)[number]["envVar"];
+
+/**
+ * トピック分析workerのBatchジョブを起動する権限（batch:SubmitJob）を表すPolicyStatementを
+ * 作る。EventBridge SchedulerのSchedulerExecutionRoleとVercel OIDCロール（admin手動起動、
+ * #49）の両方から呼ばれるため、ここに一元化している。SubmitJobはJob Definition登録時に
+ * 確定したjobRole/executionRoleを使うため、ECS RunTaskと異なりiam:PassRoleは不要
+ * （AWS管理ポリシー AWSBatchServiceEventTargetRole と同じ設計）。
+ */
+export function createSubmitTopicAnalysisJobPolicyStatement(
+  jobQueueArn: string,
+  jobDefinitionArn: string
+): iam.PolicyStatement {
+  return new iam.PolicyStatement({
+    sid: "SubmitTopicAnalysisJob",
+    effect: iam.Effect.ALLOW,
+    actions: ["batch:SubmitJob"],
+    resources: [jobQueueArn, jobDefinitionArn],
+  });
+}
 
 /**
  * トピック分析・意見再抽出バックフィルworkerの実行基盤（AWS Batch on Fargate + EventBridge Scheduler）。
@@ -87,6 +104,20 @@ export class TopicAnalysisStack extends cdk.Stack {
       computeEnvironments: [{ computeEnvironment, order: 1 }],
     });
     this.jobDefinition = this.createJobDefinition(envName);
+
+    // admin(#49)実装時やデプロイ後の手動実行時にARNを探しやすくするための出力。
+    // `aws cloudformation describe-stacks --stack-name MiraiGikaiTopicAnalysisStack-<env>
+    // --query "Stacks[0].Outputs"` で取得できる。
+    new cdk.CfnOutput(this, "JobQueueArnOutput", {
+      value: this.jobQueue.jobQueueArn,
+      description: "ARN of the topic-analysis worker Batch Job Queue",
+      exportName: `MiraiGikaiTopicAnalysisJobQueueArn-${envName}`,
+    });
+    new cdk.CfnOutput(this, "JobDefinitionArnOutput", {
+      value: this.jobDefinition.jobDefinitionArn,
+      description: "ARN of the topic-analysis worker Batch Job Definition",
+      exportName: `MiraiGikaiTopicAnalysisJobDefinitionArn-${envName}`,
+    });
 
     this.createSchedule(envName, props.envConfig.topicAnalysisSchedulerEnabled);
   }
@@ -232,9 +263,6 @@ export class TopicAnalysisStack extends cdk.Stack {
 
   private createSchedule(envName: string, schedulerEnabled: boolean): void {
     // EventBridge SchedulerがBatchにジョブを投入するためのロール。
-    // AWS管理ポリシー AWSBatchServiceEventTargetRole（EventBridge→Batch用）を参考に
-    // batch:SubmitJobのみを付与する。SubmitJobはJob Definition登録時に確定した
-    // jobRole/executionRoleを使うため、ECS RunTaskと異なりiam:PassRoleは不要。
     const schedulerExecutionRole = new iam.Role(
       this,
       "SchedulerExecutionRole",
@@ -246,12 +274,10 @@ export class TopicAnalysisStack extends cdk.Stack {
       }
     );
     schedulerExecutionRole.addToPolicy(
-      new iam.PolicyStatement({
-        sid: "SubmitTopicAnalysisJob",
-        effect: iam.Effect.ALLOW,
-        actions: ["batch:SubmitJob"],
-        resources: [this.jobQueue.jobQueueArn, this.jobDefinition.jobDefinitionArn],
-      })
+      createSubmitTopicAnalysisJobPolicyStatement(
+        this.jobQueue.jobQueueArn,
+        this.jobDefinition.jobDefinitionArn
+      )
     );
 
     // 毎朝6:00 JSTに全議案の増分トピック分析を実行する（GCP Cloud Schedulerの後継）。
