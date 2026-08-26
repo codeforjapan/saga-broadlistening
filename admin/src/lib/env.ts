@@ -33,6 +33,17 @@ export const env = {
     secretKey: process.env.LANGFUSE_SECRET_KEY,
     baseUrl: process.env.LANGFUSE_BASE_URL || "https://cloud.langfuse.com",
   },
+  // Vercel OIDC Federation経由でAWS（Bedrock呼び出し・トピック分析workerのBatch起動）を
+  // 呼ぶための設定。roleArnが未設定の場合はローカル開発とみなし ~/.aws の資格情報を使う
+  // （@/lib/aws-credentials 参照）。
+  aws: {
+    region: process.env.AWS_REGION || "ap-northeast-1",
+    roleArn: process.env.AWS_ROLE_ARN,
+    topicAnalysisBatchJobQueueArn:
+      process.env.TOPIC_ANALYSIS_BATCH_JOB_QUEUE_ARN,
+    topicAnalysisBatchJobDefinitionArn:
+      process.env.TOPIC_ANALYSIS_BATCH_JOB_DEFINITION_ARN,
+  },
 } as const;
 
 // 型定義
