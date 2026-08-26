@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";
 import { truncateText } from "@/features/interview-report/shared/utils/truncate-text";
+import { logoSizeForHeight } from "@/lib/logo";
+import { SERVICE_NAME } from "@/lib/site";
 
 /**
  * OGP画像のテキスト制限
@@ -11,6 +13,9 @@ const OG_SUMMARY_MAX_LENGTH = 100;
 const OG_BILL_NAME_MAX_LENGTH = 40;
 const OG_BILL_NAME_WIDTH = 820;
 const OG_BILL_NAME_MAX_HEIGHT = 96;
+
+/** OGP右下に配置するロゴの表示サイズと、カード端からのオフセット(px) */
+const OG_LOGO = { height: 88, bottom: 26, right: 34 } as const;
 
 const FONT_FETCH_TIMEOUT_MS = 3000;
 
@@ -217,14 +222,13 @@ export async function GET(request: Request) {
         {logoDataUrl && (
           // biome-ignore lint/performance/noImgElement: ignore
           <img
-            alt="チームみらいロゴ"
+            alt={SERVICE_NAME}
             src={logoDataUrl}
-            width={189}
-            height={160}
+            {...logoSizeForHeight(OG_LOGO.height)}
             style={{
               position: "absolute",
-              bottom: -24,
-              right: -18,
+              bottom: OG_LOGO.bottom,
+              right: OG_LOGO.right,
             }}
           />
         )}

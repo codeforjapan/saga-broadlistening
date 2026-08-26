@@ -8,8 +8,10 @@ import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/type
 import { InterviewHeaderActions } from "@/features/interview-session/client/components/interview-header-actions";
 import { sendDifficultyStateEvent } from "@/lib/analytics/preference-state-events";
 import { useOnPageView } from "@/lib/analytics/use-on-page-view";
+import { logoSizeForHeight } from "@/lib/logo";
 import { isInterviewPage, isMainPage } from "@/lib/page-layout-utils";
 import { routes } from "@/lib/routes";
+import { SERVICE_NAME } from "@/lib/site";
 import { HamburgerMenu } from "./hamburger-menu";
 
 interface HeaderClientProps {
@@ -31,24 +33,14 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
     <header className="px-3 fixed top-4 left-0 right-0 z-40 max-w-[1440px] mx-auto">
       <div className="rounded-2xl bg-white shadow-sm mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo / Site Title */}
-          <div className="flex items-center">
-            <Link
-              href={routes.home()}
-              className="flex items-center space-x-2"
-              aria-label="ホーム"
-            >
-              <Image
-                src="/img/logo.svg"
-                alt="佐賀市公聴システム（仮）"
-                width={36}
-                height={32}
-              />
-              <span className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">
-                佐賀市公聴システム（仮）
-              </span>
-            </Link>
-          </div>
+          {/* ロゴ。ワードマーク入りで幅を取るため、狭い画面ではサービス名を併記しない */}
+          <Link href={routes.home()} aria-label={`${SERVICE_NAME} ホーム`}>
+            <Image
+              src="/img/logo.svg"
+              alt={SERVICE_NAME}
+              {...logoSizeForHeight(36)}
+            />
+          </Link>
 
           {/* Navigation */}
           <nav
