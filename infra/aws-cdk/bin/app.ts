@@ -39,13 +39,7 @@ new LambdaStack(app, `MiraiGikaiLambdaStack-${envConfig.envName}`, {
   guardrailVersion: bedrockStack.guardrailVersion.attrVersion,
 });
 
-new VercelOidcStack(app, `MiraiGikaiVercelOidcStack-${envConfig.envName}`, {
-  env,
-  envConfig,
-  bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
-});
-
-new TopicAnalysisStack(
+const topicAnalysisStack = new TopicAnalysisStack(
   app,
   `MiraiGikaiTopicAnalysisStack-${envConfig.envName}`,
   {
@@ -55,3 +49,11 @@ new TopicAnalysisStack(
     githubActionsDeployRole: githubOidcStack.deployRole,
   }
 );
+
+new VercelOidcStack(app, `MiraiGikaiVercelOidcStack-${envConfig.envName}`, {
+  env,
+  envConfig,
+  bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
+  topicAnalysisJobQueueArn: topicAnalysisStack.jobQueue.jobQueueArn,
+  topicAnalysisJobDefinitionArn: topicAnalysisStack.jobDefinition.jobDefinitionArn,
+});

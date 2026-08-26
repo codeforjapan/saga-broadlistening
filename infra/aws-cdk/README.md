@@ -159,7 +159,15 @@ Roleの信頼条件が `main`ブランチ限定のため、dev/stg環境への�
   EventBridge Schedulerを作成する（GitHub Issue #48 / #66）。
   当初はECS RunTaskを直接使う構成（#48）だったが、呼び出しのたびにsubnet/SGを渡す必要があり
   admin側（#49）にもインフラの詳細が漏れ出す問題があったため、AWS Batchへ移行した（#66）。
-  admin からの手動起動（`batch:SubmitJob`）はGitHub Issue #49で対応する。
+- `VercelOidcStack`: Vercel（`saga-kocho-web`/`saga-kocho-admin`）からOIDC Federationで
+  AWSを呼び出すためのIAMロールを管理。Bedrock呼び出し権限に加え、`TopicAnalysisStack`の
+  Job Queue/Job Definition ARNに限定した`batch:SubmitJob`権限も付与している。
+  `TopicAnalysisStack`の出力を参照するため、`bin/app.ts`では`VercelOidcStack`より
+  先にデプロイされる必要がある（個別スタック指定で`cdk deploy`する場合は順序に注意）。
+  admin側の実際のディスパッチ実装（現行のGCP Cloud Run Job起動処理
+  `admin/src/lib/cloud-run-job.ts`をBatch SubmitJob版に置き換える想定）は
+  GitHub Issue #49で対応する。実際の呼び出しコード例は
+  `docs/20260826_2122_batch-submitjob-usage.md` を参照。
 
 ### TopicAnalysisStackのデプロイ後にやること
 
