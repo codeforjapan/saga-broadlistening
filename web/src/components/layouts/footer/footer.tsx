@@ -1,6 +1,7 @@
 "use client";
 
 import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/shared/site";
+import { logoImageProps } from "@/lib/logo";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -32,13 +33,7 @@ function FooterLogoSection() {
   return (
     <div className="flex flex-col items-center text-center mb-9">
       <Link href={routes.home()} aria-label={`${SITE_NAME} トップページ`}>
-        <Image
-          src="/img/logo.svg"
-          alt={SITE_NAME}
-          width={150}
-          height={128}
-          className="h-auto"
-        />
+        <Image alt={SITE_NAME} {...logoImageProps("full", 76)} />
       </Link>
     </div>
   );
