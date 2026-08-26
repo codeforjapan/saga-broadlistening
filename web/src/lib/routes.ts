@@ -25,6 +25,7 @@ export const routes = {
       : (`/bills/${billId}/topics/${topicId}` as const),
 
   // ── インタビュー ──────────────────────────────────
+  interviews: () => "/interviews" as const,
   interviewLP: (billId: string) => `/bills/${billId}/interview` as const,
   interviewDisclosure: (billId: string) =>
     `/bills/${billId}/interview/disclosure` as const,
