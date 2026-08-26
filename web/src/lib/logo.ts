@@ -1,27 +1,40 @@
 /**
  * サービスロゴの寸法ユーティリティ
  *
- * ロゴは横長のロックアップ（にっこりマーク + CHIKATワードマーク + タグライン）。
- * `next/image` / Satori はいずれも width/height をそのまま出力するため、実比率と
- * ずれた値を渡すとレイアウトシフト（CLS）や縦横比の歪みが起きる。各表示箇所では
- * 高さだけを決め、幅はここから導出する。
+ * ロゴは2バリアントある。表示サイズが小さい箇所ではタグラインが数pxに潰れて
+ * ロゴ自体の視認性を下げるため、タグラインを外した compact を使う。
  *
- * OGP用のラスター版 `img/ogp-logo.png` も、ここで求まる表示枠の整数倍で書き出して
- * いるので同じ比率に乗る。
+ * `next/image` / Satori はいずれも width/height をそのまま出力するので、実比率と
+ * ずれた値を渡すとレイアウトシフト（CLS）や縦横比の歪みが起きる。各表示箇所では
+ * 高さだけを決め、幅と参照先はバリアントから導出する。
  */
 
-/** logo.svg の viewBox 実寸 */
-const VIEWBOX = { width: 546, height: 279 } as const;
+const LOGO_VARIANTS = {
+  /** にっこりマーク + CHIKATワードマーク + タグライン。大きく見せる箇所用 */
+  full: { src: "/img/logo.svg", viewBox: { width: 546, height: 279 } },
+  /** タグラインを外した版。ヘッダーなど小さく見せる箇所用 */
+  compact: {
+    src: "/img/logo-compact.svg",
+    viewBox: { width: 546, height: 210.4 },
+  },
+} as const;
+
+export type LogoVariant = keyof typeof LOGO_VARIANTS;
 
 /**
- * 表示したい高さから、viewBoxの縦横比を保った width/height を求める
+ * 表示したい高さから、`next/image` に渡す src / width / height を求める。
+ *
+ * src と縦横比を必ずセットで返すことで、「compactのSVGにfullの比率」のような
+ * 取り違えが起きないようにしている。
  */
-export function logoSizeForHeight(height: number): {
-  width: number;
-  height: number;
-} {
+export function logoImageProps(
+  variant: LogoVariant,
+  height: number
+): { src: string; width: number; height: number } {
+  const { src, viewBox } = LOGO_VARIANTS[variant];
   return {
-    width: Math.round((height * VIEWBOX.width) / VIEWBOX.height),
+    src,
+    width: Math.round((height * viewBox.width) / viewBox.height),
     height,
   };
 }

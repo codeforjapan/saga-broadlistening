@@ -4,7 +4,7 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { logoSizeForHeight } from "@/lib/logo";
+import { logoImageProps } from "@/lib/logo";
 import { isInterviewPage } from "@/lib/page-layout-utils";
 import { routes } from "@/lib/routes";
 import { SERVICE_NAME } from "@/lib/site";
@@ -33,11 +33,7 @@ function FooterLogoSection() {
   return (
     <div className="flex flex-col items-center text-center mb-9">
       <Link href={routes.home()} aria-label={`${SERVICE_NAME} トップページ`}>
-        <Image
-          src="/img/logo.svg"
-          alt={SERVICE_NAME}
-          {...logoSizeForHeight(76)}
-        />
+        <Image alt={SERVICE_NAME} {...logoImageProps("full", 76)} />
       </Link>
     </div>
   );

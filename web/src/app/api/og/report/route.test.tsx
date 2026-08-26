@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";
-import { GET } from "./route";
+import { GET, OG_COLORS } from "./route";
 
 type StyledElementProps = {
   children?: ReactNode;
@@ -38,7 +38,7 @@ function findBillNameElement(
   const element = node as ReactElement<StyledElementProps>;
   if (
     element.props.children === text &&
-    element.props.style?.color === "#0f8472"
+    element.props.style?.color === OG_COLORS.textAccent
   ) {
     return element;
   }

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";
 import { truncateText } from "@/features/interview-report/shared/utils/truncate-text";
-import { logoSizeForHeight } from "@/lib/logo";
+import { logoImageProps } from "@/lib/logo";
 import { SERVICE_NAME } from "@/lib/site";
 
 /**
@@ -13,6 +13,26 @@ const OG_SUMMARY_MAX_LENGTH = 100;
 const OG_BILL_NAME_MAX_LENGTH = 40;
 const OG_BILL_NAME_WIDTH = 820;
 const OG_BILL_NAME_MAX_HEIGHT = 96;
+
+/**
+ * OGP画像の配色
+ *
+ * Satori(next/og)はCSS変数を解決できないため、`globals.css` のカラートークンと
+ * 手で同期させる必要がある。frame は `--color-mirai-gradient-start/end`
+ * (#3b82f6 / #93c5fd) と同じ青系グラデーション。
+ */
+export const OG_COLORS = {
+  /** 1200x630 の地 */
+  canvas: "linear-gradient(177deg, #e8f1fd 0%, #f4f8fe 100%)",
+  /** カードのグラデ枠 / 右上バッジ */
+  frame: "linear-gradient(-30deg, #93c5fd 1%, #3b82f6 99%)",
+  /** カード本体 */
+  card: "#ffffff",
+  /** 本文テキスト。--color-mirai-text (#1f2937) */
+  text: "#1f2937",
+  /** 施策名の強調テキスト。--primary-accent (#1e40af) */
+  textAccent: "#1e40af",
+} as const;
 
 /** OGP右下に配置するロゴの表示サイズと、カード端からのオフセット(px) */
 const OG_LOGO = { height: 88, bottom: 26, right: 34 } as const;
@@ -103,6 +123,12 @@ export async function GET(request: Request) {
   );
 
   const [fontData, logoDataUrl] = await Promise.all([loadFont(), loadLogo()]);
+
+  // ロゴはラスター版(ogp-logo.png)を埋め込むのでsrcは使わず、寸法だけフル版の比率から引く
+  const { width: logoWidth, height: logoHeight } = logoImageProps(
+    "full",
+    OG_LOGO.height
+  );
   // フォント取得失敗時はプロパティ自体を省略し、デフォルトフォントにフォールバック
   const fontOptions = fontData
     ? {
@@ -125,8 +151,7 @@ export async function GET(request: Request) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundImage:
-          "linear-gradient(177deg, rgb(226, 246, 243) 0%, rgb(238, 246, 226) 100%)",
+        backgroundImage: OG_COLORS.canvas,
       }}
     >
       {/* グラデーションborder用ラッパー */}
@@ -136,8 +161,7 @@ export async function GET(request: Request) {
           width: 1140,
           height: 560,
           borderRadius: 30,
-          backgroundImage:
-            "linear-gradient(-30deg, rgb(188, 236, 211) 1%, rgb(100, 216, 198) 99%)",
+          backgroundImage: OG_COLORS.frame,
           padding: 6,
           position: "relative",
         }}
@@ -148,7 +172,7 @@ export async function GET(request: Request) {
             flexDirection: "column",
             width: "100%",
             height: "100%",
-            backgroundColor: "white",
+            backgroundColor: OG_COLORS.card,
             borderRadius: 24,
             padding: "48px 56px",
           }}
@@ -159,7 +183,7 @@ export async function GET(request: Request) {
               display: "flex",
               fontSize: 38,
               fontWeight: 800,
-              color: "#1f2937",
+              color: OG_COLORS.text,
               lineHeight: 1.8,
               flex: 1,
               width: 740,
@@ -177,7 +201,7 @@ export async function GET(request: Request) {
               maxHeight: OG_BILL_NAME_MAX_HEIGHT,
               fontSize: 32,
               fontWeight: 800,
-              color: "#0f8472",
+              color: OG_COLORS.textAccent,
               lineHeight: 1.5,
               overflow: "hidden",
               wordBreak: "break-all",
@@ -187,44 +211,14 @@ export async function GET(request: Request) {
           </div>
         </div>
 
-        {/* みらい議会バッジ */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingLeft: 20,
-            paddingRight: 18,
-            paddingTop: 10,
-            paddingBottom: 10,
-            borderBottomLeftRadius: 30,
-            borderTopRightRadius: 30,
-            backgroundImage:
-              "linear-gradient(-30deg, rgb(188, 236, 211) 1%, rgb(100, 216, 198) 99%)",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 28,
-              fontWeight: 800,
-              color: "#1f2937",
-              letterSpacing: "0.03em",
-            }}
-          >
-            みらい議会
-          </span>
-        </div>
-
         {/* ロゴ画像 */}
         {logoDataUrl && (
           // biome-ignore lint/performance/noImgElement: ignore
           <img
             alt={SERVICE_NAME}
             src={logoDataUrl}
-            {...logoSizeForHeight(OG_LOGO.height)}
+            width={logoWidth}
+            height={logoHeight}
             style={{
               position: "absolute",
               bottom: OG_LOGO.bottom,
