@@ -1,17 +1,13 @@
-import type { Database } from "@mirai-gikai/supabase";
 import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
-import {
-  findLatestInterviewConfigByBillId,
-  findPublicInterviewConfigByBillId,
-} from "../repositories/interview-config-repository";
+import { findPrimaryInterviewConfigByPolicyId } from "../repositories/interview-config-repository";
+import type { InterviewConfig } from "./get-interview-config";
 
-export type InterviewConfig =
-  Database["public"]["Tables"]["interview_configs"]["Row"];
+export type { InterviewConfig };
 
 /**
  * 管理者用のインタビュー設定取得
- * 複数設定がある場合は、公開設定を優先し、なければ最新の設定を返す
+ * 複数設定がある場合は、募集中の設定を優先し、なければ最新の設定を返す
  */
 export async function getInterviewConfigAdmin(
   billId: string
@@ -21,32 +17,15 @@ export async function getInterviewConfigAdmin(
 
 const _getCachedInterviewConfigAdmin = unstable_cache(
   async (billId: string): Promise<InterviewConfig | null> => {
-    // まず公開設定を探す
-    const { data: publicData, error: publicError } =
-      await findPublicInterviewConfigByBillId(billId);
+    // 募集中を優先し、なければ最新。解決ルールはリポジトリ側に一本化している
+    const { data, error } = await findPrimaryInterviewConfigByPolicyId(billId);
 
-    if (publicData) {
-      return publicData;
+    if (error) {
+      console.error("Failed to fetch interview config (admin):", error);
+      return null;
     }
 
-    // 公開設定がなければ、最新の更新日の設定を返す
-    if (publicError?.code === "PGRST116") {
-      const { data: latestData, error: latestError } =
-        await findLatestInterviewConfigByBillId(billId);
-
-      if (latestError) {
-        if (latestError.code === "PGRST116") {
-          return null;
-        }
-        console.error("Failed to fetch interview config (admin):", latestError);
-        return null;
-      }
-
-      return latestData;
-    }
-
-    console.error("Failed to fetch interview config (admin):", publicError);
-    return null;
+    return data;
   },
   ["interview-config-admin"],
   {

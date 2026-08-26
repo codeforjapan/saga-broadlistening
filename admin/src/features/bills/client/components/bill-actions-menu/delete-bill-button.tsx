@@ -41,7 +41,7 @@ export function DeleteBillButton({ billId, billName }: DeleteBillButtonProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-red-600 hover:text-red-800 hover:bg-red-50 h-8 px-2"
+          className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 h-8 px-2"
           disabled={isDeleting}
         >
           <Trash2 className="h-4 w-4 mr-2" />
@@ -60,7 +60,7 @@ export function DeleteBillButton({ billId, billName }: DeleteBillButtonProps) {
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isDeleting}
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
             {isDeleting ? "削除中..." : "削除"}
           </AlertDialogAction>

@@ -1,11 +1,8 @@
 import "server-only";
 
-import { buildBulkModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/bulk-mode";
 import { buildLoopModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/loop-mode";
 import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
-import { buildTargetedModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/targeted-mode";
 import type {
-  InterviewMode,
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
   InterviewQuestion as PromptInterviewQuestion,
@@ -69,15 +66,13 @@ interface RunSimulatedInterviewParams {
   maxTurns?: number;
   /**
    * 本番と同じ builder を毎ターン呼んで system prompt を再構築するための素材。
-   * handleInterviewChatRequest は毎ターン fresh に prompt をビルドし、bulk では
-   * calculateNextQuestionId() の結果を nextQuestionId として渡す。
+   * handleInterviewChatRequest は毎ターン fresh に prompt をビルドするので、
    * シミュでもこの挙動を揃える。
    */
   promptInputs: {
     bill: PromptBillInput;
     interviewConfig: PromptInterviewConfig;
     questions: PromptInterviewQuestion[];
-    mode: InterviewMode;
   };
   /** Summary フェーズ用モデル。省略時は interviewerModel と同じ */
   summaryModel?: AiModel;
@@ -104,23 +99,6 @@ interface RunSimulatedInterviewParams {
 }
 
 /**
- * Bulk モードで「次に強制する質問」を計算する。
- * 本番の calculateNextQuestionId と同等: 未回答のうち定義順で最初の質問。
- */
-function pickNextQuestionIdForBulk(
-  questions: PromptInterviewQuestion[],
-  askedQuestionIds: Set<string>
-): string | undefined {
-  return questions.find((q) => !askedQuestionIds.has(q.id))?.id;
-}
-
-const MODE_PROMPT_BUILDERS = {
-  bulk: buildBulkModeSystemPrompt,
-  loop: buildLoopModeSystemPrompt,
-  targeted: buildTargetedModeSystemPrompt,
-} as const satisfies Record<InterviewMode, unknown>;
-
-/**
  * 本番と同じ builder を呼んで、現在のターンの system prompt を構築する。
  * 毎ターン fresh にビルドすることで、refresh によるセクション差し替え漏れを防ぐ。
  */
@@ -129,19 +107,13 @@ function buildInterviewerSystemPromptForTurn(
   askedQuestionIds: Set<string>,
   remainingMinutes: number | null | undefined
 ): string {
-  const builder = MODE_PROMPT_BUILDERS[promptInputs.mode];
-  const nextQuestionId =
-    promptInputs.mode === "bulk"
-      ? pickNextQuestionIdForBulk(promptInputs.questions, askedQuestionIds)
-      : undefined;
-  return builder({
+  return buildLoopModeSystemPrompt({
     bill: promptInputs.bill,
     interviewConfig: promptInputs.interviewConfig,
     questions: promptInputs.questions,
     currentStage: "chat",
     askedQuestionIds,
     remainingMinutes,
-    nextQuestionId,
   });
 }
 
@@ -279,9 +251,7 @@ export async function runSimulatedInterview({
   for (let turnIndex = 0; turnIndex < effectiveMaxTurns; turnIndex++) {
     // --- インタビュアーの発話 ---
     // 本番の handleInterviewChatRequest は毎ターン fresh に system prompt を
-    // 再構築する。bulk では calculateNextQuestionId() で「次に強制する質問」を
-    // 選び直すので、deep-dive や質問重複が構造的に避けられる仕組み。
-    // シミュでも同じく毎ターン fresh ビルドする。
+    // 再構築するので、シミュでも同じく毎ターン fresh ビルドする。
     const simulatedRemainingMinutes =
       estimatedDurationMinutes != null
         ? calculateSimulatedRemainingMinutes(

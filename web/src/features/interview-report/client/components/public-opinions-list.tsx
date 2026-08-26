@@ -17,41 +17,12 @@ import {
   sortOrderLabels,
   sortOrderOptions,
 } from "../../shared/utils/sort-order";
-import {
-  type StanceCounts,
-  type StanceFilter,
-  stanceFilterLabels,
-  stanceFilterOrder,
-} from "../../shared/utils/stance-filter";
 import { useInfiniteScroll } from "../hooks/use-infinite-scroll";
 
-function _FilterChip({
-  label,
-  count,
-  isActive,
-  onClick,
-}: {
-  label: string;
-  count: number;
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1 px-3 py-1.5 rounded-[50px] h-[29px] text-sm font-bold transition-colors",
-        isActive
-          ? "bg-mirai-gradient text-mirai-text"
-          : "bg-white text-gray-300"
-      )}
-    >
-      <span>{label}</span>
-      <span className="text-xs font-bold">{count}</span>
-    </button>
-  );
-}
+// Epic #54 で賛否（stance）が廃止されたため、絞り込みはソート順のみ。
+// useInfiniteScroll のフィルタ型は "all" 固定で使う。
+type NoFilter = "all";
+const NO_FILTER: NoFilter = "all";
 
 function _SortToggle({
   activeSort,
@@ -64,14 +35,14 @@ function _SortToggle({
     <div className="flex items-center gap-2 text-sm font-bold">
       {sortOrderOptions.map((sort, index) => (
         <span key={sort} className="flex items-center gap-2">
-          {index > 0 && <span className="text-mirai-text">｜</span>}
+          {index > 0 && <span className="text-foreground">｜</span>}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onChangeSort(sort)}
             className={cn(
               "!p-0 !h-auto rounded-none transition-colors",
-              activeSort === sort ? "text-primary-accent" : "text-mirai-text"
+              activeSort === sort ? "text-primary-accent" : "text-foreground"
             )}
           >
             {sortOrderLabels[sort]}
@@ -91,9 +62,8 @@ interface PublicOpinionsListProps {
   billId: string;
   initialReports: PublicInterviewReport[];
   initialReactionsRecord: ReactionsRecord;
-  stanceCounts: StanceCounts;
+  totalCount: number;
   initialHasMore: boolean;
-  initialFilter: StanceFilter;
   initialSort: SortOrder;
 }
 
@@ -101,9 +71,8 @@ export function PublicOpinionsList({
   billId,
   initialReports,
   initialReactionsRecord,
-  stanceCounts,
+  totalCount,
   initialHasMore,
-  initialFilter,
   initialSort,
 }: PublicOpinionsListProps) {
   useAnonymousSupabaseUser();
@@ -114,14 +83,8 @@ export function PublicOpinionsList({
   );
 
   const updateUrl = useCallback(
-    (filter: StanceFilter, sort: SortOrder) => {
+    (sort: SortOrder) => {
       const params = new URLSearchParams(searchParams.toString());
-
-      if (filter === "all") {
-        params.delete("stance");
-      } else {
-        params.set("stance", filter);
-      }
 
       if (sort === "recommended") {
         params.delete("sort");
@@ -137,8 +100,8 @@ export function PublicOpinionsList({
   );
 
   const fetchMore = useCallback(
-    async (offset: number, filter: StanceFilter, sort: SortOrder) => {
-      const result = await fetchMorePublicReports(billId, offset, filter, sort);
+    async (offset: number, _filter: NoFilter, sort: SortOrder) => {
+      const result = await fetchMorePublicReports(billId, offset, sort);
       setReactionsRecord((prev) => ({
         ...prev,
         ...result.reactionsRecord,
@@ -152,62 +115,39 @@ export function PublicOpinionsList({
     items: reports,
     hasMore,
     isPending,
-    activeFilter,
     activeSort,
     sentinelRef,
-    changeFilter: rawChangeFilter,
     changeSort: rawChangeSort,
-  } = useInfiniteScroll<PublicInterviewReport, StanceFilter, SortOrder>({
+  } = useInfiniteScroll<PublicInterviewReport, NoFilter, SortOrder>({
     initialItems: initialReports,
     initialHasMore,
-    initialFilter,
+    initialFilter: NO_FILTER,
     initialSort,
     fetchMore,
   });
 
-  const changeFilter = useCallback(
-    (filter: StanceFilter) => {
-      rawChangeFilter(filter);
-      updateUrl(filter, activeSort);
-    },
-    [rawChangeFilter, updateUrl, activeSort]
-  );
-
   const changeSort = useCallback(
     (sort: SortOrder) => {
       rawChangeSort(sort);
-      updateUrl(activeFilter, sort);
+      updateUrl(sort);
     },
-    [rawChangeSort, updateUrl, activeFilter]
+    [rawChangeSort, updateUrl]
   );
 
   return (
     <div className="flex flex-col gap-4">
       {/* セクションヘッダー */}
       <div className="flex items-center gap-4">
-        <h2 className="text-[22px] font-bold leading-[1.636] text-mirai-text">
-          <span className="mr-1">💬</span>議案に寄せられた意見
+        <h2 className="text-[22px] font-bold leading-[1.636] text-foreground">
+          <span className="mr-1">💬</span>施策に寄せられた意見
         </h2>
-        <span className="text-[22px] font-bold leading-[1.636] text-mirai-text">
-          {stanceCounts.all}件
+        <span className="text-[22px] font-bold leading-[1.636] text-foreground">
+          {totalCount}件
         </span>
       </div>
 
-      {/* フィルター + ソート */}
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-3 overflow-x-auto">
-          {stanceFilterOrder.map((filter) => (
-            <_FilterChip
-              key={filter}
-              label={stanceFilterLabels[filter]}
-              count={stanceCounts[filter]}
-              isActive={activeFilter === filter}
-              onClick={() => changeFilter(filter)}
-            />
-          ))}
-        </div>
-        <_SortToggle activeSort={activeSort} onChangeSort={changeSort} />
-      </div>
+      {/* ソート */}
+      <_SortToggle activeSort={activeSort} onChangeSort={changeSort} />
 
       {/* レポートカード一覧 */}
       <div className="flex flex-col gap-4">
@@ -240,13 +180,13 @@ export function PublicOpinionsList({
         {hasMore && (
           <div ref={sentinelRef} className="flex justify-center py-4">
             {isPending && (
-              <Loader2 className="h-6 w-6 animate-spin text-mirai-text-muted" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             )}
           </div>
         )}
 
         {!hasMore && reports.length === 0 && !isPending && (
-          <p className="text-center text-mirai-text-muted py-8">
+          <p className="text-center text-muted-foreground py-8">
             該当する意見はありません
           </p>
         )}

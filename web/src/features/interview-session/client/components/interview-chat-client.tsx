@@ -1,13 +1,11 @@
 "use client";
 
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
 import { useCallback, useMemo, useState } from "react";
 import {
   Conversation,
   ConversationContent,
 } from "@/components/ai-elements/conversation";
 import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
-import { isLoopFamilyMode } from "../../shared/utils/is-loop-family-mode";
 import { useInterviewChat } from "../hooks/use-interview-chat";
 import { useInterviewRating } from "../hooks/use-interview-rating";
 import { useInterviewTimer } from "../hooks/use-interview-timer";
@@ -33,7 +31,6 @@ interface InterviewChatClientProps {
     content: string;
     created_at: string;
   }>;
-  mode?: InterviewMode;
   totalQuestions?: number;
   estimatedDuration?: number | null;
   sessionStartedAt?: string;
@@ -46,7 +43,6 @@ export function InterviewChatClient({
   billTitle,
   sessionId,
   initialMessages,
-  mode,
   totalQuestions,
   estimatedDuration,
   sessionStartedAt,
@@ -88,14 +84,13 @@ export function InterviewChatClient({
   );
 
   const { showRating, handleRatingDismiss } = useInterviewRating({
-    mode,
     progress,
     hasRated,
   });
 
   const billDetailLink = getBillDetailLink(billId, previewToken);
 
-  const showProgressBar = isLoopFamilyMode(mode) && progress !== null;
+  const showProgressBar = progress !== null;
   const timerMinutes =
     remainingMinutes !== null && stage === "chat" && !timeUpDismissed
       ? remainingMinutes
@@ -160,7 +155,7 @@ export function InterviewChatClient({
   );
 
   return (
-    <div className="h-dvh md:h-[calc(100dvh-96px)] bg-mirai-surface-light">
+    <div className="h-dvh md:h-[calc(100dvh-96px)] bg-muted">
       <div className="flex flex-col h-full pt-23 md:pt-10 bg-white md:rounded-t-[36px] md:px-12">
         {showProgressBar && progress && (
           <div className="px-4 pb-1">
@@ -176,10 +171,10 @@ export function InterviewChatClient({
             {/* 初期表示メッセージ */}
             {messages.length === 0 && !object && (
               <div className="flex flex-col gap-4">
-                <p className="text-sm font-bold leading-[1.8] text-mirai-text">
-                  議案についてのAIインタビューを開始します。
+                <p className="text-sm font-bold leading-[1.8] text-foreground">
+                  法案についてのAIインタビューを開始します。
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   あなたの意見や経験をお聞かせください。
                 </p>
               </div>
@@ -239,7 +234,7 @@ export function InterviewChatClient({
 
             {/* ローディング表示 */}
             {isLoading && !object && (
-              <span className="text-sm text-gray-500">考え中...</span>
+              <span className="text-sm text-muted-foreground">考え中...</span>
             )}
 
             {/* エラー表示 */}

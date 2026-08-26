@@ -1,40 +1,24 @@
 import type { Database } from "@mirai-gikai/supabase";
 
+// Epic #54 でテーブルが bills → policies に再定義された。
+// ディレクトリ・型名（Bill*）の改名は Epic #8 完了後のフォローアップ。
 // Database types
-export type Bill = Database["public"]["Tables"]["bills"]["Row"];
-export type BillInsert = Database["public"]["Tables"]["bills"]["Insert"];
-export type BillUpdate = Database["public"]["Tables"]["bills"]["Update"];
+export type Bill = Database["public"]["Tables"]["policies"]["Row"];
+export type BillInsert = Database["public"]["Tables"]["policies"]["Insert"];
+export type BillUpdate = Database["public"]["Tables"]["policies"]["Update"];
 
-export type BillContent = Database["public"]["Tables"]["bill_contents"]["Row"];
+export type BillContent =
+  Database["public"]["Tables"]["policy_contents"]["Row"];
 export type BillContentInsert =
-  Database["public"]["Tables"]["bill_contents"]["Insert"];
+  Database["public"]["Tables"]["policy_contents"]["Insert"];
 export type BillContentUpdate =
-  Database["public"]["Tables"]["bill_contents"]["Update"];
+  Database["public"]["Tables"]["policy_contents"]["Update"];
 
-export type MiraiStance = Database["public"]["Tables"]["mirai_stances"]["Row"];
-
-// Enums
-export type HouseEnum = Database["public"]["Enums"]["house_enum"];
-export type BillStatusEnum = Database["public"]["Enums"]["bill_status_enum"];
-export type StanceTypeEnum = Database["public"]["Enums"]["stance_type_enum"];
-
-// 公開ステータス型（議案の公開/非公開を管理）
-export type BillPublishStatus = "draft" | "published" | "coming_soon";
-
-// Coming Soon議案の型（最小限の情報のみ）
-export type ComingSoonBill = {
-  id: string;
-  name: string; // 正式名称
-  title: string | null; // わかりやすいタイトル（bill_contentsから）
-  originating_house: HouseEnum;
-  shugiin_url: string | null;
-};
+// 公開ステータス型（施策の公開/非公開を管理）
+export type BillPublishStatus =
+  Database["public"]["Enums"]["policy_publish_status"];
 
 // Combined types for UI
-export type BillWithStance = Bill & {
-  mirai_stance?: MiraiStance;
-};
-
 export type BillTag = {
   id: string;
   label: string;
@@ -48,68 +32,13 @@ export type FeaturedTag = {
 
 export type BillWithContent = Bill & {
   bill_content?: BillContent;
-  mirai_stance?: MiraiStance;
   tags: BillTag[];
   featured_tag?: FeaturedTag;
   hasPublicInterview?: boolean;
 };
 
-// タグごとにグループ化された議案
+// タグごとにグループ化された施策
 export type BillsByTag = {
   tag: BillTag & { description?: string; priority: number };
   bills: BillWithContent[];
-};
-
-// ステータスのソート順（DBのstatus_order generated columnと一致させる）
-export const BILL_STATUS_ORDER: Record<BillStatusEnum, number> = {
-  enacted: 0,
-  rejected: 1,
-  in_receiving_house: 2,
-  in_originating_house: 3,
-  introduced: 4,
-  preparing: 5,
-};
-
-/**
- * 議案の提出元区分。
- *
- * DB の `house_enum`（HR / HC）は国会の衆議院・参議院を表す値だったが、
- * 市議会は一院制のため、市議会の提出区分（市長提出 / 議員提出）として読み替えている。
- * **暫定の再定義であり、佐賀市の確認待ち**（#20）。enum値そのものの再定義が必要と
- * 判断された場合はマイグレーションを伴うため、フォローアップIssueで扱う。
- */
-export const HOUSE_LABELS: Record<HouseEnum, string> = {
-  HR: "市長提出",
-  HC: "議員提出",
-};
-
-// ステータスを日本語ラベルに変換する関数
-export function getBillStatusLabel(status: BillStatusEnum): string {
-  switch (status) {
-    case "preparing":
-      return "準備中";
-    case "introduced":
-      return "提出済み";
-    case "in_originating_house":
-      return "委員会審査中";
-    case "in_receiving_house":
-      return "本会議審議中";
-    case "enacted":
-      return "可決";
-    case "rejected":
-      return "否決";
-    default:
-      return status; // 未知のステータスはそのまま返す
-  }
-}
-
-export const STANCE_LABELS: Record<StanceTypeEnum, string> = {
-  for: "賛成",
-  against: "反対",
-  neutral: "中立",
-  conditional_for: "条件付き賛成",
-  conditional_against: "条件付き反対",
-  considering: "検討中",
-  continued_deliberation: "継続審査中",
-  free_vote: "自由投票",
 };

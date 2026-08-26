@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { GROUPING_MAX_MEDIUM_TOPICS, TOPIC_MODEL } from "../shared/constants";
 import { topicGroupingSchema } from "../shared/schemas";
-import type { BillContext, FinalTopicWithId } from "../shared/types";
+import type { FinalTopicWithId, InterviewConfigContext } from "../shared/types";
 import {
   type BigTopicDraft,
   buildTopicHierarchy,
@@ -23,7 +23,7 @@ import { buildGroupTopicsPrompt } from "./prompts";
  */
 export async function groupTopics(
   mediumTopics: FinalTopicWithId[],
-  bill: BillContext,
+  context: InterviewConfigContext,
   /** 中トピックごとの意見件数。打ち切るときに件数の多いものを残すのに使う。 */
   countByLocalId: ReadonlyMap<string, number> = new Map()
 ): Promise<TopicHierarchy[]> {
@@ -59,7 +59,7 @@ export async function groupTopics(
         generateObject({
           model: TOPIC_MODEL,
           schema: topicGroupingSchema,
-          prompt: buildGroupTopicsPrompt(bill, mediumTopicsText),
+          prompt: buildGroupTopicsPrompt(context, mediumTopicsText),
           experimental_telemetry: {
             isEnabled: true,
             functionId: "user-topic-analysis-group",

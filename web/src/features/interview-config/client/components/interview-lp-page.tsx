@@ -60,7 +60,7 @@ function _InterviewLPHeader({ bill }: { bill: BillWithContent }) {
           priority
         />
       ) : (
-        <div className="w-full h-full bg-gray-100" />
+        <div className="w-full h-full bg-muted" />
       )}
     </div>
   );
@@ -91,7 +91,7 @@ function _InterviewLPHero({
           議案についてのAIインタビュー
         </h1>
         <Link href={billLink as Route}>
-          <div className="inline-flex items-center justify-center gap-2.5 px-4 py-2 bg-white rounded-xl hover:bg-gray-50 transition-opacity cursor-pointer">
+          <div className="inline-flex items-center justify-center gap-2.5 px-4 py-2 bg-white rounded-xl hover:bg-muted transition-opacity cursor-pointer">
             <span className="text-[13px] font-medium text-black leading-[1.87]">
               {bill.bill_content?.title ?? bill.name}
             </span>
@@ -200,12 +200,20 @@ function _InterviewDurationSection({
   );
 }
 
+// Epic #54 で interview_configs.themes（配列）は description（自由記述）に置き換わった。
+// 改行区切りの各行をチェックリスト項目として表示する。
 function _InterviewThemesSection({
-  themes,
+  description,
 }: {
-  themes: string[] | null | undefined;
+  description: string | null | undefined;
 }) {
-  if (!themes || themes.length === 0) {
+  const themes =
+    description
+      ?.split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0) ?? [];
+
+  if (themes.length === 0) {
     return null;
   }
 
@@ -312,7 +320,7 @@ export function InterviewLPPage({
   userReports,
 }: InterviewLPPageProps) {
   return (
-    <div className="flex flex-col gap-8 pb-8 bg-mirai-light-gradient">
+    <div className="flex flex-col gap-8 pb-8 bg-secondary">
       <_InterviewLPHeader bill={bill} />
       <div className="flex flex-col items-center gap-8 px-4">
         <_InterviewLPHero
@@ -337,7 +345,7 @@ export function InterviewLPPage({
         <_InterviewDurationSection
           estimatedDuration={interviewConfig.estimated_duration}
         />
-        <_InterviewThemesSection themes={interviewConfig.themes} />
+        <_InterviewThemesSection description={interviewConfig.description} />
         <_InterviewNoticeSection />
         <_InterviewDisclosureLink
           billId={bill.id}

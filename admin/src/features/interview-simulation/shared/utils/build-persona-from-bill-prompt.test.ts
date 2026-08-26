@@ -12,7 +12,7 @@ const baseBill = {
 };
 
 const baseConfig = {
-  themes: ["安全確保", "産業競争力"],
+  description: "安全確保と産業競争力の両立について意見を募集します",
 };
 
 describe("buildPersonaFromBillPrompt", () => {
@@ -26,8 +26,9 @@ describe("buildPersonaFromBillPrompt", () => {
       "人工衛星等の打上げ及び人工衛星の管理に関する法律案"
     );
     expect(result).toContain("第一条 本法律は…");
-    expect(result).toContain("安全確保");
-    expect(result).toContain("産業競争力");
+    expect(result).toContain(
+      "安全確保と産業競争力の両立について意見を募集します"
+    );
     expect(result).toContain("宇宙活動法の概要");
   });
 
@@ -63,7 +64,7 @@ describe("buildPersonaFromBillPrompt", () => {
   it("テーマ未設定でも壊れない", () => {
     const result = buildPersonaFromBillPrompt({
       bill: { ...baseBill, knowledge_source: "" },
-      interviewConfig: { themes: [] },
+      interviewConfig: { description: null },
     });
     expect(result).toContain("テーマ未設定");
     expect(result).toContain("知識ソース未設定");

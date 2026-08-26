@@ -1,7 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
-import { getActiveDietSession } from "@/features/diet-sessions/server/loaders/get-active-diet-session";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import type { BillsByTag } from "../../shared/types";
 import {
@@ -11,40 +10,28 @@ import {
 } from "../repositories/bill-repository";
 
 /**
- * Featured表示用の議案をタグごとにグループ化して取得
- * featured_priorityが設定されているタグを持つアクティブな議会会期の議案を優先度順に取得
- * アクティブな議会会期がない場合は全件取得
+ * Featured表示用の施策をタグごとにグループ化して取得
+ * featured_priorityが設定されているタグを持つ施策を優先度順に取得
  */
 export async function getBillsByFeaturedTags(): Promise<BillsByTag[]> {
   // キャッシュ外でcookiesにアクセス
   const difficultyLevel = await getDifficultyLevel();
-  const activeSession = await getActiveDietSession();
 
-  return _getCachedBillsByFeaturedTags(
-    difficultyLevel,
-    activeSession?.id ?? null
-  );
+  return _getCachedBillsByFeaturedTags(difficultyLevel);
 }
 
 const _getCachedBillsByFeaturedTags = unstable_cache(
-  async (
-    difficultyLevel: DifficultyLevelEnum,
-    dietSessionId: string | null
-  ): Promise<BillsByTag[]> => {
+  async (difficultyLevel: DifficultyLevelEnum): Promise<BillsByTag[]> => {
     const featuredTags = await findFeaturedTags();
 
     if (featuredTags.length === 0) {
       return [];
     }
 
-    // 各タグの議案を並列で取得
+    // 各タグの施策を並列で取得
     const results = await Promise.all(
       featuredTags.map(async (tag) => {
-        const data = await findPublishedBillsByTag(
-          tag.id,
-          difficultyLevel,
-          dietSessionId
-        );
+        const data = await findPublishedBillsByTag(tag.id, difficultyLevel);
 
         if (!data || data.length === 0) {
           return null;
@@ -53,17 +40,17 @@ const _getCachedBillsByFeaturedTags = unstable_cache(
         // データを整形
         const bills = data
           .map((item) => {
-            const billData = item.bills;
+            const billData = item.policies;
             if (!billData) return null;
 
-            const { bill_contents, bills_tags, ...bill } = billData;
-            const billContent = Array.isArray(bill_contents)
-              ? bill_contents[0]
+            const { policy_contents, policies_tags, ...bill } = billData;
+            const billContent = Array.isArray(policy_contents)
+              ? policy_contents[0]
               : undefined;
 
-            // billに紐づくすべてのタグを取得
-            const tags = Array.isArray(bills_tags)
-              ? bills_tags
+            // 施策に紐づくすべてのタグを取得
+            const tags = Array.isArray(policies_tags)
+              ? policies_tags
                   .map((bt) => bt.tags)
                   .filter((t): t is NonNullable<typeof t> => t !== null)
               : [];
@@ -97,7 +84,7 @@ const _getCachedBillsByFeaturedTags = unstable_cache(
       (result): result is NonNullable<typeof result> => result !== null
     );
 
-    // 全議案のIDを収集してインタビュー状態を一括取得
+    // 全施策のIDを収集してインタビュー状態を一括取得
     const allBillIds = filteredResults.flatMap((r) => r.bills.map((b) => b.id));
     const interviewBillIds = await findBillIdsWithPublicInterview(allBillIds);
 

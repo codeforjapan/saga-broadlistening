@@ -6,7 +6,7 @@ import {
   selectPrimaryBillContent,
 } from "../../shared/utils/public-report-display";
 import {
-  countPublicReportsByBillId,
+  countPublicOpinionsByInterviewConfigId,
   findBillWithContentById,
   findPublicReportWithSessionById,
 } from "../repositories/interview-report-repository";
@@ -17,54 +17,48 @@ export interface ReportOgData {
 }
 
 /**
- * OGP画像生成に必要なレポートデータを取得
+ * OGP画像生成に必要な意見データを取得
  */
 export async function getReportOgData(
   reportId: string
 ): Promise<ReportOgData | null> {
-  let report: Awaited<ReturnType<typeof findPublicReportWithSessionById>>;
   try {
-    report = await findPublicReportWithSessionById(reportId);
-  } catch {
+    const report = await findPublicReportWithSessionById(reportId);
+    if (!report) {
+      return null;
+    }
+
+    const session = report.interview_sessions;
+    if (!session) {
+      return null;
+    }
+
+    // k-匿名性ゲートを満たさない意見は OGP でも中身を出さない。
+    // 施策が紐づかないテーマ（抽象テーマ型）でも必ず通すこと。ここを
+    // 施策の有無で分岐させると、施策0件のテーマだけゲートを素通りする。
+    const publicOpinionCount = await countPublicOpinionsByInterviewConfigId(
+      session.interview_config_id
+    );
+    if (!shouldDisplayPublicReports(publicOpinionCount)) {
+      return null;
+    }
+
+    // 施策名はテーマに施策が紐づいているときだけ出す（無ければ空文字）
+    const billId = getBillIdFromPublicReportSession(session);
+    let billName = "";
+    if (billId) {
+      const bill = await findBillWithContentById(billId);
+      const billContent = selectPrimaryBillContent(bill.policy_contents);
+      billName = billContent?.title || bill.name;
+    }
+
+    return {
+      summary: report.summary || "",
+      billName,
+    };
+  } catch (error) {
+    // OGP は付随的な表示なので、どの段階で落ちても画像を出さずに握りつぶす。
+    console.error("Failed to build OGP data:", error);
     return null;
   }
-  if (!report) {
-    return null;
-  }
-
-  const session = report.interview_sessions as {
-    started_at: string;
-    completed_at: string | null;
-    interview_configs: { bill_id: string } | null;
-  } | null;
-
-  let billName = "";
-  const billId = getBillIdFromPublicReportSession(session);
-  if (billId) {
-    let publicReportCount: number;
-    try {
-      publicReportCount = await countPublicReportsByBillId(billId);
-    } catch (error) {
-      console.error("Failed to count public reports for OGP:", error);
-      return null;
-    }
-    if (!shouldDisplayPublicReports(publicReportCount)) {
-      return null;
-    }
-
-    let bill: Awaited<ReturnType<typeof findBillWithContentById>>;
-    try {
-      bill = await findBillWithContentById(billId);
-    } catch (error) {
-      console.error("Failed to fetch bill for OGP:", error);
-      return null;
-    }
-    const billContent = selectPrimaryBillContent(bill.bill_contents);
-    billName = billContent?.title || bill.name;
-  }
-
-  return {
-    summary: report.summary || "",
-    billName,
-  };
 }

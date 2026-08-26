@@ -1,4 +1,4 @@
-import { getPublicTopicAnalysis } from "@mirai-gikai/topic-analysis-core/public-server";
+import { getPublicTopicAnalysis } from "@/features/user-topic-analysis/server/loaders/get-public-topic-analysis";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -14,6 +14,9 @@ const json = (body: unknown, status = 200) =>
  * ユーザー向けトピック分析の公開読み取り API（§13 A.4）。
  * 公開中（is_published=true）version のトピック＋意見を、§8 の表示時フィルタ適用後で返す。
  * 公開版が無ければ 404（UI 側は「分析準備中」表示にする）。
+ *
+ * Epic #54 で billId は施策ID（policies.id）になった。トピック分析は意見募集単位のため、
+ * ローダー側で施策 → 意見募集の解決を行う。URL の改名は Epic #8 完了後のフォローアップ。
  */
 export async function GET(
   _request: Request,

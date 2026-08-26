@@ -12,23 +12,20 @@ import { routes } from "@/lib/routes";
 import { PublicOpinionsList } from "../../client/components/public-opinions-list";
 import { OpinionsBreadcrumb } from "../../shared/components/opinions-breadcrumb";
 import type { SortOrder } from "../../shared/utils/sort-order";
-import type { StanceFilter } from "../../shared/utils/stance-filter";
 import { getInitialPublicReportsByBillId } from "../loaders/get-all-public-reports-by-bill-id";
 
 interface PublicOpinionsPageProps {
   billId: string;
-  initialFilter: StanceFilter;
   initialSort: SortOrder;
 }
 
 export async function PublicOpinionsPage({
   billId,
-  initialFilter,
   initialSort,
 }: PublicOpinionsPageProps) {
   const [bill, initialData, interviewConfig] = await Promise.all([
     getBillById(billId),
-    getInitialPublicReportsByBillId(billId, initialFilter, initialSort),
+    getInitialPublicReportsByBillId(billId, initialSort),
     getInterviewConfig(billId),
   ]);
 
@@ -52,7 +49,7 @@ export async function PublicOpinionsPage({
   }
 
   return (
-    <div className="min-h-dvh bg-mirai-surface">
+    <div className="min-h-dvh bg-background">
       {/* ヒーロー画像 */}
       {bill.thumbnail_url && (
         <div className="relative w-full h-[200px] md:h-[320px]">
@@ -66,7 +63,7 @@ export async function PublicOpinionsPage({
       )}
 
       <Container>
-        {/* 議案タイトル（議案詳細へのリンク） */}
+        {/* 施策タイトル（施策詳細へのリンク） */}
         <div className="py-6">
           <Link href={routes.billDetail(billId)}>
             <h1 className="text-2xl font-bold leading-[1.5] text-black hover:underline">
@@ -74,20 +71,19 @@ export async function PublicOpinionsPage({
             </h1>
           </Link>
           {bill.name !== billTitle && (
-            <p className="mt-2 text-xs font-medium leading-[1.67] text-mirai-text-muted">
+            <p className="mt-2 text-xs font-medium leading-[1.67] text-muted-foreground">
               {bill.name}
             </p>
           )}
         </div>
 
-        {/* 意見一覧（フィルター付き・スクロールページネーション） */}
+        {/* 意見一覧（スクロールページネーション） */}
         <PublicOpinionsList
           billId={billId}
           initialReports={initialData.reports}
           initialReactionsRecord={reactionsRecord}
-          stanceCounts={initialData.stanceCounts}
+          totalCount={initialData.totalCount}
           initialHasMore={initialData.hasMore}
-          initialFilter={initialFilter}
           initialSort={initialSort}
         />
 

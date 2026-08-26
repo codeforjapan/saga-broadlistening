@@ -8,10 +8,11 @@ import type { InterviewMessage } from "@/features/interview-session/shared/types
 import type { InterviewReport } from "../../shared/types";
 import {
   canViewReportWithMessages,
+  getBillIdFromPublicReportSession,
   selectPrimaryBillContent,
 } from "../../shared/utils/public-report-display";
 import {
-  countPublicReportsByBillId,
+  countPublicOpinionsByInterviewConfigId,
   findBillWithContentById,
   findMessagesBySessionId,
   findReportWithSessionById,
@@ -36,7 +37,7 @@ export type ReportWithMessages = {
 
 /**
  * Fetch report with all messages for the chat log page.
- * Authorization: Accessible if the report is public OR the user is the session owner.
+ * Authorization: Accessible if the opinion is published OR the user is the session owner.
  */
 export async function getReportWithMessages(
   reportId: string
@@ -48,40 +49,36 @@ export async function getReportWithMessages(
   try {
     report = await findReportWithSessionById(reportId);
   } catch (error) {
-    console.error("Failed to fetch interview report:", error);
+    console.error("Failed to fetch opinion:", error);
     return null;
   }
 
-  const session = report.interview_sessions as {
-    user_id: string;
-    started_at: string;
-    completed_at: string | null;
-    interview_configs: { bill_id: string } | null;
-  } | null;
+  const session = report.interview_sessions;
+  const billId = getBillIdFromPublicReportSession(session);
 
-  if (!session || !session.interview_configs) {
-    console.error("Session or config not found for report");
+  if (!session || !billId) {
+    console.error("Session or policy not found for opinion");
     return null;
   }
 
-  // Authorization check: public OR owner
+  // Authorization check: published OR owner
   const isOwner = userId ? isSessionOwner(session.user_id, userId) : false;
-  const billId = session.interview_configs.bill_id;
 
   if (!isOwner) {
-    let publicReportCount: number;
+    let publicOpinionCount: number;
     try {
-      publicReportCount = await countPublicReportsByBillId(billId);
+      publicOpinionCount = await countPublicOpinionsByInterviewConfigId(
+        session.interview_config_id
+      );
     } catch (error) {
-      console.error("Failed to count public reports:", error);
+      console.error("Failed to count public opinions:", error);
       return null;
     }
 
     const isPublic = canViewReportWithMessages({
       isOwner,
-      isPublicByAdmin: report.is_public_by_admin,
-      isPublicByUser: report.is_public_by_user,
-      publicReportCount,
+      reviewStatus: report.review_status,
+      publicOpinionCount,
     });
 
     if (!isPublic) {
@@ -98,12 +95,12 @@ export async function getReportWithMessages(
     return null;
   }
 
-  // Fetch bill info
+  // Fetch policy info
   let bill: Awaited<ReturnType<typeof findBillWithContentById>>;
   try {
     bill = await findBillWithContentById(billId);
   } catch (error) {
-    console.error("Failed to fetch bill:", error);
+    console.error("Failed to fetch policy:", error);
     return null;
   }
 
@@ -121,7 +118,7 @@ export async function getReportWithMessages(
       id: bill.id,
       name: bill.name,
       thumbnail_url: bill.thumbnail_url,
-      bill_content: selectPrimaryBillContent(bill.bill_contents),
+      bill_content: selectPrimaryBillContent(bill.policy_contents),
     },
   };
 }

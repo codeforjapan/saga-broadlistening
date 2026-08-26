@@ -43,18 +43,9 @@ import {
   buildInterviewSystemPrompt,
   buildSummarySystemPrompt,
 } from "../utils/build-interview-system-prompt";
+import { calculateLoopModeNextQuestionId } from "../../shared/utils/interview-logic/loop-mode";
 import { collectAskedQuestionIds } from "../utils/interview-logic";
-import { bulkModeLogic } from "../utils/interview-logic/bulk-mode";
-import { loopModeLogic } from "../utils/interview-logic/loop-mode";
-import { targetedModeLogic } from "../utils/interview-logic/targeted-mode";
 import { saveInterviewMessage } from "./save-interview-message";
-
-// モードロジックのマップ
-const modeLogicMap = {
-  bulk: bulkModeLogic,
-  loop: loopModeLogic,
-  targeted: targetedModeLogic,
-} as const;
 
 /** テスト時にモック注入するための外部依存 */
 export type InterviewChatDeps = {
@@ -156,18 +147,14 @@ export async function handleInterviewChatRequest({
     loadSessionAndMessages(),
   ]);
 
-  // モードに応じたロジックを取得（DBの設定を使用）
-  const mode = interviewConfig.mode;
-  const logic = modeLogicMap[mode] ?? bulkModeLogic;
-
   // 既に聞いた質問IDを収集
   const askedQuestionIds = collectAskedQuestionIds(dbMessages);
 
   // クライアントから受け取ったステージで判定
   const isSummaryPhase = currentStage === "summary";
 
-  // 次に聞くべき質問を特定（モードに応じてロジックが異なる）
-  const effectiveNextQuestionId = logic.calculateNextQuestionId({
+  // 次に聞くべき質問を特定
+  const effectiveNextQuestionId = calculateLoopModeNextQuestionId({
     messages: dbMessages,
     questions,
   });

@@ -11,7 +11,6 @@ import {
   ReviewCompleteBadge,
   ReviewInProgressBanner,
 } from "../../../client/components/bill-detail/review-status-banner";
-import { BillStatusBadge } from "../../../client/components/bill-list/bill-status-badge";
 import { BillTag } from "../../../client/components/bill-list/bill-tag";
 import { getBillShareData } from "../../../client/utils/share";
 import type { BillWithContent } from "../../../shared/types";
@@ -57,7 +56,7 @@ export async function BillDetailHeader({
         {displayTitle && (
           <h1 className="text-2xl font-bold mb-3">
             {displayTitle}
-            {bill.is_review_completed && (
+            {bill.approved_at && (
               <>
                 {" "}
                 <ReviewCompleteBadge showTooltip />
@@ -66,10 +65,9 @@ export async function BillDetailHeader({
           </h1>
         )}
         <div className="flex flex-row gap-4">
-          <BillStatusBadge status={bill.status} className="w-fit" />
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            {bill.submitted_date && (
-              <time>{formatDateWithDots(bill.submitted_date)} 提出</time>
+            {bill.published_at && (
+              <time>{formatDateWithDots(bill.published_at)} 公開</time>
             )}
           </div>
         </div>
@@ -92,7 +90,7 @@ export async function BillDetailHeader({
         <p className="text-sm text-muted-foreground font-medium mb-4">
           {bill.name}
         </p>
-        {!bill.is_review_completed && (
+        {!bill.approved_at && (
           <div className="mb-4">
             <ReviewInProgressBanner />
           </div>
@@ -122,7 +120,7 @@ export async function BillDetailHeader({
               variant="default"
               size="sm"
               asChild
-              className="bg-mirai-light-gradient text-[13px] font-bold text-gray-800 gap-1.5 py-1 px-3"
+              className="bg-secondary text-[13px] font-bold text-foreground gap-1.5 py-1 px-3"
             >
               <Link href={getInterviewLPLink(bill.id) as Route}>
                 <Image

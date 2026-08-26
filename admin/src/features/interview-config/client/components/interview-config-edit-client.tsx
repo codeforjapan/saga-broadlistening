@@ -1,6 +1,5 @@
 "use client";
 
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -14,10 +13,12 @@ import {
   createInterviewConfig,
   updateInterviewConfig,
 } from "../../server/actions/upsert-interview-config";
-import type {
-  InterviewConfig,
-  InterviewQuestion,
-  InterviewQuestionInput,
+import {
+  arrayToText,
+  type InterviewConfig,
+  type InterviewQuestion,
+  type InterviewQuestionInput,
+  textToArray,
 } from "../../shared/types";
 import { ConfigGenerationChat } from "./config-generation-chat";
 import { InterviewConfigForm } from "./interview-config-form";
@@ -59,8 +60,8 @@ export function InterviewConfigEditClient({
   const getFormValuesRef = useRef<
     | (() => {
         name: string;
-        mode: string;
-        themes: string[];
+        slug: string;
+        description: string | null;
         chat_model: string | null;
         estimated_duration: number | null;
       })
@@ -77,7 +78,7 @@ export function InterviewConfigEditClient({
 
   /** 新規configを即時作成する（テーマ未確定でも質問を保存できるようにするため） */
   const createConfigIfNeeded = useCallback(
-    async (themes: string[]): Promise<string | null> => {
+    async (description: string | null): Promise<string | null> => {
       // 既に作成済みならそれを返す
       if (createdConfigIdRef.current) return createdConfigIdRef.current;
       // 作成中なら同じ Promise を共有（concurrent呼び出しの重複作成防止）
@@ -88,9 +89,9 @@ export function InterviewConfigEditClient({
           const formValues = getFormValuesRef.current?.();
           const result = await createInterviewConfig(billId, {
             name: formValues?.name || "AI生成設定",
-            status: "closed",
-            mode: (formValues?.mode as InterviewMode) || "loop",
-            themes,
+            slug: formValues?.slug || `config-${Date.now()}`,
+            status: "draft",
+            description,
             chat_model: formValues?.chat_model || null,
             estimated_duration: formValues?.estimated_duration ?? null,
           });
@@ -124,7 +125,7 @@ export function InterviewConfigEditClient({
   // 質問確定時: configがなければ先に作成してから質問を保存する（テーマ未確定でもOK）
   const handleQuestionsConfirmed = useCallback(
     async (confirmedQuestions: InterviewQuestionInput[]) => {
-      const targetConfigId = await createConfigIfNeeded([]);
+      const targetConfigId = await createConfigIfNeeded(null);
       if (!targetConfigId) return;
 
       const result = await saveInterviewQuestions(
@@ -145,19 +146,20 @@ export function InterviewConfigEditClient({
   // テーマ確定時: configがなければ作成、あれば更新
   const handleThemesConfirmed = useCallback(
     async (themes: string[]) => {
+      const description = arrayToText(themes);
       // ref を優先して参照することで、state 更新待ちの間に二重作成されるのを防ぐ
-      const targetConfigId = await createConfigIfNeeded(themes);
+      const targetConfigId = await createConfigIfNeeded(description);
       if (!targetConfigId) return;
 
-      // 既存 / 直前に作成済みだった場合はテーマを上書き更新（create は themes=[] で呼ばれる場合がある）
-      // create と同じフォールバックを使って、未入力時に name/mode が空で上書きされるのを防ぐ。
+      // 既存 / 直前に作成済みだった場合は説明文を上書き更新
+      // （create は description=null で呼ばれる場合がある）。
+      // create と同じフォールバックを使って、未入力時に name/slug が空で上書きされるのを防ぐ。
       const formValues = getFormValuesRef.current?.();
       const result = await updateInterviewConfig(targetConfigId, {
         name: formValues?.name || initialConfig?.name || "AI生成設定",
-        status: initialConfig?.status || "closed",
-        mode:
-          (formValues?.mode as InterviewMode) || initialConfig?.mode || "loop",
-        themes,
+        slug: formValues?.slug || initialConfig?.slug || `config-${Date.now()}`,
+        status: initialConfig?.status || "draft",
+        description,
         chat_model: formValues?.chat_model ?? initialConfig?.chat_model ?? null,
         estimated_duration:
           formValues?.estimated_duration ??
@@ -222,7 +224,11 @@ export function InterviewConfigEditClient({
             <ConfigGenerationChat
               billId={billId}
               configId={configId}
-              existingThemes={initialConfig?.themes ?? undefined}
+              existingThemes={
+                initialConfig?.description
+                  ? textToArray(initialConfig.description)
+                  : undefined
+              }
               existingQuestions={questions.map((q) => ({
                 question: q.question,
                 follow_up_guide: q.follow_up_guide ?? undefined,

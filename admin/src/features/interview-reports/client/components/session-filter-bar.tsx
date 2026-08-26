@@ -2,7 +2,6 @@
 
 import type { Route } from "next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ROLE_FILTER_OPTIONS, stanceLabels } from "../../shared/constants";
 import type { SessionFilterConfig } from "../../shared/types";
 import { DEFAULT_SESSION_FILTER } from "../../shared/types";
 import { FilterSelect } from "./filter-select";
@@ -23,14 +22,6 @@ const VISIBILITY_OPTIONS = [
   { value: "public", label: "公開" },
   { value: "private", label: "非公開" },
 ] as const;
-
-const STANCE_OPTIONS = [
-  { value: "all", label: "すべて" },
-  ...(["for", "against", "neutral"] as const).map((stance) => ({
-    value: stance,
-    label: stanceLabels[stance],
-  })),
-];
 
 const MODERATION_OPTIONS = [
   { value: "all", label: "すべて" },
@@ -74,18 +65,6 @@ export function SessionFilterBar({ currentFilters }: SessionFilterBarProps) {
         value={currentFilters.visibility}
         options={VISIBILITY_OPTIONS}
         onChange={(v) => handleFilterChange("visibility", v)}
-      />
-      <FilterSelect
-        label="スタンス"
-        value={currentFilters.stance}
-        options={STANCE_OPTIONS}
-        onChange={(v) => handleFilterChange("stance", v)}
-      />
-      <FilterSelect
-        label="役割"
-        value={currentFilters.role}
-        options={ROLE_FILTER_OPTIONS}
-        onChange={(v) => handleFilterChange("role", v)}
       />
       <FilterSelect
         label="モデレーション"

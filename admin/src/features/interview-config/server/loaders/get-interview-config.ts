@@ -2,17 +2,17 @@ import type { InterviewConfig } from "../../shared/types";
 import {
   countSessionsByConfigIds,
   findInterviewConfigById,
-  findInterviewConfigsByBillId,
+  findInterviewConfigsByPolicyId,
 } from "../repositories/interview-config-repository";
 
 /**
- * 議案IDからすべてのインタビュー設定を取得する
+ * 施策IDからすべてのインタビュー設定を取得する
  */
 export async function getInterviewConfigs(
   billId: string
 ): Promise<InterviewConfig[]> {
   try {
-    return await findInterviewConfigsByBillId(billId);
+    return await findInterviewConfigsByPolicyId(billId);
   } catch (error) {
     console.error("Failed to fetch interview configs:", error);
     return [];
@@ -41,14 +41,7 @@ export async function getInterviewConfigById(
   configId: string
 ): Promise<InterviewConfig | null> {
   try {
-    const config = await findInterviewConfigById(configId);
-    // 論理削除済みの設定は編集ページから除外する（notFound 扱い）。
-    // findInterviewConfigById 自体はシミュレーション詳細などの
-    // 個別アクセス経路と共有するためフィルタせず、ここで弾く。
-    if (config?.deleted_at) {
-      return null;
-    }
-    return config;
+    return await findInterviewConfigById(configId);
   } catch (error) {
     console.error("Failed to fetch interview config:", error);
     return null;

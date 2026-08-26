@@ -1,6 +1,6 @@
 import {
   adminClient,
-  cleanupTestBill,
+  cleanupTestPolicy,
   cleanupTestUser,
   createTestInterviewData,
   createTestUser,
@@ -84,10 +84,9 @@ const validChatResponse = JSON.stringify({
 const validSummaryResponse = JSON.stringify({
   text: "インタビューのまとめです。ご協力ありがとうございました。",
   report: {
-    summary: "テスト法案に賛成の立場",
-    stance: "for",
-    role: "general_citizen",
-    role_description: "一般市民として法案に関心がある",
+    summary: "テスト施策への意見",
+    final_text: "子育て世帯への支援をもっと手厚くしてほしいと考えています。",
+    role_description: "一般市民として施策に関心がある",
     role_title: "会社員",
     opinions: [
       {
@@ -118,13 +117,13 @@ describe("handleInterviewChatRequest 統合テスト", () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.bill.id;
+    billId = data.policy.id;
     session = data.session;
     config = data.config;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId);
+    await cleanupTestPolicy(billId);
     await cleanupTestUser(testUser.id);
   });
 

@@ -9,13 +9,9 @@ import { getBillDetailLink } from "@/features/interview-config/shared/utils/inte
 import { PublicStatusSection } from "@/features/interview-report/client/components/public-status-section";
 import { getInterviewReportById } from "@/features/interview-report/server/loaders/get-interview-report-by-id";
 import { getInterviewMessages } from "@/features/interview-session/server/loaders/get-interview-messages";
-import { getAuthenticatedUser } from "@/features/interview-session/server/utils/verify-session-ownership";
-import { ExpertRegistrationSection } from "../../client/components/expert-registration-section";
 import { ReportContent } from "../../shared/components/report-content";
-import { isExpertRegistrationTargetRole } from "../../shared/utils/expert-registration-validation";
-import { parseOpinions } from "../../shared/utils/format-utils";
 import { countCharacters } from "../../shared/utils/report-utils";
-import { getExpertRegistrationStatus } from "../loaders/get-expert-registration-status";
+import { getReportOpinions } from "../loaders/get-report-opinions";
 
 interface ReportCompletePageProps {
   reportId: string;
@@ -34,28 +30,22 @@ export async function ReportCompletePage({
 
   const billId = report.bill_id;
 
-  const isExpertRole = isExpertRegistrationTargetRole(report.role);
-  const authResult = await getAuthenticatedUser();
-
-  // 議案・メッセージ・有識者登録状況を並列取得
-  const [bill, messages, isExpertRegistered] = await Promise.all([
+  // 施策・メッセージ・論点単位の意見を並列取得
+  const [bill, messages, opinions] = await Promise.all([
     getBillById(billId),
     getInterviewMessages(report.interview_session_id),
-    isExpertRole && authResult.authenticated
-      ? getExpertRegistrationStatus(authResult.userId)
-      : Promise.resolve(false),
+    getReportOpinions(reportId),
   ]);
 
   if (!bill) {
     notFound();
   }
 
-  const opinions = parseOpinions(report.opinions);
   const characterCount = countCharacters(messages);
   const billName = bill.bill_content?.title || bill.name;
 
   return (
-    <div className="min-h-dvh bg-mirai-surface">
+    <div className="min-h-dvh bg-background">
       {/* ヘッダーセクション */}
       <div className="bg-white rounded-b-[32px] px-4 pt-30 md:pt-16 pb-8">
         <div className="flex flex-col items-center gap-4">
@@ -68,14 +58,14 @@ export async function ReportCompletePage({
           />
 
           {/* 完了メッセージ */}
-          <h1 className="text-2xl font-bold text-center text-gray-800 leading-relaxed">
+          <h1 className="text-2xl font-bold text-center text-foreground leading-relaxed">
             提出が完了しました！
             <br />
             ご協力ありがとうございました
           </h1>
 
           {/* 活用メッセージ */}
-          <p className="text-sm text-gray-800">
+          <p className="text-sm text-foreground">
             いただいた声は政策検討に最大限活用します
           </p>
         </div>
@@ -107,20 +97,13 @@ export async function ReportCompletePage({
             billId={billId}
             from="complete"
             summary={report.summary}
-            stance={report.stance}
-            role={report.role}
             roleTitle={report.role_title}
             sessionStartedAt={report.session_started_at}
             characterCount={characterCount}
             messages={messages}
             roleDescription={report.role_description}
             opinions={opinions}
-          >
-            {/* 有識者リスト登録バナー */}
-            {isExpertRole && !isExpertRegistered && (
-              <ExpertRegistrationSection />
-            )}
-          </ReportContent>
+          />
         </div>
       </div>
     </div>

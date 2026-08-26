@@ -1,7 +1,7 @@
 import "server-only";
 
-import { findVersionsByBillId } from "../repositories/topic-analysis-repository";
+import { findVersionsByInterviewConfigId } from "../repositories/topic-analysis-repository";
 
-export async function getTopicAnalysisVersions(billId: string) {
-  return findVersionsByBillId(billId);
+export async function getTopicAnalysisVersions(interviewConfigId: string) {
+  return findVersionsByInterviewConfigId(interviewConfigId);
 }

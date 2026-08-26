@@ -53,15 +53,15 @@ describe("enrichOpinionsWithSourceContent", () => {
           title: "賛成",
           content: "理由",
           source_message_id: "u1",
-          contextual_quote: "（法案について）賛成",
-          bill_sentiment: "期待",
+          contextual_quote: "（施策について）賛成",
+          richness: 80,
         },
       ],
       messages
     );
     expect(result[0]).toMatchObject({
-      contextual_quote: "（法案について）賛成",
-      bill_sentiment: "期待",
+      contextual_quote: "（施策について）賛成",
+      richness: 80,
       source_message_content: "この法案に賛成です",
     });
   });

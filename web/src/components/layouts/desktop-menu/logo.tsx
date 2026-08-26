@@ -1,4 +1,5 @@
 import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { logoImageProps } from "@/lib/logo";
 import Image from "next/image";
 import Link from "next/link";
 import { routes } from "@/lib/routes";
@@ -12,16 +13,8 @@ export function DesktopMenuLogo() {
       href={routes.home()}
       className="fixed top-6 left-6 z-50 flex items-center gap-6 hover:opacity-90 transition-opacity"
     >
-      {/* ロゴ */}
-      <div className="relative w-[116px] h-[98.38px]">
-        <Image
-          src="/img/logo.svg"
-          alt={`${SITE_NAME}ロゴ`}
-          fill
-          className="object-contain"
-          priority
-        />
-      </div>
+      {/* ロゴ。隣の<h1>が同じサービス名を読ませるので、画像は装飾扱いにする */}
+      <Image alt="" {...logoImageProps("full", 88)} priority />
 
       {/* テキスト */}
       <div className="flex flex-col gap-1.5">

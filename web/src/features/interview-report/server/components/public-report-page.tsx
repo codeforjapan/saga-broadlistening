@@ -16,7 +16,6 @@ import { ChatLogSection } from "../../shared/components/chat-log-section";
 import { ReportIntervieweeCard } from "../../shared/components/report-interviewee-card";
 import { ReportMainOpinions } from "../../shared/components/report-main-opinions";
 import { ReportProblemButton } from "../../shared/components/report-problem-button";
-import { parseOpinions } from "../../shared/utils/format-utils";
 import { getPublicReportById } from "../loaders/get-public-report-by-id";
 
 interface PublicReportPageProps {
@@ -42,7 +41,6 @@ export async function PublicReportPage({
 
   const interviewConfig = await getInterviewConfig(data.bill_id);
   const billName = data.bill.bill_content?.title || data.bill.name;
-  const opinions = parseOpinions(data.opinions);
   const origin = await getOrigin();
   const shareUrl = `${origin}${routes.publicReport(reportId)}`;
   const ogImageUrl = `${origin}/api/og/report?id=${reportId}`;
@@ -53,7 +51,7 @@ export async function PublicReportPage({
   ];
 
   return (
-    <div className="min-h-dvh bg-mirai-surface pt-24 md:pt-0">
+    <div className="min-h-dvh bg-background pt-24 md:pt-0">
       <Container>
         <div className="flex flex-col gap-8 pb-8 md:pt-8">
           {/* パンくず + 議案タイトル */}
@@ -68,7 +66,7 @@ export async function PublicReportPage({
             </Link>
           </div>
 
-          <h1 className="text-[22px] font-bold leading-9 text-mirai-text">
+          <h1 className="text-[22px] font-bold leading-9 text-foreground">
             💬インタビューレポート
           </h1>
 
@@ -76,15 +74,13 @@ export async function PublicReportPage({
           <ReportIntervieweeCard
             roleTitle={data.role_title}
             roleDescription={data.role_description}
-            stance={data.stance}
-            role={data.role}
             sessionStartedAt={data.session_started_at}
             sessionCompletedAt={data.session_completed_at}
             characterCount={data.characterCount}
           />
 
           {/* 主な意見 */}
-          <ReportMainOpinions opinions={opinions} reportId={reportId} />
+          <ReportMainOpinions opinions={data.opinions} reportId={reportId} />
 
           {/* すべての会話ログ */}
           {data.messages.length > 0 && (

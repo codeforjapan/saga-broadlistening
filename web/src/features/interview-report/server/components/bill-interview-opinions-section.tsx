@@ -59,13 +59,13 @@ export async function BillInterviewOpinionsSection({
 
           {/* もっと読むリンク（グラデーションオーバーレイ付き） */}
           {totalCount > reports.length && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[164px] bg-mirai-white-fade rounded-b-2xl z-10">
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[164px] bg-surface-fade rounded-b-2xl z-10">
               <div className="absolute inset-x-0 bottom-6 flex justify-center pointer-events-auto">
                 <Button
                   variant="outline"
                   size="lg"
                   asChild
-                  className="w-[214px] h-12 text-base font-bold border-mirai-text rounded-full hover:bg-gray-50 bg-white"
+                  className="w-[214px] h-12 text-base font-bold border-foreground rounded-full hover:bg-muted bg-white"
                 >
                   <Link href={routes.billOpinions(billId) as Route}>
                     もっと読む

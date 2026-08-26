@@ -46,4 +46,18 @@ export const OG_COLORS = {
   background: PRIMITIVES["base-white"],
   /** バッジ面 */
   badgeSurface: PRIMITIVES["sky-50"],
+  /**
+   * 1200x630 の地のグラデーション両端。
+   *
+   * 大面積なので D-5「大面積の渋いブルーを避ける」に従い淡いトーンに留め、
+   * sky（優先度1）から黄緑（優先度2）へ流す。
+   * グラデーション文字列そのものではなく両端の色を持つのは、
+   * このオブジェクトの値がすべてパレットのプリミティブであることを
+   * `brand-meta.test.ts` が検証しているため。
+   */
+  canvasFrom: PRIMITIVES["sky-50"],
+  canvasTo: PRIMITIVES["green-100"],
+  /** カード枠のグラデーション両端。6pxの装飾なので濃淡をつけて奥行きを出す */
+  frameFrom: PRIMITIVES["sky-400"],
+  frameTo: PRIMITIVES["sky-700"],
 } as const;

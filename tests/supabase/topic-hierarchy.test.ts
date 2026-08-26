@@ -9,9 +9,10 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestBill,
+  cleanupTestInterviewConfig,
   cleanupTestUser,
-  createTestBill,
+  createTestInterviewConfig,
+  createTestOpinionWithSegments,
   createTestUser,
   type TestUser,
 } from "./utils";
@@ -26,88 +27,69 @@ import {
  * - 公開ページのトピック並び順が従来（件数降順）のままか
  */
 
-async function createOpinion(opts: {
+/** 公開済み（§8 を通る）意見と、その論点1件を作り、論点IDを返す。 */
+async function createSegment(opts: {
   configId: string;
   userId: string;
   title: string;
-}) {
-  const { data: session, error: sErr } = await adminClient
-    .from("interview_sessions")
-    .insert({
-      interview_config_id: opts.configId,
-      user_id: opts.userId,
+}): Promise<string> {
+  const { segmentIds } = await createTestOpinionWithSegments({
+    interviewConfigId: opts.configId,
+    userId: opts.userId,
+    session: {
       started_at: "2024-08-01T00:00:00Z",
       completed_at: "2024-08-01T00:00:00Z",
-    })
-    .select()
-    .single();
-  if (!session) throw new Error(`session 作成失敗: ${sErr?.message}`);
-
-  const { data: report, error: rErr } = await adminClient
-    .from("interview_report")
-    .insert({
-      interview_session_id: session.id,
-      is_public_by_admin: true,
+    },
+    opinion: {
+      review_status: "published",
       is_public_by_user: true,
+      is_public_by_admin: true,
       // moderation_status は moderation_score からの生成列（<30 で ok）。
       moderation_score: 5,
       summary: "サマリ",
-      stance: "for",
-      role: "work_related",
       role_title: "肩書",
-      opinions: [] as never,
-      created_at: "2024-08-01T00:00:00Z",
-    })
-    .select()
-    .single();
-  if (!report) throw new Error(`report 作成失敗: ${rErr?.message}`);
-
-  const { data: opinion, error: oErr } = await adminClient
-    .from("interview_opinion")
-    .insert({
-      interview_report_id: report.id,
-      opinion_index: 0,
-      title: opts.title,
-      content: `${opts.title} の内容`,
-      contextual_quote: `${opts.title} の引用`,
-      bill_sentiment: "懸念",
-    })
-    .select()
-    .single();
-  if (!opinion) throw new Error(`opinion 作成失敗: ${oErr?.message}`);
-  return opinion;
+    },
+    segments: [
+      {
+        title: opts.title,
+        content: `${opts.title} の内容`,
+        contextual_quote: `${opts.title} の引用`,
+      },
+    ],
+  });
+  return segmentIds[0];
 }
 
 describe("トピック2階層 統合テスト", () => {
   let testUser: TestUser;
-  let billId: string;
   let configId: string;
+
+  function newVersion() {
+    return createVersion({
+      interviewConfigId: configId,
+      trigger: "manual",
+      model: "test",
+      promptVersion: "v4",
+    });
+  }
 
   beforeAll(async () => {
     testUser = await createTestUser();
-    const bill = await createTestBill();
-    billId = bill.id;
-    const { data: config, error } = await adminClient
-      .from("interview_configs")
-      .insert({ bill_id: billId, status: "public", name: "hierarchy-test" })
-      .select()
-      .single();
-    if (!config) throw new Error(`config 作成失敗: ${error?.message}`);
-    configId = config.id;
+    configId = (await createTestInterviewConfig({ name: "hierarchy-test" })).id;
   });
 
   afterAll(async () => {
     // 片方が失敗しても残りの後始末を進める。
     await Promise.allSettled([
-      cleanupTestBill(billId),
+      cleanupTestInterviewConfig(configId),
       cleanupTestUser(testUser.id),
     ]);
   });
 
   it("親を先に入れて子に parent_topic_id が載る", async () => {
-    const version = await createVersion(billId, "manual", "test", "v4");
+    const version = await newVersion();
     if (!version) throw new Error("version 作成失敗");
-    const opinion = await createOpinion({
+    const segmentId = await createSegment({
       configId,
       userId: testUser.id,
       title: "階層テスト用",
@@ -129,7 +111,7 @@ describe("トピック2階層 統合テスト", () => {
           parent_sort_order: 0,
         },
       ],
-      [{ opinion_id: opinion.id, topic_index: 1 }]
+      [{ opinion_segment_id: segmentId, topic_index: 1 }]
     );
 
     const { data: topics } = await adminClient
@@ -145,7 +127,7 @@ describe("トピック2階層 統合テスト", () => {
     expect(topics?.[0].parent_topic_id).toBeNull();
     expect(topics?.[1].parent_topic_id).toBe(topics?.[0].id);
 
-    // 意見は葉にだけ紐づく
+    // 論点は葉にだけ紐づく
     const { data: links } = await adminClient
       .from("topic_opinion")
       .select("topic_id")
@@ -157,16 +139,16 @@ describe("トピック2階層 統合テスト", () => {
     const leaves = await getLeafTopicsWithOpinions(version.id);
     expect(leaves.map((t) => t.title)).toEqual(["中トピックの主張"]);
 
-    // pending のまま残すと one_active_version_per_bill で次の版が作れない
+    // pending のまま残すと one_active_version_per_interview_config で次の版が作れない
     await finalizeVersion(version.id, 1);
   });
 
   // topic_opinion と同じく、別 version のトピックを親にできないよう複合FKで縛っている。
   it("別 version のトピックを親にできない", async () => {
-    const parentVersion = await createVersion(billId, "manual", "test", "v4");
+    const parentVersion = await newVersion();
     if (!parentVersion) throw new Error("version 作成失敗");
     await finalizeVersion(parentVersion.id, 0);
-    const other = await createVersion(billId, "manual", "test", "v4");
+    const other = await newVersion();
     if (!other) throw new Error("version 作成失敗");
     const { data: foreignParent } = await adminClient
       .from("topic")
@@ -192,12 +174,12 @@ describe("トピック2階層 統合テスト", () => {
     await finalizeVersion(other.id, 0);
   });
 
-  // 子を全部削除された大トピックは「子なし」になるが、意見0件なので葉に昇格しない。
+  // 子を全部削除された大トピックは「子なし」になるが、論点0件なので葉に昇格しない。
   // 子の有無で判定していると、領域見出しが増分の割当先候補として復活する。
   it("子を失った大トピックは葉として返らない", async () => {
-    const version = await createVersion(billId, "manual", "test", "v4");
+    const version = await newVersion();
     if (!version) throw new Error("version 作成失敗");
-    const opinion = await createOpinion({
+    const segmentId = await createSegment({
       configId,
       userId: testUser.id,
       title: "孤児親テスト",
@@ -214,7 +196,7 @@ describe("トピック2階層 統合テスト", () => {
         },
         { title: "中", description: "-", sort_order: 1, parent_sort_order: 0 },
       ],
-      [{ opinion_id: opinion.id, topic_index: 1 }]
+      [{ opinion_segment_id: segmentId, topic_index: 1 }]
     );
 
     // 唯一の子を削除して親を子なしにする
@@ -233,16 +215,16 @@ describe("トピック2階層 統合テスト", () => {
     await finalizeVersion(version.id, 1);
   });
 
-  // 2階層化以前の version は親も子も持たない。意見が付いた行が葉。
+  // 2階層化以前の version は親も子も持たない。論点が付いた行が葉。
   it("旧データ（フラット）は全件が葉として返る", async () => {
-    const version = await createVersion(billId, "manual", "test", "v4");
+    const version = await newVersion();
     if (!version) throw new Error("version 作成失敗");
-    const o1 = await createOpinion({
+    const s1 = await createSegment({
       configId,
       userId: testUser.id,
       title: "旧データ1",
     });
-    const o2 = await createOpinion({
+    const s2 = await createSegment({
       configId,
       userId: testUser.id,
       title: "旧データ2",
@@ -265,8 +247,8 @@ describe("トピック2階層 統合テスト", () => {
         },
       ],
       [
-        { opinion_id: o1.id, topic_index: 0 },
-        { opinion_id: o2.id, topic_index: 1 },
+        { opinion_segment_id: s1, topic_index: 0 },
+        { opinion_segment_id: s2, topic_index: 1 },
       ]
     );
 
@@ -278,25 +260,25 @@ describe("トピック2階層 統合テスト", () => {
   // 2階層化で sort_order の意味が「件数降順」から「深さ優先」に変わったため、
   // 公開側で並べ直さないと web のトピック順が黙って変わる。
   it("公開ページのトピック順は件数降順のまま（階層の深さ優先順にしない）", async () => {
-    const version = await createVersion(billId, "manual", "test", "v4");
+    const version = await newVersion();
     if (!version) throw new Error("version 作成失敗");
 
     // 大A(合計3: 2件/1件) → 大B(合計4: 4件) の順で並べる。
     // 深さ優先のままだと 2,1,4 になる。件数降順なら 4,2,1。
     const counts = { few: 1, mid: 2, many: 4 };
-    const opinionsBySlot: Record<string, string[]> = {
+    const segmentsBySlot: Record<string, string[]> = {
       few: [],
       mid: [],
       many: [],
     };
     for (const [slot, n] of Object.entries(counts)) {
       for (let i = 0; i < n; i++) {
-        const o = await createOpinion({
+        const segmentId = await createSegment({
           configId,
           userId: testUser.id,
           title: `${slot}-${i}`,
         });
-        opinionsBySlot[slot].push(o.id);
+        segmentsBySlot[slot].push(segmentId);
       }
     }
 
@@ -335,10 +317,16 @@ describe("トピック2階層 統合テスト", () => {
         },
       ],
       [
-        ...opinionsBySlot.mid.map((id) => ({ opinion_id: id, topic_index: 1 })),
-        ...opinionsBySlot.few.map((id) => ({ opinion_id: id, topic_index: 2 })),
-        ...opinionsBySlot.many.map((id) => ({
-          opinion_id: id,
+        ...segmentsBySlot.mid.map((id) => ({
+          opinion_segment_id: id,
+          topic_index: 1,
+        })),
+        ...segmentsBySlot.few.map((id) => ({
+          opinion_segment_id: id,
+          topic_index: 2,
+        })),
+        ...segmentsBySlot.many.map((id) => ({
+          opinion_segment_id: id,
           topic_index: 4,
         })),
       ]
@@ -346,9 +334,9 @@ describe("トピック2階層 統合テスト", () => {
     await finalizeVersion(version.id, 7);
     await publishVersion(version.id);
 
-    const published = await getPublicTopicAnalysis(billId);
+    const published = await getPublicTopicAnalysis(configId);
 
-    // 大トピックは意見0件なので出ない。中トピックは件数降順。
+    // 大トピックは論点0件なので出ない。中トピックは件数降順。
     expect(published?.topics.map((t) => t.title)).toEqual([
       "中many",
       "中mid",

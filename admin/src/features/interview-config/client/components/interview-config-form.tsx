@@ -41,7 +41,6 @@ import {
   type InterviewConfig,
   type InterviewConfigInput,
   interviewConfigSchema,
-  textToArray,
 } from "../../shared/types";
 import {
   CHAT_MODEL_GROUPS,
@@ -58,8 +57,8 @@ interface InterviewConfigFormProps {
   getFormValuesRef?: MutableRefObject<
     | (() => {
         name: string;
-        mode: string;
-        themes: string[];
+        slug: string;
+        description: string | null;
         chat_model: string | null;
         estimated_duration: number | null;
       })
@@ -86,9 +85,9 @@ export function InterviewConfigForm({
     resolver: zodResolver(interviewConfigSchema),
     defaultValues: {
       name: config?.name || initialName || generateDefaultConfigName(),
-      status: config?.status || "closed",
-      mode: config?.mode || "loop",
-      themes: config?.themes || [],
+      slug: config?.slug || "",
+      status: config?.status || "draft",
+      description: config?.description ?? "",
       chat_model: config?.chat_model || null,
       estimated_duration: isNew ? 10 : (config?.estimated_duration ?? null),
     },
@@ -101,8 +100,8 @@ export function InterviewConfigForm({
         const values = form.getValues();
         return {
           name: values.name,
-          mode: values.mode,
-          themes: values.themes || [],
+          slug: values.slug,
+          description: values.description ?? null,
           chat_model: values.chat_model || null,
           estimated_duration: values.estimated_duration ?? null,
         };
@@ -113,7 +112,9 @@ export function InterviewConfigForm({
   // AI生成テーマの反映
   useEffect(() => {
     if (aiGeneratedThemes && aiGeneratedThemes.length > 0) {
-      form.setValue("themes", aiGeneratedThemes, { shouldDirty: true });
+      form.setValue("description", arrayToText(aiGeneratedThemes), {
+        shouldDirty: true,
+      });
       onAiThemesApplied?.();
       toast.success(`AIが${aiGeneratedThemes.length}件のテーマを設定しました`);
     }
@@ -240,6 +241,23 @@ export function InterviewConfigForm({
 
               <FormField
                 control={form.control}
+                name="slug"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Slug</FormLabel>
+                    <FormControl>
+                      <Input placeholder="saga-no-mirai" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      公開ページのURLに使う識別子です（重複不可）
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
@@ -251,42 +269,13 @@ export function InterviewConfigForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="public">公開（有効）</SelectItem>
-                        <SelectItem value="closed">非公開（無効）</SelectItem>
+                        <SelectItem value="draft">下書き</SelectItem>
+                        <SelectItem value="open">募集中</SelectItem>
+                        <SelectItem value="closed">終了</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      インタビュー機能の有効/無効を設定します。公開設定は議案ごとに1つのみ可能です。
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="mode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>インタビューモード</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="モードを選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="loop">逐次深掘り（loop）</SelectItem>
-                        <SelectItem value="bulk">一括深掘り（bulk）</SelectItem>
-                        <SelectItem value="targeted">
-                          対象者指定（targeted）
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      loop: 質問ごとに深掘り / bulk:
-                      事前定義質問を先にすべて消化してから深掘り / targeted:
-                      質問ごとに対象者条件を設定し、該当しないインタビュイーにはスキップ
+                      意見募集の状態を設定します。募集中にできるのは施策ごとに1つのみです。
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -373,22 +362,20 @@ export function InterviewConfigForm({
 
               <FormField
                 control={form.control}
-                name="themes"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>質問テーマ</FormLabel>
+                    <FormLabel>テーマの説明</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="質問テーマを改行区切りで入力"
+                        placeholder="意見を募集するテーマの説明を入力"
                         className="min-h-[100px] resize-y"
-                        value={arrayToText(field.value)}
-                        onChange={(e) => {
-                          field.onChange(textToArray(e.target.value));
-                        }}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
                       />
                     </FormControl>
                     <FormDescription>
-                      質問テーマを1行ずつ入力してください
+                      職員が設定するテーマの説明文です。AIへの指示材料にもなります
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

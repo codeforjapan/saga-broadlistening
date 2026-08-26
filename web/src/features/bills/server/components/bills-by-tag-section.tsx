@@ -1,8 +1,8 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { routes } from "@/lib/routes";
-import type { BillsByTag } from "../../shared/types";
 import { BillCard } from "../../client/components/bill-list/bill-card";
+import type { BillsByTag } from "../../shared/types";
 
 interface BillsByTagSectionProps {
   billsByTag: BillsByTag[];
@@ -23,9 +23,7 @@ export function BillsByTagSection({ billsByTag }: BillsByTagSectionProps) {
               {tag.label}
             </h2>
             {tag.description && (
-              <p className="text-xs text-mirai-text-secondary">
-                {tag.description}
-              </p>
+              <p className="text-xs text-foreground">{tag.description}</p>
             )}
           </div>
 

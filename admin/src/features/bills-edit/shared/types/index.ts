@@ -1,64 +1,43 @@
 import type { Database } from "@mirai-gikai/supabase";
 import { z } from "zod";
 
-// 既存の型を再利用
-export type Bill = Database["public"]["Tables"]["bills"]["Row"];
-export type BillUpdate = Database["public"]["Tables"]["bills"]["Update"];
-export type BillInsert = Database["public"]["Tables"]["bills"]["Insert"];
+// Epic #54 で bills → policies に再定義された。bill という名前の改名は
+// Epic #8 完了後のフォローアップで行う。
+export type Bill = Database["public"]["Tables"]["policies"]["Row"];
+export type BillUpdate = Database["public"]["Tables"]["policies"]["Update"];
+export type BillInsert = Database["public"]["Tables"]["policies"]["Insert"];
 
 // 公開ステータス型
-export type BillPublishStatus = "draft" | "published" | "coming_soon";
+export type BillPublishStatus = "draft" | "published";
 
 // 共通のバリデーションスキーマ
 const billBaseSchema = z.object({
   name: z
     .string()
-    .min(1, "議案名は必須です")
-    .max(200, "議案名は200文字以内で入力してください"),
-  status: z.enum([
-    "preparing",
-    "introduced",
-    "in_originating_house",
-    "in_receiving_house",
-    "enacted",
-    "rejected",
-  ]),
-  originating_house: z.enum(["HR", "HC"]),
-  status_note: z
+    .min(1, "施策名は必須です")
+    .max(200, "施策名は200文字以内で入力してください"),
+  slug: z
     .string()
-    .max(500, "ステータス備考は500文字以内で入力してください")
-    .nullable(),
-  submitted_date: z
+    .min(1, "slugは必須です")
+    .max(200, "slugは200文字以内で入力してください"),
+  department: z
     .string()
-    .refine(
-      (val) => val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val),
-      "議案提出日は YYYY-MM-DD 形式で入力してください"
-    )
+    .max(100, "担当部署は100文字以内で入力してください")
+    .nullable()
+    .optional(),
+  contact: z
+    .string()
+    .max(500, "問い合わせ先は500文字以内で入力してください")
+    .nullable()
     .optional(),
   thumbnail_url: z.string().nullable().optional(),
   share_thumbnail_url: z.string().nullable().optional(),
-  shugiin_url: z
-    .string()
-    .transform((val) => (val === "" ? null : val))
-    .nullable()
-    .refine((val) => val === null || val.startsWith("http"), {
-      message: "有効なURLを入力してください",
-    })
-    .optional(),
   is_featured: z.boolean(),
-  is_review_completed: z.boolean(),
-  diet_session_id: z.string().uuid().nullable().optional(),
-  slug: z
-    .string()
-    .max(200, "slugは200文字以内で入力してください")
-    .transform((val) => (val === "" ? null : val))
-    .nullable()
-    .optional(),
   knowledge_source: z
     .string()
     .max(40_000, "ナレッジソースは40,000文字以内で入力してください")
     .optional(),
-  use_knowledge_source_in_chat: z.boolean().optional(),
+  enable_ai_chat: z.boolean().optional(),
 });
 
 // 更新用スキーマ（既存）

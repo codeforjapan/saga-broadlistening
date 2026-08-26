@@ -1,6 +1,7 @@
 "use client";
 
 import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/shared/site";
+import { logoImageProps } from "@/lib/logo";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -17,7 +18,7 @@ export function Footer() {
   }
 
   return (
-    <footer className="bg-mirai-gradient text-slate-900">
+    <footer className="bg-secondary text-foreground">
       <div className="mx-auto flex w-full max-w-[500px] flex-col items-center px-6 py-14 pb-20 text-center">
         <FooterLogoSection />
         <FooterPrimaryLinks />
@@ -32,13 +33,7 @@ function FooterLogoSection() {
   return (
     <div className="flex flex-col items-center text-center mb-9">
       <Link href={routes.home()} aria-label={`${SITE_NAME} トップページ`}>
-        <Image
-          src="/img/logo.svg"
-          alt={SITE_NAME}
-          width={150}
-          height={128}
-          className="h-auto"
-        />
+        <Image alt={SITE_NAME} {...logoImageProps("full", 76)} />
       </Link>
     </div>
   );
@@ -49,7 +44,7 @@ function FooterPrimaryLinks() {
     <nav aria-label="主要リンク" className="w-full mb-5">
       <ul
         className="
-      flex flex-col items-center gap-3 text-[14px] font-semibold text-slate-800
+      flex flex-col items-center gap-3 text-[14px] font-semibold text-foreground
       md:flex-row md:justify-center md:gap-5
       "
       >
@@ -57,7 +52,7 @@ function FooterPrimaryLinks() {
           <li key={link.label}>
             <Link
               href={link.href as Route}
-              className="transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              className="transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {link.label}
             </Link>
@@ -70,13 +65,13 @@ function FooterPrimaryLinks() {
 
 function FooterPolicies() {
   return (
-    <div className="flex flex-col items-center text-[12px] font-semibold text-slate-800 mb-5">
+    <div className="flex flex-col items-center text-[12px] font-semibold text-foreground mb-5">
       <ul className="flex flex-wrap justify-center gap-x-2 gap-y-1">
         {policyLinks.map((policy, index) => (
           <li key={policy.label} className="flex items-center gap-2">
             <Link
               href={policy.href as Route}
-              className="transition-colors hover:text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-900"
+              className="transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
               {policy.label}
             </Link>
@@ -90,7 +85,7 @@ function FooterPolicies() {
 
 function FooterCopyright() {
   return (
-    <div className="flex flex-col gap-2 text-center text-xs font-medium text-slate-800">
+    <div className="flex flex-col gap-2 text-center text-xs font-medium text-foreground">
       <p className="text-caption opacity-80">
         これは政党チームみらいが運営しているものではありません（本家「
         <a

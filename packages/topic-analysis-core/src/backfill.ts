@@ -1,89 +1,115 @@
 import {
   countPendingReextraction,
-  findReportsToReextract,
-  resetReextractionForBill,
+  findOpinionsToReextract,
+  resetReextractionForInterviewConfig,
 } from "./repositories/backfill-repository";
+import { fetchInterviewConfigContext } from "./repositories/analysis-repository";
 import {
   type GenerateReportFn,
+  type LoadConfigContextFn,
   reextractReportOpinions,
 } from "./services/reextract-report-opinions";
 import type { BackfillScope } from "./shared/backfill-params";
-import type { BackfillTargetReport } from "./shared/types";
+import type { BackfillTargetOpinion } from "./shared/types";
 import {
   OPINION_BACKFILL_CHUNK_SIZE,
   OPINION_BACKFILL_CONCURRENCY,
 } from "./shared/constants";
 import {
-  type BackfillChunkResult,
   runWatermarkBackfill,
-  runWatermarkBackfillChunk,
   type WatermarkBackfillSteps,
 } from "./utils/run-watermark-backfill";
-
-export type { BackfillChunkResult };
 
 /** 再抽出1件あたりの依存（生成関数の差し替え・使用モデル）。 */
 type ReextractDeps = { generateReport?: GenerateReportFn; model?: string };
 
 export type BackfillOptions = ReextractDeps & {
-  /** 指定議案に限定して実行する。未指定なら全議案。 */
-  billId?: string;
+  /** 指定テーマに限定して実行する。未指定なら全テーマ。 */
+  interviewConfigId?: string;
   /**
-   * "pending"（既定）: 未再抽出のレポートのみ。
-   * "all": 既に再抽出済みも含めて全件やり直す（billId 必須）。
+   * "pending"（既定）: 未再抽出の意見のみ。
+   * "all": 既に再抽出済みも含めて全件やり直す（interviewConfigId 必須）。
    */
   scope?: BackfillScope;
 };
 
+/**
+ * テーマ文脈を config ごとに1回だけ引く取得関数を作る。
+ * 内容は同じ config の全意見で同一なので、意見1件ごとに引き直すのは無駄。
+ * 失敗した取得はキャッシュから外し、次の意見で引き直せるようにする。
+ */
+function createConfigContextLoader(): LoadConfigContextFn {
+  const cache = new Map<
+    string,
+    ReturnType<typeof fetchInterviewConfigContext>
+  >();
+  return (interviewConfigId) => {
+    const cached = cache.get(interviewConfigId);
+    if (cached) return cached;
+    const pending = fetchInterviewConfigContext(interviewConfigId).catch(
+      (error) => {
+        cache.delete(interviewConfigId);
+        throw error;
+      }
+    );
+    cache.set(interviewConfigId, pending);
+    return pending;
+  };
+}
+
 /** 共通ドライバに渡すステップ定義を組み立てる。 */
 function buildSteps(
-  deps: { billId?: string } & ReextractDeps
-): WatermarkBackfillSteps<BackfillTargetReport> {
-  const { billId, generateReport, model } = deps;
+  deps: { interviewConfigId?: string } & ReextractDeps
+): WatermarkBackfillSteps<BackfillTargetOpinion> {
+  const { interviewConfigId, generateReport, model } = deps;
+  const loadConfigContext = createConfigContextLoader();
   return {
     label: "backfill",
     chunkSize: OPINION_BACKFILL_CHUNK_SIZE,
     concurrency: OPINION_BACKFILL_CONCURRENCY,
-    findTargets: (limit) => findReportsToReextract(limit, billId),
+    findTargets: (limit) => findOpinionsToReextract(limit, interviewConfigId),
     processTarget: (target) =>
-      reextractReportOpinions(target, { generateReport, model }),
-    countRemaining: () => countPendingReextraction(billId),
+      reextractReportOpinions(target, {
+        generateReport,
+        model,
+        loadConfigContext,
+      }),
+    countRemaining: () => countPendingReextraction(interviewConfigId),
   };
 }
 
 /**
- * 未再抽出レポートを1チャンク分（最大 CHUNK_SIZE 件）処理する。
- * チャンク内は CONCURRENCY 件ずつ並列実行する。
- * 成功・スキップはウォーターマークを進めるが、失敗（生成エラー等）は進めない。
- */
-export function runOpinionBackfillChunk(
-  deps: { billId?: string } & ReextractDeps = {}
-): Promise<BackfillChunkResult> {
-  return runWatermarkBackfillChunk(buildSteps(deps));
-}
-
-/**
  * 意見再抽出バックフィルを実行する（Cloud Run Job のメイン処理）。
- * - scope="pending"（既定）: 未再抽出レポートをウォーターマーク方式で全件処理。
- * - scope="all": 指定議案のウォーターマークを一旦リセットしてから全件処理し直す（billId 必須）。
- *   リセットにより全件が未再抽出扱いになるため、進捗（pending）が正しく分母になる。
+ * - scope="pending"（既定）: 未再抽出の意見をウォーターマーク方式で全件処理。
+ * - scope="all": 指定テーマのウォーターマークを一旦リセットしてから全件処理し直す
+ *   （interviewConfigId 必須）。リセットにより全件が未再抽出扱いになるため、
+ *   進捗（pending）が正しく分母になる。
  * - model: 再抽出に使う AI モデル（未指定なら OPINION_BACKFILL_MODEL）。
  */
-export async function runBackfill(options: BackfillOptions = {}): Promise<void> {
-  const { billId, scope = "pending", generateReport, model } = options;
+export async function runBackfill(
+  options: BackfillOptions = {}
+): Promise<void> {
+  const {
+    interviewConfigId,
+    scope = "pending",
+    generateReport,
+    model,
+  } = options;
   console.log(
-    `[topic-analysis] start opinion backfill (scope=${scope} bill=${billId ?? "all"} model=${model ?? "default"})`
+    `[topic-analysis] start opinion backfill (scope=${scope} config=${interviewConfigId ?? "all"} model=${model ?? "default"})`
   );
 
   if (scope === "all") {
-    if (!billId) {
-      throw new Error('backfill scope="all" requires a billId');
+    if (!interviewConfigId) {
+      throw new Error('backfill scope="all" requires an interviewConfigId');
     }
-    const reset = await resetReextractionForBill(billId);
+    const reset = await resetReextractionForInterviewConfig(interviewConfigId);
     console.log(
-      `[topic-analysis] reset ${reset} reextraction watermark(s) for bill=${billId}`
+      `[topic-analysis] reset ${reset} reextraction watermark(s) for config=${interviewConfigId}`
     );
   }
 
-  await runWatermarkBackfill(buildSteps({ billId, generateReport, model }));
+  await runWatermarkBackfill(
+    buildSteps({ interviewConfigId, generateReport, model })
+  );
 }

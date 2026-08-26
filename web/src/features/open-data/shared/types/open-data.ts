@@ -1,20 +1,19 @@
-import type { OpenDataOpinion } from "../utils/opinions";
-
 export type OpenDataMessage = {
   role: "assistant" | "user";
   content: string;
 };
 
 export type OpenDataInterviewItem = {
-  reportId: string;
-  billId: string;
-  billName: string;
-  stance: string | null;
-  role: string | null;
+  opinionId: string;
+  /** 意見募集（テーマ）のID */
+  interviewConfigId: string;
+  /** 意見募集（テーマ）名 */
+  interviewConfigName: string;
   roleTitle: string | null;
   roleDescription: string | null;
   summary: string | null;
-  opinions: OpenDataOpinion[];
+  /** 回答者が最終確認・修正して提出した意見文 */
+  finalText: string;
   messages: OpenDataMessage[];
   createdAt: string;
 };

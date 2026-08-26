@@ -9,17 +9,10 @@ import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
-import { countPublicReportsByBillId } from "@/features/interview-report/server/repositories/interview-report-repository";
+import { getLinkedInterviewConfigId } from "@/features/interview-config/server/loaders/get-linked-interview-config-id";
+import { countPublicOpinionsByInterviewConfigId } from "@/features/interview-report/server/repositories/interview-report-repository";
 import { routes } from "@/lib/routes";
 import { TopicOpinionList } from "../../client/components/topic-opinion-list";
-import {
-  TopicCategoryChips,
-  TopicSentiment,
-} from "../../shared/components/topic-meta";
-import {
-  type TopicFilter,
-  topicFilterLabel,
-} from "../../shared/utils/filter-topics";
 import { splitSummaryLines } from "../../shared/utils/split-summary-lines";
 import { getPublicTopicDetail } from "../loaders/get-public-topic-detail";
 
@@ -29,24 +22,22 @@ function TopicNav({
   total,
   prevTopicId,
   nextTopicId,
-  filter,
 }: {
   billId: string;
   position: number;
   total: number;
   prevTopicId: string | null;
   nextTopicId: string | null;
-  filter: TopicFilter;
 }) {
   return (
     // 3カラムグリッドで中央の位置カウンタを常に中央寄せにする
     // （前後リンクの有無にかかわらず位置がぶれないようにする）。
-    <div className="grid grid-cols-3 items-center text-[13px] font-medium text-mirai-text">
+    <div className="grid grid-cols-3 items-center text-[13px] font-medium text-foreground">
       {/* 先頭では「前のトピック」を非表示にする。 */}
       <div className="justify-self-start">
         {prevTopicId && (
           <Link
-            href={routes.billTopicDetail(billId, prevTopicId, filter) as Route}
+            href={routes.billTopicDetail(billId, prevTopicId) as Route}
             className="flex items-center gap-1 text-primary-accent hover:underline"
           >
             <ChevronLeft className="size-4 shrink-0" />
@@ -55,7 +46,7 @@ function TopicNav({
         )}
       </div>
 
-      <span className="justify-self-center text-mirai-text-muted">
+      <span className="justify-self-center text-muted-foreground">
         {position}/{total}
       </span>
 
@@ -63,7 +54,7 @@ function TopicNav({
       <div className="justify-self-end">
         {nextTopicId && (
           <Link
-            href={routes.billTopicDetail(billId, nextTopicId, filter) as Route}
+            href={routes.billTopicDetail(billId, nextTopicId) as Route}
             className="flex items-center gap-1 text-primary-accent hover:underline"
           >
             次のトピック
@@ -78,21 +69,22 @@ function TopicNav({
 interface TopicDetailPageProps {
   billId: string;
   topicId: string;
-  /** 一覧から引き継いだフィルタ。前後トピックの並びとリンクに反映する。 */
-  filter?: TopicFilter;
 }
 
 export async function TopicDetailPage({
   billId,
   topicId,
-  filter = "all",
 }: TopicDetailPageProps) {
-  const [bill, detail, publicReportCount, interviewConfig] = await Promise.all([
+  const [bill, detail, interviewConfigId, interviewConfig] = await Promise.all([
     getBillById(billId),
-    getPublicTopicDetail(billId, topicId, filter),
-    countPublicReportsByBillId(billId),
+    getPublicTopicDetail(billId, topicId),
+    getLinkedInterviewConfigId(billId),
     getInterviewConfig(billId),
   ]);
+  // 使うのは k-匿名性ゲートの判定に必要な件数だけなので、公開意見の本体は引かない
+  const publicReportCount = interviewConfigId
+    ? await countPublicOpinionsByInterviewConfigId(interviewConfigId)
+    : 0;
 
   if (!bill || !detail) {
     notFound();
@@ -104,18 +96,14 @@ export async function TopicDetailPage({
   const { topic, position, total, prevTopicId, nextTopicId } = detail;
   const billTitle = bill.bill_content?.title || bill.name;
 
-  const filterLabel = topicFilterLabel(filter);
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "議案詳細", href: routes.billDetail(billId) },
-    {
-      label: filterLabel ? `トピック一覧（${filterLabel}）` : "トピック一覧",
-      href: routes.billTopics(billId),
-    },
+    { label: "施策詳細", href: routes.billDetail(billId) },
+    { label: "トピック一覧", href: routes.billTopics(billId) },
     { label: "トピック詳細" },
   ];
 
   return (
-    <div className="min-h-dvh bg-mirai-surface pt-24 md:pt-0">
+    <div className="min-h-dvh bg-background pt-24 md:pt-0">
       <Container>
         <div className="flex flex-col gap-6 pb-8 md:pt-8">
           {/* パンくず + 議案タイトル */}
@@ -130,7 +118,7 @@ export async function TopicDetailPage({
             </Link>
           </div>
 
-          <h1 className="text-[22px] font-bold leading-9 text-mirai-text">
+          <h1 className="text-[22px] font-bold leading-9 text-foreground">
             💬トピックに含まれる意見
           </h1>
 
@@ -140,21 +128,18 @@ export async function TopicDetailPage({
             total={total}
             prevTopicId={prevTopicId}
             nextTopicId={nextTopicId}
-            filter={filter}
           />
 
           {/* トピックヘッダー */}
           <div className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-5">
-            <h2 className="text-base font-bold leading-6 text-mirai-text">
+            <h2 className="text-base font-bold leading-6 text-foreground">
               {topic.title}
-              <span className="ml-1 text-[11px] font-medium text-topic-count">
+              <span className="ml-1 text-[11px] font-medium text-muted-foreground">
                 （{topic.opinion_count}件）
               </span>
             </h2>
-            <TopicSentiment sentiment={topic.sentiment} />
-            <TopicCategoryChips topic={topic} />
             {topic.description && (
-              <ul className="flex list-disc flex-col gap-1 pl-5 text-[15px] leading-6 text-mirai-text">
+              <ul className="flex list-disc flex-col gap-1 pl-5 text-[15px] leading-6 text-foreground">
                 {splitSummaryLines(topic.description).map((line) => (
                   <li key={line}>{line}</li>
                 ))}
@@ -164,7 +149,7 @@ export async function TopicDetailPage({
 
           {/* 意見一覧 */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-[13px] font-bold text-topic-label">
+            <h3 className="text-[13px] font-bold text-muted-foreground">
               このトピックに含まれる{topic.opinion_count}件の意見
             </h3>
             <TopicOpinionList

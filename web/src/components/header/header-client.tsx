@@ -1,6 +1,7 @@
 "use client";
 
 import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { logoImageProps } from "@/lib/logo";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -32,24 +33,10 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
     <header className="px-3 fixed top-4 left-0 right-0 z-40 max-w-[1440px] mx-auto">
       <div className="rounded-2xl bg-white shadow-sm mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo / Site Title */}
-          <div className="flex items-center">
-            <Link
-              href={routes.home()}
-              className="flex items-center space-x-2"
-              aria-label="ホーム"
-            >
-              <Image
-                src="/img/logo.svg"
-                alt={SITE_NAME}
-                width={36}
-                height={32}
-              />
-              <span className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">
-                {SITE_NAME}
-              </span>
-            </Link>
-          </div>
+          {/* ロゴ。小さく出すためタグライン抜き。ワードマークを含むのでサービス名は併記しない */}
+          <Link href={routes.home()} aria-label={`${SITE_NAME} ホーム`}>
+            <Image alt={SITE_NAME} {...logoImageProps("compact", 32)} />
+          </Link>
 
           {/* Navigation */}
           <nav

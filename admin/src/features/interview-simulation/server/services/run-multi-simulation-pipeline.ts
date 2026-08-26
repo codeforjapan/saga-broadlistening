@@ -2,7 +2,6 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import type {
-  InterviewMode,
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
   InterviewQuestion as PromptInterviewQuestion,
@@ -38,7 +37,6 @@ interface ImprovedPromptInputs {
   bill: PromptBillInput;
   interviewConfig: PromptInterviewConfig;
   questions: PromptInterviewQuestion[];
-  mode: InterviewMode;
   estimatedDurationMinutes: number | null;
 }
 
@@ -237,7 +235,6 @@ export async function runMultiSimulationPipeline(
             bill: params.improvedPromptInputs.bill,
             interviewConfig: params.improvedPromptInputs.interviewConfig,
             questions: params.improvedPromptInputs.questions,
-            mode: params.improvedPromptInputs.mode,
           },
           initialTurnEnhancement: {
             billTitle: params.billTitle,

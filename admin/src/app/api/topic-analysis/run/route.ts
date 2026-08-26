@@ -16,9 +16,11 @@ export async function POST(request: Request) {
   }
 
   let billId: string;
+  let configId: string;
   try {
     const body = await request.json();
     billId = body.billId;
+    configId = body.configId;
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
@@ -26,19 +28,22 @@ export async function POST(request: Request) {
     });
   }
 
-  if (!billId) {
-    return new Response(JSON.stringify({ error: "billId is required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  if (!billId || !configId) {
+    return new Response(
+      JSON.stringify({ error: "billId and configId are required" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
   try {
-    const version = await createVersion(billId);
+    const version = await createVersion(configId);
 
     after(async () => {
       try {
-        await executeAnalysisPipeline(version.id, billId);
+        await executeAnalysisPipeline(version.id, billId, configId);
       } catch (error) {
         console.error("[TopicAnalysis] Pipeline failed:", error);
       }

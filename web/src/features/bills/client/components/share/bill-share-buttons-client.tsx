@@ -37,7 +37,7 @@ export function BillShareButtonsClient({
         <Button
           variant="default"
           onClick={handleShare}
-          className="rounded-full px-6 py-3 h-auto font-bold text-base bg-mirai-gradient text-gray-800 hover:opacity-90 border border-gray-800"
+          className="rounded-full px-6 py-3 h-auto font-bold text-base bg-primary text-primary-foreground hover:opacity-90"
         >
           <Image
             src="/icons/ios-share.svg"
@@ -51,7 +51,7 @@ export function BillShareButtonsClient({
         <Button
           variant="outline"
           onClick={handleReport}
-          className="rounded-full px-6 py-3 h-auto font-bold text-base bg-white text-gray-800 hover:bg-gray-50 border-gray-800"
+          className="rounded-full px-6 py-3 h-auto font-bold text-base bg-white text-foreground hover:bg-muted border-foreground"
         >
           <Image
             src="/icons/report-error.svg"

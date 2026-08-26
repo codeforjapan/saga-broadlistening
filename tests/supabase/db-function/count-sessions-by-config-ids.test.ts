@@ -1,15 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestBill,
+  cleanupTestInterviewConfig,
   cleanupTestUser,
-  createTestBill,
+  createTestInterviewConfig,
+  createTestSession,
   createTestUser,
 } from "../utils";
 
 describe("count_sessions_by_config_ids", () => {
-  let bill1: { id: string };
-  let bill2: { id: string };
   let user: { id: string };
   let configId1: string;
   let configId2: string;
@@ -17,56 +16,29 @@ describe("count_sessions_by_config_ids", () => {
 
   beforeAll(async () => {
     user = await createTestUser();
-    bill1 = await createTestBill();
-    bill2 = await createTestBill();
 
     // config1: セッション3件
-    const { data: c1 } = await adminClient
-      .from("interview_configs")
-      .insert({ bill_id: bill1.id, status: "public", name: "設定1" })
-      .select()
-      .single();
-    configId1 = c1!.id;
-
+    configId1 = (await createTestInterviewConfig({ status: "open" })).id;
     for (let i = 0; i < 3; i++) {
-      await adminClient.from("interview_sessions").insert({
-        interview_config_id: configId1,
-        user_id: user.id,
-        started_at: new Date().toISOString(),
-      });
+      await createTestSession(configId1, user.id);
     }
 
     // config2: セッション1件
-    const { data: c2, error: c2Error } = await adminClient
-      .from("interview_configs")
-      .insert({ bill_id: bill1.id, status: "closed", name: "設定2" })
-      .select()
-      .single();
-    if (c2Error) throw new Error(`config2 作成失敗: ${c2Error.message}`);
-    configId2 = c2!.id;
-
-    await adminClient.from("interview_sessions").insert({
-      interview_config_id: configId2,
-      user_id: user.id,
-      started_at: new Date().toISOString(),
-    });
+    configId2 = (await createTestInterviewConfig({ status: "closed" })).id;
+    await createTestSession(configId2, user.id);
 
     // configEmpty: セッション0件
-    const { data: c3 } = await adminClient
-      .from("interview_configs")
-      .insert({ bill_id: bill2.id, status: "closed", name: "設定3（空）" })
-      .select()
-      .single();
-    configIdEmpty = c3!.id;
+    configIdEmpty = (await createTestInterviewConfig({ status: "draft" })).id;
   });
 
   afterAll(async () => {
-    await cleanupTestBill(bill1.id);
-    await cleanupTestBill(bill2.id);
+    for (const configId of [configId1, configId2, configIdEmpty]) {
+      await cleanupTestInterviewConfig(configId);
+    }
     await cleanupTestUser(user.id);
   });
 
-  it("複数configのセッション数を正しくカウントする", async () => {
+  it("複数の意見募集のセッション数を正しくカウントする", async () => {
     const { data, error } = await adminClient.rpc(
       "count_sessions_by_config_ids",
       { p_config_ids: [configId1, configId2] }
@@ -76,7 +48,7 @@ describe("count_sessions_by_config_ids", () => {
     expect(data).toHaveLength(2);
 
     const map = new Map(
-      data!.map((r) => [r.interview_config_id, r.session_count])
+      (data ?? []).map((r) => [r.interview_config_id, r.session_count])
     );
     expect(map.get(configId1)).toBe(3);
     expect(map.get(configId2)).toBe(1);

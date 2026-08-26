@@ -29,7 +29,7 @@ const classifyBatchSchema = z.object({
 });
 
 type ClassificationResult = {
-  interview_report_id: string;
+  opinion_id: string;
   opinion_index: number;
   topic_names: string[];
 };
@@ -108,13 +108,13 @@ ${opinionsText}
     }
   );
 
-  // LLMが返した連番IDを元のinterview_report_id + opinion_indexにマッピング
+  // LLMが返した連番IDを元の opinion_id + opinion_index にマッピング
   return object.classifications
     .filter((c) => c.opinion_id >= 1 && c.opinion_id <= opinions.length)
     .map((c) => {
       const opinion = opinions[c.opinion_id - 1];
       return {
-        interview_report_id: opinion.interview_report_id,
+        opinion_id: opinion.opinion_id,
         opinion_index: opinion.opinion_index,
         topic_names: c.topic_names,
       };

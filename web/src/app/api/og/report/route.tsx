@@ -1,10 +1,11 @@
-import { OG_COLORS } from "@mirai-gikai/design-tokens/brand-meta";
-import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { OG_COLORS } from "@mirai-gikai/design-tokens/brand-meta";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { ImageResponse } from "next/og";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";
 import { truncateText } from "@/features/interview-report/shared/utils/truncate-text";
+import { logoImageProps } from "@/lib/logo";
 
 /**
  * OGP画像のテキスト制限
@@ -13,6 +14,9 @@ const OG_SUMMARY_MAX_LENGTH = 100;
 const OG_BILL_NAME_MAX_LENGTH = 40;
 const OG_BILL_NAME_WIDTH = 820;
 const OG_BILL_NAME_MAX_HEIGHT = 96;
+
+/** OGP右下に配置するロゴの表示高さと、カード端からのオフセット(px) */
+const OG_LOGO = { height: 88, bottom: 26, right: 34 } as const;
 
 const FONT_FETCH_TIMEOUT_MS = 3000;
 
@@ -100,6 +104,12 @@ export async function GET(request: Request) {
   );
 
   const [fontData, logoDataUrl] = await Promise.all([loadFont(), loadLogo()]);
+
+  // ロゴはラスター版(ogp-logo.png)を埋め込むのでsrcは使わず、寸法だけフル版の比率から引く
+  const { width: logoWidth, height: logoHeight } = logoImageProps(
+    "full",
+    OG_LOGO.height
+  );
   // フォント取得失敗時はプロパティ自体を省略し、デフォルトフォントにフォールバック
   const fontOptions = fontData
     ? {
@@ -122,8 +132,7 @@ export async function GET(request: Request) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundImage:
-          "linear-gradient(177deg, rgb(226, 246, 243) 0%, rgb(238, 246, 226) 100%)",
+        backgroundImage: `linear-gradient(177deg, ${OG_COLORS.canvasFrom} 0%, ${OG_COLORS.canvasTo} 100%)`,
       }}
     >
       {/* グラデーションborder用ラッパー */}
@@ -133,8 +142,7 @@ export async function GET(request: Request) {
           width: 1140,
           height: 560,
           borderRadius: 30,
-          backgroundImage:
-            "linear-gradient(-30deg, rgb(188, 236, 211) 1%, rgb(100, 216, 198) 99%)",
+          backgroundImage: `linear-gradient(-30deg, ${OG_COLORS.frameFrom} 1%, ${OG_COLORS.frameTo} 99%)`,
           padding: 6,
           position: "relative",
         }}
@@ -145,7 +153,7 @@ export async function GET(request: Request) {
             flexDirection: "column",
             width: "100%",
             height: "100%",
-            backgroundColor: "white",
+            backgroundColor: OG_COLORS.background,
             borderRadius: 24,
             padding: "48px 56px",
           }}
@@ -184,48 +192,18 @@ export async function GET(request: Request) {
           </div>
         </div>
 
-        {/* サービス名バッジ */}
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingLeft: 20,
-            paddingRight: 18,
-            paddingTop: 10,
-            paddingBottom: 10,
-            borderBottomLeftRadius: 30,
-            borderTopRightRadius: 30,
-            backgroundColor: OG_COLORS.badgeSurface,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 28,
-              fontWeight: 800,
-              color: OG_COLORS.text,
-              letterSpacing: "0.03em",
-            }}
-          >
-            {SITE_NAME}
-          </span>
-        </div>
-
         {/* ロゴ画像 */}
         {logoDataUrl && (
           // biome-ignore lint/performance/noImgElement: ignore
           <img
             alt={`${SITE_NAME}ロゴ`}
             src={logoDataUrl}
-            width={189}
-            height={160}
+            width={logoWidth}
+            height={logoHeight}
             style={{
               position: "absolute",
-              bottom: -24,
-              right: -18,
+              bottom: OG_LOGO.bottom,
+              right: OG_LOGO.right,
             }}
           />
         )}

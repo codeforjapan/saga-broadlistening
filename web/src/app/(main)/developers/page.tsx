@@ -52,10 +52,10 @@ const links = [
 ];
 
 // Team Mirai デザインシステムの news-list パターン:
-// 区切り線（1px #e5e5e5 = neutral-200）で仕切った行 + 右端に teal のシェブロン。
+// 区切り線（border トークン）で仕切った行 + 右端にシェブロン。
 // ホバーはリンク色を teal-hover へ寄せる（不透明度やスケールは使わない）
 const rowClassName =
-  "group flex items-center gap-4 border-b border-neutral-200 py-4 transition-colors duration-150";
+  "group flex items-center gap-4 border-b border-border py-4 transition-colors duration-150";
 
 function LinkRowBody({
   icon: Icon,
@@ -71,16 +71,16 @@ function LinkRowBody({
   const Chevron = external ? ArrowUpRight : ChevronRight;
   return (
     <>
-      <Icon className="size-5 shrink-0 text-mirai-brand-teal-hover" />
+      <Icon className="size-5 shrink-0 text-primary-accent" />
       <div className="flex-1 space-y-0.5">
-        <p className="text-[15px] font-medium leading-relaxed tracking-wide text-black transition-colors duration-150 group-hover:text-mirai-brand-teal-hover">
+        <p className="text-[15px] font-medium leading-relaxed tracking-wide text-black transition-colors duration-150 group-hover:text-primary-accent">
           {title}
         </p>
-        <p className="text-[13px] leading-relaxed tracking-wide text-mirai-text-subtle">
+        <p className="text-[13px] leading-relaxed tracking-wide text-muted-foreground">
           {description}
         </p>
       </div>
-      <Chevron className="size-5 shrink-0 text-mirai-brand-teal-hover" />
+      <Chevron className="size-5 shrink-0 text-primary-accent" />
     </>
   );
 }
@@ -92,7 +92,7 @@ export default function DevelopersPage() {
         <Container className="space-y-10">
           {/* Team Mirai デザインシステムの節見出し: 英字ラベル + 日本語見出し */}
           <header className="space-y-2">
-            <p className="text-sm font-semibold tracking-[0.14em] text-mirai-brand-teal-hover">
+            <p className="text-sm font-semibold tracking-[0.14em] text-primary-accent">
               Developers
             </p>
             <h1 className="text-2xl font-bold tracking-wider text-black sm:text-3xl">
@@ -100,12 +100,12 @@ export default function DevelopersPage() {
             </h1>
           </header>
 
-          <p className="text-[15px] leading-loose tracking-wide text-mirai-text-subtle">
+          <p className="text-[15px] leading-loose tracking-wide text-muted-foreground">
             {SITE_NAME}
             では、AIインタビューに寄せられた議案への意見を、誰でも分析・活用できるオープンデータとして公開しています。
           </p>
 
-          <div className="flex flex-col border-t border-neutral-200">
+          <div className="flex flex-col border-t border-border">
             {links.map(({ href, external, ...item }) =>
               external ? (
                 <a

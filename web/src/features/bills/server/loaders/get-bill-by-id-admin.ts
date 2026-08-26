@@ -16,7 +16,7 @@ export async function getBillByIdAdmin(
 ): Promise<BillWithContent | null> {
   const difficultyLevel = await getDifficultyLevel();
 
-  // 基本的なbill情報、コンテンツ、タグを並列取得
+  // 基本的な施策情報、コンテンツ、タグを並列取得
   // ステータスに関係なく取得（管理者用）
   const [bill, billContent, billTags] = await Promise.all([
     findBillById(id),

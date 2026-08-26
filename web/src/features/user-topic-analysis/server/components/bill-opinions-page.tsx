@@ -38,7 +38,7 @@ export async function BillOpinionsPage({ billId }: BillOpinionsPageProps) {
   ];
 
   return (
-    <div className="min-h-dvh bg-mirai-surface pt-24 md:pt-0">
+    <div className="min-h-dvh bg-background pt-24 md:pt-0">
       <Container>
         <div className="flex flex-col gap-8 pb-8 md:pt-8">
           {/* パンくず + 議案タイトル */}
@@ -55,15 +55,15 @@ export async function BillOpinionsPage({ billId }: BillOpinionsPageProps) {
 
           {/* タイトル + 人数 + 説明 */}
           <div className="flex flex-col gap-4">
-            <h1 className="flex items-center gap-3 font-bold leading-9 text-mirai-text">
+            <h1 className="flex items-center gap-3 font-bold leading-9 text-foreground">
               <span className="text-[22px]">👫AIインタビューの回答一覧</span>
               <span className="text-[20px]">{respondents.length}人</span>
             </h1>
-            <div className="flex items-center gap-2.5 rounded-[10px] bg-topic-info-bg px-3 py-2.5">
+            <div className="flex items-center gap-2.5 rounded-[10px] bg-secondary px-3 py-2.5">
               <span className="flex size-5 shrink-0 items-center justify-center rounded-[10px] bg-white">
                 <Info className="size-3 text-primary-accent" />
               </span>
-              <p className="text-[12px] leading-5 text-mirai-text">
+              <p className="text-[12px] leading-5 text-foreground">
                 実際に回答された一人ひとりのAIインタビューの内容と、会話ログを読むことができます。公開に同意されたインタビュー回答のみ掲載しています。
               </p>
             </div>
@@ -73,7 +73,7 @@ export async function BillOpinionsPage({ billId }: BillOpinionsPageProps) {
           {respondents.length > 0 ? (
             <RespondentList respondents={respondents} nowMs={nowMs} />
           ) : (
-            <p className="py-8 text-center text-mirai-text-muted">
+            <p className="py-8 text-center text-muted-foreground">
               公開されている回答はまだありません
             </p>
           )}

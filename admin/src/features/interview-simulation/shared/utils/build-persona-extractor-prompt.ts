@@ -33,7 +33,6 @@ export function buildPersonaExtractorPrompt(
 ## 元レポート情報
 - 立場（短縮）: ${original.roleTitle ?? "（不明）"}
 - 立場（詳細）: ${original.roleDescription ?? "（不明）"}
-- スタンス: ${original.stance ?? "（不明）"}
 - 主張サマリ: ${original.summary ?? "（不明）"}
 
 ## 抽出された主な意見
@@ -43,7 +42,7 @@ ${opinionsBlock}
 ${conversationBlock}
 
 ## 抽出ルール
-1. **元レポートと整合させる**: stance / role_title / role_description は元レポートの内容を尊重してください
+1. **元レポートと整合させる**: role_title / role_description は元レポートの内容を尊重してください
 2. **会話ログから推定する**: speaking_style / typical_response_length / knowledge_level / boundaries は実際の発話パターンから推定してください
 3. **物語として一貫性を持たせる**: background は「なぜこの人はこういう意見を持つのか」が短く伝わる一文にしてください
 4. **再現性のあるシートを目指す**: 後段でこのペルソナをもとに別のインタビュアーとロールプレイをするので、ペルソナ自身の行動原理が明確に書かれていることが重要です

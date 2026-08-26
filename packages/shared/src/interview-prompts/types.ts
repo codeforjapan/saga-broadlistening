@@ -11,12 +11,6 @@
  */
 
 /**
- * インタビューモードの全列挙値。zod スキーマ・型定義の単一の出典として参照する。
- */
-export const INTERVIEW_MODES = ["loop", "bulk", "targeted"] as const;
-export type InterviewMode = (typeof INTERVIEW_MODES)[number];
-
-/**
  * インタビュープロンプトが参照する Bill の最小構造
  */
 export type PromptBillInput = {
@@ -33,7 +27,8 @@ export type PromptBillInput = {
  * インタビュー設定の型（純粋関数用）
  */
 export type InterviewConfig = {
-  themes?: string[] | null;
+  /** 職員が設定したテーマの説明文（interview_configs.description）。 */
+  description?: string | null;
   [key: string]: unknown;
 } | null;
 
@@ -45,11 +40,6 @@ export interface InterviewQuestion {
   question: string;
   quick_replies?: string[] | null;
   follow_up_guide?: string | null;
-  /**
-   * 対象者条件（任意）。targeted モードでのみ参照される。
-   * 指定された場合、LLM が会話文脈から該当性を判定し、非該当なら質問をスキップする。
-   */
-  target_audience?: string | null;
 }
 
 /**

@@ -22,7 +22,7 @@ interface InterviewPreviewChatPageProps {
 
 function PreviewBanner() {
   return (
-    <div className="sticky top-0 z-50 bg-yellow-50 border-b border-yellow-200">
+    <div className="sticky top-0 z-50 bg-yellow-400/20 border-b border-yellow-400">
       <div className="max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-yellow-800">
@@ -67,11 +67,8 @@ export default async function InterviewPreviewChatPage({
     notFound();
   }
 
-  // ループモードの場合のみ質問数を取得（プログレスバー用）
-  const questions =
-    interviewConfig.mode === "loop"
-      ? await getInterviewQuestions(interviewConfig.id)
-      : [];
+  // 質問数を取得（プログレスバー用）
+  const questions = await getInterviewQuestions(interviewConfig.id);
 
   // インタビューチャットの初期化処理
   try {
@@ -88,7 +85,6 @@ export default async function InterviewPreviewChatPage({
           billTitle={bill.bill_content?.title ?? bill.name}
           sessionId={session.id}
           initialMessages={messages}
-          mode={interviewConfig.mode}
           totalQuestions={questions.length}
           estimatedDuration={interviewConfig.estimated_duration}
           sessionStartedAt={session.started_at}

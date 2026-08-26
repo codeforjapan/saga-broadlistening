@@ -12,7 +12,7 @@ const baseBill = {
 };
 
 const baseConfig = {
-  themes: ["射場の安全性", "地域経済への影響"],
+  description: "射場の安全性と地域経済への影響について意見を募集します",
 };
 
 describe("buildDiverseRolesPlanPrompt", () => {
@@ -25,8 +25,9 @@ describe("buildDiverseRolesPlanPrompt", () => {
     expect(out).toContain("宇宙ビジネス促進法案");
     expect(out).toContain("民間宇宙射場の整備促進");
     expect(out).toContain("民間事業者の射場運用を支援する");
-    expect(out).toContain("射場の安全性");
-    expect(out).toContain("地域経済への影響");
+    expect(out).toContain(
+      "射場の安全性と地域経済への影響について意見を募集します"
+    );
     expect(out).toContain("業界団体ヒアリング");
     expect(out).toContain("3 人の当事者");
     expect(out).toContain("3 件");
@@ -78,7 +79,7 @@ describe("buildDiverseRolesPlanPrompt", () => {
   it("テーマ未設定時は明示する", () => {
     const out = buildDiverseRolesPlanPrompt({
       bill: { ...baseBill, knowledge_source: null },
-      interviewConfig: { themes: [] },
+      interviewConfig: { description: null },
       slotsToPlan: [{}, {}],
     });
     expect(out).toContain("（テーマ未設定）");

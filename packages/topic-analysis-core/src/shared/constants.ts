@@ -30,7 +30,7 @@ export const ANALYSIS_STEPS = {
  * 二重起動ガードで「実行中」とみなす version の鮮度しきい値。
  * Cloud Run の Job 実行は「受理されたが worker のコードに到達せず失敗」しうる
  * （不正イメージ・secret 欠落・quota/IAM 起動失敗・task-timeout 等）。
- * その場合 version が pending/running のまま残り、findActiveVersionByBill が
+ * その場合 version が pending/running のまま残り、findActiveVersionByInterviewConfig が
  * 永続的に「実行中」と判定して再実行をブロックしてしまう。
  * 以下の経過時間を超えた pending/running は失効（dead）とみなして再実行を許可する。
  */
@@ -40,7 +40,7 @@ export const STALE_PENDING_MS = 5 * 60_000;
 export const STALE_RUNNING_MS = 70 * 60_000;
 
 // ── バックフィル（backfill）──
-/** 1チャンクで再抽出するレポート数 */
+/** 1チャンクで再抽出する意見数 */
 export const OPINION_BACKFILL_CHUNK_SIZE = 30;
 /** チャンク内のLLM並列実行数 */
 export const OPINION_BACKFILL_CONCURRENCY = 30;
@@ -49,14 +49,14 @@ export const OPINION_BACKFILL_MODEL = DEFAULT_OPINION_BACKFILL_MODEL;
 
 // ── タグ付けバックフィル（tag-backfill）──
 // 既存意見の本文を触らず、タグ（concern/proposal/reasoning_types）だけを追加する経路。
-/** 1チャンクでタグ付けするレポート数 */
+/** 1チャンクでタグ付けする意見数 */
 export const OPINION_TAG_BACKFILL_CHUNK_SIZE = 30;
 /** チャンク内のLLM並列実行数 */
 export const OPINION_TAG_BACKFILL_CONCURRENCY = 30;
 /**
  * タグ付けに使うモデル。
  * 入力は「抽出済みの意見＋その発言原文」に絞られ、出力は短い分類タグのみなので、
- * レポート生成用のモデルより軽いモデルで足りる。
+ * 意見生成用のモデルより軽いモデルで足りる。
  */
 export const OPINION_TAG_MODEL = TOPIC_MODEL;
 /**

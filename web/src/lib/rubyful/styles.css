@@ -5,6 +5,13 @@
   display: none;
 }
 
+/* ルビ表示中は本文の行間を広げ、ルビが上の行と重ならないようにする
+   （D-16: 本文 1.8 → ルビ表示時 1.9。倍率指定なのでフォントサイズに追従する）。
+   見出しは固有の行間（h1: 1.35 等）を保つため対象にしない */
+[data-ruby-enabled] main :is(p, li, td, th) {
+  line-height: var(--text-body-rubied--line-height, 1.9);
+}
+
 /* ルビは選択できないようにする */
 rt {
   user-select: none;

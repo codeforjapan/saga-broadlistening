@@ -14,8 +14,7 @@ describe("isValidReport", () => {
     expect(
       isValidReport({
         summary: null,
-        stance: null,
-        role: null,
+        final_text: "",
         role_description: null,
         role_title: null,
         opinions: [],
@@ -27,8 +26,7 @@ describe("isValidReport", () => {
     expect(
       isValidReport({
         summary: "テスト要約",
-        stance: null,
-        role: null,
+        final_text: "",
         role_description: null,
         role_title: null,
         opinions: [],
@@ -36,25 +34,11 @@ describe("isValidReport", () => {
     ).toBe(true);
   });
 
-  it("stanceがあればtrueを返す", () => {
+  it("final_textがあればtrueを返す", () => {
     expect(
       isValidReport({
         summary: null,
-        stance: "for",
-        role: null,
-        role_description: null,
-        role_title: null,
-        opinions: [],
-      })
-    ).toBe(true);
-  });
-
-  it("roleがあればtrueを返す", () => {
-    expect(
-      isValidReport({
-        summary: null,
-        stance: null,
-        role: "subject_expert",
+        final_text: "提出する意見の本文",
         role_description: null,
         role_title: null,
         opinions: [],
@@ -66,8 +50,7 @@ describe("isValidReport", () => {
     expect(
       isValidReport({
         summary: null,
-        stance: null,
-        role: null,
+        final_text: "",
         role_description: "専門家として",
         role_title: null,
         opinions: [],
@@ -79,8 +62,7 @@ describe("isValidReport", () => {
     expect(
       isValidReport({
         summary: null,
-        stance: null,
-        role: null,
+        final_text: "",
         role_description: null,
         role_title: "教師",
         opinions: [],
@@ -92,8 +74,7 @@ describe("isValidReport", () => {
     expect(
       isValidReport({
         summary: null,
-        stance: null,
-        role: null,
+        final_text: "",
         role_description: null,
         role_title: null,
         opinions: [
@@ -102,7 +83,6 @@ describe("isValidReport", () => {
             content: "内容1",
             source_message_id: null,
             contextual_quote: null,
-            bill_sentiment: null,
             richness: null,
             concern: null,
             proposal: null,
@@ -171,8 +151,7 @@ describe("parseMessageContent", () => {
       text: "レポートです",
       report: {
         summary: "要約テスト",
-        stance: "for",
-        role: "general_citizen",
+        final_text: "提出する意見の本文",
         role_description: "一般市民",
         role_title: "市民",
         opinions: [{ title: "意見", content: "内容" }],
@@ -181,8 +160,7 @@ describe("parseMessageContent", () => {
     const result = parseMessageContent(content);
     expect(result.report).toEqual({
       summary: "要約テスト",
-      stance: "for",
-      role: "general_citizen",
+      final_text: "提出する意見の本文",
       role_description: "一般市民",
       role_title: "市民",
       opinions: [{ title: "意見", content: "内容" }],
@@ -195,8 +173,7 @@ describe("parseMessageContent", () => {
       text: "テスト",
       report: {
         summary: "要約",
-        stance: "neutral",
-        role: null,
+        final_text: "本文",
         role_description: null,
         role_title: null,
         opinions: [],
@@ -213,8 +190,7 @@ describe("parseMessageContent", () => {
       text: "テスト",
       report: {
         summary: null,
-        stance: null,
-        role: null,
+        final_text: "",
         role_description: null,
         role_title: null,
         opinions: [],
@@ -229,8 +205,7 @@ describe("parseMessageContent", () => {
       text: "テスト",
       report: {
         summary: "要約あり",
-        stance: null,
-        role: null,
+        final_text: "",
         role_description: null,
         role_title: null,
         opinions: null,

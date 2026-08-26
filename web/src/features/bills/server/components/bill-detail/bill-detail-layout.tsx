@@ -7,7 +7,6 @@ import { BillTopicsPreviewSection } from "@/features/user-topic-analysis/server/
 import { getPublicTopicAnalysis } from "@/features/user-topic-analysis/server/loaders/get-public-topic-analysis";
 import { BillDetailClient } from "../../../client/components/bill-detail/bill-detail-client";
 import { BillDisclaimer } from "../../../client/components/bill-detail/bill-disclaimer";
-import { BillStatusProgress } from "../../../client/components/bill-detail/bill-status-progress";
 import type { BillWithContent } from "../../../shared/types";
 import { BillShareButtons } from "../share/bill-share-buttons";
 import { BillContent } from "./bill-content";
@@ -49,14 +48,6 @@ export async function BillDetailLayout({
           topicCount={topicAnalysis?.topics.length ?? 0}
         />
         <Container>
-          {/* 議案ステータス進捗 */}
-          <div className="my-8">
-            <BillStatusProgress
-              status={bill.status}
-              statusNote={bill.status_note}
-            />
-          </div>
-
           <BillContent bill={bill} />
         </Container>
       </BillDetailClient>

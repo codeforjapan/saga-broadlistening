@@ -16,12 +16,19 @@ import {
 } from "@/features/bills/server/repositories/bill-repository";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import {
+  createChatSession,
+  findLatestChatSessionId,
+  insertChatMessage,
+} from "@/features/chat/server/repositories/chat-session-repository";
+import {
   SUGGEST_INTERVIEW_TOOL_NAME,
   SUGGEST_INTERVIEW_TOOL_TYPE,
 } from "@/features/chat/shared/constants";
 import { ChatError, ChatErrorCode } from "@/features/chat/shared/types/errors";
+import { extractUiMessageText } from "@/features/chat/shared/utils/extract-ui-message-text";
+import { isFirstChatTurn } from "@/features/chat/shared/utils/is-first-chat-turn";
 import { pickChatKnowledgeSource } from "@/features/chat/shared/utils/pick-chat-knowledge-source";
-import { findPublicInterviewConfigByBillId } from "@/features/interview-config/server/repositories/interview-config-repository";
+import { findOpenInterviewConfigByPolicyId } from "@/features/interview-config/server/repositories/interview-config-repository";
 import { AI_MODELS } from "@/lib/ai/models";
 import { env } from "@/lib/env";
 import {
@@ -95,21 +102,17 @@ export async function handleChatRequest({
     console.error("Cost limit check error:", error);
   }
 
-  // Build prompt configuration
-  const { promptName, promptResult } = await buildPrompt(
-    context,
-    promptProvider
-  );
+  // プロンプト構築とインタビュー提案の判定は互いに独立なので並列で待つ
+  const [{ promptName, promptResult }, shouldSuggestInterview] =
+    await Promise.all([
+      buildPrompt(context, promptProvider),
+      determineShouldSuggestInterview(context, messages),
+    ]);
+
   // Model configuration
   const model = deps?.model ?? AI_MODELS.gpt4o;
   const modelName =
     typeof model === "string" ? model : (model.modelId ?? "unknown");
-
-  // Determine if interview suggestion should be enabled
-  const shouldSuggestInterview = await determineShouldSuggestInterview(
-    context,
-    messages
-  );
 
   // Build system prompt with interview suggestion instructions
   const pageType =
@@ -123,6 +126,12 @@ export async function handleChatRequest({
   // Build tools configuration
   const tools = buildTools(shouldSuggestInterview);
 
+  // 対話ログを chat_sessions / chat_messages に残す。
+  // ここで await すると初回トークンまでに DB 往復 2 回分の遅延が乗るため、
+  // Promise だけ握っておき、assistant 側を書く onFinish で待ち合わせる。
+  // 保存の失敗はストリームを止めない（ログのみ）。
+  const chatSessionIdPromise = persistUserMessage(context, messages, userId);
+
   // Generate streaming response
   try {
     const result = streamText({
@@ -131,6 +140,10 @@ export async function handleChatRequest({
       messages: await convertToModelMessages(messages),
       tools,
       onFinish: async (event) => {
+        const chatSessionId = await chatSessionIdPromise;
+        if (chatSessionId) {
+          await persistChatMessage(chatSessionId, "assistant", event.text);
+        }
         try {
           const providerCost = extractGatewayCost(event);
           await recordChatUsage({
@@ -160,6 +173,70 @@ export async function handleChatRequest({
       ChatErrorCode.LLM_GENERATION_FAILED,
       error instanceof Error ? error.message : String(error)
     );
+  }
+}
+
+/**
+ * 対話ログの保存先セッションを解決する。
+ * 会話の1ターン目は新規作成、2ターン目以降は直近のセッションへ追記する。
+ * 施策コンテキストが無いチャット（トップページ）は保存対象外。
+ */
+async function resolveChatSessionId(
+  context: ChatMessageMetadata,
+  messages: UIMessage<ChatMessageMetadata>[],
+  userId: string
+): Promise<string | null> {
+  const policyId = context.billContext?.id;
+  if (!policyId) {
+    return null;
+  }
+
+  try {
+    if (isFirstChatTurn(messages)) {
+      return await createChatSession({ policyId, userId });
+    }
+    return (
+      (await findLatestChatSessionId({ policyId, userId })) ??
+      (await createChatSession({ policyId, userId }))
+    );
+  } catch (error) {
+    console.error("Failed to resolve chat session:", error);
+    return null;
+  }
+}
+
+/**
+ * セッションを解決し、ユーザー発話を保存する。
+ * 解決した session ID を返し、保存対象外・失敗時は null を返す（reject しない）。
+ */
+async function persistUserMessage(
+  context: ChatMessageMetadata,
+  messages: UIMessage<ChatMessageMetadata>[],
+  userId: string
+): Promise<string | null> {
+  const chatSessionId = await resolveChatSessionId(context, messages, userId);
+  if (!chatSessionId) {
+    return null;
+  }
+  await persistChatMessage(
+    chatSessionId,
+    "user",
+    extractUiMessageText(messages.at(-1))
+  );
+  return chatSessionId;
+}
+
+/** 対話ログを1件保存する（失敗してもストリームは継続する）。 */
+async function persistChatMessage(
+  sessionId: string,
+  role: "user" | "assistant",
+  message: string
+): Promise<void> {
+  if (!message) return;
+  try {
+    await insertChatMessage({ sessionId, role, message });
+  } catch (error) {
+    console.error("Failed to persist chat message:", error);
   }
 }
 
@@ -346,7 +423,7 @@ async function determineShouldSuggestInterview(
   }
 
   // サーバー側でインタビュー設定の存在を検証（クライアント側のメタデータを信頼しない）
-  const { data: interviewConfig } = await findPublicInterviewConfigByBillId(
+  const { data: interviewConfig } = await findOpenInterviewConfigByPolicyId(
     context.billContext.id
   );
   return !!interviewConfig;

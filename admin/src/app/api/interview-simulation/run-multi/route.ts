@@ -63,7 +63,6 @@ async function buildPipelineParams(params: MultiSimulationRunRequest) {
       question: q.question,
       quick_replies: q.quick_replies ?? null,
       follow_up_guide: q.follow_up_guide ?? null,
-      target_audience: q.target_audience ?? null,
     }));
 
   const billTitle = billData.billTitle || billData.bill.name || "この議案";
@@ -76,10 +75,9 @@ async function buildPipelineParams(params: MultiSimulationRunRequest) {
       improvedPromptInputs: {
         bill,
         interviewConfig: {
-          themes: params.improvedConfig.themes,
+          description: params.improvedConfig.description,
         },
         questions: improvedQuestions,
-        mode: params.improvedConfig.mode,
         estimatedDurationMinutes:
           params.improvedConfig.estimatedDurationMinutes ?? null,
       },
