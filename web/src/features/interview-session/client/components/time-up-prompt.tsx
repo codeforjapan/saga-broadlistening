@@ -18,7 +18,7 @@ export function TimeUpPrompt({
 }: TimeUpPromptProps) {
   return (
     <div className="mx-4 rounded-lg bg-muted p-4 shadow-card">
-      <p className="mb-3 text-sm font-medium text-gray-700">
+      <p className="mb-3 text-sm font-medium text-foreground">
         目安時間を超過しましたが、インタビューを続けてもよいですか？
       </p>
       <div className="flex gap-2">

@@ -14,7 +14,7 @@ export function InterviewSummary({ report }: Props) {
   }, [report.opinions]);
 
   return (
-    <div className="rounded-[16px] bg-mirai-light-gradient p-4 shadow-sm">
+    <div className="rounded-[16px] bg-secondary p-4 shadow-sm">
       <div className="mt-2 space-y-4 text-sm">
         {report.summary && (
           <div className="font-bold space-y-1">

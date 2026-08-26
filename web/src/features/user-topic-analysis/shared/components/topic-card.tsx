@@ -24,7 +24,7 @@ function QuoteItem({
   );
 
   return (
-    <div className="ml-2 border-l-2 border-mirai-border pl-4">
+    <div className="ml-2 border-l-2 border-border pl-4">
       {messageHref ? (
         <Link
           href={messageHref as Route}
@@ -76,7 +76,7 @@ export function TopicCard({
   };
 
   return (
-    <div className="relative flex w-full flex-col gap-3 rounded-[14px] bg-white px-4 py-5 text-left transition-colors hover:bg-mirai-surface-gray">
+    <div className="relative flex w-full flex-col gap-3 rounded-[14px] bg-white px-4 py-5 text-left transition-colors hover:bg-muted">
       {/* カード全体クリックでトピック詳細へ（引用リンクと入れ子にならないようオーバーレイ） */}
       <Link
         href={href as Route}
@@ -88,9 +88,9 @@ export function TopicCard({
       {/* タイトル（クリックはオーバーレイに通す） */}
       <div className="pointer-events-none relative z-10 flex flex-col gap-2">
         <div className="flex items-start gap-2.5">
-          <h3 className="min-w-0 flex-1 text-base font-bold leading-6 text-mirai-text">
+          <h3 className="min-w-0 flex-1 text-base font-bold leading-6 text-foreground">
             {topic.title}
-            <span className="ml-1 text-[11px] font-medium text-topic-count">
+            <span className="ml-1 text-[11px] font-medium text-muted-foreground">
               （{topic.opinion_count}件）
             </span>
           </h3>

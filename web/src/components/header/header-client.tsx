@@ -45,7 +45,7 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
                 width={36}
                 height={32}
               />
-              <span className="font-extrabold text-slate-900 text-base sm:text-lg tracking-tight">
+              <span className="font-extrabold text-foreground text-base sm:text-lg tracking-tight">
                 {SITE_NAME}
               </span>
             </Link>

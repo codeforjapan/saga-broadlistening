@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       description="佐賀市（以下「当組織」といいます）における個人情報の取り扱いについてご説明します。"
     >
       <Container className="space-y-8">
-        <p className="text-sm text-mirai-text-muted">
+        <p className="text-sm text-muted-foreground">
           最終更新日：2026年7月29日
         </p>
 
@@ -69,7 +69,9 @@ export default function PrivacyPage() {
                 id: "publish",
                 content: (
                   <>
-                    <span className="font-semibold text-slate-800">公開：</span>
+                    <span className="font-semibold text-foreground">
+                      公開：
+                    </span>
                     ユーザーが回答時に公開に同意した場合に限り、当ウェブサイトや報告書等で公開されることがあります。本人が公開に同意しなかった回答内容は、第三者に公開または提供されることはありません。
                   </>
                 ),
@@ -78,7 +80,7 @@ export default function PrivacyPage() {
                 id: "open-data",
                 content: (
                   <>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-foreground">
                       第三者への提供（オープンデータ公開）：
                     </span>
                     インタビューデータを、別途定める「
@@ -96,7 +98,7 @@ export default function PrivacyPage() {
                 id: "statistics",
                 content: (
                   <>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-foreground">
                       統計的利用：
                     </span>
                     取得したデータは、個人を特定できない統計情報に加工した上で、第三者へ公表する場合があります。

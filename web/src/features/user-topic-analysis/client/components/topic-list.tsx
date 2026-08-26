@@ -35,7 +35,7 @@ export function TopicList({
   return (
     <div className="flex flex-col gap-6">
       {/* 件数ラベル */}
-      <p className="text-[13px] font-bold text-topic-label">
+      <p className="text-[13px] font-bold text-muted-foreground">
         {topics.length}件のトピック（{opinionCount}件の意見まとめ）
       </p>
 
@@ -51,7 +51,7 @@ export function TopicList({
             />
           ))
         ) : (
-          <p className="py-8 text-center text-mirai-text-muted">
+          <p className="py-8 text-center text-muted-foreground">
             トピックはありません
           </p>
         )}
@@ -64,7 +64,7 @@ export function TopicList({
             type="button"
             variant="outline"
             onClick={loadMore}
-            className="h-auto w-full gap-2.5 rounded-[100px] border-mirai-text bg-white px-6 py-3 text-[15px] font-medium text-mirai-text hover:bg-mirai-surface-gray"
+            className="h-auto w-full gap-2.5 rounded-[100px] border-foreground bg-white px-6 py-3 text-[15px] font-medium text-foreground hover:bg-muted"
           >
             あと {remaining} 件のトピックを見る
             <ChevronDown className="size-[15px] shrink-0" />

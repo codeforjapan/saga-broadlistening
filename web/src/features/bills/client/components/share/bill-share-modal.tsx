@@ -1,7 +1,7 @@
 "use client";
 
-import type { MouseEvent, KeyboardEvent } from "react";
 import Image from "next/image";
+import type { KeyboardEvent, MouseEvent } from "react";
 import {
   shareNative,
   shareOnFacebook,
@@ -84,7 +84,7 @@ export function BillShareModal({
     >
       <div className="bg-white rounded-2xl p-7 w-[370px] max-w-full flex flex-col items-center gap-9">
         {/* タイトル */}
-        <h2 className="text-xl font-bold text-gray-800 text-center w-full">
+        <h2 className="text-xl font-bold text-foreground text-center w-full">
           記事を共有する
         </h2>
 
@@ -102,7 +102,7 @@ export function BillShareModal({
 
         {/* シェアセクション */}
         <div className="flex flex-col items-center gap-4 w-full">
-          <p className="text-base font-bold text-gray-800 text-center">
+          <p className="text-base font-bold text-foreground text-center">
             シェアして国会の議論をオープンに
           </p>
 
@@ -133,7 +133,7 @@ export function BillShareModal({
         <button
           type="button"
           onClick={onClose}
-          className="w-[287px] max-w-full rounded-full px-6 py-3 font-bold text-base bg-mirai-gradient text-gray-800 border border-gray-800"
+          className="w-[287px] max-w-full rounded-full px-6 py-3 font-bold text-base bg-primary text-primary-foreground"
         >
           このまま閉じる
         </button>

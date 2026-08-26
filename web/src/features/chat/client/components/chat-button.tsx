@@ -139,7 +139,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
               aria-expanded={isOpen}
             >
               <span
-                className={`text-mirai-text-placeholder text-sm font-medium leading-[1.5em] tracking-[0.01em] ${
+                className={`text-muted-foreground text-sm font-medium leading-[1.5em] tracking-[0.01em] ${
                   isCompact ? "text-center" : "flex-1 text-left"
                 } ${
                   showText
@@ -157,7 +157,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
                 {isCompact ? "AIに質問" : "わからないことをAIに質問する"}
               </span>
               {!isCompact && (
-                <div className="relative w-10 h-10 rounded-[20px] bg-mirai-gradient flex items-center justify-center flex-shrink-0">
+                <div className="relative w-10 h-10 rounded-[20px] bg-primary flex items-center justify-center flex-shrink-0">
                   <Image
                     src="/icons/chat-button-icon.svg"
                     alt="チャット"

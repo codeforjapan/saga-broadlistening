@@ -1,10 +1,10 @@
 "use client";
 
+import { Menu, X } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { previewRegistry } from "../_lib/registry";
@@ -16,7 +16,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     <>
       {previewRegistry.map((group) => (
         <div key={group.name} className="mb-4">
-          <h3 className="text-xs font-semibold text-mirai-text-secondary uppercase tracking-wider mb-2">
+          <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-2">
             {group.name}
           </h3>
           <ul className="space-y-1">
@@ -29,7 +29,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     "block px-3 py-1.5 rounded text-sm transition-colors",
                     pathname === item.path
                       ? "bg-primary text-white"
-                      : "text-mirai-text hover:bg-mirai-surface"
+                      : "text-foreground hover:bg-background"
                   )}
                 >
                   {item.label}
@@ -96,7 +96,7 @@ export function DevSidebar() {
       )}
 
       {/* Desktop: static sidebar */}
-      <nav className="hidden md:block w-64 shrink-0 border-r border-mirai-border bg-white p-4 sticky top-0 h-dvh overflow-y-auto">
+      <nav className="hidden md:block w-64 shrink-0 border-r border-border bg-white p-4 sticky top-0 h-dvh overflow-y-auto">
         <Link href="/dev" className="text-lg font-bold mb-6 block">
           Component Gallery
         </Link>

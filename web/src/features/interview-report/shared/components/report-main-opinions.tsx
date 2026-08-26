@@ -18,7 +18,7 @@ export function ReportMainOpinions({
 
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-[22px] font-bold leading-9 text-mirai-text">
+      <h2 className="text-[22px] font-bold leading-9 text-foreground">
         💬主な意見
       </h2>
       <div className="flex flex-col gap-4">
@@ -27,12 +27,12 @@ export function ReportMainOpinions({
             key={`${index}-${opinion.title.slice(0, 16)}`}
             className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-5"
           >
-            <h3 className="text-base font-bold leading-6 text-mirai-text">
+            <h3 className="text-base font-bold leading-6 text-foreground">
               {opinion.title}
             </h3>
             {opinion.content && (
-              <div className="ml-2 border-l-2 border-mirai-border pl-4">
-                <p className="font-quote text-[14px] font-medium leading-[22px] text-mirai-text">
+              <div className="ml-2 border-l-2 border-border pl-4">
+                <p className="font-quote text-[14px] font-medium leading-[22px] text-foreground">
                   <span className="mr-1 align-[-0.1em] text-[18px] text-primary-accent">
                     “
                   </span>

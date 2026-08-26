@@ -572,7 +572,7 @@ export const PromptInputHint = ({
 }: PromptInputHintProps) => {
   return (
     <div
-      className={cn("px-3 py-2 text-xs text-gray-400", className)}
+      className={cn("px-3 py-2 text-xs text-muted-foreground", className)}
       {...props}
     >
       {children ??

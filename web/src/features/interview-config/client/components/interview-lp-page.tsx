@@ -60,7 +60,7 @@ function _InterviewLPHeader({ bill }: { bill: BillWithContent }) {
           priority
         />
       ) : (
-        <div className="w-full h-full bg-gray-100" />
+        <div className="w-full h-full bg-muted" />
       )}
     </div>
   );
@@ -91,7 +91,7 @@ function _InterviewLPHero({
           法案についてのAIインタビュー
         </h1>
         <Link href={billLink as Route}>
-          <div className="inline-flex items-center justify-center gap-2.5 px-4 py-2 bg-white rounded-xl hover:bg-gray-50 transition-opacity cursor-pointer">
+          <div className="inline-flex items-center justify-center gap-2.5 px-4 py-2 bg-white rounded-xl hover:bg-muted transition-opacity cursor-pointer">
             <span className="text-[13px] font-medium text-black leading-[1.87]">
               {bill.bill_content?.title ?? bill.name}
             </span>
@@ -320,7 +320,7 @@ export function InterviewLPPage({
   userReports,
 }: InterviewLPPageProps) {
   return (
-    <div className="flex flex-col gap-8 pb-8 bg-mirai-light-gradient">
+    <div className="flex flex-col gap-8 pb-8 bg-secondary">
       <_InterviewLPHeader bill={bill} />
       <div className="flex flex-col items-center gap-8 px-4">
         <_InterviewLPHero

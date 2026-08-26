@@ -27,7 +27,7 @@ export function OpinionsList({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+      <h2 className="text-xl font-bold text-foreground">{title}</h2>
       <div className="bg-white rounded-2xl p-6 flex flex-col gap-6">
         {opinions.map((opinion, index) => (
           <div
@@ -40,11 +40,11 @@ export function OpinionsList({
                   意見{index + 1}
                 </span>
               </div>
-              <p className="text-base font-bold text-gray-800">
+              <p className="text-base font-bold text-foreground">
                 {opinion.title}
               </p>
             </div>
-            <p className="text-sm text-gray-600">{opinion.content}</p>
+            <p className="text-sm text-muted-foreground">{opinion.content}</p>
             {reportId && opinion.source_message_id && (
               <Link
                 href={
@@ -54,7 +54,7 @@ export function OpinionsList({
                     chatLogFrom
                   ) as Route
                 }
-                className="text-[15px] leading-6 text-mirai-text-muted underline"
+                className="text-[15px] leading-6 text-muted-foreground underline"
               >
                 元の回答を見る
               </Link>
