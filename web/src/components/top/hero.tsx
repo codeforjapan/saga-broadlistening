@@ -27,8 +27,8 @@ export function Hero() {
             未来に声を届ける
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {SITE_NAME}
-            は、市の政策をわかりやすく解説し、あなたの声を市政につなぐ参加型プラットフォームです。
+            {SITE_NAME}（チカット）は、市の政策をわかりやすく解説し、
+            あなたの声を市政につなぐ参加型プラットフォームです。
           </p>
           <p className="text-xs text-muted-foreground">powered by AI</p>
         </div>

@@ -1,18 +1,19 @@
-import { BookOpen, ChevronRight, MessagesSquare } from "lucide-react";
+import { BookOpen, ChevronDown, MessagesSquare } from "lucide-react";
 import { TOP_SECTIONS } from "@/components/top/top-sections";
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { Card } from "@/components/ui/card";
 
 const TOP_ENTRY_ITEMS = [
   {
     href: `#${TOP_SECTIONS.policy}`,
     icon: BookOpen,
-    title: "政策紹介を見る",
+    title: `${SITE_NAME}みてみて`,
     description: "市の政策や計画をわかりやすく解説。背景や論点を整理します。",
   },
   {
     href: `#${TOP_SECTIONS.interview}`,
     icon: MessagesSquare,
-    title: "AIインタビューを見る",
+    title: `${SITE_NAME}きかせて`,
     description: "AIとの対話で、あなたの意見や経験を聞かせてください。",
   },
 ];
@@ -28,24 +29,24 @@ export function TopEntryNav() {
       {TOP_ENTRY_ITEMS.map(({ href, icon: Icon, title, description }) => (
         <a key={href} href={href} className="block">
           <Card className="flex h-full flex-col gap-3 p-4 transition-colors hover:bg-muted/50">
-            <div className="flex items-center gap-2">
+            {/* サービス名入りのタイトルは幅を食うため、アイコンは上に置く */}
+            <div className="flex flex-col gap-2">
               <span
                 className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary-accent"
                 aria-hidden="true"
               >
                 <Icon className="size-5" />
               </span>
-              <p className="text-sm font-bold leading-snug sm:text-base">
-                {title}
-              </p>
+              <p className="text-base font-bold leading-snug">{title}</p>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground">
               {description}
             </p>
-            <span className="mt-auto flex items-center gap-1 text-xs font-bold text-primary-accent">
-              下のセクションへ
-              <ChevronRight className="size-3.5" aria-hidden="true" />
-            </span>
+            {/* 同一ページ内の対応セクションへ下るという合図 */}
+            <ChevronDown
+              className="mt-auto size-5 self-center text-primary-accent"
+              aria-hidden="true"
+            />
           </Card>
         </a>
       ))}

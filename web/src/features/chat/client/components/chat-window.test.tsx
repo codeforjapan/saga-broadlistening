@@ -183,11 +183,9 @@ describe("ChatWindow", () => {
     expect(dialog).toHaveStyle({ maxHeight: "640px" });
     expect(screen.getAllByRole("button", { name: /何|施策/ })).toHaveLength(3);
 
-    await user.click(
-      screen.getByRole("button", { name: "佐賀市公聴システム（仮）って何？" })
-    );
+    await user.click(screen.getByRole("button", { name: "CHIKATって何？" }));
     expect(sendMessage).toHaveBeenCalledWith({
-      text: "佐賀市公聴システム（仮）って何？",
+      text: "CHIKATって何？",
       metadata: {
         billContext: undefined,
         difficultyLevel: "normal",
