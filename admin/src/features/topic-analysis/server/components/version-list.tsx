@@ -27,7 +27,7 @@ const statusLabels: Record<string, { label: string; className: string }> = {
   },
   failed: {
     label: "失敗",
-    className: "text-red-600 bg-red-50",
+    className: "text-system-warning bg-yellow-400/20",
   },
 };
 
@@ -103,7 +103,7 @@ export function VersionList({ versions, billId, configId }: VersionListProps) {
                     </Link>
                   )}
                   {version.status === "failed" && version.error_message && (
-                    <span className="text-red-500 text-xs">
+                    <span className="text-system-warning text-xs">
                       {version.error_message}
                     </span>
                   )}

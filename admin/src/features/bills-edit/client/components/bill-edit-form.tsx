@@ -56,7 +56,7 @@ export function BillEditForm({ bill }: BillEditFormProps) {
             <BillFormFields control={form.control} billId={bill.id} />
 
             {error && (
-              <div className="rounded-md bg-red-50 p-4 text-sm text-red-800">
+              <div className="rounded-md bg-yellow-400/20 p-4 text-sm text-system-warning">
                 {error}
               </div>
             )}

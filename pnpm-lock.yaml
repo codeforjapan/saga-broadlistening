@@ -96,7 +96,7 @@ importers:
         specifier: ^2.57.0
         version: 2.74.0
       '@tailwindcss/typography':
-        specifier: ^0.5.19
+        specifier: ^0.5.16
         version: 0.5.19(tailwindcss@4.1.14)
       ai:
         specifier: ^6.0.3
