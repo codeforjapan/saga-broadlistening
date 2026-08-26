@@ -55,7 +55,7 @@ export type InterviewChatDeps = {
   getSession?: (configId: string) => Promise<InterviewSession | null>;
   /** テスト時に認証をバイパスするためのメッセージ取得関数 */
   getMessages?: (sessionId: string) => Promise<InterviewMessage[]>;
-  /** テスト時にcookies依存をバイパスするための議案取得関数 */
+  /** テスト時にcookies依存をバイパスするための施策取得関数 */
   getBill?: (billId: string) => Promise<BillWithContent | null>;
   /** テスト時にnext/cache依存をバイパスするためのインタビュー設定取得関数 */
   getInterviewConfig?: (billId: string) => Promise<InterviewConfig | null>;
@@ -82,9 +82,9 @@ export async function handleInterviewChatRequest({
   // リクエスト単位のトレースID（同一リクエスト内のLLM呼び出しをまとめる）
   const traceId = crypto.randomUUID();
 
-  // プレビュートークンが有効な場合のみ、非公開の議案・インタビュー設定も読める
+  // プレビュートークンが有効な場合のみ、非公開の施策・インタビュー設定も読める
   // 管理者用ローダーを使う。トークンがない/無効なリクエスト（＝一般公開の経路）は
-  // 公開ローダーに限定し、未公開議案の本文や非公開設定へ到達させない。
+  // 公開ローダーに限定し、未公開施策の本文や非公開設定へ到達させない。
   const loaders = await resolveInterviewChatLoaders({
     billId,
     previewToken,
@@ -98,7 +98,7 @@ export async function handleInterviewChatRequest({
 
   // TTFB短縮のため、互いに依存しないDBアクセスは並列実行する。
   // 日次コスト制限チェック（fail-closed: エラー時もリクエストをブロック）と
-  // インタビュー設定・議案情報の取得（テスト時はdeps経由でNext.js依存をバイパス）
+  // インタビュー設定・施策情報の取得（テスト時はdeps経由でNext.js依存をバイパス）
   const getInterviewConfigFn =
     deps?.getInterviewConfig ?? loaders.getInterviewConfig;
   const getBillFn = deps?.getBill ?? loaders.getBill;

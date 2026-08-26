@@ -8,7 +8,7 @@ import { toOpenDataBillItem } from "../../shared/utils/to-open-data-bill";
 import { findOpenDataPublishedBills } from "../repositories/open-data-repository";
 
 /**
- * 公開データAPI用の議案一覧を取得する。
+ * 公開データAPI用の施策一覧を取得する。
  * limit+1 件取得して次ページの有無を判定し、nextCursor を組み立てる。
  */
 export async function getOpenDataBills(params: {

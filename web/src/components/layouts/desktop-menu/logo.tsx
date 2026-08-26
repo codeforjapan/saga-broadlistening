@@ -35,7 +35,7 @@ export function DesktopMenuLogo() {
             lineHeight: "1.5em",
           }}
         >
-          市議会の議論をわかりやすく
+          佐賀市の施策をわかりやすく
         </p>
       </div>
     </Link>

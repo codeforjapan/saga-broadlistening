@@ -77,7 +77,7 @@ export default async function ReportsPage({
           <h1 className="text-2xl font-bold text-gray-900">
             インタビューレポート一覧
           </h1>
-          <p className="text-gray-600 mt-1">議案「{bill.name}」のレポート</p>
+          <p className="text-gray-600 mt-1">施策「{bill.name}」のレポート</p>
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline">

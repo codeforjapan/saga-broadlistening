@@ -78,9 +78,9 @@ async function classifyBatch(
       generateObject({
         model: TOPIC_ANALYSIS_MODEL,
         schema: classifyBatchSchema,
-        prompt: `あなたは議案分析の専門家です。各意見を適切なトピックに分類してください。
+        prompt: `あなたは施策分析の専門家です。各意見を適切なトピックに分類してください。
 
-## 議案
+## 施策
 ${billTitle}
 
 ## トピック一覧

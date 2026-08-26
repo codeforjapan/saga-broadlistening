@@ -90,7 +90,7 @@ export function CopyConfigToBillDialog({
         targetBillId: selectedBillId,
       });
       if (result.success) {
-        toast.success("他議案へインタビュー設定を複製しました");
+        toast.success("他施策へインタビュー設定を複製しました");
         setIsSubmitting(false);
         closeDialog();
         router.push(
@@ -111,9 +111,9 @@ export function CopyConfigToBillDialog({
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="max-w-lg">
         <AlertDialogHeader>
-          <AlertDialogTitle>他議案へ複製</AlertDialogTitle>
+          <AlertDialogTitle>他施策へ複製</AlertDialogTitle>
           <AlertDialogDescription>
-            {`「${configName}」をコピー先の議案に複製します。コピー先では非公開状態で作成されます。`}
+            {`「${configName}」をコピー先の施策に複製します。コピー先では非公開状態で作成されます。`}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -122,7 +122,7 @@ export function CopyConfigToBillDialog({
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               type="search"
-              placeholder="議案名で検索"
+              placeholder="施策名で検索"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-9"
@@ -131,16 +131,16 @@ export function CopyConfigToBillDialog({
           </div>
           <div
             role="listbox"
-            aria-label="コピー先の議案"
+            aria-label="コピー先の施策"
             className="max-h-72 overflow-y-auto rounded-md border bg-white"
           >
             {candidates.length === 0 ? (
               <div className="p-4 text-center text-sm text-gray-500">
-                コピー先となる他の議案がありません。
+                コピー先となる他の施策がありません。
               </div>
             ) : filtered.length === 0 ? (
               <div className="p-4 text-center text-sm text-gray-500">
-                該当する議案が見つかりません。
+                該当する施策が見つかりません。
               </div>
             ) : (
               <ul className="divide-y">

@@ -17,7 +17,7 @@ interface BillOpinionsPageProps {
   billId: string;
 }
 
-/** AIインタビューの回答一覧（議案単位で公開レポートを回答者ごとに表示）。 */
+/** AIインタビューの回答一覧（施策単位で公開レポートを回答者ごとに表示）。 */
 export async function BillOpinionsPage({ billId }: BillOpinionsPageProps) {
   const [bill, respondents, interviewConfig] = await Promise.all([
     getBillById(billId),
@@ -33,7 +33,7 @@ export async function BillOpinionsPage({ billId }: BillOpinionsPageProps) {
   const nowMs = Date.now();
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "議案詳細", href: routes.billDetail(billId) },
+    { label: "施策詳細", href: routes.billDetail(billId) },
     { label: "インタビュー回答一覧" },
   ];
 
@@ -41,7 +41,7 @@ export async function BillOpinionsPage({ billId }: BillOpinionsPageProps) {
     <div className="min-h-dvh bg-background pt-24 md:pt-0">
       <Container>
         <div className="flex flex-col gap-8 pb-8 md:pt-8">
-          {/* パンくず + 議案タイトル */}
+          {/* パンくず + 施策タイトル */}
           <div className="flex flex-col gap-2">
             <Breadcrumb items={breadcrumbItems} />
             <Link

@@ -39,7 +39,7 @@ export async function getShareContext(): Promise<{
 }
 
 /**
- * 議案のシェアに必要なすべてのデータを取得
+ * 施策のシェアに必要なすべてのデータを取得
  */
 export async function getBillShareData(bill: BillWithContent) {
   const { origin, difficulty } = await getShareContext();

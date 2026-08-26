@@ -26,7 +26,7 @@ export const previewRegistry: PreviewGroup[] = [
       {
         path: "/dev/features/bills/bill-card",
         label: "BillCard",
-        description: "議案カードコンポーネント",
+        description: "施策カードコンポーネント",
       },
     ],
   },

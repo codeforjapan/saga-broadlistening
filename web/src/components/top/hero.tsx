@@ -6,7 +6,7 @@ export function Hero() {
     <div className="relative w-full h-[80vh] min-h-[400px] md:h-[70vh]">
       <Image
         src="/img/hero_background.png"
-        alt="市議会議事堂"
+        alt="市民参加をイメージした背景画像"
         fill
         priority
         className="object-cover"
@@ -16,7 +16,7 @@ export function Hero() {
       <div className="absolute bottom-[30vh] left-0 right-0 py-4">
         <Container>
           <p className="font-bold text-xl md:text-2xl leading-relaxed">
-            いま市議会で議論されていること <br />
+            いま佐賀市で検討されている施策を <br />
             やさしい言葉で説明します
           </p>
           <p className="mt-2 text-xs">powered by AI</p>

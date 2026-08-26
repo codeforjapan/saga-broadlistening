@@ -172,7 +172,7 @@ export function InterviewChatClient({
             {messages.length === 0 && !object && (
               <div className="flex flex-col gap-4">
                 <p className="text-sm font-bold leading-[1.8] text-foreground">
-                  法案についてのAIインタビューを開始します。
+                  施策についてのAIインタビューを開始します。
                 </p>
                 <p className="text-sm text-muted-foreground">
                   あなたの意見や経験をお聞かせください。
@@ -189,7 +189,7 @@ export function InterviewChatClient({
                 !isLoading &&
                 !showStreamingMessage;
 
-              // 最初のAIメッセージの議案名をリンクに変換
+              // 最初のAIメッセージの施策名をリンクに変換
               const content =
                 index === 0 && message.role === "assistant"
                   ? embedBillLink(message.content, billTitle, billDetailLink)

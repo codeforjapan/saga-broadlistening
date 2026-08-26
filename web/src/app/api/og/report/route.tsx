@@ -174,7 +174,7 @@ export async function GET(request: Request) {
             {truncatedSummary}
           </div>
 
-          {/* 議案名 */}
+          {/* 施策名 */}
           <div
             style={{
               display: "flex",

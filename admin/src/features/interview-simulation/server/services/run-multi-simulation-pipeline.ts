@@ -41,7 +41,7 @@ interface ImprovedPromptInputs {
 }
 
 interface RunMultiSimulationParams {
-  /** 対象議案 ID。report スロットが別議案のレポートを指していないか検証するのに使う */
+  /** 対象施策 ID。report スロットが別施策のレポートを指していないか検証するのに使う */
   billId: string;
   personaSlots: PersonaSlotInput[];
   /** 全スロット共通の改善版 config */
@@ -60,7 +60,7 @@ interface RunMultiSimulationParams {
 /**
  * 1 スロット分の実行コンテキスト（persona + 元レポート + style anchors）を用意する。
  * - report スロット: DB からレポート詳細を取得 → persona 抽出 + style anchors 抽出
- * - bill スロット: 議案内容から persona を LLM 生成（style anchors なし）
+ * - bill スロット: 施策内容から persona を LLM 生成（style anchors なし）
  */
 async function prepareSlotContext(
   slot: PersonaSlotInput,
@@ -79,9 +79,9 @@ async function prepareSlotContext(
       );
     }
     // 指定された billId と、report から辿った bill_id が一致しているか検証。
-    // 不一致 = UI の想定外 or 別議案のレポート混入なので拒否する。
+    // 不一致 = UI の想定外 or 別施策のレポート混入なので拒否する。
     if (detail.snapshot.billId !== params.billId) {
-      throw new Error("選択されたレポートが対象議案と一致しません");
+      throw new Error("選択されたレポートが対象施策と一致しません");
     }
     emitStatus("ペルソナ抽出中...");
     const persona = await generatePersona({

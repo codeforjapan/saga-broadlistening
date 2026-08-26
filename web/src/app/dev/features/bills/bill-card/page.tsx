@@ -17,9 +17,9 @@ export default function BillCardPreview() {
     bill_content: {
       id: "mock-content-featured",
       policy_id: "mock-featured",
-      title: "注目の法案タイトル",
+      title: "注目の施策タイトル",
       summary:
-        "注目フラグが立っている議案のカード表示。注目バッジが表示されます。",
+        "注目フラグが立っている施策のカード表示。注目バッジが表示されます。",
       content: "",
       difficulty_level: "normal",
       created_at: "2026-02-15T00:00:00Z",
@@ -39,9 +39,9 @@ export default function BillCardPreview() {
       id: "mock-content-long-title",
       policy_id: "mock-long-title",
       title:
-        "デジタル社会の形成を図るための関係法律の整備に関する法律の一部を改正する法律案についての補足的な検討事項を含む修正案",
+        "デジタル社会の形成に向けた行政手続のオンライン化及びデータ連携基盤の整備に関する佐賀市の施策の一部見直しについての補足的な検討事項",
       summary:
-        "この議案は開発プレビュー用のサンプルデータです。議案の要約文がここに表示されます。",
+        "この施策は開発プレビュー用のサンプルデータです。施策の要約文がここに表示されます。",
       content: "",
       difficulty_level: "normal",
       created_at: "2026-02-15T00:00:00Z",
@@ -55,9 +55,9 @@ export default function BillCardPreview() {
     bill_content: {
       id: "mock-content-long-desc",
       policy_id: "mock-long-desc",
-      title: "サンプル法案のタイトル",
+      title: "サンプル施策のタイトル",
       summary:
-        "この議案はデジタル社会の形成を推進するため、行政手続のオンライン化、マイナンバーカードの利活用促進、データの標準化・連携基盤の整備、サイバーセキュリティ対策の強化、個人情報保護制度の見直し、AI技術の適正利用に関するガイドラインの策定、地方自治体のDX推進支援、デジタルデバイド解消のための施策等について、関係する複数の法律を一括して改正するものです。特に高齢者や障害者を含む全ての国民がデジタル化の恩恵を享受できる社会の実現を目指しています。",
+        "この施策はデジタル社会の形成を推進するため、行政手続のオンライン化、マイナンバーカードの利活用促進、データの標準化・連携基盤の整備、サイバーセキュリティ対策の強化、個人情報保護制度の見直し、AI技術の適正利用に関するガイドラインの策定、庁内のDX推進、デジタルデバイド解消のための取組等について、関係する複数の事業を一体的に進めるものです。特に高齢者や障害のある方を含む全ての市民がデジタル化の恩恵を享受できるまちの実現を目指しています。",
       content: "",
       difficulty_level: "normal",
       created_at: "2026-02-15T00:00:00Z",
@@ -69,7 +69,7 @@ export default function BillCardPreview() {
     <>
       <h1 className="text-3xl font-bold text-foreground mb-8">BillCard</h1>
 
-      <ComponentShowcase title="Default" description="基本的な議案カード">
+      <ComponentShowcase title="Default" description="基本的な施策カード">
         <PreviewSection label="通常表示">
           <BillCard bill={defaultBill} />
         </PreviewSection>

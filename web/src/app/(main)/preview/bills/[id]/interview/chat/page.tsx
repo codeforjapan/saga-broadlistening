@@ -57,7 +57,7 @@ export default async function InterviewPreviewChatPage({
     notFound();
   }
 
-  // 議案と非公開設定を取得（管理者用ローダーで非公開議案も取得可能にする）
+  // 施策と非公開設定を取得（管理者用ローダーで非公開施策も取得可能にする）
   const [bill, interviewConfig] = await Promise.all([
     getBillByIdAdmin(billId),
     getInterviewConfigAdmin(billId),

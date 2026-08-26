@@ -7,7 +7,7 @@ import {
 } from "./shared-sections";
 
 /**
- * 議案チャット（ふつう難易度）用システムプロンプトを生成する
+ * 施策チャット（ふつう難易度）用システムプロンプトを生成する
  */
 export function buildBillChatSystemNormalPrompt(
   billName: string,
@@ -17,14 +17,14 @@ export function buildBillChatSystemNormalPrompt(
   knowledgeSource = ""
 ): string {
   return `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
-行政・議会・議案・政策について、わかりやすく説明・対話を支援する役割を持ちます。
+行政・議会・施策・政策について、わかりやすく説明・対話を支援する役割を持ちます。
 
 ---
 ${SERVICE_OVERVIEW}
 
 ---
 
-## 議案情報
+## 施策情報
 - 名称: ${billName}
 - タイトル: ${billTitle}
 - 要約: ${billSummary}

@@ -24,7 +24,7 @@ export default async function InterviewListPage({
   const [bill, configs, allBillsResult] = await Promise.all([
     getBillById(id),
     getInterviewConfigs(id),
-    // 他議案コピー用のセカンダリ UI 用途。失敗しても本ページのコア機能は維持したいため、握り潰して空配列にフォールバックする。
+    // 他施策コピー用のセカンダリ UI 用途。失敗しても本ページのコア機能は維持したいため、握り潰して空配列にフォールバックする。
     getBills().catch((error) => {
       console.error("Failed to load bills for copy dialog:", error);
       return [];
@@ -49,14 +49,14 @@ export default async function InterviewListPage({
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" />
-          議案一覧に戻る
+          施策一覧に戻る
         </Link>
       </div>
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">インタビュー設定</h1>
         <p className="text-gray-600 mt-1">
-          議案「{bill.name}」のインタビュー設定を管理します
+          施策「{bill.name}」のインタビュー設定を管理します
         </p>
       </div>
 

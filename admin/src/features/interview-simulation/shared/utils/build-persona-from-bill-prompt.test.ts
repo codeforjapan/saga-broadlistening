@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { buildPersonaFromBillPrompt } from "./build-persona-from-bill-prompt";
 
 const baseBill = {
-  name: "宇宙活動法改正案",
-  knowledge_source: "宇宙活動法の概要",
+  name: "宇宙関連産業振興施策",
+  knowledge_source: "宇宙関連産業振興施策の概要",
   bill_content: {
-    title: "人工衛星等の打上げ及び人工衛星の管理に関する法律案",
-    summary: "ロケットの打上げルールを見直す法律",
-    content: "第一条 本法律は…",
+    title: "人工衛星等の打上げ及び管理の安全確保に関する施策",
+    summary: "ロケットの打上げルールを見直す施策",
+    content: "1. 基本方針…",
   },
 };
 
@@ -16,20 +16,20 @@ const baseConfig = {
 };
 
 describe("buildPersonaFromBillPrompt", () => {
-  it("法案情報・テーマ・知識ソースがプロンプトに含まれる", () => {
+  it("施策情報・テーマ・知識ソースがプロンプトに含まれる", () => {
     const result = buildPersonaFromBillPrompt({
       bill: baseBill,
       interviewConfig: baseConfig,
     });
-    expect(result).toContain("宇宙活動法改正案");
+    expect(result).toContain("宇宙関連産業振興施策");
     expect(result).toContain(
-      "人工衛星等の打上げ及び人工衛星の管理に関する法律案"
+      "人工衛星等の打上げ及び管理の安全確保に関する施策"
     );
-    expect(result).toContain("第一条 本法律は…");
+    expect(result).toContain("1. 基本方針…");
     expect(result).toContain(
       "安全確保と産業競争力の両立について意見を募集します"
     );
-    expect(result).toContain("宇宙活動法の概要");
+    expect(result).toContain("宇宙関連産業振興施策の概要");
   });
 
   it("stanceHint 指定時はスタンスを必須として明記する", () => {

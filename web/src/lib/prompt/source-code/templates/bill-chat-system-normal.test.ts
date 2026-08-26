@@ -5,16 +5,16 @@ import { buildBillChatSystemNormalPrompt } from "./bill-chat-system-normal";
 describe("buildBillChatSystemNormalPrompt", () => {
   it("4つのパラメータがプロンプトに埋め込まれる", () => {
     const result = buildBillChatSystemNormalPrompt(
-      "テスト法案名",
-      "テスト法案タイトル",
-      "テスト法案要約",
-      "テスト法案詳細"
+      "テスト施策名",
+      "テスト施策タイトル",
+      "テスト施策要約",
+      "テスト施策詳細"
     );
 
-    expect(result).toContain("テスト法案名");
-    expect(result).toContain("テスト法案タイトル");
-    expect(result).toContain("テスト法案要約");
-    expect(result).toContain("テスト法案詳細");
+    expect(result).toContain("テスト施策名");
+    expect(result).toContain("テスト施策タイトル");
+    expect(result).toContain("テスト施策要約");
+    expect(result).toContain("テスト施策詳細");
   });
 
   it("難易度「ふつう」セクションが含まれる", () => {

@@ -7,7 +7,7 @@ import {
 import { getBillContentWithDifficulty } from "./helpers/get-bill-content";
 
 /**
- * 管理者用: 公開/非公開問わず議案を取得
+ * 管理者用: 公開/非公開問わず施策を取得
  * プレビュー機能で使用
  * キャッシュなしで常に最新のデータを取得
  */

@@ -26,7 +26,7 @@ interface GeneratePersonaFromBillParams {
 }
 
 /**
- * 議案内容からシミュ用ペルソナを 1 件生成する。
+ * 施策内容からシミュ用ペルソナを 1 件生成する。
  * タイムアウト + 自動リトライは withTimeoutRetry ヘルパに委譲。
  */
 export async function generatePersonaFromBill({

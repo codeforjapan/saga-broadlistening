@@ -23,12 +23,12 @@ export async function generateMetadata({
 
   if (!bill) {
     return {
-      title: "議案が見つかりません",
+      title: "施策が見つかりません",
     };
   }
 
   const billName = bill.bill_content?.title ?? bill.name;
-  const description = `議案についてのAIインタビュー - ${billName}`;
+  const description = `施策についてのAIインタビュー - ${billName}`;
   const defaultOgpUrl = new URL("/ogp.jpg", env.webUrl).toString();
   const shareImageUrl =
     bill.share_thumbnail_url || bill.thumbnail_url || defaultOgpUrl;
