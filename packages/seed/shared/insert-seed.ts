@@ -122,3 +122,18 @@ export function createSeedReporter() {
     },
   };
 }
+
+/**
+ * NOT NULL かつ DEFAULT を持つカラムの取りこぼしを防ぐ。
+ *
+ * PostgREST の一括 INSERT は、行ごとにキーが異なると不足キーを **NULL で埋める**
+ * （カラムを省略したときの DEFAULT にはならない）。そのため一部の行にしか
+ * 書いていない NOT NULL カラムがあると "violates not-null constraint" で落ちる。
+ * 行ごとに書き漏らしても平気なように、既定値をここでまとめて補う。
+ */
+export function withDefaults<T extends object, D extends Partial<T>>(
+  defaults: D,
+  rows: T[]
+): T[] {
+  return rows.map((row) => ({ ...defaults, ...row }));
+}

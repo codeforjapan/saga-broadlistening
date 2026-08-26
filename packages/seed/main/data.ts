@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Database } from "@mirai-gikai/supabase";
+import { withDefaults } from "../shared/insert-seed";
 import { pickRespondent } from "../shared/respondents";
 import { BULK_OPINION_CONFIG_SLUG } from "./bulk-opinion-data";
 import type { OpinionSeed, SeededInterviewSession } from "./seed-types";
@@ -56,7 +57,13 @@ export const tags: TagInsert[] = [
   },
 ];
 
-export const policies: PolicyInsert[] = [
+/** NOT NULL かつ DEFAULT を持つカラムの既定値（withDefaults の説明を参照） */
+const POLICY_DEFAULTS = {
+  is_featured: false,
+  enable_ai_chat: false,
+} satisfies Partial<PolicyInsert>;
+
+const policySeeds: PolicyInsert[] = [
   {
     name: "ガソリン税暫定税率廃止法案",
     slug: "gasoline-tax",
@@ -134,6 +141,11 @@ export const policies: PolicyInsert[] = [
     thumbnail_url: "https://placehold.co/600x400.png",
   },
 ];
+
+export const policies: PolicyInsert[] = withDefaults(
+  POLICY_DEFAULTS,
+  policySeeds
+);
 
 /** AI質問機能を有効にした施策の名前（run.ts のログ用） */
 export const AI_CHAT_POLICY_NAME = "ガソリン税暫定税率廃止法案";
@@ -225,6 +237,11 @@ export function createInterviewConfig(): InterviewConfigInsert {
  * - 抽象テーマ型（施策 0 件）かつ下書き
  * - 募集終了済み
  */
+/** NOT NULL かつ DEFAULT を持つカラムの既定値（withDefaults の説明を参照） */
+export const INTERVIEW_CONFIG_DEFAULTS = {
+  deliberation_enabled: false,
+} satisfies Partial<InterviewConfigInsert>;
+
 export const additionalInterviewConfigs: InterviewConfigInsert[] = [
   {
     name: "まちの未来について",
