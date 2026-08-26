@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { seedLocalAdminUser } from "../shared/admin-user";
 import type { AdminClient } from "../shared/helper";
 import { clearAllData, createAdminClient } from "../shared/helper";
@@ -5,6 +6,7 @@ import {
   createSeedReporter,
   expectOk,
   expectRows,
+  withDefaults,
 } from "../shared/insert-seed";
 import { seedDemoRespondents } from "../shared/respondents";
 import {
@@ -30,6 +32,7 @@ import {
   createDemoOpinion,
   createDemoSession,
   createInterviewConfig,
+  INTERVIEW_CONFIG_DEFAULTS,
   createInterviewMessages,
   createInterviewQuestions,
   createInterviewSessions,
@@ -66,11 +69,23 @@ async function insertOpinionsWithSegments(
   seeds: OpinionSeed[],
   messageIdByKey: Map<string, string>
 ): Promise<{ opinionCount: number; segmentCount: number }> {
+  // PostgREST の一括 INSERT は行ごとにキーが違うと不足キーを NULL で埋めるため、
+  // 固定IDを持つデモ意見とそれ以外が混ざると id が NULL になる。
+  // NOT NULL かつ DEFAULT を持つカラムは、ここで全行ぶん明示的に埋める。
+  const opinionRows = seeds.map((seed) => ({
+    review_status: "pending_review" as const,
+    is_public_by_user: false,
+    is_public_by_admin: false,
+    is_data_reuse_consented: false,
+    ...seed.opinion,
+    id: seed.opinion.id ?? randomUUID(),
+  }));
+
   const insertedOpinions = await expectRows(
     "insert opinions",
     supabase
       .from("opinions")
-      .insert(seeds.map((seed) => seed.opinion))
+      .insert(opinionRows)
       .select("id, interview_session_id")
   );
 
@@ -179,11 +194,13 @@ async function seedDatabase() {
       label: "interview configs",
       query: supabase
         .from("interview_configs")
-        .insert([
-          createInterviewConfig(),
-          createBulkOpinionInterviewConfig(),
-          ...additionalInterviewConfigs,
-        ])
+        .insert(
+          withDefaults(INTERVIEW_CONFIG_DEFAULTS, [
+            createInterviewConfig(),
+            createBulkOpinionInterviewConfig(),
+            ...additionalInterviewConfigs,
+          ])
+        )
         .select("id, slug"),
     });
 
