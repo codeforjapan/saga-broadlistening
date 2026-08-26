@@ -736,7 +736,9 @@ export type Database = {
           is_public_by_user: boolean
           moderation_reasoning: string | null
           moderation_score: number | null
-          moderation_status: Database["public"]["Enums"]["moderation_status_enum"] | null
+          moderation_status:
+            | Database["public"]["Enums"]["moderation_status_enum"]
+            | null
           opinions_reextracted_at: string | null
           review_status: Database["public"]["Enums"]["opinion_review_status"]
           reviewed_at: string | null
@@ -758,7 +760,9 @@ export type Database = {
           is_public_by_user?: boolean
           moderation_reasoning?: string | null
           moderation_score?: number | null
-          moderation_status?: Database["public"]["Enums"]["moderation_status_enum"] | null
+          moderation_status?:
+            | Database["public"]["Enums"]["moderation_status_enum"]
+            | null
           opinions_reextracted_at?: string | null
           review_status?: Database["public"]["Enums"]["opinion_review_status"]
           reviewed_at?: string | null
@@ -780,7 +784,9 @@ export type Database = {
           is_public_by_user?: boolean
           moderation_reasoning?: string | null
           moderation_score?: number | null
-          moderation_status?: Database["public"]["Enums"]["moderation_status_enum"] | null
+          moderation_status?:
+            | Database["public"]["Enums"]["moderation_status_enum"]
+            | null
           opinions_reextracted_at?: string | null
           review_status?: Database["public"]["Enums"]["opinion_review_status"]
           reviewed_at?: string | null
