@@ -40,7 +40,7 @@ const notoSerifJP = Noto_Serif_JP({
 const isDev = process.env.NODE_ENV === "development";
 const isStaging = process.env.VERCEL_TARGET_ENV === "staging";
 const siteDescription =
-  "地域で今どんな政策や法案が検討されているか、わかりやすく伝える公聴プラットフォーム";
+  "佐賀市で今どんな施策が検討されているか、わかりやすく伝える公聴プラットフォーム";
 const ogImage = {
   url: "/ogp.jpg",
   width: 1200,
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(env.webUrl),
   title: SITE_NAME,
   description: siteDescription,
-  keywords: [SITE_NAME, "議案", "政治", "佐賀市", "政策", "解説", "公聴"],
+  keywords: [SITE_NAME, "施策", "政治", "佐賀市", "政策", "解説", "公聴"],
   icons: {
     icon: isDev
       ? "/icons/pwa/icon_dev_192_v3.png"

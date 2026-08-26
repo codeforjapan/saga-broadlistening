@@ -29,12 +29,12 @@ export function BillFormFields({ control, billId }: BillFormFieldsProps) {
         name="name"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>議案名 *</FormLabel>
+            <FormLabel>施策名 *</FormLabel>
             <FormControl>
               <Input {...field} />
             </FormControl>
             <FormDescription>
-              議案の正式名称を入力してください（最大200文字）
+              施策の正式名称を入力してください（最大200文字）
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -116,7 +116,7 @@ export function BillFormFields({ control, billId }: BillFormFieldsProps) {
               />
             </FormControl>
             <FormDescription>
-              議案のサムネイル画像を設定してください（任意）
+              施策のサムネイル画像を設定してください（任意）
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -157,7 +157,7 @@ export function BillFormFields({ control, billId }: BillFormFieldsProps) {
               />
             </FormControl>
             <div className="space-y-1 leading-none">
-              <FormLabel>注目の議案</FormLabel>
+              <FormLabel>注目の施策</FormLabel>
               <FormDescription>
                 トップページなどで優先的に表示されます
               </FormDescription>

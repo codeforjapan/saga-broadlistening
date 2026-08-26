@@ -16,12 +16,12 @@ interface BillTopicsPreviewSectionProps {
   billId: string;
   /** 公開トピック（呼び出し側で取得済みのものを渡す）。 */
   topics: PublicTopic[];
-  /** 議案の公開レポート件数（ピル表示・引用→メッセージリンクの表示判定に使う）。 */
+  /** 施策の公開レポート件数（ピル表示・引用→メッセージリンクの表示判定に使う）。 */
   publicReportCount: number;
 }
 
 /**
- * 議案詳細ページに差し込むトピック一覧プレビュー。
+ * 施策詳細ページに差し込むトピック一覧プレビュー。
  * 公開トピックが無ければ何も描画しない。
  */
 export function BillTopicsPreviewSection({
@@ -43,7 +43,7 @@ export function BillTopicsPreviewSection({
         className="flex items-center gap-4"
       >
         <h2 className="flex items-center gap-4 font-bold leading-9 text-foreground">
-          <span className="text-[22px]">💬法案のトピック一覧</span>
+          <span className="text-[22px]">💬施策のトピック一覧</span>
           <span className="text-[20px]">{topics.length}件</span>
         </h2>
         <ChevronRight className="size-6 shrink-0 text-primary" />

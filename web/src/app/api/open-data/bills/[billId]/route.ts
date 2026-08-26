@@ -5,9 +5,9 @@ import { isUuid } from "@/features/open-data/shared/utils/uuid";
 import { jsonNoStore } from "@/lib/api/response";
 
 /**
- * 議案詳細のオープンデータ取得API。
+ * 施策詳細のオープンデータ取得API。
  *
- * - 公開中（publish_status = published）の議案のみを、本文解説・
+ * - 公開中（publish_status = published）の施策のみを、本文解説・
  *   チームみらいの賛否・タグ付きで返す
  * - APIキーは発行せず、オープンデータAPI全体でレートリミットを設ける
  */
@@ -35,7 +35,7 @@ export async function GET(
 
     const bill = await getOpenDataBillDetail({ billId, difficulty });
     if (bill === null) {
-      return jsonNoStore({ error: "指定された議案が見つかりません" }, 404);
+      return jsonNoStore({ error: "指定された施策が見つかりません" }, 404);
     }
     return jsonNoStore(bill);
   } catch (error) {

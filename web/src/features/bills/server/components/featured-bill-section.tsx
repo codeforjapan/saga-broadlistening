@@ -18,14 +18,14 @@ export function FeaturedBillSection({ bills }: FeaturedBillSectionProps) {
       {/* セクションヘッダー */}
       <div className="flex flex-col gap-1.5">
         <h2 className="text-[22px] font-bold text-foreground leading-[1.48]">
-          注目の法案🔥
+          注目の施策🔥
         </h2>
         <p className="text-xs font-medium text-foreground leading-[1.67]">
-          国会に提出された注目法案
+          佐賀市が検討している注目施策
         </p>
       </div>
 
-      {/* 注目の議案カード */}
+      {/* 注目の施策カード */}
       <div className="flex flex-col gap-4">
         {bills.map((bill) => (
           <Link key={bill.id} href={routes.billDetail(bill.id) as Route}>

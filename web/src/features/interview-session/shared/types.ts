@@ -31,7 +31,7 @@ export interface InterviewChatRequestParams {
   nextQuestionId?: string;
   /**
    * プレビュー用トークン。プレビュー画面からのリクエストのみが送る。
-   * サーバー側で検証が通った場合に限り、非公開の議案・設定を対象にできる。
+   * サーバー側で検証が通った場合に限り、非公開の施策・設定を対象にできる。
    */
   previewToken?: string;
 }

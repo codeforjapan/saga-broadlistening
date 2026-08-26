@@ -47,7 +47,7 @@ export default async function InterviewNewPage({
           インタビュー設定作成
         </h1>
         <p className="text-gray-600 mt-1">
-          議案「{bill.name}」の新しいインタビュー設定を作成します
+          施策「{bill.name}」の新しいインタビュー設定を作成します
         </p>
       </div>
 

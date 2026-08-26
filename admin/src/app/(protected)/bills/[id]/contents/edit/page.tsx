@@ -11,14 +11,14 @@ export default async function BillContentsEditPage({
 }: BillContentsEditPageProps) {
   const { id } = await params;
 
-  // 議案とコンテンツを並行取得
+  // 施策とコンテンツを並行取得
   const [billResult, billContents] = await Promise.all([
     getBillById(id),
     getBillContents(id),
   ]);
 
   if (!billResult) {
-    throw new Error("議案が見つかりません");
+    throw new Error("施策が見つかりません");
   }
 
   const bill = billResult;
@@ -26,7 +26,7 @@ export default async function BillContentsEditPage({
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        議案コンテンツ編集
+        施策コンテンツ編集
       </h1>
       <BillContentsEditForm bill={bill} billContents={billContents} />
     </div>

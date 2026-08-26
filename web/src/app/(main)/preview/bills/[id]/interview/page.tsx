@@ -56,7 +56,7 @@ export default async function InterviewPreviewPage({
     notFound();
   }
 
-  // 管理者用API（非公開議案/非公開設定も取得可能）を使用
+  // 管理者用API（非公開施策/非公開設定も取得可能）を使用
   const [bill, interviewConfig] = await Promise.all([
     getBillByIdAdmin(billId),
     getInterviewConfigAdmin(billId),

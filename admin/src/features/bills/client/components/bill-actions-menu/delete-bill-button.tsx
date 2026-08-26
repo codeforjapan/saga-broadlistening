@@ -50,7 +50,7 @@ export function DeleteBillButton({ billId, billName }: DeleteBillButtonProps) {
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>議案を削除しますか？</AlertDialogTitle>
+          <AlertDialogTitle>施策を削除しますか？</AlertDialogTitle>
           <AlertDialogDescription>
             「{billName}」を削除します。この操作は取り消すことができません。
           </AlertDialogDescription>

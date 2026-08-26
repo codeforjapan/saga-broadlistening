@@ -1,5 +1,3 @@
-import { ManualRuby } from "@/lib/rubyful/manual-ruby";
-
 export function BillDisclaimer() {
   return (
     <div className="space-y-6 pt-4 pb-10">
@@ -7,9 +5,7 @@ export function BillDisclaimer() {
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-black">掲載コンテンツについて</h3>
         <p className="text-xs leading-relaxed text-foreground">
-          掲載されている法案情報は、国会に提出された議案などの公開情報を基に、佐賀市がAIを活用しながら背景情報を整理したものです。掲載法案は主に、内閣提出法案（
-          <ManualRuby ruby="かくほう">閣法</ManualRuby>
-          ）を対象としております。
+          掲載されている施策情報は、佐賀市が公開している情報を基に、AIを活用しながら背景情報を整理したものです。
         </p>
       </div>
 

@@ -20,12 +20,12 @@ export async function generateMetadata({
 
   if (!bill) {
     return {
-      title: "議案が見つかりません",
+      title: "施策が見つかりません",
     };
   }
 
   // bill_contentのsummaryがあればそれを使用、なければデフォルト値を使用
-  const description = bill.bill_content?.summary || "議案の詳細情報";
+  const description = bill.bill_content?.summary || "施策の詳細情報";
   const defaultOgpUrl = new URL("/ogp.jpg", env.webUrl).toString();
 
   // シェア用OGP画像（share_thumbnail_url > thumbnail_url > デフォルト）
