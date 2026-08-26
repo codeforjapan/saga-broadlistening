@@ -268,11 +268,17 @@ export class TopicAnalysisStack extends cdk.Stack {
         roleArn: schedulerExecutionRole.roleArn,
         // JSON.stringifyではなくtoJsonStringを使う。トークン（jobQueueArn等）を含む
         // オブジェクトを正しくFn::Joinへ解決するためのCDK標準の方法。
+        //
+        // キー名はPascalCase（JobName/JobQueue/JobDefinition/ContainerOverrides/Command）。
+        // AWS BatchはJSON protocol（RESTではない）のAPIのため、universal targetの
+        // Inputはcamel caseのSDKパラメータ名ではなくAPIモデル本来のPascalCase名を要求する
+        // （実機デプロイで "missing the following field(s): JobName, JobQueue,
+        // JobDefinition" のエラーにより確認済み。ECS RunTaskのcamelCaseとは別物）。
         input: cdk.Stack.of(this).toJsonString({
-          jobName: `topic-analysis-analyze-all-${envName}`,
-          jobQueue: this.jobQueue.jobQueueArn,
-          jobDefinition: this.jobDefinition.jobDefinitionArn,
-          containerOverrides: { command: DEFAULT_COMMAND },
+          JobName: `topic-analysis-analyze-all-${envName}`,
+          JobQueue: this.jobQueue.jobQueueArn,
+          JobDefinition: this.jobDefinition.jobDefinitionArn,
+          ContainerOverrides: { Command: DEFAULT_COMMAND },
         }),
       },
     });

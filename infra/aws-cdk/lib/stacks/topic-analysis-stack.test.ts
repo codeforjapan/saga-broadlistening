@@ -144,6 +144,7 @@ describe("TopicAnalysisStack", () => {
     // InputはjobQueue/jobDefinitionのARNをトークンとして含むためFn::Joinに
     // なる。固定文字列部分だけを正規表現で照合する（jobQueue/jobDefinitionの
     // ARN自体はFn::GetAtt/Refとして別要素になるため、ここでは照合しない）。
+    // キー名はPascalCase（実機デプロイでcamelCaseだと拒否されることを確認済み）。
     template.hasResourceProperties("AWS::Scheduler::Schedule", {
       ScheduleExpression: "cron(0 6 * * ? *)",
       ScheduleExpressionTimezone: "Asia/Tokyo",
@@ -155,10 +156,10 @@ describe("TopicAnalysisStack", () => {
             "",
             Match.arrayWith([
               Match.stringLikeRegexp(
-                `"jobName":"topic-analysis-analyze-all-${envConfig.envName}"`
+                `"JobName":"topic-analysis-analyze-all-${envConfig.envName}"`
               ),
               Match.stringLikeRegexp(
-                String.raw`"containerOverrides":\{"command":\["--mode=analyze-all"\]\}\}`
+                String.raw`"ContainerOverrides":\{"Command":\["--mode=analyze-all"\]\}\}`
               ),
             ]),
           ],
