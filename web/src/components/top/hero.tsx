@@ -30,7 +30,6 @@ export function Hero() {
             {SITE_NAME}（チカット）は、市の政策をわかりやすく解説し、
             あなたの声を市政につなぐ参加型プラットフォームです。
           </p>
-          <p className="text-xs text-muted-foreground">powered by AI</p>
         </div>
 
         <TopEntryNav />

@@ -5,16 +5,16 @@ import { Card } from "@/components/ui/card";
 
 const TOP_ENTRY_ITEMS = [
   {
-    href: `#${TOP_SECTIONS.policy}`,
-    icon: BookOpen,
-    title: `${SITE_NAME}みてみて`,
-    description: "市の政策や計画をわかりやすく解説。背景や論点を整理します。",
-  },
-  {
     href: `#${TOP_SECTIONS.interview}`,
     icon: MessagesSquare,
     title: `${SITE_NAME}きかせて`,
     description: "AIとの対話で、あなたの意見や経験を聞かせてください。",
+  },
+  {
+    href: `#${TOP_SECTIONS.policy}`,
+    icon: BookOpen,
+    title: `${SITE_NAME}みてみて`,
+    description: "市の政策や計画をわかりやすく解説。背景や論点を整理します。",
   },
 ];
 
