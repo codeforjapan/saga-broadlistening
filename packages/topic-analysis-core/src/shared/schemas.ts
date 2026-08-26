@@ -29,7 +29,7 @@ export const topicMergeSchema = z.object({
   topics: z
     .array(topicItemSchema)
     .describe(
-      "重複・近接を統合した議案全体の最終トピック集合。「その他」等の総括トピックは含めない"
+      "重複・近接を統合した施策全体の最終トピック集合。「その他」等の総括トピックは含めない"
     ),
 });
 

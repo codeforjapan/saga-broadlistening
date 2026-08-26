@@ -23,7 +23,7 @@ describe("createBillShareUrl", () => {
 describe("createShareMessage", () => {
   const baseBill = {
     id: "bill-1",
-    name: "正式法案名称",
+    name: "正式施策名称",
     tags: [],
   } as unknown as BillWithContent;
 
@@ -44,7 +44,7 @@ describe("createShareMessage", () => {
       ...baseBill,
       bill_content: undefined,
     };
-    expect(createShareMessage(bill)).toBe("正式法案名称 #佐賀市公聴システム");
+    expect(createShareMessage(bill)).toBe("正式施策名称 #佐賀市公聴システム");
   });
 
   it("falls back to bill.name when bill_content.title is null", () => {
@@ -54,7 +54,7 @@ describe("createShareMessage", () => {
         title: null,
       } as unknown as BillWithContent["bill_content"],
     };
-    expect(createShareMessage(bill)).toBe("正式法案名称 #佐賀市公聴システム");
+    expect(createShareMessage(bill)).toBe("正式施策名称 #佐賀市公聴システム");
   });
 
   it("includes hashtag #佐賀市公聴システム", () => {

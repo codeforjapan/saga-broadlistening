@@ -7,7 +7,7 @@ import {
 
 const baseBill: Bill = {
   id: "bill-001",
-  name: "テスト議案",
+  name: "テスト施策",
   slug: "test-bill",
   created_at: "2025-01-01T00:00:00Z",
   updated_at: "2025-01-02T00:00:00Z",
@@ -34,7 +34,7 @@ describe("prepareBillForDuplication", () => {
 
   it("名前に「(複製)」を付与する", () => {
     const result = prepareBillForDuplication(baseBill, "new-slug");
-    expect(result.name).toBe("テスト議案 (複製)");
+    expect(result.name).toBe("テスト施策 (複製)");
   });
 
   it("publish_statusをdraftに設定し、published_atをリセットする", () => {

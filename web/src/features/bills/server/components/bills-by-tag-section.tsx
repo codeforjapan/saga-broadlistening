@@ -25,7 +25,7 @@ export function BillsByTagSection({ billsByTag }: BillsByTagSectionProps) {
             description={tag.description}
           />
 
-          {/* 議案カード一覧 */}
+          {/* 施策カード一覧 */}
           <div className="flex flex-col gap-4">
             {bills.map((bill) => (
               <Link key={bill.id} href={routes.billDetail(bill.id) as Route}>

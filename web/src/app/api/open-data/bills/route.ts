@@ -4,9 +4,9 @@ import { parseBillsQuery } from "@/features/open-data/shared/utils/parse-bills-q
 import { jsonNoStore } from "@/lib/api/response";
 
 /**
- * 公開中の議案一覧のオープンデータ取得API。
+ * 公開中の施策一覧のオープンデータ取得API。
  *
- * - 公開中（publish_status = published）の議案のみを、難易度別コンテンツ・
+ * - 公開中（publish_status = published）の施策のみを、難易度別コンテンツ・
  *   チームみらいの賛否・タグ付きで新しい順に返す
  * - APIキーは発行せず、オープンデータAPI全体でレートリミットを設ける
  * - インタビューAPIと異なり license / termsUrl は返さない（インタビュー

@@ -7,10 +7,10 @@ import { routes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 const navigationLinks = [
-  { href: routes.bills(), label: "議案管理" },
+  { href: routes.bills(), label: "施策管理" },
   { href: routes.tags(), label: "タグ管理" },
   { href: routes.interviews(), label: "インタビュー" },
-  // 全議案トピック分析(/user-topic-analysis)は隠し機能のためヘッダーに出さない（URL直アクセスのみ）。
+  // 全施策トピック分析(/user-topic-analysis)は隠し機能のためヘッダーに出さない（URL直アクセスのみ）。
   { href: routes.admins(), label: "管理者" },
 ];
 

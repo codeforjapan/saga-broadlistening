@@ -19,11 +19,11 @@ export function FeaturedBillSection({ bills }: FeaturedBillSectionProps) {
       {/* セクションヘッダー */}
       <SectionHeading
         as="h3"
-        title="注目の法案🔥"
-        description="国会に提出された注目法案"
+        title="注目の施策🔥"
+        description="佐賀市が検討している注目施策"
       />
 
-      {/* 注目の議案カード */}
+      {/* 注目の施策カード */}
       <div className="flex flex-col gap-4">
         {bills.map((bill) => (
           <Link key={bill.id} href={routes.billDetail(bill.id) as Route}>

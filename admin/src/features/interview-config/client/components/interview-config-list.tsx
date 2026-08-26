@@ -257,13 +257,13 @@ export function InterviewConfigList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label="他法案へ複製"
+                              aria-label="他施策へ複製"
                               onClick={() => setCopyToBillTarget(config)}
                             >
                               <FolderInput className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>他法案へ複製</TooltipContent>
+                          <TooltipContent>他施策へ複製</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>

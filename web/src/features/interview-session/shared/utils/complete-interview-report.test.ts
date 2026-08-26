@@ -125,13 +125,13 @@ describe("buildCompletedOpinionSources", () => {
           {
             id: "message-user-1",
             role: "user",
-            content: "この法案に賛成です",
+            content: "この施策に賛成です",
           },
         ],
       })
     ).toEqual([
       expect.objectContaining({
-        source_message_content: "この法案に賛成です",
+        source_message_content: "この施策に賛成です",
       }),
     ]);
   });

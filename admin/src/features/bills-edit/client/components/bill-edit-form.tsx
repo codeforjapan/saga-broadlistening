@@ -48,7 +48,7 @@ export function BillEditForm({ bill }: BillEditFormProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>議案基本情報編集</CardTitle>
+        <CardTitle>施策基本情報編集</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>

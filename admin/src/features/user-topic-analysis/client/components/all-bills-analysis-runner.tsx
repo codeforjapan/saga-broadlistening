@@ -15,9 +15,9 @@ import {
 type AnalysisStrategy = "full" | "incremental";
 
 /**
- * 全議案トピック分析の実行ボタン。
- * 1 ジョブで全議案を順次処理するため進捗は粗く、起動の成否のみ表示する
- * （詳細は各議案のトピック分析ページで確認する）。
+ * 全施策トピック分析の実行ボタン。
+ * 1 ジョブで全施策を順次処理するため進捗は粗く、起動の成否のみ表示する
+ * （詳細は各施策のトピック分析ページで確認する）。
  */
 export function AllBillsAnalysisRunner() {
   const [strategy, setStrategy] = useState<AnalysisStrategy>("incremental");
@@ -74,11 +74,11 @@ export function AllBillsAnalysisRunner() {
         </Select>
         <p className="text-xs text-muted-foreground">
           差分追加:
-          各議案で「まだ抽出されていない新規意見」だけを抽出し、既存トピックへ追加します。新規意見が無い議案はスキップします。
+          各施策で「まだ抽出されていない新規意見」だけを抽出し、既存トピックへ追加します。新規意見が無い施策はスキップします。
         </p>
       </div>
 
-      {/* 起動後はボタンを無効化し、同一ページからの多重起動（全議案の重複分析・コスト増）を防ぐ。
+      {/* 起動後はボタンを無効化し、同一ページからの多重起動（全施策の重複分析・コスト増）を防ぐ。
           再実行したい場合はページを再読み込みする。 */}
       <Button
         onClick={handleRun}
@@ -90,13 +90,13 @@ export function AllBillsAnalysisRunner() {
         ) : (
           <Play className="size-4" />
         )}
-        全議案トピック分析を実行
+        全施策トピック分析を実行
       </Button>
 
       {started && (
         <p className="flex items-center gap-2 text-sm text-green-700">
           <CheckCircle2 className="size-4" />
-          実行を開始しました。全議案を順次処理するため完了まで時間がかかります。多重起動を避けるため、完了前の再実行は控えてください（再実行する場合はページを再読み込み）。進捗は各議案のトピック分析ページで確認してください。
+          実行を開始しました。全施策を順次処理するため完了まで時間がかかります。多重起動を避けるため、完了前の再実行は控えてください（再実行する場合はページを再読み込み）。進捗は各施策のトピック分析ページで確認してください。
         </p>
       )}
       {error && <p className="text-sm text-system-warning">{error}</p>}

@@ -23,7 +23,7 @@ function PreviewBanner() {
           <div className="flex items-center gap-2 text-yellow-800">
             <AlertTriangle className="h-5 w-5" />
             <span className="font-medium">
-              プレビューモード - この議案は一般公開されていません
+              プレビューモード - この施策は一般公開されていません
             </span>
           </div>
           <div className="flex items-center gap-4 text-sm">
@@ -53,7 +53,7 @@ export default async function PreviewBillPage({
     notFound();
   }
 
-  // 管理者用API（非公開議案も取得可能）を使用
+  // 管理者用API（非公開施策も取得可能）を使用
   const bill = await getBillByIdAdmin(params.id);
   const difficulty = await getDifficultyLevel();
 

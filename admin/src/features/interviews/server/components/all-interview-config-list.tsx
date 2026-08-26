@@ -40,7 +40,7 @@ export function AllInterviewConfigList({
             <TableHeader>
               <TableRow>
                 <TableHead>設定名</TableHead>
-                <TableHead>議案</TableHead>
+                <TableHead>施策</TableHead>
                 <TableHead>ステータス</TableHead>
                 <TableHead>セッション数</TableHead>
                 <TableHead>作成日</TableHead>

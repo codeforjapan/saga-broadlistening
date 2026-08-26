@@ -66,7 +66,12 @@ describe("ブランドメタ", () => {
 describe("manifest.json との整合", () => {
   const manifest = JSON.parse(
     readFileSync(join(repoRoot, "web/public/manifest.json"), "utf8")
-  ) as { theme_color: string; background_color: string; name: string };
+  ) as {
+    theme_color: string;
+    background_color: string;
+    name: string;
+    description: string;
+  };
 
   it("theme_color がトークンと一致する", () => {
     expect(manifest.theme_color).toBe(THEME_COLOR);
@@ -78,5 +83,9 @@ describe("manifest.json との整合", () => {
 
   it("旧ブランド名が残っていない", () => {
     expect(manifest.name).not.toContain("みらい議会");
+  });
+
+  it("description に国政由来の語彙が残っていない", () => {
+    expect(manifest.description).not.toMatch(/法案|議案|国会|衆議院|参議院/);
   });
 });

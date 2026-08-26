@@ -28,7 +28,7 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
       <div className="container mx-auto py-8">
         <h1 className="mb-1 text-2xl font-bold">ユーザー向けトピック分析</h1>
         <p className="text-sm text-gray-600">
-          この議案に紐づく意見募集がありません。
+          この施策に紐づく意見募集がありません。
         </p>
       </div>
     );

@@ -34,13 +34,13 @@ export default async function BillEditPage({ params }: BillEditPageProps) {
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" />
-          議案一覧に戻る
+          施策一覧に戻る
         </Link>
       </div>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">議案編集</h1>
-        <p className="text-gray-600 mt-1">議案の基本情報を編集します</p>
+        <h1 className="text-2xl font-bold text-gray-900">施策編集</h1>
+        <p className="text-gray-600 mt-1">施策の基本情報を編集します</p>
       </div>
 
       <div className="space-y-6">

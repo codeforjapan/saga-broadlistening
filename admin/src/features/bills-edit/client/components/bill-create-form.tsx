@@ -37,7 +37,7 @@ export function BillCreateForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>議案新規作成</CardTitle>
+        <CardTitle>施策新規作成</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>

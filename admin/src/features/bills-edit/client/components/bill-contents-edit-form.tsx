@@ -82,7 +82,7 @@ export function BillContentsEditForm({
     const result = await updateBillContents(bill.id, data);
 
     if (result.success) {
-      toast.success("議案コンテンツを更新しました");
+      toast.success("施策コンテンツを更新しました");
     } else {
       setError(result.error);
       toast.error("更新に失敗しました");
@@ -94,7 +94,7 @@ export function BillContentsEditForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>議案コンテンツ編集</CardTitle>
+        <CardTitle>施策コンテンツ編集</CardTitle>
         <p className="text-sm text-gray-600">{bill.name}</p>
       </CardHeader>
       <CardContent>
