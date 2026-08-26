@@ -1,4 +1,5 @@
 import * as cdk from "aws-cdk-lib";
+import * as batch from "aws-cdk-lib/aws-batch";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecr from "aws-cdk-lib/aws-ecr";
 import * as ecs from "aws-cdk-lib/aws-ecs";
@@ -20,9 +21,16 @@ export interface TopicAnalysisStackProps extends cdk.StackProps {
 const SCHEDULE_EXPRESSION = "cron(0 6 * * ? *)";
 const SCHEDULE_TIMEZONE = "Asia/Tokyo";
 const DEFAULT_COMMAND = ["--mode=analyze-all"];
-const TASK_CPU = 1024;
-const TASK_MEMORY_MIB = 2048;
+const JOB_VCPUS = 1;
+const JOB_MEMORY_MIB = 2048;
+const COMPUTE_ENVIRONMENT_MAX_VCPUS = 4;
 const VPC_MAX_AZS = 2;
+// EventBridge SchedulerからAWS Batchを呼ぶuniversal target。
+// CfnSchedule.TargetPropertyにはECS RunTaskのecsParametersに相当する
+// Batch専用のテンプレート済みターゲットが無いため、aws-sdk universal targetを使う
+// （実装時点でAWS公式ドキュメントとコミュニティ事例で存在は確認済みだが、
+// Input JSONのキー名の大文字小文字はcdk deploy後に実機で疎通確認すること）。
+const BATCH_SUBMIT_JOB_TARGET_ARN = "arn:aws:scheduler:::aws-sdk:batch:submitJob";
 
 // worker(src/main.ts)が起動時に必須チェックする環境変数。SUPABASE_* に加え、
 // topic-analysis-coreがまだAI Gateway経由でモデル呼び出しをしているため
@@ -36,23 +44,24 @@ const WORKER_SECRETS = [
 type WorkerSecretEnvVar = (typeof WORKER_SECRETS)[number]["envVar"];
 
 /**
- * トピック分析・意見再抽出バックフィルworkerの実行基盤（ECS Fargate + EventBridge Scheduler）。
- * GCP Cloud Run Job（infra/cloud-run）からの移行先（#48）。admin からの手動起動（#49）は
- * このスタックが公開する cluster / taskDefinition / taskRole / executionRole を使って
- * ecs:RunTask を呼ぶ想定。
+ * トピック分析・意見再抽出バックフィルworkerの実行基盤（AWS Batch on Fargate + EventBridge Scheduler）。
+ * GCP Cloud Run Job（infra/cloud-run）からの移行先（#48）。当初はECS RunTaskを直接使う構成
+ * だったが、呼び出しのたびにsubnet/SGを渡す必要がありadmin側（#49）にもインフラの詳細が
+ * 漏れ出す問題があったため、AWS Batchへ移行した（#66）。ネットワーク設定はCompute
+ * Environmentに一度だけ持たせ、呼び出し側はJob Queue / Job Definitionの参照だけで済む。
  *
  * worker の通信先（Supabase / Bedrock / Langfuse Cloud）はいずれも公開エンドポイントのため、
- * NAT Gatewayを作らずパブリックサブネット + assignPublicIp:ENABLEDで構成する
+ * NAT Gatewayを作らずパブリックサブネット + assignPublicIp:trueで構成する
  * （プライベートサブネット+NATは月$30〜が常時かかるが、バッチ実行のこのworkerには不要）。
  */
 export class TopicAnalysisStack extends cdk.Stack {
   public readonly vpc: ec2.Vpc;
   public readonly repository: ecr.Repository;
-  public readonly cluster: ecs.Cluster;
-  public readonly taskDefinition: ecs.FargateTaskDefinition;
   public readonly taskRole: iam.Role;
   public readonly executionRole: iam.Role;
   public readonly taskSecurityGroup: ec2.SecurityGroup;
+  public readonly jobQueue: batch.JobQueue;
+  public readonly jobDefinition: batch.EcsJobDefinition;
 
   constructor(scope: Construct, id: string, props: TopicAnalysisStackProps) {
     super(scope, id, props);
@@ -64,18 +73,20 @@ export class TopicAnalysisStack extends cdk.Stack {
       envName,
       props.githubActionsDeployRole
     );
-    this.cluster = new ecs.Cluster(this, "Cluster", {
-      clusterName: `mirai-gikai-topic-analysis-${envName}`,
-      vpc: this.vpc,
-    });
     this.taskRole = this.createTaskRole(envName, props.bedrockInvokeModelPolicy);
     this.executionRole = this.createExecutionRole(envName);
-    this.taskDefinition = this.createTaskDefinition(envName);
     this.taskSecurityGroup = new ec2.SecurityGroup(this, "TaskSecurityGroup", {
       vpc: this.vpc,
-      description: "topic-analysis worker task (outbound only)",
+      description: "topic-analysis worker job (outbound only)",
       allowAllOutbound: true,
     });
+
+    const computeEnvironment = this.createComputeEnvironment(envName);
+    this.jobQueue = new batch.JobQueue(this, "JobQueue", {
+      jobQueueName: `mirai-gikai-topic-analysis-${envName}`,
+      computeEnvironments: [{ computeEnvironment, order: 1 }],
+    });
+    this.jobDefinition = this.createJobDefinition(envName);
 
     this.createSchedule(envName, props.envConfig.topicAnalysisSchedulerEnabled);
   }
@@ -134,7 +145,7 @@ export class TopicAnalysisStack extends cdk.Stack {
     envName: string,
     bedrockInvokeModelPolicy: iam.IManagedPolicy
   ): iam.Role {
-    // タスク自身（アプリケーションコード）が引き受けるロール。Bedrock呼び出し権限のみを持つ。
+    // ジョブ自身（アプリケーションコード）が引き受けるロール。Bedrock呼び出し権限のみを持つ。
     // これによりVercel OIDCと同様、GCPサービスアカウント鍵のような静的資格情報が不要になる。
     const taskRole = new iam.Role(this, "TaskRole", {
       roleName: `mirai-gikai-topic-analysis-task-${envName}`,
@@ -147,7 +158,7 @@ export class TopicAnalysisStack extends cdk.Stack {
   }
 
   private createExecutionRole(envName: string): iam.Role {
-    // ECSエージェントが引き受けるロール（イメージpull・ログ書き込み・Secrets読み取り）。
+    // ECS/Batchエージェントが引き受けるロール（イメージpull・ログ書き込み・Secrets読み取り）。
     return new iam.Role(this, "ExecutionRole", {
       roleName: `mirai-gikai-topic-analysis-execution-${envName}`,
       description:
@@ -161,7 +172,19 @@ export class TopicAnalysisStack extends cdk.Stack {
     });
   }
 
-  private createTaskDefinition(envName: string): ecs.FargateTaskDefinition {
+  private createComputeEnvironment(
+    envName: string
+  ): batch.FargateComputeEnvironment {
+    return new batch.FargateComputeEnvironment(this, "ComputeEnvironment", {
+      computeEnvironmentName: `mirai-gikai-topic-analysis-${envName}`,
+      vpc: this.vpc,
+      vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
+      securityGroups: [this.taskSecurityGroup],
+      maxvCpus: COMPUTE_ENVIRONMENT_MAX_VCPUS,
+    });
+  }
+
+  private createJobDefinition(envName: string): batch.EcsJobDefinition {
     // 値はCDKでは発行せず空のSecretとして作成する。
     // デプロイ後に`aws secretsmanager put-secret-value`で実値を設定すること。
     const secretsByEnvVar = Object.fromEntries(
@@ -183,70 +206,51 @@ export class TopicAnalysisStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    const taskDefinition = new ecs.FargateTaskDefinition(
-      this,
-      "TaskDefinition",
-      {
-        family: `mirai-gikai-topic-analysis-worker-${envName}`,
-        cpu: TASK_CPU,
-        memoryLimitMiB: TASK_MEMORY_MIB,
-        taskRole: this.taskRole,
+    return new batch.EcsJobDefinition(this, "JobDefinition", {
+      jobDefinitionName: `mirai-gikai-topic-analysis-worker-${envName}`,
+      container: new batch.EcsFargateContainerDefinition(this, "Container", {
+        image: ecs.ContainerImage.fromEcrRepository(this.repository, "latest"),
+        cpu: JOB_VCPUS,
+        memory: cdk.Size.mebibytes(JOB_MEMORY_MIB),
+        // SubmitJob呼び出し側(admin #49 / EventBridge Scheduler)のcontainerOverrides.commandで
+        // 実際の--mode等を指定する前提（Cloud Run Jobの--argsと同じ構造）。
+        command: DEFAULT_COMMAND,
+        jobRole: this.taskRole,
         executionRole: this.executionRole,
-      }
-    );
-    taskDefinition.addContainer("worker", {
-      containerName: "worker",
-      image: ecs.ContainerImage.fromEcrRepository(this.repository, "latest"),
-      // RunTask呼び出し側(admin #49 / EventBridge Scheduler)のcontainerOverrides.commandで
-      // 実際の--mode等を指定する前提（Cloud Run Jobの--argsと同じ構造）。
-      command: DEFAULT_COMMAND,
-      logging: ecs.LogDrivers.awsLogs({ streamPrefix: "worker", logGroup }),
-      secrets: Object.fromEntries(
-        WORKER_SECRETS.map(({ envVar }) => [
-          envVar,
-          ecs.Secret.fromSecretsManager(secretsByEnvVar[envVar]),
-        ])
-      ),
+        // Compute Environment側がパブリックサブネットのみのため、ジョブにも公開IPを割り当てる。
+        assignPublicIp: true,
+        logging: ecs.LogDrivers.awsLogs({ streamPrefix: "worker", logGroup }),
+        secrets: Object.fromEntries(
+          Object.entries(secretsByEnvVar).map(([envVar, secret]) => [
+            envVar,
+            batch.Secret.fromSecretsManager(secret),
+          ])
+        ),
+      }),
     });
-    return taskDefinition;
   }
 
-  private createSchedule(
-    envName: string,
-    schedulerEnabled: boolean
-  ): void {
-    // EventBridge Schedulerがこのタスクを起動するためのロール。
-    // リソースをタスク定義・ロールのARNで厳密に絞る（*にするとロールの権限昇格経路になる）。
+  private createSchedule(envName: string, schedulerEnabled: boolean): void {
+    // EventBridge SchedulerがBatchにジョブを投入するためのロール。
+    // AWS管理ポリシー AWSBatchServiceEventTargetRole（EventBridge→Batch用）を参考に
+    // batch:SubmitJobのみを付与する。SubmitJobはJob Definition登録時に確定した
+    // jobRole/executionRoleを使うため、ECS RunTaskと異なりiam:PassRoleは不要。
     const schedulerExecutionRole = new iam.Role(
       this,
       "SchedulerExecutionRole",
       {
         roleName: `mirai-gikai-topic-analysis-scheduler-${envName}`,
         description:
-          "Role assumed by EventBridge Scheduler to call ecs:RunTask",
+          "Role assumed by EventBridge Scheduler to call batch:SubmitJob",
         assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
       }
     );
     schedulerExecutionRole.addToPolicy(
       new iam.PolicyStatement({
-        sid: "RunTopicAnalysisTask",
+        sid: "SubmitTopicAnalysisJob",
         effect: iam.Effect.ALLOW,
-        actions: ["ecs:RunTask"],
-        resources: [this.taskDefinition.taskDefinitionArn],
-        conditions: {
-          ArnEquals: { "ecs:cluster": this.cluster.clusterArn },
-        },
-      })
-    );
-    schedulerExecutionRole.addToPolicy(
-      new iam.PolicyStatement({
-        sid: "PassTaskRoles",
-        effect: iam.Effect.ALLOW,
-        actions: ["iam:PassRole"],
-        resources: [this.taskRole.roleArn, this.executionRole.roleArn],
-        conditions: {
-          StringEquals: { "iam:PassedToService": "ecs-tasks.amazonaws.com" },
-        },
+        actions: ["batch:SubmitJob"],
+        resources: [this.jobQueue.jobQueueArn, this.jobDefinition.jobDefinitionArn],
       })
     );
 
@@ -260,21 +264,15 @@ export class TopicAnalysisStack extends cdk.Stack {
       state: schedulerEnabled ? "ENABLED" : "DISABLED",
       flexibleTimeWindow: { mode: "OFF" },
       target: {
-        arn: this.cluster.clusterArn,
+        arn: BATCH_SUBMIT_JOB_TARGET_ARN,
         roleArn: schedulerExecutionRole.roleArn,
-        ecsParameters: {
-          taskDefinitionArn: this.taskDefinition.taskDefinitionArn,
-          launchType: "FARGATE",
-          networkConfiguration: {
-            awsvpcConfiguration: {
-              subnets: this.vpc.publicSubnets.map((subnet) => subnet.subnetId),
-              assignPublicIp: "ENABLED",
-              securityGroups: [this.taskSecurityGroup.securityGroupId],
-            },
-          },
-        },
-        input: JSON.stringify({
-          containerOverrides: [{ name: "worker", command: DEFAULT_COMMAND }],
+        // JSON.stringifyではなくtoJsonStringを使う。トークン（jobQueueArn等）を含む
+        // オブジェクトを正しくFn::Joinへ解決するためのCDK標準の方法。
+        input: cdk.Stack.of(this).toJsonString({
+          jobName: `topic-analysis-analyze-all-${envName}`,
+          jobQueue: this.jobQueue.jobQueueArn,
+          jobDefinition: this.jobDefinition.jobDefinitionArn,
+          containerOverrides: { command: DEFAULT_COMMAND },
         }),
       },
     });

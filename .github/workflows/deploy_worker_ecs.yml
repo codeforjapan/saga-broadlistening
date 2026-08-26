@@ -1,8 +1,8 @@
 name: Deploy Topic Analysis Worker (ECR)
 
 # worker / topic-analysis-core / その依存パッケージがmainに変わったときだけ
-# イメージをビルドしてECRにpushする（#48）。ECSタスク定義は常に:latestタグを
-# 参照するため、pushするだけで次回のRunTaskから新しいイメージが使われる。
+# イメージをビルドしてECRにpushする（#48 / #66）。Batch Job Definitionは常に:latestタグを
+# 参照するため、pushするだけで次回のSubmitJobから新しいイメージが使われる。
 #
 # 現状はprd環境のみ対象（MiraiGikaiGitHubActionsDeployRole-prdの信頼条件がmain限定のため）。
 # dev/stg環境への自動pushは未対応。infra/aws-cdk/README.mdの手順で手動push、または
