@@ -105,6 +105,20 @@ export class TopicAnalysisStack extends cdk.Stack {
     });
     this.jobDefinition = this.createJobDefinition(envName);
 
+    // admin(#49)実装時やデプロイ後の手動実行時にARNを探しやすくするための出力。
+    // `aws cloudformation describe-stacks --stack-name MiraiGikaiTopicAnalysisStack-<env>
+    // --query "Stacks[0].Outputs"` で取得できる。
+    new cdk.CfnOutput(this, "JobQueueArnOutput", {
+      value: this.jobQueue.jobQueueArn,
+      description: "ARN of the topic-analysis worker Batch Job Queue",
+      exportName: `MiraiGikaiTopicAnalysisJobQueueArn-${envName}`,
+    });
+    new cdk.CfnOutput(this, "JobDefinitionArnOutput", {
+      value: this.jobDefinition.jobDefinitionArn,
+      description: "ARN of the topic-analysis worker Batch Job Definition",
+      exportName: `MiraiGikaiTopicAnalysisJobDefinitionArn-${envName}`,
+    });
+
     this.createSchedule(envName, props.envConfig.topicAnalysisSchedulerEnabled);
   }
 

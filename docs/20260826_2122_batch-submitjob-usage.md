@@ -114,8 +114,22 @@ export async function submitTopicAnalysisJob(
 | --- | --- |
 | `AWS_REGION` | `ap-northeast-1`（Vercelが上書きするので明示必須） |
 | `AWS_ROLE_ARN` | `VercelOidcStack` の `VercelBedrockAccessRoleArn` Output（`MiraiGikaiVercelBedrockAccessRole-<env>` のARN） |
-| `ECS_BATCH_JOB_QUEUE_ARN` 等（任意の名前） | `mirai-gikai-topic-analysis-<env>` のJob Queue ARN |
-| `ECS_BATCH_JOB_DEFINITION_ARN` 等（任意の名前） | `mirai-gikai-topic-analysis-worker-<env>` のJob Definition ARN |
+| `TOPIC_ANALYSIS_BATCH_JOB_QUEUE_ARN` | `mirai-gikai-topic-analysis-<env>` のJob Queue ARN |
+| `TOPIC_ANALYSIS_BATCH_JOB_DEFINITION_ARN` | `mirai-gikai-topic-analysis-worker-<env>` のJob Definition ARN |
+
+`ECS_*`のような汎用的な接頭辞は避け、`TOPIC_ANALYSIS_BATCH_*`のようにこのworker専用だと
+分かる名前にすること。将来他のBatchワークロードが増えた際に名前が衝突・混同しないようにするため。
+
+Job Queue/Job Definition ARNは、`TopicAnalysisStack` がCfnOutputとして出力しているので
+以下で取得できる（`aws batch describe-job-queues`等を都度叩く必要はない）。
+
+```bash
+aws cloudformation describe-stacks \
+  --stack-name MiraiGikaiTopicAnalysisStack-<env> \
+  --profile <profile> --region ap-northeast-1 \
+  --query "Stacks[0].Outputs[?OutputKey=='JobQueueArnOutput' || OutputKey=='JobDefinitionArnOutput']" \
+  --output table
+```
 
 Job Queue/Job Definition ARNは `aws batch describe-job-queues` / `describe-job-definitions` で取得するか、`cdk deploy` 実行者に確認する（現状CfnOutputとしては出力していないので、必要なら `TopicAnalysisStack` にOutputを追加すること）。
 
