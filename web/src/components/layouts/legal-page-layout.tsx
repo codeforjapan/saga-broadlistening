@@ -22,9 +22,9 @@ export function LegalPageLayout({
     <div className="min-h-dvh bg-white">
       <section className={cn("py-12", className)}>
         <Container className="space-y-10">
-          <header className="space-y-2 border-b border-neutral-200 pb-6">
+          <header className="space-y-2 border-b border-border pb-6">
             {enLabel ? (
-              <p className="text-sm font-semibold tracking-[0.14em] text-mirai-brand-teal-hover">
+              <p className="text-sm font-semibold tracking-[0.14em] text-primary-accent">
                 {enLabel}
               </p>
             ) : null}
@@ -32,13 +32,13 @@ export function LegalPageLayout({
               {title}
             </h1>
             {description ? (
-              <p className="pt-1 text-[15px] leading-loose tracking-wide text-mirai-text-subtle">
+              <p className="pt-1 text-[15px] leading-loose tracking-wide text-muted-foreground">
                 {description}
               </p>
             ) : null}
           </header>
 
-          <div className="space-y-8 text-mirai-text">{children}</div>
+          <div className="space-y-8 text-foreground">{children}</div>
         </Container>
       </section>
     </div>
@@ -78,7 +78,7 @@ export function LegalSubSectionTitle({
   return (
     <h3
       className={cn(
-        "text-base font-bold tracking-[0.04em] text-mirai-text",
+        "text-base font-bold tracking-[0.04em] text-foreground",
         className
       )}
     >
@@ -96,7 +96,7 @@ export function LegalParagraph({ children, className }: LegalParagraphProps) {
   return (
     <p
       className={cn(
-        "text-sm leading-[1.8] tracking-[0.04em] text-mirai-text sm:text-[15px]",
+        "text-sm leading-[1.8] tracking-[0.04em] text-foreground sm:text-[15px]",
         className
       )}
     >
@@ -119,7 +119,7 @@ export function LegalList({ items, ordered, className }: LegalListProps) {
   return (
     <ListTag
       className={cn(
-        "space-y-1 text-sm leading-[1.8] tracking-[0.04em] text-mirai-text sm:text-[15px]",
+        "space-y-1 text-sm leading-[1.8] tracking-[0.04em] text-foreground sm:text-[15px]",
         ordered ? "list-decimal pl-5" : "list-disc pl-5",
         className
       )}

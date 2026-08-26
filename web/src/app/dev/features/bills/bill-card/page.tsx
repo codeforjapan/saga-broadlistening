@@ -67,7 +67,7 @@ export default function BillCardPreview() {
 
   return (
     <>
-      <h1 className="text-3xl font-bold text-mirai-text mb-8">BillCard</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-8">BillCard</h1>
 
       <ComponentShowcase title="Default" description="基本的な法案カード">
         <PreviewSection label="通常表示">

@@ -64,7 +64,7 @@ export function MakePublicModal({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="w-full text-gray-500"
+            className="w-full text-muted-foreground"
           >
             非公開のまま戻る
           </Button>

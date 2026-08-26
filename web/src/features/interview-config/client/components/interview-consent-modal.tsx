@@ -54,11 +54,11 @@ export function InterviewConsentModal({
           <DialogTitle className="text-lg font-bold text-primary text-center">
             AIインタビュー同意事項
           </DialogTitle>
-          <div className="h-[1px] bg-mirai-gradient mt-6" />
+          <div className="h-[1px] bg-border mt-6" />
         </DialogHeader>
 
         <div className="flex flex-col gap-6 mt-6">
-          <ul className="flex flex-col gap-3 list-disc pl-5 text-sm font-bold text-gray-800 leading-[22px]">
+          <ul className="flex flex-col gap-3 list-disc pl-5 text-sm font-bold text-foreground leading-[22px]">
             <li>回答データは佐賀市の政策検討に利用します。</li>
             <li>個人情報や機密情報の記載はお控えください。</li>
             <li>

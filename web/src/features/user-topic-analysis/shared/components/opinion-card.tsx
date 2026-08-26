@@ -11,8 +11,8 @@ import { PersonAvatar } from "./person-avatar";
 
 function Quote({ quote }: { quote: string }) {
   return (
-    <div className="ml-2 border-l-2 border-mirai-border pl-4">
-      <p className="font-quote text-[14px] font-medium leading-[22px] text-mirai-text">
+    <div className="ml-2 border-l-2 border-border pl-4">
+      <p className="font-quote text-[14px] font-medium leading-[22px] text-foreground">
         <span className="mr-1 align-[-0.1em] text-[18px] text-primary-accent">
           “
         </span>
@@ -67,7 +67,7 @@ export function OpinionCard({
       {/* アバター + 意見タイトル */}
       <div className="flex items-center gap-2.5">
         <PersonAvatar />
-        <h3 className="min-w-0 flex-1 text-[15px] font-bold leading-6 text-mirai-text">
+        <h3 className="min-w-0 flex-1 text-[15px] font-bold leading-6 text-foreground">
           {opinion.title}
         </h3>
       </div>
@@ -75,12 +75,12 @@ export function OpinionCard({
       {/* 立場・日時 */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {roleTitle && (
-          <span className="inline-flex items-center rounded bg-topic-chip-bg px-2 py-1 text-[13px] font-medium text-mirai-text-secondary">
+          <span className="inline-flex items-center rounded bg-muted px-2 py-1 text-[13px] font-medium text-foreground">
             {roleTitle}
           </span>
         )}
         {dateLabel && (
-          <span className="text-[12px] leading-[14px] text-topic-label">
+          <span className="text-[12px] leading-[14px] text-muted-foreground">
             {dateLabel}
           </span>
         )}

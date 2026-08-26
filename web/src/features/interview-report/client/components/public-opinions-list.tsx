@@ -35,14 +35,14 @@ function _SortToggle({
     <div className="flex items-center gap-2 text-sm font-bold">
       {sortOrderOptions.map((sort, index) => (
         <span key={sort} className="flex items-center gap-2">
-          {index > 0 && <span className="text-mirai-text">｜</span>}
+          {index > 0 && <span className="text-foreground">｜</span>}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onChangeSort(sort)}
             className={cn(
               "!p-0 !h-auto rounded-none transition-colors",
-              activeSort === sort ? "text-primary-accent" : "text-mirai-text"
+              activeSort === sort ? "text-primary-accent" : "text-foreground"
             )}
           >
             {sortOrderLabels[sort]}
@@ -138,10 +138,10 @@ export function PublicOpinionsList({
     <div className="flex flex-col gap-4">
       {/* セクションヘッダー */}
       <div className="flex items-center gap-4">
-        <h2 className="text-[22px] font-bold leading-[1.636] text-mirai-text">
+        <h2 className="text-[22px] font-bold leading-[1.636] text-foreground">
           <span className="mr-1">💬</span>施策に寄せられた意見
         </h2>
-        <span className="text-[22px] font-bold leading-[1.636] text-mirai-text">
+        <span className="text-[22px] font-bold leading-[1.636] text-foreground">
           {totalCount}件
         </span>
       </div>
@@ -180,13 +180,13 @@ export function PublicOpinionsList({
         {hasMore && (
           <div ref={sentinelRef} className="flex justify-center py-4">
             {isPending && (
-              <Loader2 className="h-6 w-6 animate-spin text-mirai-text-muted" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             )}
           </div>
         )}
 
         {!hasMore && reports.length === 0 && !isPending && (
-          <p className="text-center text-mirai-text-muted py-8">
+          <p className="text-center text-muted-foreground py-8">
             該当する意見はありません
           </p>
         )}

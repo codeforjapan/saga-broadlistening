@@ -1,8 +1,8 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { routes } from "@/lib/routes";
-import type { BillWithContent } from "../../shared/types";
 import { BillCard } from "../../client/components/bill-list/bill-card";
+import type { BillWithContent } from "../../shared/types";
 
 interface FeaturedBillSectionProps {
   bills: BillWithContent[];
@@ -17,10 +17,10 @@ export function FeaturedBillSection({ bills }: FeaturedBillSectionProps) {
     <section className="flex flex-col gap-6">
       {/* セクションヘッダー */}
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-[22px] font-bold text-mirai-text leading-[1.48]">
+        <h2 className="text-[22px] font-bold text-foreground leading-[1.48]">
           注目の法案🔥
         </h2>
-        <p className="text-xs font-medium text-mirai-text-secondary leading-[1.67]">
+        <p className="text-xs font-medium text-foreground leading-[1.67]">
           国会に提出された注目法案
         </p>
       </div>

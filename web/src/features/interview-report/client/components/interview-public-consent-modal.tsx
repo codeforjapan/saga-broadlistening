@@ -36,7 +36,7 @@ export function InterviewPublicConsentModal({
           <DialogTitle className="text-[22px] font-bold text-center">
             公開設定
           </DialogTitle>
-          <div className="h-[1px] bg-mirai-gradient mt-4" />
+          <div className="h-[1px] bg-border mt-4" />
         </DialogHeader>
 
         <div className="space-y-6 mt-6">
@@ -74,7 +74,7 @@ export function InterviewPublicConsentModal({
             variant="ghost"
             onClick={() => onSubmit(false)}
             disabled={isSubmitting}
-            className="w-full text-gray-500"
+            className="w-full text-muted-foreground"
           >
             非公開で提出する
           </Button>
