@@ -25,6 +25,14 @@ curl -sS https://<admin-domain>/api/tests/aws/bedrock \
   -H "X-Api-Test-Secret-Token: <API_TEST_SECRET_TOKENの値>"
 ```
 
+クエリパラメータ`message`で任意のメッセージを送信できる（省略時は固定の疎通確認文）。実際にLLMらしい応答が返ってくるか確認したい場合に使う。
+
+```bash
+curl -sS -G https://<admin-domain>/api/tests/aws/bedrock \
+  -H "X-Api-Test-Secret-Token: <API_TEST_SECRET_TOKENの値>" \
+  --data-urlencode "message=富士山の高さを教えて"
+```
+
 **成功時のレスポンス例:**
 
 ```json
