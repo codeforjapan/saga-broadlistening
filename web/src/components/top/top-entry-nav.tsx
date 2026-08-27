@@ -1,22 +1,29 @@
-import { BookOpen, ChevronDown, MessagesSquare } from "lucide-react";
-import { TOP_SECTIONS } from "@/components/top/top-sections";
 import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { ChevronDown } from "lucide-react";
+import Image from "next/image";
+import { TOP_SECTIONS } from "@/components/top/top-sections";
 import { Card } from "@/components/ui/card";
 
 const TOP_ENTRY_ITEMS = [
   {
     href: `#${TOP_SECTIONS.interview}`,
-    icon: MessagesSquare,
-    title: `${SITE_NAME}きかせて`,
+    logo: "/icons/chikat-kikasete.svg",
+    logoAlt: `${SITE_NAME}きかせて`,
+    title: "AIインタビュー",
     description: "AIとの対話で、あなたの意見や経験を聞かせてください。",
   },
   {
     href: `#${TOP_SECTIONS.policy}`,
-    icon: BookOpen,
-    title: `${SITE_NAME}みてみて`,
+    logo: "/icons/chikat-mitemite.svg",
+    logoAlt: `${SITE_NAME}みてみて`,
+    title: "施策紹介",
     description: "市の政策や計画をわかりやすく解説。背景や論点を整理します。",
   },
 ];
+
+/** ロゴSVGの余白を切り詰めたあとの寸法。カード幅に合わせて縮小して使う */
+const LOGO_WIDTH = 548;
+const LOGO_HEIGHT = 140;
 
 /**
  * ファーストビューの主要導線。
@@ -26,17 +33,19 @@ const TOP_ENTRY_ITEMS = [
 export function TopEntryNav() {
   return (
     <nav aria-label="主要コンテンツ" className="grid grid-cols-2 gap-3">
-      {TOP_ENTRY_ITEMS.map(({ href, icon: Icon, title, description }) => (
+      {TOP_ENTRY_ITEMS.map(({ href, logo, logoAlt, title, description }) => (
         <a key={href} href={href} className="block">
           <Card className="flex h-full flex-col gap-3 p-4 transition-colors hover:bg-muted/50">
-            {/* サービス名入りのタイトルは幅を食うため、アイコンは上に置く */}
+            {/* 横長のロゴなのでカード幅いっぱいに置き、その下にタイトルを並べる */}
             <div className="flex flex-col gap-2">
-              <span
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-primary-accent"
-                aria-hidden="true"
-              >
-                <Icon className="size-5" />
-              </span>
+              <Image
+                src={logo}
+                alt={logoAlt}
+                width={LOGO_WIDTH}
+                height={LOGO_HEIGHT}
+                className="h-auto w-full"
+                priority
+              />
               <p className="text-base font-bold leading-snug">{title}</p>
             </div>
             <p className="text-xs leading-relaxed text-muted-foreground">
