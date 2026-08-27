@@ -208,7 +208,7 @@ describe("TopicAnalysisStack", () => {
     });
   });
 
-  it("prd環境ではEventBridge Schedulerの既定値も無効(DISABLED)のままにする", () => {
+  it("prd環境ではEventBridge Schedulerが有効(ENABLED)になっている", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test9",
       "prd"
@@ -216,9 +216,9 @@ describe("TopicAnalysisStack", () => {
 
     const template = Template.fromStack(topicAnalysisStack);
 
-    expect(envConfig.topicAnalysisSchedulerEnabled).toBe(false);
+    expect(envConfig.topicAnalysisSchedulerEnabled).toBe(true);
     template.hasResourceProperties("AWS::Scheduler::Schedule", {
-      State: "DISABLED",
+      State: "ENABLED",
     });
   });
 });
