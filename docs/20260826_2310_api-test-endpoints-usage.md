@@ -35,7 +35,25 @@ curl -sS https://<admin-domain>/api/tests/aws/bedrock \
 
 `ap-northeast-1`では生のmodel IDでのオンデマンド呼び出しができず、クロスリージョン推論プロファイルIDが必要（実機確認済み）。`jp.`（日本CRIS）を使っているのは、IAMポリシーを`jp.*`に限定する計画（Issue #45）と整合させるため。
 
-## 2. `POST /api/tests/aws/topic-analysis-batch` — Batch起動確認
+## 2. `GET /api/tests/aws/bedrock/chat` — Bedrock任意メッセージ確認
+
+固定文言（「OK」とだけ返す）だとLLMらしい応答か確認しづらいため、任意のメッセージを送って応答を見たい場合に使う。クエリパラメータ`message`は必須（無ければ`400`）。
+
+```bash
+curl -sS -G https://<admin-domain>/api/tests/aws/bedrock/chat \
+  -H "X-Api-Test-Secret-Token: <API_TEST_SECRET_TOKENの値>" \
+  --data-urlencode "message=富士山の高さを教えて"
+```
+
+**成功時のレスポンス例:**
+
+```json
+{ "ok": true, "modelId": "jp.anthropic.claude-sonnet-4-6", "text": "富士山の高さは3,776メートルです。" }
+```
+
+失敗パターンは`GET /api/tests/aws/bedrock`と同様。
+
+## 3. `POST /api/tests/aws/topic-analysis-batch` — Batch起動確認
 
 ⚠️ **これは本物のジョブを起動する。** 名前は「テスト」だが、対象議案があれば実際にLLM呼び出し・DB書き込みが発生する、毎朝6:00 JSTのEventBridge Schedulerと全く同じ内容（`--mode=analyze-all`）。何度も叩くと同じ処理が何度も走る可能性がある点に注意。起動されたことは`console.log`でVercelのログに記録される（共有シークレット認証のため「誰が」までは特定できない）。
 
@@ -89,6 +107,6 @@ aws cloudformation describe-stacks \
 
 ## 関連
 
-- `admin/src/app/api/tests/aws/bedrock/route.ts` / `admin/src/app/api/tests/aws/topic-analysis-batch/route.ts`
+- `admin/src/app/api/tests/aws/bedrock/route.ts` / `admin/src/app/api/tests/aws/bedrock/chat/route.ts` / `admin/src/app/api/tests/aws/topic-analysis-batch/route.ts`
 - `admin/src/lib/aws-credentials.ts` / `admin/src/lib/require-secret-header.ts`
 - GitHub Issue #48（ECS Fargate基盤）/ #66（AWS Batchへの移行）/ #75（Vercel OIDC権限追加）/ #49（admin本実装）
