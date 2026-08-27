@@ -16,7 +16,7 @@ const TOP_ENTRY_ITEMS = [
     href: `#${TOP_SECTIONS.policy}`,
     logo: "/icons/chikat-mitemite.svg",
     logoAlt: `${SITE_NAME}みてみて`,
-    title: "施策紹介",
+    title: "政策紹介",
     description: "市の政策や計画をわかりやすく解説。背景や論点を整理します。",
   },
 ];
@@ -46,9 +46,12 @@ export function TopEntryNav() {
                 className="h-auto w-full"
                 priority
               />
-              <p className="text-base font-bold leading-snug">{title}</p>
+              {/* セクション見出し（SectionHeading）と同じ字面・サイズに揃える */}
+              <p className="text-balance text-[22px] font-bold leading-[1.48]">
+                {title}
+              </p>
             </div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="text-sm leading-relaxed text-muted-foreground">
               {description}
             </p>
             {/* 同一ページ内の対応セクションへ下るという合図 */}
