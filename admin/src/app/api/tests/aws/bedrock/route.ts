@@ -18,7 +18,7 @@ const TEST_MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0";
  * Vercel OIDC Federation経由でBedrockのbedrock:InvokeModel権限が機能しているかを
  * 確認するための疎通確認エンドポイント（Vercel OIDCロールの権限テスト・呼び出し方の
  * サンプルを兼ねる）。実際のアプリケーションロジックでの利用先は未定。
- * `X-Aws-Test-Token` ヘッダーによる共有シークレット認証（管理者ログイン不要）。
+ * `X-Api-Test-Secret-Token` ヘッダーによる共有シークレット認証（管理者ログイン不要）。
  */
 export async function GET(request: Request) {
   try {
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const text = result.output?.message?.content?.[0]?.text ?? "";
     return Response.json({ ok: true, modelId: TEST_MODEL_ID, text });
   } catch (error) {
-    console.error("[aws-test/bedrock] failed:", error);
+    console.error("[tests/aws/bedrock] failed:", error);
     return Response.json(
       {
         ok: false,

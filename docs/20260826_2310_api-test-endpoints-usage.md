@@ -1,6 +1,8 @@
-# AWS権限確認エンドポイント（`/api/aws-test/*`）の使い方
+# API疎通確認エンドポイント（`/api/tests/*`）の使い方
 
-admin（`saga-kocho-admin`）に追加した、Vercel OIDC Federation経由のAWS権限（Bedrock呼び出し・トピック分析workerのBatch起動）が実際に機能するかを確認するためのエンドポイントの使い方をまとめる。GitHub Issue #75（Vercel OIDCロールへの`batch:SubmitJob`権限追加）・PR #76（本エンドポイント追加）に対応。
+admin（`saga-kocho-admin`）に追加した、外部サービス（AWS等）への権限が実際に機能するかを確認するためのエンドポイント群の使い方をまとめる。GitHub Issue #75（Vercel OIDCロールへの`batch:SubmitJob`権限追加）・PR #76（本エンドポイント追加）に対応。
+
+現状は`/api/tests/aws/*`（AWS Vercel OIDC Federation関連）のみだが、将来他サービスの疎通確認が必要になった場合は`/api/tests/<サービス名>/*`の形で追加していく想定。
 
 ## 認証: 共有シークレットヘッダー（管理者ログイン不要）
 
@@ -9,17 +11,18 @@ admin（`saga-kocho-admin`）に追加した、Vercel OIDC Federation経由のAW
 管理者ログイン無しで**curlから直接叩ける**ことを優先した設計で、実際のUI組み込み
 （#49）とは別枠の、あくまでテスト・疎通確認用のエンドポイントという位置づけ。
 
-`X-Aws-Test-Token` ヘッダーの値が環境変数 `AWS_TEST_TOKEN` と一致しない場合は
-`401 Unauthorized` を返す。`AWS_TEST_TOKEN` は他の値と推測されにくいランダムな
-文字列をVercelの環境変数に設定すること（例: `openssl rand -hex 32`）。
+`X-Api-Test-Secret-Token` ヘッダーの値が環境変数 `API_TEST_SECRET_TOKEN` と
+一致しない場合は `401 Unauthorized` を返す。`API_TEST_SECRET_TOKEN` は他の値と
+推測されにくいランダムな文字列をVercelの環境変数に設定すること
+（例: `openssl rand -hex 32`）。
 
-## 1. `GET /api/aws-test/bedrock` — Bedrock疎通確認
+## 1. `GET /api/tests/aws/bedrock` — Bedrock疎通確認
 
 副作用なし・低コスト（短い文章を1回生成するだけ）。
 
 ```bash
-curl -sS https://<admin-domain>/api/aws-test/bedrock \
-  -H "X-Aws-Test-Token: <AWS_TEST_TOKENの値>"
+curl -sS https://<admin-domain>/api/tests/aws/bedrock \
+  -H "X-Api-Test-Secret-Token: <API_TEST_SECRET_TOKENの値>"
 ```
 
 **成功時のレスポンス例:**
@@ -30,13 +33,13 @@ curl -sS https://<admin-domain>/api/aws-test/bedrock \
 
 **失敗時**（権限不足・OIDC設定ミス等）は `{ "ok": false, "error": "<AWSのエラーメッセージ>" }` を `500` で返す。`AccessDeniedException` ならIAM権限側、`ValidationException` ならモデルID側（クロスリージョン推論プロファイルが必要な場合がある）を疑う。
 
-## 2. `POST /api/aws-test/topic-analysis-batch` — Batch起動確認
+## 2. `POST /api/tests/aws/topic-analysis-batch` — Batch起動確認
 
 ⚠️ **これは本物のジョブを起動する。** 名前は「テスト」だが、対象議案があれば実際にLLM呼び出し・DB書き込みが発生する、毎朝6:00 JSTのEventBridge Schedulerと全く同じ内容（`--mode=analyze-all`）。何度も叩くと同じ処理が何度も走る可能性がある点に注意。起動されたことは`console.log`でVercelのログに記録される（共有シークレット認証のため「誰が」までは特定できない）。
 
 ```bash
-curl -sS -X POST https://<admin-domain>/api/aws-test/topic-analysis-batch \
-  -H "X-Aws-Test-Token: <AWS_TEST_TOKENの値>"
+curl -sS -X POST https://<admin-domain>/api/tests/aws/topic-analysis-batch \
+  -H "X-Api-Test-Secret-Token: <API_TEST_SECRET_TOKENの値>"
 ```
 
 **成功時のレスポンス例:**
@@ -56,7 +59,7 @@ aws logs tail /mirai-gikai/topic-analysis-worker-<env> --follow --profile <profi
 
 | レスポンス | 原因 |
 | --- | --- |
-| `401 Unauthorized` | `X-Aws-Test-Token` ヘッダーが無い・値が違う・`AWS_TEST_TOKEN`未設定 |
+| `401 Unauthorized` | `X-Api-Test-Secret-Token` ヘッダーが無い・値が違う・`API_TEST_SECRET_TOKEN`未設定 |
 | `500` + `TOPIC_ANALYSIS_BATCH_JOB_QUEUE_ARN / ... が未設定です` | Vercel側の環境変数が未設定 |
 | `500` + AWSのエラーメッセージ | IAM権限不足・`AWS_ROLE_ARN`未設定等（`admin/src/lib/aws-credentials.ts`参照） |
 
@@ -74,7 +77,7 @@ aws cloudformation describe-stacks \
 
 | 変数 | 説明 |
 | --- | --- |
-| `AWS_TEST_TOKEN` | `/api/aws-test/*` 用の共有シークレット。ランダムな文字列を自分で生成して設定する |
+| `API_TEST_SECRET_TOKEN` | `/api/tests/*` 用の共有シークレット。ランダムな文字列を自分で生成して設定する |
 | `AWS_REGION` | `ap-northeast-1` |
 | `AWS_ROLE_ARN` | `MiraiGikaiVercelBedrockAccessRole-<env>` のARN |
 | `TOPIC_ANALYSIS_BATCH_JOB_QUEUE_ARN` | Job Queue ARN |
@@ -84,6 +87,6 @@ aws cloudformation describe-stacks \
 
 ## 関連
 
-- `admin/src/app/api/aws-test/bedrock/route.ts` / `admin/src/app/api/aws-test/topic-analysis-batch/route.ts`
+- `admin/src/app/api/tests/aws/bedrock/route.ts` / `admin/src/app/api/tests/aws/topic-analysis-batch/route.ts`
 - `admin/src/lib/aws-credentials.ts` / `admin/src/lib/require-secret-header.ts`
 - GitHub Issue #48（ECS Fargate基盤）/ #66（AWS Batchへの移行）/ #75（Vercel OIDC権限追加）/ #49（admin本実装）
