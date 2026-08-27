@@ -20,9 +20,75 @@ describe("BedrockStack", () => {
               "bedrock:InvokeModelWithResponseStream",
             ],
             Resource: [
-              "arn:aws:bedrock:ap-northeast-1::foundation-model/*",
-              "arn:aws:bedrock:ap-northeast-1:826784631888:inference-profile/*",
+              "arn:aws:bedrock:ap-northeast-1:826784631888:inference-profile/jp.*",
+              "arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-sonnet-4-6",
+              "arn:aws:bedrock:ap-northeast-3::foundation-model/anthropic.claude-sonnet-4-6",
+              "arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+              "arn:aws:bedrock:ap-northeast-3::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+              "arn:aws:bedrock:ap-northeast-1::foundation-model/openai.gpt-oss-120b-1:0",
             ],
+          }),
+        ]),
+      },
+    });
+  });
+
+  it("inference profileはjp.*のみに限定し、global.等を含むワイルドカードは許可しない", () => {
+    const { bedrockStack } = createTestBedrockStack("Test11", "dev");
+
+    const template = Template.fromStack(bedrockStack);
+
+    const [policy] = Object.values(
+      template.findResources("AWS::IAM::ManagedPolicy")
+    );
+    const statement = policy.Properties.PolicyDocument.Statement.find(
+      (s: { Sid?: string }) => s.Sid === "InvokeFoundationModels"
+    );
+    const inferenceProfileResources = (statement.Resource as string[]).filter(
+      (r) => r.includes(":inference-profile/")
+    );
+    expect(inferenceProfileResources).toEqual([
+      "arn:aws:bedrock:ap-northeast-1:826784631888:inference-profile/jp.*",
+    ]);
+  });
+
+  it("aws:RequestedRegionがunspecified（global.*経由）の呼び出しをDenyする", () => {
+    const { bedrockStack } = createTestBedrockStack("Test12", "dev");
+
+    const template = Template.fromStack(bedrockStack);
+
+    template.hasResourceProperties("AWS::IAM::ManagedPolicy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: "DenyGlobalCrossRegionRouting",
+            Effect: "Deny",
+            Action: [
+              "bedrock:InvokeModel",
+              "bedrock:InvokeModelWithResponseStream",
+            ],
+            Resource: "*",
+            Condition: {
+              StringEquals: { "aws:RequestedRegion": "unspecified" },
+            },
+          }),
+        ]),
+      },
+    });
+  });
+
+  it("inference-profile/global.*を直接指定した呼び出しもDenyする", () => {
+    const { bedrockStack } = createTestBedrockStack("Test13", "dev");
+
+    const template = Template.fromStack(bedrockStack);
+
+    template.hasResourceProperties("AWS::IAM::ManagedPolicy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: "DenyGlobalInferenceProfile",
+            Effect: "Deny",
+            Resource: "arn:aws:bedrock:ap-northeast-1:826784631888:inference-profile/global.*",
           }),
         ]),
       },
