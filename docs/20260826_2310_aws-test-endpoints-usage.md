@@ -2,16 +2,24 @@
 
 admin（`saga-kocho-admin`）に追加した、Vercel OIDC Federation経由のAWS権限（Bedrock呼び出し・トピック分析workerのBatch起動）が実際に機能するかを確認するためのエンドポイントの使い方をまとめる。GitHub Issue #75（Vercel OIDCロールへの`batch:SubmitJob`権限追加）・PR #76（本エンドポイント追加）に対応。
 
-## 前提: 管理者ログインが必要
+## 認証: 共有シークレットヘッダー（管理者ログイン不要）
 
-両エンドポイントとも `requireAdmin()` でガードされており、admin管理者としてログイン済みのセッションが無いと `/login` にリダイレクトされる（未ログイン時は `307`）。そのため、**ブラウザで一度adminにログインした状態で叩く**のが一番簡単。
+このリポジトリは公開OSSのため、`requireAdmin()`（管理者ログイン）ではなく、
+共有シークレットによる認証を使っている（`admin/src/lib/require-secret-header.ts`）。
+管理者ログイン無しで**curlから直接叩ける**ことを優先した設計で、実際のUI組み込み
+（#49）とは別枠の、あくまでテスト・疎通確認用のエンドポイントという位置づけ。
+
+`X-Aws-Test-Token` ヘッダーの値が環境変数 `AWS_TEST_TOKEN` と一致しない場合は
+`401 Unauthorized` を返す。`AWS_TEST_TOKEN` は他の値と推測されにくいランダムな
+文字列をVercelの環境変数に設定すること（例: `openssl rand -hex 32`）。
 
 ## 1. `GET /api/aws-test/bedrock` — Bedrock疎通確認
 
-副作用なし・低コスト（短い文章を1回生成するだけ）。ブラウザのアドレスバーに直接アクセスするか、ログイン済みのタブの開発者コンソールで以下を実行する。
+副作用なし・低コスト（短い文章を1回生成するだけ）。
 
-```js
-fetch("/api/aws-test/bedrock").then((r) => r.json()).then(console.log);
+```bash
+curl -sS https://<admin-domain>/api/aws-test/bedrock \
+  -H "X-Aws-Test-Token: <AWS_TEST_TOKENの値>"
 ```
 
 **成功時のレスポンス例:**
@@ -24,12 +32,11 @@ fetch("/api/aws-test/bedrock").then((r) => r.json()).then(console.log);
 
 ## 2. `POST /api/aws-test/topic-analysis-batch` — Batch起動確認
 
-⚠️ **これは本物のジョブを起動する。** 名前は「テスト」だが、対象議案があれば実際にLLM呼び出し・DB書き込みが発生する、毎朝6:00 JSTのEventBridge Schedulerと全く同じ内容（`--mode=analyze-all`）。何度も叩くと同じ処理が何度も走る可能性がある点に注意。誰が起動したかは `console.log` でVercelのログに記録される。
+⚠️ **これは本物のジョブを起動する。** 名前は「テスト」だが、対象議案があれば実際にLLM呼び出し・DB書き込みが発生する、毎朝6:00 JSTのEventBridge Schedulerと全く同じ内容（`--mode=analyze-all`）。何度も叩くと同じ処理が何度も走る可能性がある点に注意。起動されたことは`console.log`でVercelのログに記録される（共有シークレット認証のため「誰が」までは特定できない）。
 
-```js
-fetch("/api/aws-test/topic-analysis-batch", { method: "POST" })
-  .then((r) => r.json())
-  .then(console.log);
+```bash
+curl -sS -X POST https://<admin-domain>/api/aws-test/topic-analysis-batch \
+  -H "X-Aws-Test-Token: <AWS_TEST_TOKENの値>"
 ```
 
 **成功時のレスポンス例:**
@@ -49,13 +56,13 @@ aws logs tail /mirai-gikai/topic-analysis-worker-<env> --follow --profile <profi
 
 | レスポンス | 原因 |
 | --- | --- |
-| `401 Unauthorized` | 管理者ログインしていない |
+| `401 Unauthorized` | `X-Aws-Test-Token` ヘッダーが無い・値が違う・`AWS_TEST_TOKEN`未設定 |
 | `500` + `TOPIC_ANALYSIS_BATCH_JOB_QUEUE_ARN / ... が未設定です` | Vercel側の環境変数が未設定 |
 | `500` + AWSのエラーメッセージ | IAM権限不足・`AWS_ROLE_ARN`未設定等（`admin/src/lib/aws-credentials.ts`参照） |
 
 ## 必要な環境変数（再掲）
 
-`infra/aws-cdk/README.md` および `docs/20260826_2122_batch-submitjob-usage.md`（`main`ブランチ）を参照。値はデプロイ後に以下で取得できる。
+`infra/aws-cdk/README.md` および `docs/20260826_2122_batch-submitjob-usage.md`（`main`ブランチ）を参照。Job Queue/Job DefinitionのARNはデプロイ後に以下で取得できる。
 
 ```bash
 aws cloudformation describe-stacks \
@@ -67,6 +74,7 @@ aws cloudformation describe-stacks \
 
 | 変数 | 説明 |
 | --- | --- |
+| `AWS_TEST_TOKEN` | `/api/aws-test/*` 用の共有シークレット。ランダムな文字列を自分で生成して設定する |
 | `AWS_REGION` | `ap-northeast-1` |
 | `AWS_ROLE_ARN` | `MiraiGikaiVercelBedrockAccessRole-<env>` のARN |
 | `TOPIC_ANALYSIS_BATCH_JOB_QUEUE_ARN` | Job Queue ARN |
@@ -77,5 +85,5 @@ aws cloudformation describe-stacks \
 ## 関連
 
 - `admin/src/app/api/aws-test/bedrock/route.ts` / `admin/src/app/api/aws-test/topic-analysis-batch/route.ts`
-- `admin/src/lib/aws-credentials.ts`
+- `admin/src/lib/aws-credentials.ts` / `admin/src/lib/require-secret-header.ts`
 - GitHub Issue #48（ECS Fargate基盤）/ #66（AWS Batchへの移行）/ #75（Vercel OIDC権限追加）/ #49（admin本実装）

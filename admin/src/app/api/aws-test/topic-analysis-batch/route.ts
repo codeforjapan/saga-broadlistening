@@ -1,7 +1,7 @@
 import { BatchClient, SubmitJobCommand } from "@aws-sdk/client-batch";
-import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { getAwsCredentials } from "@/lib/aws-credentials";
 import { env } from "@/lib/env";
+import { requireSecretHeader } from "@/lib/require-secret-header";
 
 export const maxDuration = 30;
 
@@ -11,16 +11,17 @@ export const maxDuration = 30;
  * サンプルを兼ねる）。実際に `--mode=analyze-all` のBatchジョブを起動する
  * （毎朝6:00 JSTのEventBridge Schedulerと同じ内容。対象議案が無ければworker側でskipする）。
  * 実際のUI組み込み（#49）では対象を選べるようにする想定。
+ * `X-Aws-Test-Token` ヘッダーによる共有シークレット認証（管理者ログイン不要）。
  */
-export async function POST() {
-  let adminEmail: string | undefined;
+export async function POST(request: Request) {
   try {
-    adminEmail = (await requireAdmin()).email;
+    requireSecretHeader(request);
   } catch {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-  // 実処理（実際のトピック分析）が走るエンドポイントのため、誰が起動したか記録する。
-  console.log(`[aws-test/topic-analysis-batch] triggered by ${adminEmail}`);
+  // 実処理（実際のトピック分析）が走るエンドポイントのため、起動されたことを記録する
+  // （共有シークレット認証のため、requireAdminと違い「誰が」までは特定できない）。
+  console.log("[aws-test/topic-analysis-batch] triggered");
 
   const { topicAnalysisBatchJobQueueArn, topicAnalysisBatchJobDefinitionArn } =
     env.aws;

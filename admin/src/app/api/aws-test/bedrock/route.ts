@@ -2,9 +2,9 @@ import {
   BedrockRuntimeClient,
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
-import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { getAwsCredentials } from "@/lib/aws-credentials";
 import { env } from "@/lib/env";
+import { requireSecretHeader } from "@/lib/require-secret-header";
 
 export const maxDuration = 30;
 
@@ -18,10 +18,11 @@ const TEST_MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0";
  * Vercel OIDC Federation経由でBedrockのbedrock:InvokeModel権限が機能しているかを
  * 確認するための疎通確認エンドポイント（Vercel OIDCロールの権限テスト・呼び出し方の
  * サンプルを兼ねる）。実際のアプリケーションロジックでの利用先は未定。
+ * `X-Aws-Test-Token` ヘッダーによる共有シークレット認証（管理者ログイン不要）。
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    await requireAdmin();
+    requireSecretHeader(request);
   } catch {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
