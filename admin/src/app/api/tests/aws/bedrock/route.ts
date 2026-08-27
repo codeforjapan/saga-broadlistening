@@ -14,14 +14,11 @@ export const maxDuration = 30;
 // 整合させるため。
 const TEST_MODEL_ID = "jp.anthropic.claude-sonnet-4-6";
 
-const DEFAULT_MESSAGE = "疎通確認です。「OK」とだけ返してください。";
-
 /**
  * Vercel OIDC Federation経由でBedrockのbedrock:InvokeModel権限が機能しているかを
  * 確認するための疎通確認エンドポイント（Vercel OIDCロールの権限テスト・呼び出し方の
  * サンプルを兼ねる）。実際のアプリケーションロジックでの利用先は未定。
  * `X-Api-Test-Secret-Token` ヘッダーによる共有シークレット認証（管理者ログイン不要）。
- * クエリパラメータ `message` で任意のメッセージを送信できる（省略時は固定の疎通確認文）。
  */
 export async function GET(request: Request) {
   try {
@@ -29,9 +26,6 @@ export async function GET(request: Request) {
   } catch {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const { searchParams } = new URL(request.url);
-  const message = searchParams.get("message") || DEFAULT_MESSAGE;
 
   try {
     const client = new BedrockRuntimeClient({
@@ -45,7 +39,7 @@ export async function GET(request: Request) {
         messages: [
           {
             role: "user",
-            content: [{ text: message }],
+            content: [{ text: "疎通確認です。「OK」とだけ返してください。" }],
           },
         ],
       })
