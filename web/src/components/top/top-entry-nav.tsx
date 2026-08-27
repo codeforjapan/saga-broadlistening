@@ -22,8 +22,8 @@ const TOP_ENTRY_ITEMS = [
 ];
 
 /** ロゴSVGの余白を切り詰めたあとの寸法。カード幅に合わせて縮小して使う */
-const LOGO_WIDTH = 548;
-const LOGO_HEIGHT = 140;
+const LOGO_WIDTH = 590;
+const LOGO_HEIGHT = 151;
 
 /**
  * ファーストビューの主要導線。
