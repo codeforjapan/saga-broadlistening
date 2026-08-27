@@ -45,14 +45,12 @@ export function InterviewThemeCard({
                 {theme.categoryLabel}
               </Badge>
             )}
-            <Heading className="text-base font-bold leading-snug">
-              {theme.name}
-            </Heading>
+            <Heading className="text-2xl/8 font-bold">{theme.name}</Heading>
             <RubySafeLineClamp
               text={theme.description}
               maxLength={60}
               lineClamp={2}
-              className="text-xs text-muted-foreground"
+              className="text-sm leading-relaxed text-muted-foreground"
             />
             {(estimatedDuration || participantCount) && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
