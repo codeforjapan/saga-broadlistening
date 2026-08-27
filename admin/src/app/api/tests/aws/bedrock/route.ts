@@ -10,7 +10,9 @@ export const maxDuration = 30;
 
 // 疎通確認用の固定モデル。ap-northeast-1では生のmodel IDでのオンデマンド呼び出しが
 // できず、クロスリージョン推論プロファイルIDが必要だったため、実機確認の上これに固定した。
-const TEST_MODEL_ID = "apac.anthropic.claude-3-5-sonnet-20241022-v2:0";
+// 日本CRIS（jp.）を使うのは、IAMポリシーを jp.* に限定する計画（Issue #45）と
+// 整合させるため。
+const TEST_MODEL_ID = "jp.anthropic.claude-sonnet-4-6";
 
 /**
  * Vercel OIDC Federation経由でBedrockのbedrock:InvokeModel権限が機能しているかを
