@@ -8,11 +8,9 @@ import { requireSecretHeader } from "@/lib/require-secret-header";
 
 export const maxDuration = 30;
 
-// 疎通確認用の固定モデル。BedrockStack(prd)の既定モデルに合わせている。
-// 注意: リージョンのオンデマンドスループット設定によっては、生のmodel IDではなく
-// クロスリージョン推論プロファイルID（例: apac.anthropic.claude-3-5-sonnet-...）が
-// 必要な場合がある。実機で初めて確認すること（ValidationExceptionが出たら要見直し）。
-const TEST_MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0";
+// 疎通確認用の固定モデル。ap-northeast-1では生のmodel IDでのオンデマンド呼び出しが
+// できず、クロスリージョン推論プロファイルIDが必要だったため、実機確認の上これに固定した。
+const TEST_MODEL_ID = "apac.anthropic.claude-3-5-sonnet-20241022-v2:0";
 
 /**
  * Vercel OIDC Federation経由でBedrockのbedrock:InvokeModel権限が機能しているかを

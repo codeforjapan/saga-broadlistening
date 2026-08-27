@@ -28,10 +28,12 @@ curl -sS https://<admin-domain>/api/tests/aws/bedrock \
 **成功時のレスポンス例:**
 
 ```json
-{ "ok": true, "modelId": "anthropic.claude-3-5-sonnet-20241022-v2:0", "text": "OK" }
+{ "ok": true, "modelId": "apac.anthropic.claude-3-5-sonnet-20241022-v2:0", "text": "OK" }
 ```
 
-**失敗時**（権限不足・OIDC設定ミス等）は `{ "ok": false, "error": "<AWSのエラーメッセージ>" }` を `500` で返す。`AccessDeniedException` ならIAM権限側、`ValidationException` ならモデルID側（クロスリージョン推論プロファイルが必要な場合がある）を疑う。
+**失敗時**（権限不足・OIDC設定ミス等）は `{ "ok": false, "error": "<AWSのエラーメッセージ>" }` を `500` で返す。`AccessDeniedException` ならIAM権限側、`ValidationException` ならモデルID側を疑う。
+
+`ap-northeast-1`では生のmodel IDでのオンデマンド呼び出しができず、クロスリージョン推論プロファイルID（`apac.`プレフィックス）が必要（実機確認済み）。
 
 ## 2. `POST /api/tests/aws/topic-analysis-batch` — Batch起動確認
 
