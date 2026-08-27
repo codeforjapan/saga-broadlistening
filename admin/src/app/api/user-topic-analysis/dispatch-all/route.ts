@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
-import { executeTopicAnalysisJob } from "@/lib/cloud-run-job";
+import { executeTopicAnalysisJob } from "@/lib/topic-analysis-batch";
 
 export const maxDuration = 60;
 
@@ -11,7 +11,7 @@ const json = (body: unknown, status = 200) =>
 
 /**
  * 全議案トピック分析の手動実行入口（Admin）。
- * version は worker 側で議案ごとに作成するため、ここでは Cloud Run Job を起動するだけ。
+ * version は worker 側で議案ごとに作成するため、ここでは AWS Batch ジョブを起動するだけ。
  * 既定は incremental（差分）。1 実行で全議案を順次処理する。
  */
 export async function POST(request: Request) {
