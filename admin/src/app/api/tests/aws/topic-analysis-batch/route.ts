@@ -11,7 +11,7 @@ export const maxDuration = 30;
  * サンプルを兼ねる）。実際に `--mode=analyze-all` のBatchジョブを起動する
  * （毎朝6:00 JSTのEventBridge Schedulerと同じ内容。対象議案が無ければworker側でskipする）。
  * 実際のUI組み込み（#49）では対象を選べるようにする想定。
- * `X-Aws-Test-Token` ヘッダーによる共有シークレット認証（管理者ログイン不要）。
+ * `X-Api-Test-Secret-Token` ヘッダーによる共有シークレット認証（管理者ログイン不要）。
  */
 export async function POST(request: Request) {
   try {
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
   }
   // 実処理（実際のトピック分析）が走るエンドポイントのため、起動されたことを記録する
   // （共有シークレット認証のため、requireAdminと違い「誰が」までは特定できない）。
-  console.log("[aws-test/topic-analysis-batch] triggered");
+  console.log("[tests/aws/topic-analysis-batch] triggered");
 
   const { topicAnalysisBatchJobQueueArn, topicAnalysisBatchJobDefinitionArn } =
     env.aws;
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     const result = await client.send(
       new SubmitJobCommand({
-        jobName: `aws-test-${Date.now()}`,
+        jobName: `tests-aws-${Date.now()}`,
         jobQueue: topicAnalysisBatchJobQueueArn,
         jobDefinition: topicAnalysisBatchJobDefinitionArn,
         containerOverrides: { command: ["--mode=analyze-all"] },
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     }
     return Response.json({ ok: true, jobId: result.jobId });
   } catch (error) {
-    console.error("[aws-test/topic-analysis-batch] failed:", error);
+    console.error("[tests/aws/topic-analysis-batch] failed:", error);
     return Response.json(
       {
         ok: false,
