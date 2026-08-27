@@ -33,6 +33,9 @@ export const env = {
     secretKey: process.env.LANGFUSE_SECRET_KEY,
     baseUrl: process.env.LANGFUSE_BASE_URL || "https://cloud.langfuse.com",
   },
+  // /api/aws-test/* を管理者ログイン無しでcurl等から叩くための共有シークレット。
+  // @/lib/require-secret-header 参照。
+  awsTestToken: process.env.AWS_TEST_TOKEN,
   // Vercel OIDC Federation経由でAWS（Bedrock呼び出し・トピック分析workerのBatch起動）を
   // 呼ぶための設定。roleArnが未設定の場合はローカル開発とみなし ~/.aws の資格情報を使う
   // （@/lib/aws-credentials 参照）。
