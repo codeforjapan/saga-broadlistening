@@ -18,6 +18,8 @@ admin（`saga-kocho-admin`）に追加した、外部サービス（AWS等）へ
 
 ## 1. `GET /api/tests/aws/bedrock` — Bedrock疎通確認
 
+ソースコード: [`admin/src/app/api/tests/aws/bedrock/route.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/admin/src/app/api/tests/aws/bedrock/route.ts)
+
 副作用なし・低コスト（短い文章を1回生成するだけ）。
 
 ```bash
@@ -37,6 +39,8 @@ curl -sS https://<admin-domain>/api/tests/aws/bedrock \
 
 ## 2. `GET /api/tests/aws/bedrock/chat` — Bedrock任意メッセージ確認
 
+ソースコード: [`admin/src/app/api/tests/aws/bedrock/chat/route.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/admin/src/app/api/tests/aws/bedrock/chat/route.ts)
+
 固定文言（「OK」とだけ返す）だとLLMらしい応答か確認しづらいため、任意のメッセージを送って応答を見たい場合に使う。クエリパラメータ`message`は必須（無ければ`400`）。
 
 ```bash
@@ -54,6 +58,8 @@ curl -sS -G https://<admin-domain>/api/tests/aws/bedrock/chat \
 失敗パターンは`GET /api/tests/aws/bedrock`と同様。
 
 ## 3. `POST /api/tests/aws/topic-analysis-batch` — Batch起動確認
+
+ソースコード: [`admin/src/app/api/tests/aws/topic-analysis-batch/route.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/admin/src/app/api/tests/aws/topic-analysis-batch/route.ts)
 
 ⚠️ **これは本物のジョブを起動する。** 名前は「テスト」だが、対象議案があれば実際にLLM呼び出し・DB書き込みが発生する、毎朝6:00 JSTのEventBridge Schedulerと全く同じ内容（`--mode=analyze-all`）。何度も叩くと同じ処理が何度も走る可能性がある点に注意。起動されたことは`console.log`でVercelのログに記録される（共有シークレット認証のため「誰が」までは特定できない）。
 
@@ -107,6 +113,12 @@ aws cloudformation describe-stacks \
 
 ## 関連
 
-- `admin/src/app/api/tests/aws/bedrock/route.ts` / `admin/src/app/api/tests/aws/bedrock/chat/route.ts` / `admin/src/app/api/tests/aws/topic-analysis-batch/route.ts`
-- `admin/src/lib/aws-credentials.ts` / `admin/src/lib/require-secret-header.ts`
-- GitHub Issue #48（ECS Fargate基盤）/ #66（AWS Batchへの移行）/ #75（Vercel OIDC権限追加）/ #49（admin本実装）
+- ソースコード
+  - [`admin/src/app/api/tests/aws/bedrock/route.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/admin/src/app/api/tests/aws/bedrock/route.ts)
+  - [`admin/src/app/api/tests/aws/bedrock/chat/route.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/admin/src/app/api/tests/aws/bedrock/chat/route.ts)
+  - [`admin/src/app/api/tests/aws/topic-analysis-batch/route.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/admin/src/app/api/tests/aws/topic-analysis-batch/route.ts)
+  - [`admin/src/lib/aws-credentials.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/admin/src/lib/aws-credentials.ts)
+  - [`admin/src/lib/require-secret-header.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/admin/src/lib/require-secret-header.ts)
+  - [`admin/src/middleware.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/admin/src/middleware.ts)（`/api/tests/*` のSupabaseセッションチェックのバイパス）
+  - [`infra/aws-cdk/lib/stacks/bedrock-stack.ts`](https://github.com/codeforjapan/saga-broadlistening/blob/main/infra/aws-cdk/lib/stacks/bedrock-stack.ts)（Bedrock呼び出しのIAMポリシー本体）
+- GitHub Issue: [#48](https://github.com/codeforjapan/saga-broadlistening/issues/48)（ECS Fargate基盤）/ [#66](https://github.com/codeforjapan/saga-broadlistening/issues/66)（AWS Batchへの移行）/ [#75](https://github.com/codeforjapan/saga-broadlistening/issues/75)（Vercel OIDC権限追加）/ [#49](https://github.com/codeforjapan/saga-broadlistening/issues/49)（admin本実装）/ [#45](https://github.com/codeforjapan/saga-broadlistening/issues/45)（Bedrock IAMを日本CRIS限定に）
