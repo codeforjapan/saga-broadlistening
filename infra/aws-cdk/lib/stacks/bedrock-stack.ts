@@ -142,6 +142,21 @@ export class BedrockStack extends Stack {
             actions: ["bedrock:ListFoundationModels"],
             resources: ["*"],
           }),
+          // AWS Marketplace経由で提供されるfoundation model（Anthropic等）は、
+          // 呼び出し元IAMプリンシパル自身がこの2アクションの権限を持っていないと、
+          // アカウント全体で既にサブスクライブ済みでも
+          // "not authorized to perform ... aws-marketplace:Subscribe" で拒否される
+          // （実機で確認済み）。AWS Marketplaceはリソースレベルの権限指定に対応して
+          // いないため Resource は "*" 固定になる。
+          new iam.PolicyStatement({
+            sid: "SubscribeMarketplaceModels",
+            effect: iam.Effect.ALLOW,
+            actions: [
+              "aws-marketplace:ViewSubscriptions",
+              "aws-marketplace:Subscribe",
+            ],
+            resources: ["*"],
+          }),
           new iam.PolicyStatement({
             sid: "ApplyGuardrail",
             effect: iam.Effect.ALLOW,

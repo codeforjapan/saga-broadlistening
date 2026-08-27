@@ -95,6 +95,28 @@ describe("BedrockStack", () => {
     });
   });
 
+  it("AWS Marketplace経由のモデルをサブスクライブする権限を付与する", () => {
+    const { bedrockStack } = createTestBedrockStack("Test14", "dev");
+
+    const template = Template.fromStack(bedrockStack);
+
+    template.hasResourceProperties("AWS::IAM::ManagedPolicy", {
+      PolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Sid: "SubscribeMarketplaceModels",
+            Effect: "Allow",
+            Action: [
+              "aws-marketplace:ViewSubscriptions",
+              "aws-marketplace:Subscribe",
+            ],
+            Resource: "*",
+          }),
+        ]),
+      },
+    });
+  });
+
   it("モデル一覧取得（ListFoundationModels）の権限も付与する", () => {
     const { bedrockStack } = createTestBedrockStack("Test4", "dev");
 
