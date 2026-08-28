@@ -27,6 +27,8 @@ export async function executeTopicAnalysisJob(
     );
   }
 
+  // 呼び出しごとにクライアントを生成している（モジュールスコープでの使い回しはしていない）。
+  // 管理画面からの低頻度な手動操作のため、クライアント生成コストは無視できる範囲と判断。
   const client = new BatchClient({
     region: env.aws.region,
     credentials: getAwsCredentials(),
