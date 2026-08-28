@@ -4,7 +4,7 @@ import {
   resetReextractionForBill,
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
-import { executeTopicAnalysisJob } from "@/lib/cloud-run-job";
+import { executeTopicAnalysisJob } from "@/lib/topic-analysis-batch";
 
 export const maxDuration = 60;
 
@@ -17,7 +17,7 @@ const json = (body: unknown, status = 200) =>
 /**
  * 意見再抽出バックフィルの入口（Admin 手動トリガ）。
  * リクエストボディで議案スコープ（billId）・対象範囲（scope）・使用モデル（model）を指定できる。
- * 対象レポートがあれば Cloud Run Job（backfill モード）を起動する。
+ * 対象レポートがあれば AWS Batch ジョブ（backfill モード）を起動する。
  */
 export async function POST(request: Request) {
   try {
