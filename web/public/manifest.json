@@ -1,6 +1,6 @@
 {
-  "name": "佐賀市公聴システム（仮）",
-  "short_name": "佐賀市公聴",
+  "name": "CHIKAT",
+  "short_name": "CHIKAT",
   "description": "佐賀市の施策をわかりやすく伝え、市民の声を政策づくりに活かす広聴プラットフォーム",
   "start_url": "/",
   "display": "standalone",

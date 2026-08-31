@@ -34,9 +34,7 @@ describe("createShareMessage", () => {
         title: "わかりやすいタイトル",
       } as BillWithContent["bill_content"],
     };
-    expect(createShareMessage(bill)).toBe(
-      "わかりやすいタイトル #佐賀市公聴システム"
-    );
+    expect(createShareMessage(bill)).toBe("わかりやすいタイトル #CHIKAT");
   });
 
   it("falls back to bill.name when bill_content is undefined", () => {
@@ -44,7 +42,7 @@ describe("createShareMessage", () => {
       ...baseBill,
       bill_content: undefined,
     };
-    expect(createShareMessage(bill)).toBe("正式施策名称 #佐賀市公聴システム");
+    expect(createShareMessage(bill)).toBe("正式施策名称 #CHIKAT");
   });
 
   it("falls back to bill.name when bill_content.title is null", () => {
@@ -54,11 +52,11 @@ describe("createShareMessage", () => {
         title: null,
       } as unknown as BillWithContent["bill_content"],
     };
-    expect(createShareMessage(bill)).toBe("正式施策名称 #佐賀市公聴システム");
+    expect(createShareMessage(bill)).toBe("正式施策名称 #CHIKAT");
   });
 
-  it("includes hashtag #佐賀市公聴システム", () => {
+  it("includes hashtag #CHIKAT", () => {
     const message = createShareMessage(baseBill);
-    expect(message).toContain("#佐賀市公聴システム");
+    expect(message).toContain("#CHIKAT");
   });
 });

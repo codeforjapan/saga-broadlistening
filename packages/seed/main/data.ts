@@ -37,6 +37,10 @@ export const DEFAULT_CONFIG_SLUG = "default-theme";
 export const ABSTRACT_CONFIG_SLUG = "machi-no-mirai";
 /** 募集終了済みの意見募集 */
 export const CLOSED_CONFIG_SLUG = "kyushoku-2025";
+/** トップページの AI インタビュー一覧を埋めるデモ用テーマ（テーマ自身の画像あり） */
+export const KOSODATE_CONFIG_SLUG = "kosodate-shien";
+/** 同上（テーマ自身の画像なし＝施策の画像にフォールバックする例） */
+export const SEIJI_SANKA_CONFIG_SLUG = "seiji-sanka";
 
 // タグデータ
 export const tags: TagInsert[] = [
@@ -198,6 +202,8 @@ const policyConfigSlugMap: { [policyName: string]: string[] } = {
   ガソリン税暫定税率廃止法案: [DEFAULT_CONFIG_SLUG, BULK_OPINION_CONFIG_SLUG],
   船荷証券の電子化に関する法律案: [BULK_OPINION_CONFIG_SLUG],
   学校給食無償化促進法案: [CLOSED_CONFIG_SLUG],
+  こども家庭庁予算大幅増額法案: [KOSODATE_CONFIG_SLUG],
+  "18歳選挙権完全実施法案": [SEIJI_SANKA_CONFIG_SLUG],
 };
 
 export function createPoliciesInterviewConfigs(
@@ -254,6 +260,29 @@ export const additionalInterviewConfigs: InterviewConfigInsert[] = [
     deliberation_enabled: true,
   },
   {
+    name: "子育て支援について",
+    slug: KOSODATE_CONFIG_SLUG,
+    description:
+      "子育てしやすいまちにするために、どんな支援が必要でしょうか。日々感じていることを聞かせてください。",
+    status: "open",
+    chat_model: DEFAULT_CHAT_MODEL,
+    estimated_duration: 5,
+    starts_at: "2025-09-01T00:00:00+09:00",
+    // テーマ自身の画像を持つ例
+    thumbnail_url: "https://placehold.co/600x400/eaf7ff/0077c8/png?text=Kosodate",
+  },
+  {
+    name: "若い世代の政治参加について",
+    slug: SEIJI_SANKA_CONFIG_SLUG,
+    description:
+      "選挙や地域の意思決定に、若い世代がもっと関わるには何が必要かを伺います。",
+    status: "open",
+    chat_model: DEFAULT_CHAT_MODEL,
+    estimated_duration: 3,
+    starts_at: "2025-09-10T00:00:00+09:00",
+    // thumbnail_url なし＝紐づく施策の画像にフォールバックする例
+  },
+  {
     name: "学校給食の無償化について",
     slug: CLOSED_CONFIG_SLUG,
     description: "学校給食の無償化について意見を伺ったテーマ（募集終了）",
@@ -289,6 +318,29 @@ export function createInterviewQuestions(
       question_order: 2,
     },
   ];
+}
+
+/**
+ * 参加人数の表示確認用に、対話ログを持たないセッションだけを積む。
+ * トップページのテーマカードは参加人数を出すため、テーマごとに件数の差が要る。
+ */
+export function createThemeDemoSessions(
+  interviewConfigId: string,
+  respondentIds: string[],
+  count: number
+): SeededInterviewSession[] {
+  const now = new Date();
+
+  return Array.from({ length: count }, (_, index) => {
+    const startedAt = new Date(now.getTime() - (index + 1) * 3600000);
+    return {
+      id: randomUUID(),
+      interview_config_id: interviewConfigId,
+      user_id: pickRespondent(respondentIds, index),
+      started_at: startedAt.toISOString(),
+      completed_at: new Date(startedAt.getTime() + 600000).toISOString(),
+    };
+  });
 }
 
 /** 対話の 5 パターン（意見あり 3 / 意見なし 1 / 途中離脱 1） */

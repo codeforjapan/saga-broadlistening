@@ -22,7 +22,8 @@ export default function MainGroupLayout({
 
       <MainLayout>
         <Header />
-        <main className="min-h-dvh md:min-h-[calc(100dvh-96px)] bg-background">
+        {/* 面の重なりを出すため、本文の地はカード(白)より一段暗い薄青グレー */}
+        <main className="min-h-dvh md:min-h-[calc(100dvh-96px)] bg-muted">
           {children}
         </main>
         <Footer />
