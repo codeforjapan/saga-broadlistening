@@ -137,6 +137,21 @@ describe("公開レポート loader 統合テスト", () => {
     });
   });
 
+  it("紐づく施策が未公開なら、施策なし（テーマ起点）として返す", async () => {
+    context = await createPublicReportLoaderContext("未公開施策", {
+      publishPolicy: false,
+    });
+    const target = await createPublicReport(context, { summary: "未公開要約" });
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
+
+    const result = await getPublicReportById(target.report.id);
+
+    // 未公開施策へのリンクは 404 になるため、テーマ側にフォールバックさせる
+    expect(result?.origin.policyId).toBeNull();
+    expect(result?.bill).toBeNull();
+    expect(result?.origin.theme.slug).toBeTruthy();
+  });
+
   it("チャットログ loader は非所有者に公開済み件数ゲートを適用する", async () => {
     context = await createPublicReportLoaderContext("チャットログ施策");
     const target = await createPublicReport(context, {
