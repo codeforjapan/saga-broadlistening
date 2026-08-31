@@ -16,8 +16,8 @@ const TOP_ENTRY_ITEMS = [
     href: `#${TOP_SECTIONS.policy}`,
     logo: "/icons/chikat-mitemite.svg",
     logoAlt: `${SITE_NAME}みてみて`,
-    title: "政策紹介",
-    description: "市の政策や計画をわかりやすく解説。背景や論点を整理します。",
+    title: "施策紹介",
+    description: "市の施策や計画をわかりやすく解説。背景や論点を整理します。",
   },
 ];
 
@@ -27,7 +27,7 @@ const LOGO_HEIGHT = 151;
 
 /**
  * ファーストビューの主要導線。
- * 「政策を知る」と「自分の声を届ける」を同列に並べ、
+ * 「施策を知る」と「自分の声を届ける」を同列に並べ、
  * 押すと同一ページ内の対応セクションへスクロールする。
  */
 export function TopEntryNav() {

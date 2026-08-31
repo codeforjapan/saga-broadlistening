@@ -5,7 +5,7 @@ describe("overrideInitialTopicTitle", () => {
   it("topic_titleを「はじめに」に上書きする", () => {
     const input = JSON.stringify({
       text: "こんにちは！",
-      topic_title: "経済政策",
+      topic_title: "経済施策",
       question_id: "q1",
       quick_replies: ["賛成", "反対"],
       next_stage: "chat",

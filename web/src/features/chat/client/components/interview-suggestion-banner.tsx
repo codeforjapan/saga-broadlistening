@@ -46,7 +46,7 @@ export function InterviewSuggestionBanner({
             <div className="flex items-center gap-1">
               <Check className="size-5 text-black flex-shrink-0" />
               <span className="text-xs font-medium leading-[1.8] text-foreground">
-                ご意見は政策議論に活用します
+                ご意見は施策議論に活用します
               </span>
             </div>
           </div>

@@ -14,8 +14,8 @@ interface PolicyShowcaseSectionProps {
 }
 
 /**
- * 政策紹介セクション。
- * 既存の「注目の施策」「タグ別一覧」をまとめ、政策紹介であることを見出しで示す。
+ * 施策紹介セクション。
+ * 既存の「注目の施策」「タグ別一覧」をまとめ、施策紹介であることを見出しで示す。
  */
 export function PolicyShowcaseSection({
   featuredBills,
@@ -26,8 +26,8 @@ export function PolicyShowcaseSection({
     <section id={sectionId} className="flex scroll-mt-24 flex-col gap-10">
       <SectionHeading
         icon={<BookOpen className="size-6" />}
-        title="政策紹介"
-        description="市で検討されている政策や計画のポイントを、やさしく解説します。"
+        title="施策紹介"
+        description="市で検討されている施策や計画のポイントを、やさしく解説します。"
       />
 
       <FeaturedBillSection bills={featuredBills} />

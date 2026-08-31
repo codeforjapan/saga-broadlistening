@@ -66,7 +66,7 @@ export async function ReportCompletePage({
 
           {/* 活用メッセージ */}
           <p className="text-sm text-foreground">
-            いただいた声は政策検討に最大限活用します
+            いただいた声は施策検討に最大限活用します
           </p>
         </div>
       </div>

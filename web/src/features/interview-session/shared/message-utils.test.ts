@@ -100,7 +100,7 @@ describe("parseMessageContent", () => {
       text: "こんにちは",
       question_id: "q1",
       quick_replies: ["はい", "いいえ"],
-      topic_title: "経済政策",
+      topic_title: "経済施策",
     });
     const result = parseMessageContent(content);
     expect(result).toEqual({
@@ -108,7 +108,7 @@ describe("parseMessageContent", () => {
       report: null,
       quickReplies: ["はい", "いいえ"],
       questionId: "q1",
-      topicTitle: "経済政策",
+      topicTitle: "経済施策",
     });
   });
 
