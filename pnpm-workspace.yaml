@@ -3,5 +3,6 @@ packages:
   - "admin"
   - "web"
   - "worker"
+  - "infra/aws-cdk"
 
 minimumReleaseAge: 4320

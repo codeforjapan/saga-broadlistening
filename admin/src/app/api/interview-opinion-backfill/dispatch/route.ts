@@ -4,7 +4,7 @@ import {
   resetReextractionForInterviewConfig,
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
-import { executeTopicAnalysisJob } from "@/lib/cloud-run-job";
+import { executeTopicAnalysisJob } from "@/lib/topic-analysis-batch";
 
 export const maxDuration = 60;
 
