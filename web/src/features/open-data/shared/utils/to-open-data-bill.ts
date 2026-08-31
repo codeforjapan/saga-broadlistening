@@ -4,7 +4,7 @@ import type {
 } from "../types/open-data-bills";
 
 // Epic #54 で bills → policies に再定義され、審議状況・提出議院・
-// チームみらいの賛否は廃止された。ファイル名・関数名（*Bill*）の改名は
+// 賛否スタンス機能は廃止された。ファイル名・関数名（*Bill*）の改名は
 // Epic #8 完了後のフォローアップ。
 
 export type OpenDataBillRow = {

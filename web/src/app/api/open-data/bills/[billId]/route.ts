@@ -8,7 +8,7 @@ import { jsonNoStore } from "@/lib/api/response";
  * 施策詳細のオープンデータ取得API。
  *
  * - 公開中（publish_status = published）の施策のみを、本文解説・
- *   チームみらいの賛否・タグ付きで返す
+ *   タグ付きで返す
  * - APIキーは発行せず、オープンデータAPI全体でレートリミットを設ける
  */
 export async function GET(

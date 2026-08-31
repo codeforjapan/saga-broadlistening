@@ -7,7 +7,7 @@ import type { OpenDataMessage } from "../types/open-data";
  * assistant の content は構造化JSONの生文字列で保存されており、最終ターンには
  * 内部メタデータ（report・content_richness 等）が埋め込まれる。webの公開ページと
  * 同じ表示テキスト抽出（getMessageDisplayText）を適用することで、
- * 「APIで取得できる内容 = みらい議会上で公開されている内容」を関数レベルで保証する。
+ * 「APIで取得できる内容 = 本サービス上で公開されている内容」を関数レベルで保証する。
  * user の content はwebと同様にそのまま返す。
  */
 export function toOpenDataMessage(row: {
