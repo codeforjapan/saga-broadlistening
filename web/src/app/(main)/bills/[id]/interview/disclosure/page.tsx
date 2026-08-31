@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
+import { InterviewDisclosurePage } from "@/features/interview-config/server/components/interview-disclosure-page";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { loadDisclosureData } from "@/features/interview-config/server/loaders/load-disclosure-data";
-import { InterviewDisclosurePage } from "@/features/interview-config/server/components/interview-disclosure-page";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 
 interface DisclosurePageProps {
   params: Promise<{
@@ -44,5 +45,10 @@ export default async function DisclosurePage({ params }: DisclosurePageProps) {
 
   const disclosureData = await loadDisclosureData(bill, interviewConfig);
 
-  return <InterviewDisclosurePage {...disclosureData} />;
+  return (
+    <InterviewDisclosurePage
+      {...disclosureData}
+      target={policyInterviewTarget(bill.id)}
+    />
+  );
 }

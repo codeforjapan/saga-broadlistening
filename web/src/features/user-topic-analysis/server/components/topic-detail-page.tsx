@@ -10,6 +10,7 @@ import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { getLinkedInterviewConfigId } from "@/features/interview-config/server/loaders/get-linked-interview-config-id";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { countPublicOpinionsByInterviewConfigId } from "@/features/interview-report/server/repositories/interview-report-repository";
 import { routes } from "@/lib/routes";
 import { TopicOpinionList } from "../../client/components/topic-opinion-list";
@@ -161,7 +162,7 @@ export async function TopicDetailPage({
 
           {/* AIインタビューCTA */}
           {interviewConfig != null && (
-            <InterviewLandingSection billId={billId} />
+            <InterviewLandingSection target={policyInterviewTarget(billId)} />
           )}
         </div>
       </Container>

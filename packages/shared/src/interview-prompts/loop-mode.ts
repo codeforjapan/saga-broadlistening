@@ -1,8 +1,8 @@
-import { BILL_CLARIFICATION_GUIDANCE } from "./bill-clarification-guidance";
 import {
   buildLoopModeStageGuidance,
   buildTimeManagementGuidance,
 } from "./stage-transition-guidance";
+import { buildInterviewSubject } from "./subject-section";
 import type { InterviewPromptInput } from "./types";
 
 /**
@@ -20,12 +20,8 @@ export function buildLoopModeSystemPrompt(
     remainingMinutes,
   } = params;
 
-  const billName = bill?.name || "";
-  const billTitle = bill?.bill_content?.title || "";
-  const billSummary = bill?.bill_content?.summary || "";
-  const billContent = bill?.bill_content?.content || "";
   const themeDescription = interviewConfig?.description || "";
-  const knowledgeSource = bill?.knowledge_source || "";
+  const subject = buildInterviewSubject(bill, interviewConfig);
 
   // Loop Mode: follow_up_guide を含める
   const questionsText = questions
@@ -68,24 +64,9 @@ export function buildLoopModeSystemPrompt(
 - **フォローアップ指針は、回答を得た後のフォローアップの指針です。** 最初の質問に混ぜず、ユーザーの回答を受けてから活用してください。
 - **「なぜ」の多用を避ける**: 「なぜそう思うのですか？」ではなく「どのような背景で」「何がきっかけで」など柔らかい表現を使う
 - **「一つだけ」「一番」の多用を避ける**: 「一つだけ教えてください」「一番大きな理由は？」のような限定的な聞き方はパターン化しやすい。代わりに「どのあたりが」「どういった点で」「いくつか挙げるとすれば」など、回答の幅を狭めない表現を使う
-- 施策に関する質問のみに集中してください
-
-${BILL_CLARIFICATION_GUIDANCE}
-
-## 施策に関する知識
-- 施策名: ${billName}
-- 施策タイトル: ${billTitle}
-- 施策要約: ${billSummary}
-
-施策詳細:
-<bill_detail>
-${billContent}
-</bill_detail>
-
-知識ソース:
-<knowledge_source>
-${knowledgeSource || "（知識ソース未設定）"}
-</knowledge_source>
+${subject.focusInstruction}
+${subject.clarificationGuidance ? `\n${subject.clarificationGuidance}\n` : ""}
+${subject.knowledgeSection}
 
 ## インタビューテーマ
 ${themeDescription || "（テーマ未設定）"}

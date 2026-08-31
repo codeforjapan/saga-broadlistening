@@ -3,31 +3,59 @@ import {
   buildInterviewThemes,
   DEFAULT_INTERVIEW_THUMBNAIL,
   formatParticipantCount,
-  type InterviewThemeLinkRow,
+  type InterviewThemeRow,
+  resolveInterviewThumbnail,
 } from "./interview-theme";
 
+describe("resolveInterviewThumbnail", () => {
+  it("テーマの画像を最優先する", () => {
+    expect(
+      resolveInterviewThumbnail(
+        "https://example.com/theme.png",
+        "https://example.com/policy.png"
+      )
+    ).toBe("https://example.com/theme.png");
+  });
+
+  it("テーマに画像がなければ施策の画像を使う", () => {
+    expect(
+      resolveInterviewThumbnail(null, "https://example.com/policy.png")
+    ).toBe("https://example.com/policy.png");
+  });
+
+  it("どちらもなければ既定の画像を使う", () => {
+    expect(resolveInterviewThumbnail(null, null)).toBe(
+      DEFAULT_INTERVIEW_THUMBNAIL
+    );
+  });
+
+  it("未指定（undefined）も画像なしとして扱う", () => {
+    expect(resolveInterviewThumbnail(undefined, undefined)).toBe(
+      DEFAULT_INTERVIEW_THUMBNAIL
+    );
+  });
+});
+
 function createRow(
-  overrides: Omit<Partial<InterviewThemeLinkRow>, "config"> & {
-    config?: Partial<InterviewThemeLinkRow["config"]>;
-  } = {}
-): InterviewThemeLinkRow {
-  const { config, ...rest } = overrides;
+  overrides: Partial<InterviewThemeRow> = {}
+): InterviewThemeRow {
   return {
-    policyId: "policy-1",
-    linkedAt: "2025-09-01T00:00:00+00:00",
-    policyThumbnailUrl: "https://example.com/policy.png",
-    policyTagLabel: "子育て・教育",
-    ...rest,
-    config: {
-      id: "config-1",
-      name: "子育て支援について",
-      description: "子育てしやすいまちにするために必要な支援を伺います",
-      estimatedDuration: 5,
-      thumbnailUrl: "https://example.com/theme.png",
-      createdAt: "2025-09-01T00:00:00+00:00",
-      participantCount: 128,
-      ...config,
-    },
+    id: "config-1",
+    slug: "kosodate-shien",
+    name: "子育て支援について",
+    description: "子育てしやすいまちにするために必要な支援を伺います",
+    estimatedDuration: 5,
+    thumbnailUrl: "https://example.com/theme.png",
+    createdAt: "2025-09-01T00:00:00+00:00",
+    participantCount: 128,
+    policies: [
+      {
+        isPublished: true,
+        thumbnailUrl: "https://example.com/policy.png",
+        tagLabel: "子育て・教育",
+      },
+    ],
+    ...overrides,
   };
 }
 
@@ -38,49 +66,110 @@ describe("buildInterviewThemes", () => {
     expect(themes).toEqual([
       {
         id: "config-1",
+        slug: "kosodate-shien",
         name: "子育て支援について",
         description: "子育てしやすいまちにするために必要な支援を伺います",
         estimatedDuration: 5,
         thumbnailUrl: "https://example.com/theme.png",
         participantCount: 128,
         categoryLabel: "子育て・教育",
-        policyId: "policy-1",
       },
     ]);
   });
 
-  it("テーマに画像がなければ施策の画像を使う", () => {
+  it("施策に紐づかない抽象テーマ型もそのまま並べる", () => {
+    const themes = buildInterviewThemes([createRow({ policies: [] })]);
+
+    expect(themes.map((theme) => theme.id)).toEqual(["config-1"]);
+  });
+
+  it("抽象テーマ型はフォールバック元の施策がないのでカテゴリを表示しない", () => {
+    const themes = buildInterviewThemes([createRow({ policies: [] })]);
+
+    expect(themes[0].categoryLabel).toBeNull();
+  });
+
+  it("紐づく施策がすべて未公開のテーマは一覧に出さない", () => {
     const themes = buildInterviewThemes([
-      createRow({ config: { thumbnailUrl: null } }),
+      createRow({
+        policies: [
+          { isPublished: false, thumbnailUrl: null, tagLabel: "子育て・教育" },
+        ],
+      }),
     ]);
+
+    expect(themes).toEqual([]);
+  });
+
+  it("公開済み施策が1件でもあれば一覧に出す", () => {
+    const themes = buildInterviewThemes([
+      createRow({
+        policies: [
+          { isPublished: false, thumbnailUrl: null, tagLabel: null },
+          {
+            isPublished: true,
+            thumbnailUrl: "https://example.com/policy.png",
+            tagLabel: "子育て・教育",
+          },
+        ],
+      }),
+    ]);
+
+    expect(themes[0].categoryLabel).toBe("子育て・教育");
+  });
+
+  it("テーマに画像がなければ公開済み施策の画像を使う", () => {
+    const themes = buildInterviewThemes([createRow({ thumbnailUrl: null })]);
 
     expect(themes[0].thumbnailUrl).toBe("https://example.com/policy.png");
   });
 
+  it("未公開施策の画像はフォールバックに使わない", () => {
+    const themes = buildInterviewThemes([
+      createRow({
+        thumbnailUrl: null,
+        policies: [
+          {
+            isPublished: false,
+            thumbnailUrl: "https://example.com/draft.png",
+            tagLabel: null,
+          },
+          { isPublished: true, thumbnailUrl: null, tagLabel: null },
+        ],
+      }),
+    ]);
+
+    expect(themes[0].thumbnailUrl).toBe(DEFAULT_INTERVIEW_THUMBNAIL);
+  });
+
   it("テーマにも施策にも画像がなければ既定の画像を使う", () => {
     const themes = buildInterviewThemes([
-      createRow({ config: { thumbnailUrl: null }, policyThumbnailUrl: null }),
+      createRow({ thumbnailUrl: null, policies: [] }),
     ]);
 
     expect(themes[0].thumbnailUrl).toBe(DEFAULT_INTERVIEW_THUMBNAIL);
   });
 
   it("施策にタグがなければカテゴリを表示しない", () => {
-    const themes = buildInterviewThemes([createRow({ policyTagLabel: null })]);
+    const themes = buildInterviewThemes([
+      createRow({
+        policies: [
+          {
+            isPublished: true,
+            thumbnailUrl: "https://example.com/policy.png",
+            tagLabel: null,
+          },
+        ],
+      }),
+    ]);
 
     expect(themes[0].categoryLabel).toBeNull();
   });
 
   it("テーマは作成日時の新しい順に並ぶ", () => {
     const themes = buildInterviewThemes([
-      createRow({
-        policyId: "policy-old",
-        config: { id: "config-old", createdAt: "2025-01-01T00:00:00+00:00" },
-      }),
-      createRow({
-        policyId: "policy-new",
-        config: { id: "config-new", createdAt: "2025-12-01T00:00:00+00:00" },
-      }),
+      createRow({ id: "config-old", createdAt: "2025-01-01T00:00:00+00:00" }),
+      createRow({ id: "config-new", createdAt: "2025-12-01T00:00:00+00:00" }),
     ]);
 
     expect(themes.map((theme) => theme.id)).toEqual([
@@ -89,55 +178,22 @@ describe("buildInterviewThemes", () => {
     ]);
   });
 
-  it("1施策に募集中テーマが複数あるとき、LPが出す1件だけを残す", () => {
+  it("作成日時が同じときはテーマIDの大きい順に並ぶ", () => {
     const themes = buildInterviewThemes([
-      createRow({
-        linkedAt: "2025-09-01T00:00:00+00:00",
-        config: { id: "config-old" },
-      }),
-      createRow({
-        linkedAt: "2025-10-01T00:00:00+00:00",
-        config: { id: "config-new" },
-      }),
+      createRow({ id: "config-a" }),
+      createRow({ id: "config-b" }),
     ]);
 
-    expect(themes.map((theme) => theme.id)).toEqual(["config-new"]);
+    expect(themes.map((theme) => theme.id)).toEqual(["config-b", "config-a"]);
   });
 
-  it("紐付け日時が同じときはテーマIDの大きい方を残す", () => {
+  it("同じ施策に募集中テーマが複数あっても、どちらも一覧に出す", () => {
     const themes = buildInterviewThemes([
-      createRow({ config: { id: "config-a" } }),
-      createRow({ config: { id: "config-b" } }),
+      createRow({ id: "config-1", createdAt: "2025-10-01T00:00:00+00:00" }),
+      createRow({ id: "config-2", createdAt: "2025-09-01T00:00:00+00:00" }),
     ]);
 
-    expect(themes.map((theme) => theme.id)).toEqual(["config-b"]);
-  });
-
-  it("別の施策から辿り着けるテーマは残る", () => {
-    const themes = buildInterviewThemes([
-      createRow({
-        policyId: "policy-1",
-        linkedAt: "2025-10-01T00:00:00+00:00",
-        config: { id: "config-1" },
-      }),
-      createRow({
-        policyId: "policy-1",
-        linkedAt: "2025-09-01T00:00:00+00:00",
-        config: { id: "config-2", createdAt: "2025-08-01T00:00:00+00:00" },
-      }),
-      createRow({
-        policyId: "policy-2",
-        linkedAt: "2025-09-01T00:00:00+00:00",
-        config: { id: "config-2", createdAt: "2025-08-01T00:00:00+00:00" },
-      }),
-    ]);
-
-    expect(
-      themes.map((theme) => ({ id: theme.id, policyId: theme.policyId }))
-    ).toEqual([
-      { id: "config-1", policyId: "policy-1" },
-      { id: "config-2", policyId: "policy-2" },
-    ]);
+    expect(themes.map((theme) => theme.id)).toEqual(["config-1", "config-2"]);
   });
 });
 

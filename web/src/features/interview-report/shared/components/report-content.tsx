@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { SpeechBubble } from "@/components/ui/speech-bubble";
 import type { ReportReactionData } from "@/features/report-reaction/shared/types";
 import { ShareArticleButton } from "../../client/components/share-article-button";
+import type { ReportOrigin } from "../utils/public-report-display";
 import { BackToBillButton } from "./back-to-bill-button";
 import { ChatLogSection } from "./chat-log-section";
 import { IntervieweeInfo } from "./interviewee-info";
@@ -13,7 +14,8 @@ import { ReportProblemButton } from "./report-problem-button";
 
 interface ReportContentProps {
   reportId: string;
-  billId: string;
+  /** 意見が寄せられた対象（施策・テーマ）。戻り導線とパンくずに使う */
+  origin: ReportOrigin;
   summary: string | null;
   roleTitle?: string | null;
   sessionStartedAt: string | null;
@@ -42,7 +44,7 @@ interface ReportContentProps {
 
 export function ReportContent({
   reportId,
-  billId,
+  origin,
   summary,
   roleTitle,
   sessionStartedAt,
@@ -105,13 +107,13 @@ export function ReportContent({
           />
         )}
         {/* 施策の記事に戻るボタン */}
-        <BackToBillButton billId={billId} from={from} />
+        <BackToBillButton origin={origin} from={from} />
         {/* 問題を報告する */}
         <ReportProblemButton />
       </div>
 
       {/* パンくずリスト */}
-      <ReportBreadcrumb billId={billId} />
+      <ReportBreadcrumb origin={origin} />
     </div>
   );
 }

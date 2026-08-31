@@ -1,5 +1,6 @@
 import { OPINION_TAG_CRITERIA } from "../interview-report/opinion-tags-schema";
 import { buildContentRichnessInstructions } from "../content-richness/content-richness-instructions";
+import { buildInterviewSubject } from "./subject-section";
 import type { InterviewConfig, PromptBillInput } from "./types";
 
 /**
@@ -14,10 +15,8 @@ export function buildSummarySystemPrompt({
   interviewConfig: InterviewConfig;
   messages: Array<{ role: string; content: string; id?: string }>;
 }): string {
-  const billName = bill?.name || "";
-  const billTitle = bill?.bill_content?.title || "";
-  const billSummary = bill?.bill_content?.summary || "";
   const themeDescription = interviewConfig?.description || "";
+  const subject = buildInterviewSubject(bill, interviewConfig);
 
   // 会話履歴を {role}: {content} のフォーマットで連結
   // userでidあり → `user [msg_id:UUID]: 内容`
@@ -32,10 +31,7 @@ export function buildSummarySystemPrompt({
 
   return `あなたは半構造化デプスインタビューを実施する熟練のインタビュアーです。
 
-## 施策情報
-- 施策名: ${billName}
-- 施策タイトル: ${billTitle}
-- 施策要約: ${billSummary}
+${subject.summarySection}
 
 ## インタビューテーマ
 ${themeDescription || "（テーマ未設定）"}

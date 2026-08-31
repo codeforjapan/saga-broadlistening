@@ -76,48 +76,83 @@ export async function findPrimaryInterviewConfigByPolicyId(policyId: string) {
   return findLatestInterviewConfigByPolicyId(policyId);
 }
 
+/** 公開判定と施策コンテキストの解決に必要な紐付けを含めて引くための select 句 */
+const CONFIG_WITH_POLICIES_SELECT =
+  "*, policies_interview_configs(policies(id, publish_status))";
+
 /**
- * 募集中（open）のテーマと、それに紐づく公開済み施策の組み合わせを全件取得する。
- *
- * テーマ一覧のカードは施策の画像・タグをフォールバックに使い、参加導線にも
- * 施策IDが要るため、紐付けテーブル側から引いて両方をまとめて取得する。
- * 参加人数は埋め込み集計（interview_sessions(count)）で同じ1本に含める。
- * 1件に絞り込む並び順の再現は呼び出し側（buildInterviewThemes）に委ねる。
+ * slug から募集中（status = 'open'）の意見募集を、紐づく施策つきで1件取得。
+ * テーマ単独の参加導線（/interviews/[slug]）の入口で使う。
  */
-export async function findOpenInterviewConfigLinks() {
+export async function findOpenInterviewConfigWithPoliciesBySlug(slug: string) {
+  const supabase = createAdminClient();
+  return supabase
+    .from("interview_configs")
+    .select(CONFIG_WITH_POLICIES_SELECT)
+    .eq("slug", slug)
+    .eq("status", "open")
+    .maybeSingle();
+}
+
+/**
+ * IDから意見募集を、紐づく施策つきで1件取得（ステータス問わず）。
+ * チャットAPIのように、公開判定を呼び出し側で行う経路で使う。
+ */
+export async function findInterviewConfigWithPoliciesById(configId: string) {
+  const supabase = createAdminClient();
+  return supabase
+    .from("interview_configs")
+    .select(CONFIG_WITH_POLICIES_SELECT)
+    .eq("id", configId)
+    .maybeSingle();
+}
+
+/**
+ * 募集中（open）のテーマを、紐づく施策の表示用情報つきで全件取得する。
+ *
+ * 参加導線がテーマ単独URLになったため、施策の紐付けが0件のテーマ（抽象テーマ型）も
+ * そのまま一覧に載せられる。施策は画像・タグのフォールバック元と公開判定にだけ使うので、
+ * 埋め込みは inner join にしない。
+ * 参加人数は埋め込み集計（interview_sessions(count)）で同じ1本に含める。
+ * 一覧に出す条件と並び順は呼び出し側（buildInterviewThemes）に委ねる。
+ */
+export async function findOpenInterviewConfigs() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("policies_interview_configs")
+    .from("interview_configs")
     .select(
       `
-      policy_id,
+      id,
+      slug,
+      name,
+      description,
+      estimated_duration,
+      thumbnail_url,
       created_at,
-      policies!inner (
-        thumbnail_url,
-        policies_tags (
-          tags (
-            label
-          )
-        )
+      interview_sessions (
+        count
       ),
-      interview_configs!inner (
-        id,
-        name,
-        description,
-        estimated_duration,
-        thumbnail_url,
-        created_at,
-        interview_sessions (
-          count
+      policies_interview_configs (
+        policies (
+          publish_status,
+          thumbnail_url,
+          policies_tags (
+            tags (
+              label
+            )
+          )
         )
       )
     `
     )
-    .eq("interview_configs.status", "open")
-    .eq("policies.publish_status", "published")
-    // カードに出すのは代表タグ1件だけなので、転送量を増やさない
-    .order("created_at", { referencedTable: "policies.policies_tags" })
-    .limit(1, { referencedTable: "policies.policies_tags" });
+    .eq("status", "open")
+    // カードに出す代表タグは施策ごとに1件だけなので、転送量を増やさない
+    .order("created_at", {
+      referencedTable: "policies_interview_configs.policies.policies_tags",
+    })
+    .limit(1, {
+      referencedTable: "policies_interview_configs.policies.policies_tags",
+    });
 
   if (error) {
     throw new Error(`Failed to fetch open interview configs: ${error.message}`);

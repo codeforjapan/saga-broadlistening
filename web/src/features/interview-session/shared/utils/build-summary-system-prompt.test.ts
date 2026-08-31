@@ -55,16 +55,16 @@ describe("buildSummarySystemPrompt", () => {
     expect(result).toContain("user: 賛成です");
   });
 
-  it("bill=nullの場合のフォールバック（空文字）", () => {
+  it("bill=nullの場合は施策の欄を作らず、テーマを対象として載せる", () => {
     const result = buildSummarySystemPrompt({
       bill: null,
-      interviewConfig: { description: "- テーマ1" },
+      interviewConfig: { name: "佐賀市のみらい", description: "- テーマ1" },
       messages: [{ role: "user", content: "テスト" }],
     });
 
-    expect(result).toContain("- 施策名: \n");
-    expect(result).toContain("- 施策タイトル: \n");
-    expect(result).toContain("- 施策要約: \n");
+    expect(result).toContain("## インタビューの対象");
+    expect(result).toContain("テーマ名: 佐賀市のみらい");
+    expect(result).not.toContain("- 施策名:");
   });
 
   it("テーマ未設定の場合「（テーマ未設定）」が含まれる", () => {

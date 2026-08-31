@@ -15,6 +15,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
+import {
+  policyInterviewTarget,
+  themeInterviewTarget,
+} from "@/features/interview-config/shared/types/interview-target";
 import { useEndInterview } from "./use-end-interview";
 
 describe("useEndInterview", () => {
@@ -26,7 +30,9 @@ describe("useEndInterview", () => {
   it("セッションをアーカイブしてから施策詳細へ遷移する", async () => {
     mockArchive.mockResolvedValue({ success: true });
 
-    const { result } = renderHook(() => useEndInterview("session-1", "bill-1"));
+    const { result } = renderHook(() =>
+      useEndInterview("session-1", policyInterviewTarget("bill-1"))
+    );
 
     await act(async () => {
       await result.current.endInterview();
@@ -44,7 +50,7 @@ describe("useEndInterview", () => {
     mockArchive.mockResolvedValue({ success: true });
 
     const { result } = renderHook(() =>
-      useEndInterview("session-1", "bill-1", "token-1")
+      useEndInterview("session-1", policyInterviewTarget("bill-1", "token-1"))
     );
 
     await act(async () => {
@@ -59,7 +65,9 @@ describe("useEndInterview", () => {
   it("連続呼び出しでも archive と push は一度だけ実行される（再入ガード）", async () => {
     mockArchive.mockResolvedValue({ success: true });
 
-    const { result } = renderHook(() => useEndInterview("session-1", "bill-1"));
+    const { result } = renderHook(() =>
+      useEndInterview("session-1", policyInterviewTarget("bill-1"))
+    );
 
     await act(async () => {
       // setIsEnding の反映を待たずに連続実行
@@ -76,7 +84,9 @@ describe("useEndInterview", () => {
   it("アーカイブが失敗してもユーザーは施策詳細へ遷移させる", async () => {
     mockArchive.mockResolvedValue({ success: false, error: "boom" });
 
-    const { result } = renderHook(() => useEndInterview("session-1", "bill-1"));
+    const { result } = renderHook(() =>
+      useEndInterview("session-1", policyInterviewTarget("bill-1"))
+    );
 
     await act(async () => {
       await result.current.endInterview();
@@ -86,10 +96,26 @@ describe("useEndInterview", () => {
     expect(mockPush).toHaveBeenCalledWith("/bills/bill-1");
   });
 
+  it("抽象テーマ型ではテーマ一覧へ遷移する", async () => {
+    mockArchive.mockResolvedValue({ success: true });
+
+    const { result } = renderHook(() =>
+      useEndInterview("session-1", themeInterviewTarget("saga-no-mirai"))
+    );
+
+    await act(async () => {
+      await result.current.endInterview();
+    });
+
+    expect(mockPush).toHaveBeenCalledWith("/interviews");
+  });
+
   it("アーカイブが例外を投げてもユーザーは遷移させる", async () => {
     mockArchive.mockRejectedValue(new Error("network"));
 
-    const { result } = renderHook(() => useEndInterview("session-1", "bill-1"));
+    const { result } = renderHook(() =>
+      useEndInterview("session-1", policyInterviewTarget("bill-1"))
+    );
 
     await act(async () => {
       await result.current.endInterview();

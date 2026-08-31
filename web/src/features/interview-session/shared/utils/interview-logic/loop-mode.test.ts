@@ -74,15 +74,19 @@ describe("buildLoopModeSystemPrompt", () => {
     expect(result).toContain("テスト施策の内容");
   });
 
-  it("bill=nullの場合は空文字にフォールバックする", () => {
+  it("bill=nullの場合は施策の欄を作らず、テーマを対象として説明する", () => {
     const result = buildLoopModeSystemPrompt({
       ...baseParams,
       bill: null,
+      interviewConfig: { name: "佐賀市のみらい", description: "- 医療" },
     });
 
-    expect(result).toContain("- 施策名: \n");
-    expect(result).toContain("- 施策タイトル: \n");
-    expect(result).toContain("- 施策要約: \n");
+    expect(result).toContain("## インタビューの対象");
+    expect(result).toContain("テーマ名: 佐賀市のみらい");
+    // 空欄の施策情報を並べるとAIが存在しない施策を語り出すため、欄ごと出さない
+    expect(result).not.toContain("- 施策名:");
+    expect(result).not.toContain("<bill_detail>");
+    expect(result).toContain("- テーマに関する質問のみに集中してください");
   });
 
   it("テーマがプロンプトに含まれる", () => {

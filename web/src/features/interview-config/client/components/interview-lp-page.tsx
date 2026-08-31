@@ -8,6 +8,7 @@ import { formatEstimatedDuration } from "@/features/interview-config/shared/util
 import {
   getBillDetailLink,
   getInterviewDisclosureLink,
+  getInterviewExitLink,
 } from "@/features/interview-config/shared/utils/interview-links";
 import { PastReportsSection } from "@/features/interview-report/client/components/past-reports-section";
 import type { UserReportsResult } from "@/features/interview-report/server/loaders/get-user-reports-by-interview-config";
@@ -15,13 +16,17 @@ import { InterviewStatusBadge } from "@/features/interview-session/client/compon
 import { NewInterviewButton } from "@/features/interview-session/client/components/new-interview-button";
 import type { LatestInterviewSession } from "@/features/interview-session/server/loaders/get-latest-interview-session";
 import type { InterviewConfig } from "../../server/loaders/get-interview-config";
+import type { InterviewTarget } from "../../shared/types/interview-target";
+import { resolveInterviewThumbnail } from "../../shared/utils/interview-theme";
 import { InterviewActionButtons } from "./interview-action-buttons";
 
 interface InterviewLPPageProps {
-  bill: BillWithContent;
+  /** 参加導線の起点。施策経由かテーマ単独かでリンクの組み立てが変わる */
+  target: InterviewTarget;
+  /** 紐づく施策。抽象テーマ型では null */
+  bill: BillWithContent | null;
   interviewConfig: InterviewConfig;
   sessionInfo: LatestInterviewSession | null;
-  previewToken?: string;
   userReports?: UserReportsResult | null;
 }
 
@@ -47,38 +52,57 @@ const FEATURES: {
   },
 ];
 
-function _InterviewLPHeader({ bill }: { bill: BillWithContent }) {
+/** 施策名。難易度別コンテンツの見出しがあればそちらを優先する */
+function getBillName(bill: BillWithContent): string {
+  return bill.bill_content?.title ?? bill.name;
+}
+
+/** 施策詳細へのリンク。プレビュー中はトークンを引き継ぐ */
+function getBillLink(target: InterviewTarget, bill: BillWithContent): string {
+  return getBillDetailLink(
+    bill.id,
+    target.kind === "policy" ? target.previewToken : undefined
+  );
+}
+
+function _InterviewLPHeader({
+  bill,
+  interviewConfig,
+}: {
+  bill: BillWithContent | null;
+  interviewConfig: InterviewConfig;
+}) {
+  // 一覧のカードと同じ優先順位（テーマ→施策→既定）で決める
+  const imageUrl = resolveInterviewThumbnail(
+    interviewConfig.thumbnail_url,
+    bill?.thumbnail_url
+  );
+
   return (
     <div className="relative w-full h-50 md:h-80">
-      {bill.thumbnail_url ? (
-        <Image
-          src={bill.thumbnail_url}
-          alt={bill.bill_content?.title ?? bill.name}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          priority
-        />
-      ) : (
-        <div className="w-full h-full bg-muted" />
-      )}
+      <Image
+        src={imageUrl}
+        alt={bill ? getBillName(bill) : interviewConfig.name}
+        fill
+        className="object-cover"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        priority
+      />
     </div>
   );
 }
 
 function _InterviewLPHero({
+  target,
   bill,
-  billId,
+  interviewConfig,
   sessionInfo,
-  previewToken,
 }: {
-  bill: BillWithContent;
-  billId: string;
+  target: InterviewTarget;
+  bill: BillWithContent | null;
+  interviewConfig: InterviewConfig;
   sessionInfo: LatestInterviewSession | null;
-  previewToken?: string;
 }) {
-  const billLink = getBillDetailLink(billId, previewToken);
-
   return (
     <div className="flex flex-col items-center gap-6 px-4">
       <div className="flex flex-col items-center gap-3">
@@ -88,15 +112,18 @@ function _InterviewLPHero({
           </span>
         </div>
         <h1 className="text-2xl font-bold text-center leading-[1.5]">
-          施策についてのAIインタビュー
+          {bill ? "施策についてのAIインタビュー" : interviewConfig.name}
         </h1>
-        <Link href={billLink as Route}>
-          <div className="inline-flex items-center justify-center gap-2.5 px-4 py-2 bg-white rounded-xl hover:bg-muted transition-opacity cursor-pointer">
-            <span className="text-[13px] font-medium text-black leading-[1.87]">
-              {bill.bill_content?.title ?? bill.name}
-            </span>
-          </div>
-        </Link>
+        {/* 施策があるときだけ、どの施策についての対話かをチップで示す */}
+        {bill && (
+          <Link href={getBillLink(target, bill) as Route}>
+            <div className="inline-flex items-center justify-center gap-2.5 px-4 py-2 bg-white rounded-xl hover:bg-muted transition-opacity cursor-pointer">
+              <span className="text-[13px] font-medium text-black leading-[1.87]">
+                {getBillName(bill)}
+              </span>
+            </div>
+          </Link>
+        )}
         {sessionInfo && <InterviewStatusBadge status={sessionInfo.status} />}
       </div>
 
@@ -120,11 +147,7 @@ function _InterviewLPHero({
 
       {sessionInfo?.status !== "completed" && (
         <div className="w-full max-w-[560px] mt-2 flex flex-col gap-3">
-          <InterviewActionButtons
-            billId={billId}
-            sessionInfo={sessionInfo}
-            previewToken={previewToken}
-          />
+          <InterviewActionButtons target={target} sessionInfo={sessionInfo} />
         </div>
       )}
     </div>
@@ -132,15 +155,17 @@ function _InterviewLPHero({
 }
 
 function _InterviewOverviewSection({
-  billId,
-  billName,
-  previewToken,
+  target,
+  bill,
+  interviewConfig,
 }: {
-  billId: string;
-  billName: string;
-  previewToken?: string;
+  target: InterviewTarget;
+  bill: BillWithContent | null;
+  interviewConfig: InterviewConfig;
 }) {
-  const billLink = getBillDetailLink(billId, previewToken);
+  // 抽象テーマ型には戻り先になる施策ページがないため、
+  // 施策名のリンクと「施策詳細はこちら」ボタンをテーマ名の表示に置き換える
+  const billLink = bill ? getBillLink(target, bill) : null;
 
   return (
     <div className="w-full max-w-[560px] mx-auto bg-white rounded-2xl p-6 space-y-4">
@@ -149,30 +174,41 @@ function _InterviewOverviewSection({
       </h2>
       <div className="space-y-4 text-[15px] font-normal text-black leading-[1.87]">
         <p>
-          佐賀市で検討されている
-          <Link
-            href={billLink as Route}
-            className="text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
-          >
-            {billName}
-          </Link>
-          について、AIがあなたの考えを深掘りするチャット型インタビューです
+          {bill && billLink ? (
+            <>
+              佐賀市で検討されている
+              <Link
+                href={billLink as Route}
+                className="text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
+              >
+                {getBillName(bill)}
+              </Link>
+              について、AIがあなたの考えを深掘りするチャット型インタビューです
+            </>
+          ) : (
+            <>
+              「{interviewConfig.name}
+              」について、AIがあなたの考えを深掘りするチャット型インタビューです
+            </>
+          )}
         </p>
         <p>
           いただいたご意見は、施策研究や施策の検討に活用し、本サービス上に公開される可能性があります。
         </p>
       </div>
-      <div>
-        <Link href={billLink as Route}>
-          <Button
-            variant="outline"
-            className="w-full border border-black rounded-[100px] h-[48px] px-6 font-bold text-[15px] hover:opacity-90 transition-opacity flex items-center justify-center gap-4"
-          >
-            <span>施策詳細はこちら</span>
-            <ArrowRight className="size-4" />
-          </Button>
-        </Link>
-      </div>
+      {billLink && (
+        <div>
+          <Link href={billLink as Route}>
+            <Button
+              variant="outline"
+              className="w-full border border-black rounded-[100px] h-[48px] px-6 font-bold text-[15px] hover:opacity-90 transition-opacity flex items-center justify-center gap-4"
+            >
+              <span>施策詳細はこちら</span>
+              <ArrowRight className="size-4" />
+            </Button>
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
@@ -263,14 +299,8 @@ function _InterviewNoticeSection() {
   );
 }
 
-function _InterviewDisclosureLink({
-  billId,
-  previewToken,
-}: {
-  billId: string;
-  previewToken?: string;
-}) {
-  const disclosureLink = getInterviewDisclosureLink(billId, previewToken);
+function _InterviewDisclosureLink({ target }: { target: InterviewTarget }) {
+  const disclosureLink = getInterviewDisclosureLink(target);
 
   return (
     <div className="w-full max-w-[560px] mx-auto">
@@ -285,27 +315,24 @@ function _InterviewDisclosureLink({
 }
 
 function _InterviewFooterActions({
-  billId,
+  target,
   sessionInfo,
-  previewToken,
 }: {
-  billId: string;
+  target: InterviewTarget;
   sessionInfo: LatestInterviewSession | null;
-  previewToken?: string;
 }) {
-  const billLink = getBillDetailLink(billId, previewToken);
+  // ラベルは戻り先（getInterviewExitLink）と揃える。施策の有無ではなく
+  // どの導線から入ったかで決まる
+  const label =
+    target.kind === "policy" ? "施策詳細に戻る" : "テーマ一覧に戻る";
 
   return (
     <div className="flex flex-col w-full max-w-[370px] mx-auto space-y-4">
-      <InterviewActionButtons
-        billId={billId}
-        sessionInfo={sessionInfo}
-        previewToken={previewToken}
-      />
-      <Link href={billLink as Route}>
+      <InterviewActionButtons target={target} sessionInfo={sessionInfo} />
+      <Link href={getInterviewExitLink(target) as Route}>
         <Button variant="outline" className="w-full">
           <Undo2 className="size-5" />
-          <span>施策詳細に戻る</span>
+          <span>{label}</span>
         </Button>
       </Link>
     </div>
@@ -313,49 +340,42 @@ function _InterviewFooterActions({
 }
 
 export function InterviewLPPage({
+  target,
   bill,
   interviewConfig,
   sessionInfo,
-  previewToken,
   userReports,
 }: InterviewLPPageProps) {
   return (
     <div className="flex flex-col gap-8 pb-8 bg-secondary">
-      <_InterviewLPHeader bill={bill} />
+      <_InterviewLPHeader bill={bill} interviewConfig={interviewConfig} />
       <div className="flex flex-col items-center gap-8 px-4">
         <_InterviewLPHero
+          target={target}
           bill={bill}
-          billId={bill.id}
+          interviewConfig={interviewConfig}
           sessionInfo={sessionInfo}
-          previewToken={previewToken}
         />
         {userReports && userReports.reports.length > 0 && (
           <PastReportsSection reports={userReports.reports} />
         )}
         {sessionInfo?.status === "completed" && sessionInfo?.reportId && (
           <div className="w-full max-w-[560px]">
-            <NewInterviewButton billId={bill.id} previewToken={previewToken} />
+            <NewInterviewButton target={target} />
           </div>
         )}
         <_InterviewOverviewSection
-          billId={bill.id}
-          billName={bill.bill_content?.title ?? bill.name}
-          previewToken={previewToken}
+          target={target}
+          bill={bill}
+          interviewConfig={interviewConfig}
         />
         <_InterviewDurationSection
           estimatedDuration={interviewConfig.estimated_duration}
         />
         <_InterviewThemesSection description={interviewConfig.description} />
         <_InterviewNoticeSection />
-        <_InterviewDisclosureLink
-          billId={bill.id}
-          previewToken={previewToken}
-        />
-        <_InterviewFooterActions
-          billId={bill.id}
-          sessionInfo={sessionInfo}
-          previewToken={previewToken}
-        />
+        <_InterviewDisclosureLink target={target} />
+        <_InterviewFooterActions target={target} sessionInfo={sessionInfo} />
       </div>
     </div>
   );

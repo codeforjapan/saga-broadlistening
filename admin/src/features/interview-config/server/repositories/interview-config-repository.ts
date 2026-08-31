@@ -103,6 +103,53 @@ export async function linkPolicyToInterviewConfig(
   }
 }
 
+/**
+ * 意見募集に紐づく施策を、指定された集合そのものに置き換える。
+ *
+ * 追加分の upsert と、外された分の delete をそれぞれ1回の往復で済ませる。
+ * 空配列を渡すと紐付けをすべて外し、抽象テーマ型（施策0件）にできる。
+ */
+export async function replacePolicyLinksForConfig(
+  configId: string,
+  policyIds: string[]
+): Promise<void> {
+  const supabase = createAdminClient();
+
+  if (policyIds.length > 0) {
+    const { error } = await supabase.from("policies_interview_configs").upsert(
+      policyIds.map((policyId) => ({
+        policy_id: policyId,
+        interview_config_id: configId,
+      })),
+      { onConflict: "policy_id,interview_config_id" }
+    );
+
+    if (error) {
+      throw new Error(`Failed to link policies to config: ${error.message}`);
+    }
+  }
+
+  // 残すべき施策以外の紐付けを外す
+  let deleteQuery = supabase
+    .from("policies_interview_configs")
+    .delete()
+    .eq("interview_config_id", configId);
+
+  if (policyIds.length > 0) {
+    deleteQuery = deleteQuery.not(
+      "policy_id",
+      "in",
+      `(${policyIds.join(",")})`
+    );
+  }
+
+  const { error: deleteError } = await deleteQuery;
+
+  if (deleteError) {
+    throw new Error(`Failed to unlink policies: ${deleteError.message}`);
+  }
+}
+
 export async function findInterviewQuestionsByConfigId(
   interviewConfigId: string
 ): Promise<InterviewQuestion[]> {
@@ -173,6 +220,7 @@ export async function createInterviewConfigRecord(params: {
   description: string | null;
   chat_model: string;
   estimated_duration: number | null;
+  thumbnail_url?: string | null;
 }): Promise<{ id: string }> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -197,6 +245,7 @@ export async function updateInterviewConfigRecord(
     description: string | null;
     chat_model: string;
     estimated_duration: number | null;
+    thumbnail_url?: string | null;
     updated_at: string;
   }
 ): Promise<{ id: string }> {

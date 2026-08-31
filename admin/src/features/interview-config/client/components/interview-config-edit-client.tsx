@@ -20,12 +20,21 @@ import {
   type InterviewQuestionInput,
   textToArray,
 } from "../../shared/types";
+import type { ThemeContext } from "../hooks/use-config-generation-chat";
 import { ConfigGenerationChat } from "./config-generation-chat";
-import { InterviewConfigForm } from "./interview-config-form";
+import {
+  InterviewConfigForm,
+  type InterviewConfigFormValues,
+  type PolicyOption,
+} from "./interview-config-form";
 import { InterviewQuestionList } from "./interview-question-list";
 
 interface InterviewConfigEditClientProps {
-  billId: string;
+  /**
+   * 施策配下の画面から開いたときの施策ID。
+   * テーマ単独の画面（抽象テーマ型を含む）では null。
+   */
+  billId: string | null;
   config: InterviewConfig | null;
   questions: InterviewQuestion[];
   completedReports: CompletedReportListItem[];
@@ -34,6 +43,10 @@ interface InterviewConfigEditClientProps {
   /** 切り詰め上限値 */
   completedReportsLimit?: number;
   initialName?: string | null;
+  /** 紐づけ先として選べる施策。渡されたときだけフォームに紐づけ欄を出す */
+  policyOptions?: PolicyOption[];
+  /** 現在紐づいている施策のID一覧 */
+  linkedPolicyIds?: string[];
 }
 
 export function InterviewConfigEditClient({
@@ -44,6 +57,8 @@ export function InterviewConfigEditClient({
   completedReportsTruncated = false,
   completedReportsLimit,
   initialName,
+  policyOptions,
+  linkedPolicyIds,
 }: InterviewConfigEditClientProps) {
   const router = useRouter();
   const [configId, setConfigId] = useState<string | undefined>(
@@ -57,16 +72,9 @@ export function InterviewConfigEditClient({
   >(null);
 
   // フォームの値を取得するためのref
-  const getFormValuesRef = useRef<
-    | (() => {
-        name: string;
-        slug: string;
-        description: string | null;
-        chat_model: string | null;
-        estimated_duration: number | null;
-      })
-    | null
-  >(null);
+  const getFormValuesRef = useRef<(() => InterviewConfigFormValues) | null>(
+    null
+  );
   // 質問一覧の現在値を取得するための ref（シミュレーション機能で使用）
   const getQuestionsRef = useRef<(() => InterviewQuestionInput[]) | null>(null);
 
@@ -87,13 +95,16 @@ export function InterviewConfigEditClient({
       const promise = (async () => {
         try {
           const formValues = getFormValuesRef.current?.();
-          const result = await createInterviewConfig(billId, {
+          const result = await createInterviewConfig({
+            ...formValues,
             name: formValues?.name || "AI生成設定",
             slug: formValues?.slug || `config-${Date.now()}`,
             status: "draft",
             description,
-            chat_model: formValues?.chat_model || null,
-            estimated_duration: formValues?.estimated_duration ?? null,
+            // 施策配下の画面では、開いている施策との紐づけを必ず作る
+            policy_ids: billId
+              ? [billId]
+              : (formValues?.policy_ids ?? linkedPolicyIds ?? []),
           });
           if (!result.success) {
             toast.error(result.error || "設定の作成に失敗しました");
@@ -106,7 +117,9 @@ export function InterviewConfigEditClient({
           window.history.replaceState(
             null,
             "",
-            routes.billInterviewEdit(billId, newConfigId)
+            billId
+              ? routes.billInterviewEdit(billId, newConfigId)
+              : routes.interviewEdit(newConfigId)
           );
           return newConfigId;
         } finally {
@@ -119,8 +132,18 @@ export function InterviewConfigEditClient({
       createConfigPromiseRef.current = promise;
       return promise;
     },
-    [billId]
+    [billId, linkedPolicyIds]
   );
+
+  // AIに渡すテーマ情報。生成のたびにフォームの最新値を読み直す
+  const getThemeContext = useCallback((): ThemeContext => {
+    const formValues = getFormValuesRef.current?.();
+    return {
+      themeName: formValues?.name ?? initialConfig?.name ?? null,
+      themeDescription:
+        formValues?.description ?? initialConfig?.description ?? null,
+    };
+  }, [initialConfig]);
 
   // 質問確定時: configがなければ先に作成してから質問を保存する（テーマ未確定でもOK）
   const handleQuestionsConfirmed = useCallback(
@@ -156,15 +179,11 @@ export function InterviewConfigEditClient({
       // create と同じフォールバックを使って、未入力時に name/slug が空で上書きされるのを防ぐ。
       const formValues = getFormValuesRef.current?.();
       const result = await updateInterviewConfig(targetConfigId, {
+        ...formValues,
         name: formValues?.name || initialConfig?.name || "AI生成設定",
         slug: formValues?.slug || initialConfig?.slug || `config-${Date.now()}`,
-        status: initialConfig?.status || "draft",
+        status: formValues?.status ?? initialConfig?.status ?? "draft",
         description,
-        chat_model: formValues?.chat_model ?? initialConfig?.chat_model ?? null,
-        estimated_duration:
-          formValues?.estimated_duration ??
-          initialConfig?.estimated_duration ??
-          null,
       });
       if (result.success) {
         setAiGeneratedThemes(themes);
@@ -181,10 +200,14 @@ export function InterviewConfigEditClient({
     <Tabs defaultValue="edit" className="w-full">
       <TabsList>
         <TabsTrigger value="edit">設定編集</TabsTrigger>
-        <TabsTrigger value="simulation" disabled={!configId}>
-          シミュレーション
-          {!configId && "（保存後に有効）"}
-        </TabsTrigger>
+        {/* シミュレーションは施策のナレッジと完了レポートを前提にするため、
+            施策に紐づかないテーマではタブごと出さない */}
+        {billId && (
+          <TabsTrigger value="simulation" disabled={!configId}>
+            シミュレーション
+            {!configId && "（保存後に有効）"}
+          </TabsTrigger>
+        )}
       </TabsList>
 
       <TabsContent
@@ -202,6 +225,8 @@ export function InterviewConfigEditClient({
               onAiThemesApplied={() => setAiGeneratedThemes(null)}
               getFormValuesRef={getFormValuesRef}
               initialName={initialName}
+              policyOptions={policyOptions}
+              linkedPolicyIds={linkedPolicyIds}
             />
             {configId ? (
               <InterviewQuestionList
@@ -224,6 +249,7 @@ export function InterviewConfigEditClient({
             <ConfigGenerationChat
               billId={billId}
               configId={configId}
+              getThemeContext={getThemeContext}
               existingThemes={
                 initialConfig?.description
                   ? textToArray(initialConfig.description)
@@ -241,7 +267,7 @@ export function InterviewConfigEditClient({
         </div>
       </TabsContent>
 
-      {configId ? (
+      {configId && billId ? (
         <TabsContent
           value="simulation"
           forceMount

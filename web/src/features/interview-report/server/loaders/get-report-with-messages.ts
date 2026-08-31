@@ -8,7 +8,8 @@ import type { InterviewMessage } from "@/features/interview-session/shared/types
 import type { InterviewReport } from "../../shared/types";
 import {
   canViewReportWithMessages,
-  getBillIdFromPublicReportSession,
+  getReportOrigin,
+  type ReportOrigin,
   selectPrimaryBillContent,
 } from "../../shared/utils/public-report-display";
 import {
@@ -20,11 +21,13 @@ import {
 
 export type ReportWithMessages = {
   report: InterviewReport & {
-    bill_id: string;
+    /** 意見が寄せられた対象（施策・テーマ） */
+    origin: ReportOrigin;
     session_started_at: string;
     session_completed_at: string | null;
   };
   messages: InterviewMessage[];
+  /** 紐づく公開済み施策。抽象テーマ型では null */
   bill: {
     id: string;
     name: string;
@@ -32,7 +35,7 @@ export type ReportWithMessages = {
     bill_content: {
       title: string;
     } | null;
-  };
+  } | null;
 };
 
 /**
@@ -54,10 +57,10 @@ export async function getReportWithMessages(
   }
 
   const session = report.interview_sessions;
-  const billId = getBillIdFromPublicReportSession(session);
+  const origin = getReportOrigin(session);
 
-  if (!session || !billId) {
-    console.error("Session or policy not found for opinion");
+  if (!session || !origin) {
+    console.error("Session or interview config not found for opinion");
     return null;
   }
 
@@ -95,13 +98,15 @@ export async function getReportWithMessages(
     return null;
   }
 
-  // Fetch policy info
-  let bill: Awaited<ReturnType<typeof findBillWithContentById>>;
-  try {
-    bill = await findBillWithContentById(billId);
-  } catch (error) {
-    console.error("Failed to fetch policy:", error);
-    return null;
+  // Fetch policy info（抽象テーマ型では施策がないので取得しない）
+  let bill: Awaited<ReturnType<typeof findBillWithContentById>> | null = null;
+  if (origin.policyId) {
+    try {
+      bill = await findBillWithContentById(origin.policyId);
+    } catch (error) {
+      console.error("Failed to fetch policy:", error);
+      return null;
+    }
   }
 
   const { interview_sessions: _, ...reportData } = report;
@@ -109,16 +114,18 @@ export async function getReportWithMessages(
   return {
     report: {
       ...reportData,
-      bill_id: billId,
+      origin,
       session_started_at: session.started_at,
       session_completed_at: session.completed_at,
     },
     messages: messages || [],
-    bill: {
-      id: bill.id,
-      name: bill.name,
-      thumbnail_url: bill.thumbnail_url,
-      bill_content: selectPrimaryBillContent(bill.policy_contents),
-    },
+    bill: bill
+      ? {
+          id: bill.id,
+          name: bill.name,
+          thumbnail_url: bill.thumbnail_url,
+          bill_content: selectPrimaryBillContent(bill.policy_contents),
+        }
+      : null,
   };
 }

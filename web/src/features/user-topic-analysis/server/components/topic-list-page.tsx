@@ -9,6 +9,7 @@ import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getPublicReportsByBillId } from "@/features/interview-report/server/loaders/get-public-reports-by-bill-id";
 import { routes } from "@/lib/routes";
 import { TopicList } from "../../client/components/topic-list";
@@ -98,7 +99,7 @@ export async function TopicListPage({ billId }: TopicListPageProps) {
 
           {/* AIインタビューCTA */}
           {interviewConfig != null && (
-            <InterviewLandingSection billId={billId} />
+            <InterviewLandingSection target={policyInterviewTarget(billId)} />
           )}
         </div>
       </Container>

@@ -5,6 +5,7 @@ import {
   Conversation,
   ConversationContent,
 } from "@/components/ai-elements/conversation";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
 import { useInterviewChat } from "../hooks/use-interview-chat";
 import { useInterviewRating } from "../hooks/use-interview-rating";
@@ -22,8 +23,12 @@ import { SkipActionPopover } from "./skip-action-popover";
 import { TimeUpPrompt } from "./time-up-prompt";
 
 interface InterviewChatClientProps {
-  billId: string;
-  billTitle: string;
+  /** 参加導線の起点。離脱リンクの組み立てに使う */
+  target: InterviewTarget;
+  /** 対話する意見募集のID */
+  interviewConfigId: string;
+  /** 紐づく施策。抽象テーマ型では null */
+  bill: { id: string; title: string } | null;
   sessionId: string;
   initialMessages: Array<{
     id: string;
@@ -35,20 +40,22 @@ interface InterviewChatClientProps {
   estimatedDuration?: number | null;
   sessionStartedAt?: string;
   hasRated?: boolean;
-  previewToken?: string;
 }
 
 export function InterviewChatClient({
-  billId,
-  billTitle,
+  target,
+  interviewConfigId,
+  bill,
   sessionId,
   initialMessages,
   totalQuestions,
   estimatedDuration,
   sessionStartedAt,
   hasRated,
-  previewToken,
 }: InterviewChatClientProps) {
+  // プレビュートークンは target が持っているので、別 prop では受け取らない
+  const previewToken =
+    target.kind === "policy" ? target.previewToken : undefined;
   const {
     input,
     setInput,
@@ -66,8 +73,9 @@ export function InterviewChatClient({
     handleRetry,
     handleResumeInterview,
   } = useInterviewChat({
-    billId,
+    interviewConfigId,
     initialMessages,
+    previewPolicyId: target.kind === "policy" ? target.policyId : undefined,
     previewToken,
   });
 
@@ -88,7 +96,7 @@ export function InterviewChatClient({
     hasRated,
   });
 
-  const billDetailLink = getBillDetailLink(billId, previewToken);
+  const billDetailLink = bill ? getBillDetailLink(bill.id, previewToken) : null;
 
   const showProgressBar = progress !== null;
   const timerMinutes =
@@ -172,7 +180,9 @@ export function InterviewChatClient({
             {messages.length === 0 && !object && (
               <div className="flex flex-col gap-4">
                 <p className="text-sm font-bold leading-[1.8] text-foreground">
-                  施策についてのAIインタビューを開始します。
+                  {bill
+                    ? "施策についてのAIインタビューを開始します。"
+                    : "AIインタビューを開始します。"}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   あなたの意見や経験をお聞かせください。
@@ -189,10 +199,13 @@ export function InterviewChatClient({
                 !isLoading &&
                 !showStreamingMessage;
 
-              // 最初のAIメッセージの施策名をリンクに変換
+              // 最初のAIメッセージの施策名をリンクに変換（施策がある場合のみ）
               const content =
-                index === 0 && message.role === "assistant"
-                  ? embedBillLink(message.content, billTitle, billDetailLink)
+                index === 0 &&
+                message.role === "assistant" &&
+                bill &&
+                billDetailLink
+                  ? embedBillLink(message.content, bill.title, billDetailLink)
                   : message.content;
 
               return (
@@ -288,9 +301,8 @@ export function InterviewChatClient({
           {(stage === "summary" || stage === "summary_complete") && (
             <InterviewSummaryInput
               sessionId={sessionId}
-              billId={billId}
+              target={target}
               hasReport={hasReport}
-              previewToken={previewToken}
               input={input}
               onInputChange={setInput}
               onSubmit={handleSubmit}

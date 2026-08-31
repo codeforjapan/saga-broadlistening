@@ -127,6 +127,31 @@ describe("handleInterviewChatRequest 統合テスト", () => {
     await cleanupTestUser(testUser.id);
   });
 
+  describe("認可", () => {
+    it("公開してよい意見募集でないときはエラーになり、対話を始めない", async () => {
+      const mockModel = createStreamMock([validChatResponse]);
+
+      await expect(
+        handleInterviewChatRequest({
+          messages: [{ role: "user", content: "こんにちは" }],
+          interviewConfigId: config.id,
+          currentStage: "chat",
+          userId: testUser.id,
+          deps: {
+            chatModel: mockModel,
+            // 下書き・終了・未公開施策のテーマでは resolveInterviewChatContext が null を返す
+            resolveContext: async () => null,
+            getSession: async () => session,
+            getMessages: async () => [],
+          },
+        })
+      ).rejects.toThrow("Interview config not found");
+
+      const messages = await findInterviewMessagesBySessionId(sessionId);
+      expect(messages).toHaveLength(0);
+    });
+  });
+
   describe("chatフェーズ", () => {
     it("ユーザーメッセージとassistantメッセージがDBに保存される", async () => {
       const mockModel = createStreamMock([validChatResponse]);
@@ -135,13 +160,16 @@ describe("handleInterviewChatRequest 統合テスト", () => {
         messages: [
           { role: "user", content: "この施策についてどう思いますか？" },
         ],
-        billId,
+        interviewConfigId: config.id,
         currentStage: "chat",
         userId: testUser.id,
         deps: {
           chatModel: mockModel,
-          getBill: async () => null,
-          getInterviewConfig: async () => config,
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+          }),
           getSession: async () => session,
           getMessages: async () => [],
         },
@@ -168,13 +196,16 @@ describe("handleInterviewChatRequest 統合テスト", () => {
 
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "   " }],
-        billId,
+        interviewConfigId: config.id,
         currentStage: "chat",
         userId: testUser.id,
         deps: {
           chatModel: mockModel,
-          getBill: async () => null,
-          getInterviewConfig: async () => config,
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+          }),
           getSession: async () => session,
           getMessages: async () => [],
         },
@@ -205,14 +236,17 @@ describe("handleInterviewChatRequest 統合テスト", () => {
         messages: [
           { role: "user", content: "この施策についてどう思いますか？" },
         ],
-        billId,
+        interviewConfigId: config.id,
         currentStage: "chat",
         isRetry: true,
         userId: testUser.id,
         deps: {
           chatModel: mockModel,
-          getBill: async () => null,
-          getInterviewConfig: async () => config,
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+          }),
           getSession: async () => session,
           getMessages: async () => [],
         },
@@ -236,13 +270,16 @@ describe("handleInterviewChatRequest 統合テスト", () => {
 
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "まとめてください" }],
-        billId,
+        interviewConfigId: config.id,
         currentStage: "summary",
         userId: testUser.id,
         deps: {
           summaryModel: mockModel,
-          getBill: async () => null,
-          getInterviewConfig: async () => config,
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+          }),
           getSession: async () => session,
           getMessages: async () => [],
         },
@@ -273,13 +310,16 @@ describe("handleInterviewChatRequest 統合テスト", () => {
           { role: "user", content: "賛成です" },
           { role: "assistant", content: "最後の質問です。他にありますか？" },
         ],
-        billId,
+        interviewConfigId: config.id,
         currentStage: "summary",
         userId: testUser.id,
         deps: {
           summaryModel: model,
-          getBill: async () => null,
-          getInterviewConfig: async () => config,
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+          }),
           getSession: async () => session,
           getMessages: async () => [],
         },
@@ -315,13 +355,16 @@ describe("handleInterviewChatRequest 統合テスト", () => {
           { role: "assistant", content: "レポート案です" },
           { role: "user", content: "もっと簡潔にしてください" },
         ],
-        billId,
+        interviewConfigId: config.id,
         currentStage: "summary",
         userId: testUser.id,
         deps: {
           summaryModel: model,
-          getBill: async () => null,
-          getInterviewConfig: async () => config,
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+          }),
           getSession: async () => session,
           getMessages: async () => [],
         },
@@ -364,14 +407,17 @@ describe("handleInterviewChatRequest 統合テスト", () => {
 
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "まとめてください" }],
-        billId,
+        interviewConfigId: config.id,
         currentStage: "summary",
         userId: testUser.id,
         deps: {
           summaryModel: summaryMock,
           chatModel: chatMock,
-          getBill: async () => null,
-          getInterviewConfig: async () => config,
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+          }),
           getSession: async () => session,
           getMessages: async () => [],
         },

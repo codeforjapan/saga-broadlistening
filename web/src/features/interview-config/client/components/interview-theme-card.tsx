@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RubySafeLineClamp } from "@/components/ruby-safe-line-clamp";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { themeInterviewTarget } from "../../shared/types/interview-target";
 import type { InterviewTheme } from "../../shared/types/interview-theme";
 import { formatEstimatedDuration } from "../../shared/utils/format-estimated-duration";
 import { getInterviewLPLink } from "../../shared/utils/interview-links";
@@ -25,7 +26,10 @@ export function InterviewThemeCard({
   const participantCount = formatParticipantCount(theme.participantCount);
 
   return (
-    <Link href={getInterviewLPLink(theme.policyId) as Route} className="block">
+    <Link
+      href={getInterviewLPLink(themeInterviewTarget(theme.slug)) as Route}
+      className="block"
+    >
       <Card className="flex overflow-hidden transition-colors hover:bg-muted/50">
         {/* テーマ画像。装飾なので alt は空にし、テーマ名は見出しで読ませる */}
         <div className="relative w-28 shrink-0 self-stretch min-h-28 sm:w-36">

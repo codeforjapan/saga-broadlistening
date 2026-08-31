@@ -180,3 +180,21 @@ export async function findPreviewTokenForValidation(
   }
   return data;
 }
+
+/**
+ * 紐づけ先の選択肢に出す施策を、必要な列だけ取得する。
+ * 一覧表示用の findBills は全列を引くため、選択肢の組み立てには使わない。
+ */
+export async function findPolicyOptions() {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("policies")
+    .select("id, name")
+    .order("name");
+
+  if (error) {
+    throw new Error(`Failed to fetch policy options: ${error.message}`);
+  }
+
+  return data;
+}

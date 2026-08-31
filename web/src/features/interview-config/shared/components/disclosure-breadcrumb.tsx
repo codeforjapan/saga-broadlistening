@@ -1,26 +1,26 @@
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { routes } from "@/lib/routes";
+import type { InterviewTarget } from "../types/interview-target";
 import {
-  getBillDetailLink,
+  getInterviewExitLink,
   getInterviewLPLink,
 } from "../utils/interview-links";
 
 interface DisclosureBreadcrumbProps {
-  billId: string;
-  previewToken?: string;
+  target: InterviewTarget;
 }
 
-export function DisclosureBreadcrumb({
-  billId,
-  previewToken,
-}: DisclosureBreadcrumbProps) {
+export function DisclosureBreadcrumb({ target }: DisclosureBreadcrumbProps) {
+  // 1つ上の階層は、施策経由なら施策詳細、テーマ単独ならテーマ一覧になる
+  const parent =
+    target.kind === "policy"
+      ? { label: "施策詳細", href: getInterviewExitLink(target) }
+      : { label: "AIインタビュー一覧", href: routes.interviews() };
+
   const items = [
     { label: "TOP", href: routes.home() },
-    { label: "施策詳細", href: getBillDetailLink(billId, previewToken) },
-    {
-      label: "AIインタビュー",
-      href: getInterviewLPLink(billId, previewToken),
-    },
+    parent,
+    { label: "AIインタビュー", href: getInterviewLPLink(target) },
     { label: "情報開示" },
   ];
 

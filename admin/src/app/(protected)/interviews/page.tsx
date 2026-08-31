@@ -1,4 +1,8 @@
+import { Plus } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { getCurrentAdmin } from "@/features/auth/server/lib/auth-server";
 import { AllInterviewConfigList } from "@/features/interviews/server/components/all-interview-config-list";
 import {
@@ -21,7 +25,15 @@ export default async function InterviewsPage() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-8">インタビュー管理</h1>
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">インタビュー管理</h1>
+        <Button asChild>
+          <Link href={routes.interviewNew() as Route}>
+            <Plus className="h-4 w-4" />
+            意見募集を作成
+          </Link>
+        </Button>
+      </div>
 
       <section className="rounded-lg border bg-white p-6">
         <AllInterviewConfigList

@@ -10,18 +10,17 @@ import { getInterviewChatLink } from "@/features/interview-config/shared/utils/i
 import { NewInterviewButton } from "@/features/interview-session/client/components/new-interview-button";
 import { RestartInterviewButton } from "@/features/interview-session/client/components/restart-interview-button";
 import type { LatestInterviewSession } from "@/features/interview-session/server/loaders/get-latest-interview-session";
+import type { InterviewTarget } from "../../shared/types/interview-target";
 import { InterviewConsentModal } from "./interview-consent-modal";
 
 interface InterviewActionButtonsProps {
-  billId: string;
+  target: InterviewTarget;
   sessionInfo: LatestInterviewSession | null;
-  previewToken?: string;
 }
 
 export function InterviewActionButtons({
-  billId,
+  target,
   sessionInfo,
-  previewToken,
 }: InterviewActionButtonsProps) {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const isActive = sessionInfo?.status === "active";
@@ -29,12 +28,12 @@ export function InterviewActionButtons({
 
   // 完了済みの場合：「もう一度新たに回答する」ボタン（確認ダイアログなし）
   if (isCompleted && sessionInfo?.reportId) {
-    return <NewInterviewButton billId={billId} previewToken={previewToken} />;
+    return <NewInterviewButton target={target} />;
   }
 
   // 進行中の場合は直接遷移
   if (isActive) {
-    const chatLink = getInterviewChatLink(billId, previewToken);
+    const chatLink = getInterviewChatLink(target);
 
     return (
       <>
@@ -54,11 +53,7 @@ export function InterviewActionButtons({
             <ArrowRight className="size-5" />
           </Link>
         </Button>
-        <RestartInterviewButton
-          sessionId={sessionInfo.id}
-          billId={billId}
-          previewToken={previewToken}
-        />
+        <RestartInterviewButton sessionId={sessionInfo.id} target={target} />
       </>
     );
   }
@@ -84,8 +79,7 @@ export function InterviewActionButtons({
       <InterviewConsentModal
         open={showConsentModal}
         onOpenChange={setShowConsentModal}
-        billId={billId}
-        previewToken={previewToken}
+        target={target}
       />
     </>
   );

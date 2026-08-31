@@ -7,6 +7,7 @@ import { Container } from "@/components/layouts/container";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getReportReactionsBatch } from "@/features/report-reaction/server/loaders/get-report-reactions";
 import { routes } from "@/lib/routes";
 import { PublicOpinionsList } from "../../client/components/public-opinions-list";
@@ -90,7 +91,7 @@ export async function PublicOpinionsPage({
         {/* AIインタビューCTAバナー */}
         {interviewConfig != null && (
           <div className="my-8">
-            <InterviewLandingSection billId={billId} />
+            <InterviewLandingSection target={policyInterviewTarget(billId)} />
           </div>
         )}
         {/* パンくずリスト */}

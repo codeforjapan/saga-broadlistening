@@ -1,22 +1,43 @@
 import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
-import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
+import {
+  getReportOriginLink,
+  type ReportOrigin,
+} from "../utils/public-report-display";
 
 interface ReportBreadcrumbProps {
-  billId: string;
+  /** 意見が寄せられた対象（施策・テーマ） */
+  origin: ReportOrigin;
   reportHref?: string;
   additionalItems?: BreadcrumbItem[];
 }
 
+/**
+ * 施策に紐づく意見は「施策詳細 > レポート一覧」を上位階層に置く。
+ * 施策を持たない抽象テーマ型は「AIインタビュー > テーマ名」に置き換える。
+ */
+function buildParentItems(origin: ReportOrigin): BreadcrumbItem[] {
+  if (!origin.policyId) {
+    return [
+      { label: "AIインタビュー", href: routes.interviews() },
+      { label: origin.theme.name, href: getReportOriginLink(origin) },
+    ];
+  }
+
+  return [
+    { label: "施策詳細", href: getReportOriginLink(origin) },
+    { label: "レポート一覧", href: routes.billOpinions(origin.policyId) },
+  ];
+}
+
 export function ReportBreadcrumb({
-  billId,
+  origin,
   reportHref,
   additionalItems = [],
 }: ReportBreadcrumbProps) {
   const baseItems: BreadcrumbItem[] = [
     { label: "TOP", href: routes.home() },
-    { label: "施策詳細", href: getBillDetailLink(billId) },
-    { label: "レポート一覧", href: routes.billOpinions(billId) },
+    ...buildParentItems(origin),
     {
       label: "レポート",
       href: reportHref,

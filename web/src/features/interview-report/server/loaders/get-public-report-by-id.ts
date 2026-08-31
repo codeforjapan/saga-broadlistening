@@ -6,7 +6,8 @@ import type { InterviewMessage } from "@/features/interview-session/shared/types
 import type { InterviewReport } from "../../shared/types";
 import {
   countUserMessageCharacters,
-  getBillIdFromPublicReportSession,
+  getReportOrigin,
+  type ReportOrigin,
   selectPrimaryBillContent,
 } from "../../shared/utils/public-report-display";
 import {
@@ -24,16 +25,18 @@ export type PublicReportOpinion = {
 };
 
 export type PublicReportData = InterviewReport & {
-  bill_id: string;
+  /** 意見が寄せられた対象（施策・テーマ） */
+  origin: ReportOrigin;
   session_started_at: string;
   session_completed_at: string | null;
+  /** 紐づく公開済み施策。抽象テーマ型では null */
   bill: {
     id: string;
     name: string;
     thumbnail_url: string | null;
     share_thumbnail_url: string | null;
     bill_content: { title: string } | null;
-  };
+  } | null;
   opinions: PublicReportOpinion[];
   characterCount: number;
   messages: InterviewMessage[];
@@ -58,8 +61,8 @@ export const getPublicReportById = cache(
       return null;
     }
 
-    const billId = getBillIdFromPublicReportSession(session);
-    if (!billId) {
+    const origin = getReportOrigin(session);
+    if (!origin) {
       return null;
     }
 
@@ -76,8 +79,9 @@ export const getPublicReportById = cache(
       return null;
     }
 
+    // 抽象テーマ型では施策がないので取得しない
     const [bill, messages, segments] = await Promise.all([
-      findBillWithContentById(billId),
+      origin.policyId ? findBillWithContentById(origin.policyId) : null,
       findMessagesBySessionId(report.interview_session_id),
       findOpinionSegmentsByOpinionId(report.id),
     ]);
@@ -86,16 +90,18 @@ export const getPublicReportById = cache(
 
     return {
       ...reportData,
-      bill_id: billId,
+      origin,
       session_started_at: session.started_at,
       session_completed_at: session.completed_at,
-      bill: {
-        id: bill.id,
-        name: bill.name,
-        thumbnail_url: bill.thumbnail_url,
-        share_thumbnail_url: bill.share_thumbnail_url,
-        bill_content: selectPrimaryBillContent(bill.policy_contents),
-      },
+      bill: bill
+        ? {
+            id: bill.id,
+            name: bill.name,
+            thumbnail_url: bill.thumbnail_url,
+            share_thumbnail_url: bill.share_thumbnail_url,
+            bill_content: selectPrimaryBillContent(bill.policy_contents),
+          }
+        : null,
       opinions: segments,
       characterCount: countUserMessageCharacters(messages),
       messages,

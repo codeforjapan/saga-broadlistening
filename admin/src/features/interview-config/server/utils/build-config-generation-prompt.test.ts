@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { buildConfigGenerationPrompt } from "./build-config-generation-prompt";
 
-const baseParams = {
+const billSubject = {
+  kind: "bill" as const,
   billName: "テスト施策",
   billTitle: "テストタイトル",
   billSummary: "テスト要約",
   billContent: "テスト内容の詳細",
+};
+
+const baseParams = {
+  subject: billSubject,
   stage: "theme_proposal" as const,
 };
 
@@ -113,7 +118,7 @@ describe("buildConfigGenerationPrompt", () => {
     it("ナレッジソースありの場合、ナレッジセクションを含む", () => {
       const result = buildConfigGenerationPrompt({
         ...baseParams,
-        knowledgeSource: "チームの仮説内容",
+        subject: { ...billSubject, knowledgeSource: "チームの仮説内容" },
       });
       expect(result).toContain("ナレッジソース");
       expect(result).toContain("チームの仮説内容");
@@ -122,7 +127,7 @@ describe("buildConfigGenerationPrompt", () => {
     it("ナレッジソースが空白のみの場合、ナレッジソースセクションヘッダーを含まない", () => {
       const result = buildConfigGenerationPrompt({
         ...baseParams,
-        knowledgeSource: "   ",
+        subject: { ...billSubject, knowledgeSource: "   " },
       });
       expect(result).not.toContain(
         "## ナレッジソース（チームの仮説や補足情報）"
@@ -179,7 +184,7 @@ describe("buildConfigGenerationPrompt", () => {
     it("ナレッジソースありの場合、ナレッジセクションを含む", () => {
       const result = buildConfigGenerationPrompt({
         ...questionParams,
-        knowledgeSource: "補足情報",
+        subject: { ...billSubject, knowledgeSource: "補足情報" },
       });
       expect(result).toContain("ナレッジソース");
       expect(result).toContain("補足情報");
@@ -195,6 +200,37 @@ describe("buildConfigGenerationPrompt", () => {
       expect(result).toContain("市民インタビューの設計を支援する専門家です");
       expect(result).not.toContain("テーマ提案のガイドライン");
       expect(result).not.toContain("質問提案のガイドライン");
+    });
+  });
+
+  describe("施策に紐づかないテーマ（抽象テーマ型）", () => {
+    const themeParams = {
+      subject: { kind: "theme" as const, themeName: "佐賀市のみらい" },
+      stage: "theme_proposal" as const,
+    };
+
+    it("施策情報のかわりにテーマ情報を載せる", () => {
+      const result = buildConfigGenerationPrompt(themeParams);
+
+      expect(result).toContain("## テーマ情報");
+      expect(result).toContain("テーマ名: 佐賀市のみらい");
+      expect(result).not.toContain("## 施策情報");
+    });
+
+    it("存在しない施策を前提にした質問を作らないよう指示する", () => {
+      const result = buildConfigGenerationPrompt(themeParams);
+
+      expect(result).toContain(
+        "存在しない制度や施策を前提にした\n質問は作らないでください"
+      );
+    });
+
+    it("ナレッジソースのセクションは出さない", () => {
+      const result = buildConfigGenerationPrompt(themeParams);
+
+      expect(result).not.toContain(
+        "## ナレッジソース（チームの仮説や補足情報）"
+      );
     });
   });
 });

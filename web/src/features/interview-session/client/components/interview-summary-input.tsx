@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { InterviewPublicConsentModal } from "@/features/interview-report/client/components/interview-public-consent-modal";
 import { useEndInterview } from "../hooks/use-end-interview";
 import { useInterviewCompletion } from "../hooks/use-interview-completion";
@@ -10,9 +11,9 @@ import { InterviewChatInput } from "./interview-chat-input";
 
 interface InterviewSummaryInputProps {
   sessionId: string;
-  billId: string;
+  /** 「インタビューを終了する」の戻り先を決めるための参加導線の起点 */
+  target: InterviewTarget;
   hasReport: boolean;
-  previewToken?: string;
   input: string;
   onInputChange: (value: string) => void;
   onSubmit: (message: PromptInputMessage) => void;
@@ -24,9 +25,8 @@ interface InterviewSummaryInputProps {
 
 export function InterviewSummaryInput({
   sessionId,
-  billId,
+  target,
   hasReport,
-  previewToken,
   input,
   onInputChange,
   onSubmit,
@@ -38,11 +38,7 @@ export function InterviewSummaryInput({
   const { isCompleting, completeError, handleSubmit } = useInterviewCompletion({
     sessionId,
   });
-  const { endInterview, isEnding } = useEndInterview(
-    sessionId,
-    billId,
-    previewToken
-  );
+  const { endInterview, isEnding } = useEndInterview(sessionId, target);
 
   return (
     <>

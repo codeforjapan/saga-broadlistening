@@ -5,6 +5,7 @@ export const dynamic = "force-dynamic";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
@@ -36,14 +37,15 @@ export default async function InterviewChatPage({
   // インタビューチャットの初期化処理
   try {
     const { session, messages } = await initializeInterviewChat(
-      billId,
-      interviewConfig.id
+      interviewConfig,
+      bill
     );
 
     return (
       <InterviewChatClient
-        billId={billId}
-        billTitle={bill.bill_content?.title ?? bill.name}
+        target={policyInterviewTarget(billId)}
+        interviewConfigId={interviewConfig.id}
+        bill={{ id: bill.id, title: bill.bill_content?.title ?? bill.name }}
         sessionId={session.id}
         initialMessages={messages}
         totalQuestions={questions.length}
@@ -54,6 +56,6 @@ export default async function InterviewChatPage({
     );
   } catch (error) {
     console.error("Failed to initialize interview session:", error);
-    return <InterviewSessionErrorView billId={billId} />;
+    return <InterviewSessionErrorView target={policyInterviewTarget(billId)} />;
   }
 }

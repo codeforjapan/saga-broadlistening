@@ -3,7 +3,8 @@
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { getInterviewExitLink } from "@/features/interview-config/shared/utils/interview-links";
 import { archiveInterviewSession } from "../../server/actions/archive-interview-session";
 
 /**
@@ -11,14 +12,10 @@ import { archiveInterviewSession } from "../../server/actions/archive-interview-
  *
  * レポート未生成のまま終了するとセッションが active（=「中断中」）のまま残り、
  * 中断扱い・再開導線が表示されてしまう。終了時はセッションをアーカイブして
- * status を none にし、中断扱いを解消したうえで施策詳細ページへ遷移する。
+ * status を none にし、中断扱いを解消したうえで参加元（施策詳細またはテーマ一覧）へ遷移する。
  * アーカイブに失敗してもユーザーは離脱させる（status が変わらなくても致命的ではない）。
  */
-export function useEndInterview(
-  sessionId: string,
-  billId: string,
-  previewToken?: string
-) {
+export function useEndInterview(sessionId: string, target: InterviewTarget) {
   const router = useRouter();
   const [isEnding, setIsEnding] = useState(false);
   // setIsEnding は即時反映されないため、UI の disabled だけでは
@@ -39,7 +36,7 @@ export function useEndInterview(
     } catch (error) {
       console.error("Failed to archive session on end:", error);
     }
-    router.push(getBillDetailLink(billId, previewToken) as Route);
+    router.push(getInterviewExitLink(target) as Route);
   };
 
   return { endInterview, isEnding };

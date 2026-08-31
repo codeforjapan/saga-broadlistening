@@ -18,15 +18,18 @@ import { type InitialMessage, useParsedMessages } from "./use-parsed-messages";
 import { useQuickReplies } from "./use-quick-replies";
 
 interface UseInterviewChatProps {
-  billId: string;
+  /** 対話する意見募集のID。施策はサーバー側で紐付けから引く */
+  interviewConfigId: string;
   initialMessages: InitialMessage[];
   /** プレビュー画面から表示している場合のみ渡す（API側で検証される） */
+  previewPolicyId?: string;
   previewToken?: string;
 }
 
 export function useInterviewChat({
-  billId,
+  interviewConfigId,
   initialMessages,
+  previewPolicyId,
   previewToken,
 }: UseInterviewChatProps) {
   // 初期メッセージのパース
@@ -53,8 +56,9 @@ export function useInterviewChat({
   // onFinish内で直接submit()を呼ぶと再入になるため、useEffectで遅延実行する
   const [pendingSummaryRequest, setPendingSummaryRequest] = useState<{
     messages: { role: string; content: string }[];
-    billId: string;
+    interviewConfigId: string;
     currentStage: InterviewStage;
+    previewPolicyId?: string;
     previewToken?: string;
   } | null>(null);
 
@@ -123,8 +127,9 @@ export function useInterviewChat({
           ]);
           setPendingSummaryRequest({
             messages: allMessages,
-            billId,
+            interviewConfigId,
             currentStage: "summary" as InterviewStage,
+            previewPolicyId,
             previewToken,
           });
         }
@@ -177,9 +182,10 @@ export function useInterviewChat({
         conversationMessages,
         userMessageText
       ),
-      billId,
+      interviewConfigId,
       currentStage,
       nextQuestionId,
+      previewPolicyId,
       previewToken,
     };
     retry.saveRequestParams(requestParams); // 失敗時の自動リトライ用に保存

@@ -1,8 +1,8 @@
 import {
   cleanupAll,
+  cleanupTestInterviewConfig,
   cleanupTestTag,
   createTestInterviewConfig,
-  cleanupTestInterviewConfig,
   createTestPolicyTag,
   createTestPolicyWithConfig,
   createTestSession,
@@ -10,17 +10,17 @@ import {
   linkPolicyToInterviewConfig,
 } from "@test-utils/utils";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildInterviewThemes } from "../../shared/utils/interview-theme";
 import {
-  findOpenInterviewConfigByPolicyId,
-  findOpenInterviewConfigLinks,
+  findInterviewConfigWithPoliciesById,
+  findOpenInterviewConfigs,
+  findOpenInterviewConfigWithPoliciesBySlug,
 } from "./interview-config-repository";
 
 /**
- * findOpenInterviewConfigLinks は絞り込み・埋め込み集計・ネストの並び替えを
+ * findOpenInterviewConfigs は絞り込み・埋め込み集計・ネストの並び替えを
  * すべて PostgREST 側に任せているため、実DBに繋いで検証する。
  */
-describe("findOpenInterviewConfigLinks 統合テスト", () => {
+describe("findOpenInterviewConfigs 統合テスト", () => {
   const cleanups: Array<() => Promise<void>> = [];
 
   afterEach(async () => {
@@ -28,7 +28,7 @@ describe("findOpenInterviewConfigLinks 統合テスト", () => {
     cleanups.length = 0;
   });
 
-  it("募集中テーマと公開施策の組み合わせを、参加人数・代表タグ付きで返す", async () => {
+  it("募集中テーマを、参加人数・紐づく施策・代表タグ付きで返す", async () => {
     const tag = await createTestTag({ label: "テスト・カテゴリ" });
     cleanups.push(() => cleanupTestTag(tag.id));
 
@@ -45,24 +45,35 @@ describe("findOpenInterviewConfigLinks 統合テスト", () => {
     await createTestSession(config.id, null);
     await createTestSession(config.id, null);
 
-    const links = await findOpenInterviewConfigLinks();
+    const configs = await findOpenInterviewConfigs();
 
-    const found = links.find((link) => link.policy_id === policy.id);
+    const found = configs.find((row) => row.id === config.id);
     expect(found).toBeDefined();
-    expect(found?.policies.thumbnail_url).toBe(
-      "https://example.com/policy.png"
-    );
-    expect(found?.policies.policies_tags[0]?.tags?.label).toBe(
+    expect(found?.estimated_duration).toBe(5);
+    // 埋め込み集計は [{ count: n }] の形で返る
+    expect(found?.interview_sessions[0]?.count).toBe(2);
+
+    const linkedPolicy = found?.policies_interview_configs[0]?.policies;
+    expect(linkedPolicy?.publish_status).toBe("published");
+    expect(linkedPolicy?.thumbnail_url).toBe("https://example.com/policy.png");
+    expect(linkedPolicy?.policies_tags[0]?.tags?.label).toBe(
       "テスト・カテゴリ"
     );
-    expect(found?.interview_configs.id).toBe(config.id);
-    expect(found?.interview_configs.estimated_duration).toBe(5);
-    // 埋め込み集計は [{ count: n }] の形で返る
-    expect(found?.interview_configs.interview_sessions[0]?.count).toBe(2);
+  });
+
+  it("施策に紐づかない抽象テーマ型も返す", async () => {
+    const config = await createTestInterviewConfig({ status: "open" });
+    cleanups.push(() => cleanupTestInterviewConfig(config.id));
+
+    const configs = await findOpenInterviewConfigs();
+
+    const found = configs.find((row) => row.id === config.id);
+    expect(found).toBeDefined();
+    expect(found?.policies_interview_configs).toEqual([]);
   });
 
   it("対話が1件もないテーマは参加人数0として返る", async () => {
-    const { policy, cleanup } = await createTestPolicyWithConfig({
+    const { config, cleanup } = await createTestPolicyWithConfig({
       policy: {
         publish_status: "published",
         published_at: new Date().toISOString(),
@@ -71,14 +82,14 @@ describe("findOpenInterviewConfigLinks 統合テスト", () => {
     });
     cleanups.push(cleanup);
 
-    const links = await findOpenInterviewConfigLinks();
+    const configs = await findOpenInterviewConfigs();
 
-    const found = links.find((link) => link.policy_id === policy.id);
-    expect(found?.interview_configs.interview_sessions[0]?.count ?? 0).toBe(0);
+    const found = configs.find((row) => row.id === config.id);
+    expect(found?.interview_sessions[0]?.count ?? 0).toBe(0);
   });
 
   it("募集中でないテーマは返さない", async () => {
-    const { policy, cleanup } = await createTestPolicyWithConfig({
+    const { config, cleanup } = await createTestPolicyWithConfig({
       policy: {
         publish_status: "published",
         published_at: new Date().toISOString(),
@@ -87,21 +98,24 @@ describe("findOpenInterviewConfigLinks 統合テスト", () => {
     });
     cleanups.push(cleanup);
 
-    const links = await findOpenInterviewConfigLinks();
+    const configs = await findOpenInterviewConfigs();
 
-    expect(links.some((link) => link.policy_id === policy.id)).toBe(false);
+    expect(configs.some((row) => row.id === config.id)).toBe(false);
   });
 
-  it("非公開の施策との紐付けは返さない", async () => {
-    const { policy, cleanup } = await createTestPolicyWithConfig({
+  it("非公開の施策も publish_status 付きで返し、一覧に出すかの判定は呼び出し側に委ねる", async () => {
+    const { config, cleanup } = await createTestPolicyWithConfig({
       policy: { publish_status: "draft" },
       config: { status: "open" },
     });
     cleanups.push(cleanup);
 
-    const links = await findOpenInterviewConfigLinks();
+    const configs = await findOpenInterviewConfigs();
 
-    expect(links.some((link) => link.policy_id === policy.id)).toBe(false);
+    const found = configs.find((row) => row.id === config.id);
+    expect(found?.policies_interview_configs[0]?.policies?.publish_status).toBe(
+      "draft"
+    );
   });
 
   it("施策に複数タグがあっても代表タグ1件だけを返す", async () => {
@@ -110,7 +124,7 @@ describe("findOpenInterviewConfigLinks 統合テスト", () => {
     const secondTag = await createTestTag({ label: "テスト・タグB" });
     cleanups.push(() => cleanupTestTag(secondTag.id));
 
-    const { policy, cleanup } = await createTestPolicyWithConfig({
+    const { policy, config, cleanup } = await createTestPolicyWithConfig({
       policy: {
         publish_status: "published",
         published_at: new Date().toISOString(),
@@ -121,27 +135,15 @@ describe("findOpenInterviewConfigLinks 統合テスト", () => {
     await createTestPolicyTag(policy.id, firstTag.id);
     await createTestPolicyTag(policy.id, secondTag.id);
 
-    const links = await findOpenInterviewConfigLinks();
+    const configs = await findOpenInterviewConfigs();
 
-    const found = links.find((link) => link.policy_id === policy.id);
-    expect(found?.policies.policies_tags).toHaveLength(1);
-  });
-});
-
-/**
- * 施策から意見募集を1件に決める順序は SQL（findOpenInterviewConfigByPolicyId）と
- * TS（buildInterviewThemes）の2か所にある。ずれるとカードの表示テーマと遷移先LPの
- * テーマが食い違うため、同じデータで同じ1件を選ぶことを実DBで固定する。
- */
-describe("テーマの絞り込み順序が LP の解決と一致する", () => {
-  const cleanups: Array<() => Promise<void>> = [];
-
-  afterEach(async () => {
-    await cleanupAll(...cleanups.map((cleanup) => cleanup()));
-    cleanups.length = 0;
+    const found = configs.find((row) => row.id === config.id);
+    expect(
+      found?.policies_interview_configs[0]?.policies?.policies_tags
+    ).toHaveLength(1);
   });
 
-  it("1施策に募集中テーマが2件あるとき、一覧に残るテーマとLPが開くテーマが同じ", async () => {
+  it("1施策に募集中テーマが複数あっても、どちらも返す", async () => {
     const { policy, config, cleanup } = await createTestPolicyWithConfig({
       policy: {
         publish_status: "published",
@@ -155,35 +157,81 @@ describe("テーマの絞り込み順序が LP の解決と一致する", () => 
     cleanups.push(() => cleanupTestInterviewConfig(secondConfig.id));
     await linkPolicyToInterviewConfig(policy.id, secondConfig.id);
 
-    const links = await findOpenInterviewConfigLinks();
-    const themes = buildInterviewThemes(
-      links
-        .filter((link) => link.policy_id === policy.id)
-        .map((link) => ({
-          policyId: link.policy_id,
-          linkedAt: link.created_at,
-          policyThumbnailUrl: link.policies.thumbnail_url,
-          policyTagLabel: link.policies.policies_tags[0]?.tags?.label ?? null,
-          config: {
-            id: link.interview_configs.id,
-            name: link.interview_configs.name,
-            description: link.interview_configs.description,
-            estimatedDuration: link.interview_configs.estimated_duration,
-            thumbnailUrl: link.interview_configs.thumbnail_url,
-            createdAt: link.interview_configs.created_at,
-            participantCount:
-              link.interview_configs.interview_sessions[0]?.count ?? 0,
-          },
-        }))
+    const configs = await findOpenInterviewConfigs();
+    const ids = configs.map((row) => row.id);
+
+    expect(ids).toContain(config.id);
+    expect(ids).toContain(secondConfig.id);
+  });
+});
+
+describe("findOpenInterviewConfigWithPoliciesBySlug 統合テスト", () => {
+  const cleanups: Array<() => Promise<void>> = [];
+
+  afterEach(async () => {
+    await cleanupAll(...cleanups.map((cleanup) => cleanup()));
+    cleanups.length = 0;
+  });
+
+  it("slug から募集中テーマを紐づく施策つきで引ける", async () => {
+    const { policy, config, cleanup } = await createTestPolicyWithConfig({
+      policy: {
+        publish_status: "published",
+        published_at: new Date().toISOString(),
+      },
+      config: { status: "open" },
+    });
+    cleanups.push(cleanup);
+
+    const { data } = await findOpenInterviewConfigWithPoliciesBySlug(
+      config.slug
     );
 
-    const { data: resolvedByLp } = await findOpenInterviewConfigByPolicyId(
-      policy.id
+    expect(data?.id).toBe(config.id);
+    expect(data?.policies_interview_configs[0]?.policies?.id).toBe(policy.id);
+  });
+
+  it("募集中でないテーマは slug でも引けない", async () => {
+    const config = await createTestInterviewConfig({ status: "draft" });
+    cleanups.push(() => cleanupTestInterviewConfig(config.id));
+
+    const { data } = await findOpenInterviewConfigWithPoliciesBySlug(
+      config.slug
     );
 
-    expect(themes).toHaveLength(1);
-    expect(themes[0].id).toBe(resolvedByLp?.id);
-    // 2件のうちどちらかが選ばれ、もう一方は一覧から落ちている
-    expect([config.id, secondConfig.id]).toContain(themes[0].id);
+    expect(data).toBeNull();
+  });
+});
+
+describe("findInterviewConfigWithPoliciesById 統合テスト", () => {
+  const cleanups: Array<() => Promise<void>> = [];
+
+  afterEach(async () => {
+    await cleanupAll(...cleanups.map((cleanup) => cleanup()));
+    cleanups.length = 0;
+  });
+
+  it("募集中でないテーマも引ける（公開判定は呼び出し側が行う）", async () => {
+    const config = await createTestInterviewConfig({ status: "draft" });
+    cleanups.push(() => cleanupTestInterviewConfig(config.id));
+
+    const { data } = await findInterviewConfigWithPoliciesById(config.id);
+
+    expect(data?.id).toBe(config.id);
+    expect(data?.status).toBe("draft");
+  });
+
+  it("未公開施策も publish_status 付きで返す（プレビュー経路が施策を辿れるように）", async () => {
+    const { policy, config, cleanup } = await createTestPolicyWithConfig({
+      policy: { publish_status: "draft" },
+      config: { status: "draft" },
+    });
+    cleanups.push(cleanup);
+
+    const { data } = await findInterviewConfigWithPoliciesById(config.id);
+
+    const linkedPolicy = data?.policies_interview_configs[0]?.policies;
+    expect(linkedPolicy?.id).toBe(policy.id);
+    expect(linkedPolicy?.publish_status).toBe("draft");
   });
 });

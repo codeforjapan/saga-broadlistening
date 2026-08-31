@@ -14,19 +14,18 @@ import {
 } from "@/components/ui/dialog";
 import { getInterviewChatLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
+import type { InterviewTarget } from "../../shared/types/interview-target";
 
 interface InterviewConsentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  billId: string;
-  previewToken?: string;
+  target: InterviewTarget;
 }
 
 export function InterviewConsentModal({
   open,
   onOpenChange,
-  billId,
-  previewToken,
+  target,
 }: InterviewConsentModalProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +34,7 @@ export function InterviewConsentModal({
   const handleAgree = () => {
     if (!agreed) return;
     setIsLoading(true);
-    const destination = getInterviewChatLink(billId, previewToken);
+    const destination = getInterviewChatLink(target);
     router.push(destination as Route);
   };
 

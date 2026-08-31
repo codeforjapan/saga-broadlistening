@@ -117,8 +117,8 @@ describe("公開レポート loader 統合テスト", () => {
 
     const result = await getPublicReportById(target.report.id);
 
-    expect(result?.bill_id).toBe(context.billId);
-    expect(result?.bill.bill_content).toEqual({ title: "統合テスト施策" });
+    expect(result?.origin.policyId).toBe(context.billId);
+    expect(result?.bill?.bill_content).toEqual({ title: "統合テスト施策" });
     expect(result?.characterCount).toBe(5);
   });
 
@@ -150,8 +150,8 @@ describe("公開レポート loader 統合テスト", () => {
 
     const result = await getReportWithMessages(target.report.id);
 
-    expect(result?.report.bill_id).toBe(context.billId);
+    expect(result?.report.origin.policyId).toBe(context.billId);
     expect(result?.messages).toHaveLength(1);
-    expect(result?.bill.bill_content).toEqual({ title: "チャットログ施策" });
+    expect(result?.bill?.bill_content).toEqual({ title: "チャットログ施策" });
   });
 });

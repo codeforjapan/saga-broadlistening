@@ -5,11 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
-import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
 import { PublicStatusSection } from "@/features/interview-report/client/components/public-status-section";
 import { getInterviewReportById } from "@/features/interview-report/server/loaders/get-interview-report-by-id";
 import { getInterviewMessages } from "@/features/interview-session/server/loaders/get-interview-messages";
 import { ReportContent } from "../../shared/components/report-content";
+import { resolveReportSubject } from "../../shared/utils/public-report-display";
 import { countCharacters } from "../../shared/utils/report-utils";
 import { getReportOpinions } from "../loaders/get-report-opinions";
 
@@ -28,21 +28,19 @@ export async function ReportCompletePage({
     notFound();
   }
 
-  const billId = report.bill_id;
+  const { policyId } = report.origin;
 
-  // 施策・メッセージ・論点単位の意見を並列取得
+  // 施策・メッセージ・論点単位の意見を並列取得。
+  // 抽象テーマ型には施策がないので、その場合は取得しない
   const [bill, messages, opinions] = await Promise.all([
-    getBillById(billId),
+    policyId ? getBillById(policyId) : null,
     getInterviewMessages(report.interview_session_id),
     getReportOpinions(reportId),
   ]);
 
-  if (!bill) {
-    notFound();
-  }
-
   const characterCount = countCharacters(messages);
-  const billName = bill.bill_content?.title || bill.name;
+  // 見出し直下のリンクは、施策があれば施策詳細、なければテーマのページを指す
+  const subject = resolveReportSubject(bill, report.origin);
 
   return (
     <div className="min-h-dvh bg-background">
@@ -80,10 +78,10 @@ export async function ReportCompletePage({
               インタビューレポート
             </h2>
             <Link
-              href={getBillDetailLink(billId) as Route}
+              href={subject.href as Route}
               className="text-sm text-black underline"
             >
-              {billName}
+              {subject.name}
             </Link>
             <PublicStatusSection
               sessionId={report.interview_session_id}
@@ -94,7 +92,7 @@ export async function ReportCompletePage({
           {/* レポート本体（共通コンポーネント） */}
           <ReportContent
             reportId={reportId}
-            billId={billId}
+            origin={report.origin}
             from="complete"
             summary={report.summary}
             roleTitle={report.role_title}

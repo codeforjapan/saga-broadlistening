@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { InterviewLPPage } from "@/features/interview-config/client/components/interview-lp-page";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getUserReportsByInterviewConfig } from "@/features/interview-report/server/loaders/get-user-reports-by-interview-config";
 import { getLatestInterviewSession } from "@/features/interview-session/server/loaders/get-latest-interview-session";
 import { env } from "@/lib/env";
@@ -82,6 +83,7 @@ export default async function InterviewPage({ params }: InterviewPageProps) {
 
   return (
     <InterviewLPPage
+      target={policyInterviewTarget(bill.id)}
       bill={bill}
       interviewConfig={interviewConfig}
       sessionInfo={latestSession}

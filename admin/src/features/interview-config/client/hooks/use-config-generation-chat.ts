@@ -18,7 +18,14 @@ interface ChatMessage {
 }
 
 interface UseConfigGenerationChatProps {
-  billId: string;
+  /** 施策配下から開いたときの施策ID。テーマ単独では null */
+  billId: string | null;
+  /**
+   * 施策がないときにAIへ渡すテーマの情報を、送信時点のフォーム値から読み取る。
+   * 職員がテーマ名・説明を書き換えた直後でも最新の内容で生成するため、
+   * 値ではなく取得関数を受け取る（呼び出し側で useCallback すること）。
+   */
+  getThemeContext?: () => ThemeContext;
   configId?: string;
   existingThemes?: string[];
   existingQuestions?: InterviewQuestionInput[];
@@ -26,17 +33,35 @@ interface UseConfigGenerationChatProps {
   onQuestionsConfirmed: (questions: InterviewQuestionInput[]) => void;
 }
 
+/** AIに渡すテーマの情報。施策に紐づく意見募集では使われない */
+export type ThemeContext = {
+  themeName: string | null;
+  themeDescription: string | null;
+};
+
+const EMPTY_THEME_CONTEXT: ThemeContext = {
+  themeName: null,
+  themeDescription: null,
+};
+
 /** サーバー側に送る stage（クライアント内部の確定状態は送らない） */
 type ServerStage = "default_questions" | "question_proposal" | "theme_proposal";
 
 export function useConfigGenerationChat({
   billId,
+  getThemeContext,
   configId,
   existingThemes,
   existingQuestions,
   onThemesConfirmed,
   onQuestionsConfirmed,
 }: UseConfigGenerationChatProps) {
+  /** 送信時点のテーマ情報。施策配下では使われないので空になる */
+  const getThemeContextOrEmpty = useCallback(
+    () => getThemeContext?.() ?? EMPTY_THEME_CONTEXT,
+    [getThemeContext]
+  );
+
   const hasExistingThemes = (existingThemes?.length ?? 0) > 0;
   const hasExistingQuestions = (existingQuestions?.length ?? 0) > 0;
   const [input, setInput] = useState("");
@@ -158,6 +183,7 @@ export function useConfigGenerationChat({
       submit({
         messages: apiMessages,
         billId,
+        ...getThemeContextOrEmpty(),
         configId,
         stage: serverStage,
         existingThemes:
@@ -175,6 +201,7 @@ export function useConfigGenerationChat({
     [
       messages,
       billId,
+      getThemeContextOrEmpty,
       configId,
       stage,
       isLoading,
@@ -223,18 +250,21 @@ export function useConfigGenerationChat({
       {
         id: "greeting",
         role: "assistant",
-        content:
-          "インタビュー設定アシスタントです。施策内容を分析して、デフォルトの質問セットを準備します。",
+        content: billId
+          ? "インタビュー設定アシスタントです。施策内容を分析して、デフォルトの質問セットを準備します。"
+          : "インタビュー設定アシスタントです。テーマの内容を分析して、デフォルトの質問セットを準備します。",
       },
     ]);
     submit({
       messages: [],
       billId,
+      ...getThemeContextOrEmpty(),
       configId,
       stage: "default_questions",
     });
   }, [
     billId,
+    getThemeContextOrEmpty,
     configId,
     submit,
     hasExistingThemes,
@@ -264,6 +294,7 @@ export function useConfigGenerationChat({
       submit({
         messages: [],
         billId,
+        ...getThemeContextOrEmpty(),
         configId,
         stage: "theme_proposal",
         confirmedQuestions: questions,
@@ -272,6 +303,7 @@ export function useConfigGenerationChat({
     },
     [
       billId,
+      getThemeContextOrEmpty,
       configId,
       isLoading,
       stop,
@@ -334,6 +366,7 @@ export function useConfigGenerationChat({
     submit({
       messages: [],
       billId,
+      ...getThemeContextOrEmpty(),
       configId,
       stage: "theme_proposal",
       confirmedQuestions:
@@ -342,6 +375,7 @@ export function useConfigGenerationChat({
     });
   }, [
     billId,
+    getThemeContextOrEmpty,
     configId,
     isLoading,
     stop,

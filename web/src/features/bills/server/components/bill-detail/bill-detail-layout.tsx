@@ -2,6 +2,7 @@ import { Container } from "@/components/layouts/container";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
 import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getPublicReportsByBillId } from "@/features/interview-report/server/loaders/get-public-reports-by-bill-id";
 import { BillTopicsPreviewSection } from "@/features/user-topic-analysis/server/components/bill-topics-preview-section";
 import { getPublicTopicAnalysis } from "@/features/user-topic-analysis/server/loaders/get-public-topic-analysis";
@@ -64,7 +65,7 @@ export async function BillDetailLayout({
 
         {interviewConfig != null && (
           <div className="my-8">
-            <InterviewLandingSection billId={bill.id} />
+            <InterviewLandingSection target={policyInterviewTarget(bill.id)} />
           </div>
         )}
         {/* シェアボタン */}
