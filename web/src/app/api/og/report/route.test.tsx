@@ -1,3 +1,4 @@
+import { OG_COLORS } from "@mirai-gikai/design-tokens/brand-meta";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";
@@ -38,7 +39,7 @@ function findBillNameElement(
   const element = node as ReactElement<StyledElementProps>;
   if (
     element.props.children === text &&
-    element.props.style?.color === "#0f8472"
+    element.props.style?.color === OG_COLORS.accent
   ) {
     return element;
   }
@@ -61,9 +62,9 @@ describe("GET /api/og/report", () => {
     vi.unstubAllGlobals();
   });
 
-  it("長い法案名をロゴ領域に重ならない幅で描画する", async () => {
+  it("長い施策名をロゴ領域に重ならない幅で描画する", async () => {
     const billName =
-      "ロケットの打上げルールを見直して、日本の宇宙産業を強化するための法案";
+      "ロケットの打上げルールを見直して、日本の宇宙産業を強化するための施策";
     vi.mocked(getReportOgData).mockResolvedValue({
       summary:
         "試験打上げまで許可対象を広げるなら、手続きはシンプルにしてほしい",

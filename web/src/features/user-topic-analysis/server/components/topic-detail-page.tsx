@@ -32,7 +32,7 @@ function TopicNav({
   return (
     // 3カラムグリッドで中央の位置カウンタを常に中央寄せにする
     // （前後リンクの有無にかかわらず位置がぶれないようにする）。
-    <div className="grid grid-cols-3 items-center text-[13px] font-medium text-mirai-text">
+    <div className="grid grid-cols-3 items-center text-[13px] font-medium text-foreground">
       {/* 先頭では「前のトピック」を非表示にする。 */}
       <div className="justify-self-start">
         {prevTopicId && (
@@ -46,7 +46,7 @@ function TopicNav({
         )}
       </div>
 
-      <span className="justify-self-center text-mirai-text-muted">
+      <span className="justify-self-center text-muted-foreground">
         {position}/{total}
       </span>
 
@@ -103,10 +103,10 @@ export async function TopicDetailPage({
   ];
 
   return (
-    <div className="min-h-dvh bg-mirai-surface pt-24 md:pt-0">
+    <div className="min-h-dvh bg-background pt-24 md:pt-0">
       <Container>
         <div className="flex flex-col gap-6 pb-8 md:pt-8">
-          {/* パンくず + 法案タイトル */}
+          {/* パンくず + 施策タイトル */}
           <div className="flex flex-col gap-2">
             <Breadcrumb items={breadcrumbItems} />
             <Link
@@ -118,7 +118,7 @@ export async function TopicDetailPage({
             </Link>
           </div>
 
-          <h1 className="text-[22px] font-bold leading-9 text-mirai-text">
+          <h1 className="text-[22px] font-bold leading-9 text-foreground">
             💬トピックに含まれる意見
           </h1>
 
@@ -132,14 +132,14 @@ export async function TopicDetailPage({
 
           {/* トピックヘッダー */}
           <div className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-5">
-            <h2 className="text-base font-bold leading-6 text-mirai-text">
+            <h2 className="text-base font-bold leading-6 text-foreground">
               {topic.title}
-              <span className="ml-1 text-[11px] font-medium text-topic-count">
+              <span className="ml-1 text-[11px] font-medium text-muted-foreground">
                 （{topic.opinion_count}件）
               </span>
             </h2>
             {topic.description && (
-              <ul className="flex list-disc flex-col gap-1 pl-5 text-[15px] leading-6 text-mirai-text">
+              <ul className="flex list-disc flex-col gap-1 pl-5 text-[15px] leading-6 text-foreground">
                 {splitSummaryLines(topic.description).map((line) => (
                   <li key={line}>{line}</li>
                 ))}
@@ -149,7 +149,7 @@ export async function TopicDetailPage({
 
           {/* 意見一覧 */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-[13px] font-bold text-topic-label">
+            <h3 className="text-[13px] font-bold text-muted-foreground">
               このトピックに含まれる{topic.opinion_count}件の意見
             </h3>
             <TopicOpinionList

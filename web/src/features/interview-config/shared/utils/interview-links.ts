@@ -1,7 +1,7 @@
 import { routes } from "@/lib/routes";
 
 /**
- * 議案詳細ページへのリンクを取得
+ * 施策詳細ページへのリンクを取得
  */
 export function getBillDetailLink(
   billId: string,

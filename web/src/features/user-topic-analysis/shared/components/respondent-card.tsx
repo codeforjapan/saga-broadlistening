@@ -31,7 +31,7 @@ export function RespondentCard({ respondent, now }: RespondentCardProps) {
     <Link
       href={routes.publicReport(respondent.id) as Route}
       prefetch={false}
-      className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-sm transition-colors hover:bg-mirai-surface-gray"
+      className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-sm transition-colors hover:bg-muted"
     >
       {/* アバター */}
       <PersonAvatar />
@@ -39,17 +39,19 @@ export function RespondentCard({ respondent, now }: RespondentCardProps) {
       {/* アバター横: 立場・日付・要約を同じインデントで縦並び */}
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <div className="flex flex-col gap-2">
-          <h3 className="text-[15px] font-bold leading-6 text-mirai-text">
+          <h3 className="text-[15px] font-bold leading-6 text-foreground">
             {heading}
           </h3>
           {dateLabel && (
-            <span className="text-[13px] text-topic-label">{dateLabel}</span>
+            <span className="text-[13px] text-muted-foreground">
+              {dateLabel}
+            </span>
           )}
         </div>
 
         {/* 要約テキスト */}
         {respondent.summary && (
-          <p className="line-clamp-2 text-[12px] leading-[22px] text-mirai-text-secondary">
+          <p className="line-clamp-2 text-[12px] leading-[22px] text-foreground">
             {respondent.summary}
           </p>
         )}

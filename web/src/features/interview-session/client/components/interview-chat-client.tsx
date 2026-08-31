@@ -155,7 +155,7 @@ export function InterviewChatClient({
   );
 
   return (
-    <div className="h-dvh md:h-[calc(100dvh-96px)] bg-mirai-surface-light">
+    <div className="h-dvh md:h-[calc(100dvh-96px)] bg-muted">
       <div className="flex flex-col h-full pt-23 md:pt-10 bg-white md:rounded-t-[36px] md:px-12">
         {showProgressBar && progress && (
           <div className="px-4 pb-1">
@@ -171,10 +171,10 @@ export function InterviewChatClient({
             {/* 初期表示メッセージ */}
             {messages.length === 0 && !object && (
               <div className="flex flex-col gap-4">
-                <p className="text-sm font-bold leading-[1.8] text-mirai-text">
-                  法案についてのAIインタビューを開始します。
+                <p className="text-sm font-bold leading-[1.8] text-foreground">
+                  施策についてのAIインタビューを開始します。
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   あなたの意見や経験をお聞かせください。
                 </p>
               </div>
@@ -189,7 +189,7 @@ export function InterviewChatClient({
                 !isLoading &&
                 !showStreamingMessage;
 
-              // 最初のAIメッセージの法案名をリンクに変換
+              // 最初のAIメッセージの施策名をリンクに変換
               const content =
                 index === 0 && message.role === "assistant"
                   ? embedBillLink(message.content, billTitle, billDetailLink)
@@ -234,7 +234,7 @@ export function InterviewChatClient({
 
             {/* ローディング表示 */}
             {isLoading && !object && (
-              <span className="text-sm text-gray-500">考え中...</span>
+              <span className="text-sm text-muted-foreground">考え中...</span>
             )}
 
             {/* エラー表示 */}

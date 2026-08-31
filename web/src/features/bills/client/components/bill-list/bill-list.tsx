@@ -12,7 +12,7 @@ export function BillList({ bills }: BillListProps) {
   if (bills.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">議案が見つかりませんでした</p>
+        <p className="text-muted-foreground">施策が見つかりませんでした</p>
       </div>
     );
   }

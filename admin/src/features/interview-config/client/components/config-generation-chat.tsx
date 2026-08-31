@@ -112,7 +112,7 @@ export function ConfigGenerationChat({
           AIで設定を生成
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          法案内容に合わせて質問とテーマを提案します
+          施策内容に合わせて質問とテーマを提案します
         </p>
         {/* ステージステッパー（クリックで切替可能） */}
         <div className="flex items-center gap-1 pt-2">
@@ -169,7 +169,7 @@ export function ConfigGenerationChat({
         )}
 
         {error && (
-          <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
+          <div className="text-sm text-system-warning bg-yellow-400/20 p-3 rounded">
             エラーが発生しました。もう一度お試しください。
           </div>
         )}

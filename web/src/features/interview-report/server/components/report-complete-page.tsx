@@ -45,7 +45,7 @@ export async function ReportCompletePage({
   const billName = bill.bill_content?.title || bill.name;
 
   return (
-    <div className="min-h-dvh bg-mirai-surface">
+    <div className="min-h-dvh bg-background">
       {/* ヘッダーセクション */}
       <div className="bg-white rounded-b-[32px] px-4 pt-30 md:pt-16 pb-8">
         <div className="flex flex-col items-center gap-4">
@@ -58,15 +58,15 @@ export async function ReportCompletePage({
           />
 
           {/* 完了メッセージ */}
-          <h1 className="text-2xl font-bold text-center text-gray-800 leading-relaxed">
+          <h1 className="text-2xl font-bold text-center text-foreground leading-relaxed">
             提出が完了しました！
             <br />
             ご協力ありがとうございました
           </h1>
 
           {/* 活用メッセージ */}
-          <p className="text-sm text-gray-800">
-            いただいた声は政策検討に最大限活用します
+          <p className="text-sm text-foreground">
+            いただいた声は施策検討に最大限活用します
           </p>
         </div>
       </div>

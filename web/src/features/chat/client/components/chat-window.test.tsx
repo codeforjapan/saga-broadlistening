@@ -181,13 +181,11 @@ describe("ChatWindow", () => {
       name: "モバイルAIチャット",
     });
     expect(dialog).toHaveStyle({ maxHeight: "640px" });
-    expect(screen.getAllByRole("button", { name: /何|法案/ })).toHaveLength(3);
+    expect(screen.getAllByRole("button", { name: /何|施策/ })).toHaveLength(3);
 
-    await user.click(
-      screen.getByRole("button", { name: "みらい議会って何？" })
-    );
+    await user.click(screen.getByRole("button", { name: "CHIKATって何？" }));
     expect(sendMessage).toHaveBeenCalledWith({
-      text: "みらい議会って何？",
+      text: "CHIKATって何？",
       metadata: {
         billContext: undefined,
         difficultyLevel: "normal",
@@ -244,7 +242,7 @@ describe("ChatWindow", () => {
 
     expect(
       await screen.findByRole("region", {
-        name: "国会や法案についてAIに質問する",
+        name: "佐賀市の施策についてAIに質問する",
       })
     ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -261,12 +259,12 @@ describe("ChatWindow", () => {
     });
     const sendMessage = chatState.sendMessage as ReturnType<typeof vi.fn>;
     const { rerender, returnFocusRef, onClose } = renderChatWindow(chatState, {
-      billContext: { id: "bill-1", name: "法案A" },
+      billContext: { id: "bill-1", name: "施策A" },
     });
 
     await screen.findByRole("dialog");
     expect(testState.mobileDialogProps?.style).toBeUndefined();
-    expect(screen.getAllByRole("button", { name: /法案/ })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /施策/ })).toHaveLength(2);
     expect(screen.getByTestId("user-user-1")).toBeInTheDocument();
     expect(screen.getByTestId("system-assistant-1")).toHaveAttribute(
       "data-streaming",
@@ -275,7 +273,7 @@ describe("ChatWindow", () => {
     expect(screen.getByText("回答確認の注意")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "送信" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "この法案のポイントは？" })
+      screen.getByRole("button", { name: "この施策のポイントは？" })
     ).toBeDisabled();
     await waitFor(() => expect(testState.scrollToBottom).toHaveBeenCalled());
 
@@ -286,7 +284,7 @@ describe("ChatWindow", () => {
 
     rerender(
       <ChatWindow
-        billContext={{ id: "bill-1", name: "法案A" } as never}
+        billContext={{ id: "bill-1", name: "施策A" } as never}
         chatState={createChatState({
           messages: [{ id: "assistant-2", role: "assistant" }],
           status: "submitted",

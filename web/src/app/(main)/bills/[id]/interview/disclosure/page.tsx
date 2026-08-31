@@ -19,7 +19,7 @@ export async function generateMetadata({
 
   if (!bill) {
     return {
-      title: "議案が見つかりません",
+      title: "施策が見つかりません",
     };
   }
 

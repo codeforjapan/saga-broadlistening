@@ -1,5 +1,6 @@
 "use client";
 
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import Image from "next/image";
 import type { ChangeEvent, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -90,11 +91,11 @@ function ChatMessages({
       <div className="flex flex-col gap-4">
         {/* 初期メッセージ */}
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-bold leading-[1.8] text-mirai-text">
-            国会や法案について、気になることをAIに質問してください。
+          <p className="text-sm font-bold leading-[1.8] text-foreground">
+            佐賀市の施策について、気になることをAIに質問してください。
           </p>
           {billContext && (
-            <p className="text-sm font-bold leading-[1.8] text-mirai-text">
+            <p className="text-sm font-bold leading-[1.8] text-foreground">
               本文中のテキストを選択すると簡単にAIに質問できます
             </p>
           )}
@@ -103,11 +104,11 @@ function ChatMessages({
         {/* サンプル質問チップ */}
         <div className="flex flex-wrap gap-3">
           {(billContext
-            ? [`この法案のポイントは？`, "この法案は私にどんな影響がある？"]
+            ? ["この施策のポイントは？", "この施策は私にどんな影響がある？"]
             : [
-                "みらい議会って何？",
-                "国会って何をするところ？",
-                "注目の法案について教えて",
+                `${SITE_NAME}って何？`,
+                "佐賀市はどんな施策を検討しているの？",
+                "注目の施策について教えて",
               ]
           ).map((question) => {
             return (
@@ -115,7 +116,7 @@ function ChatMessages({
                 key={question}
                 type="button"
                 disabled={isResponding}
-                className="px-3 py-1 text-xs leading-[2] text-primary-accent border border-primary rounded-2xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1 text-xs leading-[2] text-primary-accent border border-primary rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => {
                   sendMessage({
                     text: question,
@@ -152,7 +153,7 @@ function ChatMessages({
         );
       })}
       {status === "submitted" && (
-        <span className="text-sm text-gray-500">考え中...</span>
+        <span className="text-sm text-muted-foreground">考え中...</span>
       )}
     </>
   );
@@ -241,7 +242,7 @@ export function ChatWindow({
       <div className="px-6 pb-4 pt-2">
         <PromptInput
           onSubmit={handleSubmit}
-          className="flex items-end gap-2.5 py-2 pl-6 pr-4 bg-white rounded-[50px] border-mirai-gradient divide-y-0"
+          className="flex items-end gap-2.5 py-2 pl-6 pr-4 bg-white rounded-[50px] shadow-raised divide-y-0"
         >
           <PromptInputBody className="flex-1">
             <PromptInputTextarea
@@ -252,7 +253,7 @@ export function ChatWindow({
               rows={1}
               submitOnEnter={isDesktop}
               // min-w-0, wrap-anywhere が無いと長文で親幅を押し広げてしまう
-              className={`!min-h-0 min-w-0 wrap-anywhere text-sm font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-mirai-text-placeholder placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0`}
+              className={`!min-h-0 min-w-0 wrap-anywhere text-sm font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-muted-foreground placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0`}
             />
           </PromptInputBody>
           <Button
@@ -286,7 +287,7 @@ export function ChatWindow({
   if (isPc) {
     return createPortal(
       <section
-        aria-label="国会や法案についてAIに質問する"
+        aria-label="佐賀市の施策についてAIに質問する"
         className={`fixed inset-x-0 bottom-0 z-50 bg-white shadow-md rounded-t-2xl flex flex-col pc:h-[70vh] xl:right-[calc(calc(100%-1180px)/2)] ${CHAT_PANEL_RESPONSIVE_CLASSES}`}
       >
         {chatPanelContent}

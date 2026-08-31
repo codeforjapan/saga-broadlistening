@@ -52,7 +52,7 @@ export default async function InterviewEditPage({
           インタビュー設定編集
         </h1>
         <p className="text-gray-600 mt-1">
-          議案「{bill.name}」のインタビュー設定「{config.name}
+          施策「{bill.name}」のインタビュー設定「{config.name}
           」を編集します
         </p>
       </div>

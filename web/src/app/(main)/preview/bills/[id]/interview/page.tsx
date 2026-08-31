@@ -21,7 +21,7 @@ interface InterviewPreviewPageProps {
 
 function PreviewBanner() {
   return (
-    <div className="sticky top-0 z-50 bg-yellow-50 border-b border-yellow-200">
+    <div className="sticky top-0 z-50 bg-yellow-400/20 border-b border-yellow-400">
       <div className="max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-yellow-800">
@@ -56,7 +56,7 @@ export default async function InterviewPreviewPage({
     notFound();
   }
 
-  // 管理者用API（非公開議案/非公開設定も取得可能）を使用
+  // 管理者用API（非公開施策/非公開設定も取得可能）を使用
   const [bill, interviewConfig] = await Promise.all([
     getBillByIdAdmin(billId),
     getInterviewConfigAdmin(billId),

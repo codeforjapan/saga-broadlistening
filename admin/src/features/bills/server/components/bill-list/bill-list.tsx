@@ -26,7 +26,7 @@ export async function BillList({ sortConfig }: { sortConfig: BillSortConfig }) {
   return (
     <div>
       <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="text-sm text-gray-600">{bills.length}件の議案</div>
+        <div className="text-sm text-gray-600">{bills.length}件の施策</div>
         <Link href={routes.billNew()}>
           <Button>
             <Plus className="h-4 w-4 mr-1" />
@@ -39,7 +39,7 @@ export async function BillList({ sortConfig }: { sortConfig: BillSortConfig }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>議案名</TableHead>
+              <TableHead>施策名</TableHead>
               <TableHead>担当部署</TableHead>
               <TableHead>公開ステータス</TableHead>
               <SortableTableHead

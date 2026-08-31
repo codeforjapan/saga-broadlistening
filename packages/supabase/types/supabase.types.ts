@@ -439,6 +439,7 @@ export type Database = {
           slug: string
           starts_at: string | null
           status: Database["public"]["Enums"]["interview_config_status_enum"]
+          thumbnail_url: string | null
           updated_at: string
         }
         Insert: {
@@ -453,6 +454,7 @@ export type Database = {
           slug: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["interview_config_status_enum"]
+          thumbnail_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -467,6 +469,7 @@ export type Database = {
           slug?: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["interview_config_status_enum"]
+          thumbnail_url?: string | null
           updated_at?: string
         }
         Relationships: []

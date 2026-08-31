@@ -29,7 +29,9 @@ export function ReportMetaInfo({
   return (
     <div className="flex flex-col items-center gap-4">
       {/* 立場 */}
-      {roleTitle && <p className="text-xs text-gray-600">{roleTitle}</p>}
+      {roleTitle && (
+        <p className="text-xs text-muted-foreground">{roleTitle}</p>
+      )}
 
       {/* 日時・時間・文字数 */}
       <div className="text-black text-center">

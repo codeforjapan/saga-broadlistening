@@ -30,9 +30,9 @@ export function registerBillsTools(server: McpServer): void {
   server.registerTool(
     "list_bills",
     {
-      title: "議案一覧を取得",
+      title: "施策一覧を取得",
       description:
-        "mirai議会adminに登録されている議案（施策）を返す。publish_status でフィルタ可能。",
+        "mirai議会adminに登録されている施策を返す。publish_status でフィルタ可能。",
       inputSchema: {
         publish_status: z
           .enum(["draft", "published"])
@@ -52,9 +52,9 @@ export function registerBillsTools(server: McpServer): void {
   server.registerTool(
     "get_bill",
     {
-      title: "議案詳細を取得",
+      title: "施策詳細を取得",
       description:
-        "指定IDの議案本体、bill_contents（ふつう/難しい）、紐づくtag_idを返す。",
+        "指定IDの施策本体、policy_contents（ふつう/難しい）、紐づくtag_idを返す。",
       inputSchema: {
         billId: z.string().uuid(),
       },
@@ -72,11 +72,11 @@ export function registerBillsTools(server: McpServer): void {
   server.registerTool(
     "get_bill_by_slug",
     {
-      title: "slugで議案を検索",
+      title: "slugで施策を検索",
       description:
-        "指定slugの議案本体、bill_contents（ふつう/難しい）、紐づくtag_idを返す。slugが一致する議案がない場合はエラーになる。",
+        "指定slugの施策本体、policy_contents（ふつう/難しい）、紐づくtag_idを返す。slugが一致する施策がない場合はエラーになる。",
       inputSchema: {
-        slug: z.string().max(200).describe("議案のslug"),
+        slug: z.string().max(200).describe("施策のslug"),
       },
     },
     async ({ slug }) => {
@@ -92,9 +92,9 @@ export function registerBillsTools(server: McpServer): void {
   server.registerTool(
     "create_bill",
     {
-      title: "議案を作成",
+      title: "施策を作成",
       description:
-        "billsテーブルに新しい議案を作成する。コンテンツやタグは別ツール（update_bill_contents / update_bill_tags）で後から設定する。",
+        "policiesテーブルに新しい施策を作成する。コンテンツやタグは別ツール（update_bill_contents / update_bill_tags）で後から設定する。",
       inputSchema: billCreateSchema.shape,
     },
     async (input) => {
@@ -107,9 +107,9 @@ export function registerBillsTools(server: McpServer): void {
   server.registerTool(
     "update_bill",
     {
-      title: "議案を更新",
+      title: "施策を更新",
       description:
-        "指定IDの議案のメタ情報（name, department, contact, enable_ai_chat 等）を部分更新する。指定したフィールドのみが更新され、省略したフィールドは変更されない。",
+        "指定IDの施策のメタ情報（name, department, contact, enable_ai_chat 等）を部分更新する。指定したフィールドのみが更新され、省略したフィールドは変更されない。",
       inputSchema: {
         billId: z.string().uuid(),
         ...billUpdateSchema.partial().shape,
@@ -124,8 +124,8 @@ export function registerBillsTools(server: McpServer): void {
   server.registerTool(
     "update_bill_publish_status",
     {
-      title: "議案の公開ステータスを変更",
-      description: "議案の publish_status を draft / published に変更する。",
+      title: "施策の公開ステータスを変更",
+      description: "施策の publish_status を draft / published に変更する。",
       inputSchema: {
         billId: z.string().uuid(),
         publishStatus: z.enum(["draft", "published"]),
@@ -141,9 +141,9 @@ export function registerBillsTools(server: McpServer): void {
   server.registerTool(
     "update_bill_contents",
     {
-      title: "議案のコンテンツを更新",
+      title: "施策のコンテンツを更新",
       description:
-        "議案のコンテンツ（title/summary/content）を difficulty=normal / hard ごとにupsertする。空文字のみの難易度はスキップ。",
+        "施策のコンテンツ（title/summary/content）を difficulty=normal / hard ごとにupsertする。空文字のみの難易度はスキップ。",
       inputSchema: {
         billId: z.string().uuid(),
         ...billContentsUpdateSchema.shape,
@@ -172,9 +172,9 @@ export function registerBillsTools(server: McpServer): void {
   server.registerTool(
     "update_bill_tags",
     {
-      title: "議案のタグを更新",
+      title: "施策のタグを更新",
       description:
-        "議案に紐づくタグIDの集合を指定の集合に差し替える（差分のみinsert/delete）。",
+        "施策に紐づくタグIDの集合を指定の集合に差し替える（差分のみinsert/delete）。",
       inputSchema: {
         billId: z.string().uuid(),
         tagIds: z.array(z.string().uuid()),

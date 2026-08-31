@@ -99,6 +99,7 @@ export type TestPolicyOverrides = Partial<{
   is_featured: boolean;
   enable_ai_chat: boolean;
   knowledge_source: string;
+  thumbnail_url: string;
 }>;
 
 export type TestInterviewConfigOverrides = Partial<{
@@ -111,6 +112,7 @@ export type TestInterviewConfigOverrides = Partial<{
   ends_at: string;
   deliberation_enabled: boolean;
   estimated_duration: number;
+  thumbnail_url: string;
 }>;
 
 export type TestInterviewSessionOverrides = Partial<{

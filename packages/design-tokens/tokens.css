@@ -1,0 +1,170 @@
+/**
+ * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
+ *
+ * このファイルは自動生成です。直接編集しないでください。
+ * 値の変更は packages/design-tokens/src/palette.ts を編集し、
+ * pnpm --filter @mirai-gikai/design-tokens build:css で再生成します。
+ */
+
+@theme {
+  /* プリミティブパレット */
+  --color-base-white: #ffffff;
+  --color-base-ink: #2b2b2b;
+  --color-base-ink-muted: #5a6570;
+  --color-base-surface: #f4f7fa;
+  --color-sky-50: #eaf7ff;
+  --color-sky-100: #d6efff;
+  --color-sky-200: #aedfff;
+  --color-sky-400: #55c1ff;
+  --color-sky-500: #2fb0ff;
+  --color-sky-700: #0077c8;
+  --color-green-100: #edf7dc;
+  --color-green-400: #8cc63f;
+  --color-green-500: #7ab32f;
+  --color-green-700: #55801a;
+  --color-yellow-400: #ffd644;
+  --color-yellow-700: #8a6a00;
+  --color-lavender-300: #e6e3fe;
+  --color-lavender-500: #7b6cf6;
+  --color-lavender-600: #5f4fd9;
+  --color-system-destructive: #d7263d;
+  --color-system-success: #55801a;
+  --color-system-warning: #b26a00;
+
+  /* 書体（実体は各アプリの next/font が定義する変数） */
+  --font-sans: var(--font-noto-sans-jp), system-ui, sans-serif;
+  --font-heading: var(--font-zen-maru-gothic), var(--font-noto-sans-jp), system-ui, sans-serif;
+  --font-quote: var(--font-noto-serif-jp), serif;
+
+  /* サイズ・行間スケール（行間は倍率指定。ルビON/OFFで崩れないため） */
+  --text-h1: 1.75rem;
+  --text-h1--line-height: 1.35;
+  --text-h1--font-weight: 700;
+  --text-h2: 1.25rem;
+  --text-h2--line-height: 1.5;
+  --text-h2--font-weight: 700;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.8;
+  --text-body-rubied: 1.0625rem;
+  --text-body-rubied--line-height: 1.9;
+  --text-button: 1rem;
+  --text-button--line-height: 1.4;
+  --text-button--font-weight: 700;
+  --text-caption: 0.875rem;
+  --text-caption--line-height: 1.6;
+  --text-ruby: 0.6em;
+  --text-ruby--line-height: 1.3;
+  --text-compact-body: 0.9375rem;
+  --text-compact-body--line-height: 1.6;
+  --text-compact-caption: 0.875rem;
+  --text-compact-caption--line-height: 1.5;
+
+  /* 行間ユーティリティ */
+  --leading-relaxed: 1.875;
+
+  /* シャドウ（D-6: 面の区切りは線ではなくシャドウで表現する） */
+  --shadow-card: 0 1px 2px rgba(43, 43, 43, 0.06), 0 1px 1px rgba(43, 43, 43, 0.04);
+  --shadow-raised: 0 2px 6px rgba(43, 43, 43, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(0, 119, 200, 0.35);
+}
+
+@layer base {
+  /* 本文は W500 を基準にする（D-7） */
+  body {
+    font-weight: 500;
+  }
+
+  /* 見出しのみ丸ゴを適用する（日本語書体は容量が大きいため。要求仕様4.3） */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+  }
+
+  /* ルビは本文の60%（D-16） */
+  rt {
+    font-size: var(--text-ruby);
+    line-height: var(--text-ruby--line-height);
+  }
+}
+
+:root {
+  /* shadcn/ui セマンティック変数 */
+  --background: var(--color-base-white);
+  --foreground: var(--color-base-ink);
+  --card: var(--color-base-white);
+  --card-foreground: var(--color-base-ink);
+  --popover: var(--color-base-white);
+  --popover-foreground: var(--color-base-ink);
+  --primary: var(--color-sky-400);
+  --primary-foreground: var(--color-base-ink);
+  --primary-accent: var(--color-sky-700);
+  --secondary: var(--color-sky-50);
+  --secondary-foreground: var(--color-base-ink);
+  --muted: var(--color-base-surface);
+  --muted-foreground: var(--color-base-ink-muted);
+  --accent: var(--color-lavender-300);
+  --accent-foreground: var(--color-base-ink);
+  --destructive: var(--color-system-destructive);
+  --destructive-foreground: var(--color-base-white);
+  --success: var(--color-system-success);
+  --warning: var(--color-system-warning);
+  --border: var(--color-base-surface);
+  --input: var(--color-base-ink-muted);
+  --ring: var(--color-sky-700);
+
+  /* chart / sidebar（値は移行前のまま。案3-1への割り当ては #14） */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+@theme inline {
+  /* セマンティック変数をユーティリティクラスとして公開する */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-accent: var(--primary-accent);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}

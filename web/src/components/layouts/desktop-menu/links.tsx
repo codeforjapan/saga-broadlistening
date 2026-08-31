@@ -1,39 +1,25 @@
+import { COPYRIGHT_TEXT } from "@mirai-gikai/shared/site";
 import type { Route } from "next";
 import Link from "next/link";
-import { EXTERNAL_LINKS } from "@/config/external-links";
 import { routes } from "@/lib/routes";
 
 type FooterLinkItem = {
   label: string;
   href: string;
-  external?: boolean;
 };
 
 const links: FooterLinkItem[] = [
   {
-    label: "チームみらいについて",
-    href: EXTERNAL_LINKS.TEAM_MIRAI_ABOUT,
-    external: true,
-  },
-  {
     label: "利用規約",
     href: routes.terms(),
-    external: false,
   },
   {
     label: "プライバシーポリシー",
     href: routes.privacy(),
-    external: false,
   },
   {
-    label: "よくあるご質問",
-    href: EXTERNAL_LINKS.FAQ,
-    external: true,
-  },
-  {
-    label: "自主制作ガイドライン",
-    href: EXTERNAL_LINKS.FORK_GUIDELINES_NOTE,
-    external: true,
+    label: "開発者向け",
+    href: routes.developers(),
   },
 ];
 
@@ -47,8 +33,6 @@ export function DesktopMenuLinks() {
         <Link
           key={link.label}
           href={link.href as Route}
-          target={link.external ? "_blank" : undefined}
-          rel={link.external ? "noreferrer" : undefined}
           className="font-medium text-xs transition-opacity hover:opacity-70"
           style={{
             lineHeight: "1.48em",
@@ -63,7 +47,7 @@ export function DesktopMenuLinks() {
           lineHeight: "1.48em",
         }}
       >
-        © 2025 Team Mirai
+        {COPYRIGHT_TEXT}
       </p>
     </div>
   );

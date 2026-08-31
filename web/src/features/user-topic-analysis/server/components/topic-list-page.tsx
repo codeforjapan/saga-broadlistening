@@ -37,15 +37,15 @@ export async function TopicListPage({ billId }: TopicListPageProps) {
   const respondentCount = reportsResult.totalCount;
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "法案詳細", href: routes.billDetail(billId) },
+    { label: "施策詳細", href: routes.billDetail(billId) },
     { label: "トピック一覧" },
   ];
 
   return (
-    <div className="min-h-dvh bg-mirai-surface pt-24 md:pt-0">
+    <div className="min-h-dvh bg-background pt-24 md:pt-0">
       <Container>
         <div className="flex flex-col gap-8 pb-8 md:pt-8">
-          {/* パンくず + 法案タイトル */}
+          {/* パンくず + 施策タイトル */}
           <div className="flex flex-col gap-2">
             <Breadcrumb items={breadcrumbItems} />
             <Link
@@ -59,8 +59,8 @@ export async function TopicListPage({ billId }: TopicListPageProps) {
 
           {/* タイトル + 件数 + 回答ピル + 説明 */}
           <div className="flex flex-col gap-4">
-            <h1 className="flex items-center gap-4 font-bold leading-9 text-mirai-text">
-              <span className="text-[22px]">💬法案のトピック一覧</span>
+            <h1 className="flex items-center gap-4 font-bold leading-9 text-foreground">
+              <span className="text-[22px]">💬施策のトピック一覧</span>
               <span className="text-[20px]">{topics.length}件</span>
             </h1>
 
@@ -71,11 +71,11 @@ export async function TopicListPage({ billId }: TopicListPageProps) {
               />
             )}
 
-            <div className="flex items-center gap-2.5 rounded-[10px] bg-topic-info-bg px-3 py-2.5">
+            <div className="flex items-center gap-2.5 rounded-[10px] bg-secondary px-3 py-2.5">
               <span className="flex size-5 shrink-0 items-center justify-center rounded-[10px] bg-white">
                 <Info className="size-3 text-primary-accent" />
               </span>
-              <p className="text-[12px] leading-5 text-mirai-text">
+              <p className="text-[12px] leading-5 text-foreground">
                 トピックとは、インタビューに寄せられた声をAIが取りまとめて整理した
                 <span className="font-bold">意見のまとめ</span>
                 です。気になるトピックから、実際の意見とインタビュー会話ログまで遡れます。
@@ -91,7 +91,7 @@ export async function TopicListPage({ billId }: TopicListPageProps) {
               publicReportCount={reportsResult.totalCount}
             />
           ) : (
-            <p className="py-8 text-center text-mirai-text-muted">
+            <p className="py-8 text-center text-muted-foreground">
               トピック分析は準備中です
             </p>
           )}

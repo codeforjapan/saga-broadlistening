@@ -67,7 +67,7 @@ export function ClampedQuote({ quote, attribution }: ClampedQuoteProps) {
   return (
     <span
       ref={containerRef}
-      className="block max-h-[88px] overflow-hidden font-mirai-serif text-[14px] font-semibold leading-[22px] text-mirai-text"
+      className="block max-h-[88px] overflow-hidden font-quote text-[14px] font-semibold leading-[22px] text-foreground"
     >
       <span className="mr-1 align-[-0.1em] text-[18px] text-primary-accent">
         “

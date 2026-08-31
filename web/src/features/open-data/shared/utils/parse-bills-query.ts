@@ -39,7 +39,7 @@ export type ParsedBillsQuery =
   | { ok: false; error: string };
 
 /**
- * 議案オープンデータAPIのクエリパラメータ
+ * 施策オープンデータAPIのクエリパラメータ
  * （limit / cursor / difficulty）を検証・解析する。
  */
 export function parseBillsQuery(

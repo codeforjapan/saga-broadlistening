@@ -43,11 +43,11 @@ export function ReportIntervieweeCard({
     <div className="flex flex-col gap-4 rounded-2xl bg-white p-6">
       {/* アバター + 立場 */}
       <div className="flex items-center gap-4">
-        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-mirai-light-gradient">
-          <UserRound className="size-7 text-mirai-text-secondary" />
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-secondary">
+          <UserRound className="size-7 text-foreground" />
         </span>
         <div className="flex min-w-0 flex-col gap-1.5">
-          <p className="text-lg font-bold leading-7 text-mirai-text">
+          <p className="text-lg font-bold leading-7 text-foreground">
             {roleTitle || "回答者"}
           </p>
         </div>
@@ -55,7 +55,7 @@ export function ReportIntervieweeCard({
 
       {/* 立場の詳細 */}
       {descriptionLines.length > 0 && (
-        <div className="text-[14px] leading-6 text-mirai-text">
+        <div className="text-[14px] leading-6 text-foreground">
           {descriptionLines.map((line) => (
             <p key={line}>{line}</p>
           ))}
@@ -63,24 +63,24 @@ export function ReportIntervieweeCard({
       )}
 
       {/* 回答日 / インタビュー分量 */}
-      <div className="flex items-center gap-4 border-t border-mirai-border pt-3">
+      <div className="flex items-center gap-4 border-t border-border pt-3">
         {answeredAt && (
           <div className="flex flex-col gap-1">
-            <span className="flex items-center gap-1.5 text-[13px] text-topic-label">
+            <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
               <CalendarDays className="size-4 shrink-0" />
               回答日
             </span>
-            <span className="text-[13px] font-bold text-mirai-text">
+            <span className="text-[13px] font-bold text-foreground">
               {answeredAt}
             </span>
           </div>
         )}
-        <div className="flex flex-col gap-1 border-l border-mirai-border pl-4">
-          <span className="flex items-center gap-1.5 text-[13px] text-topic-label">
+        <div className="flex flex-col gap-1 border-l border-border pl-4">
+          <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
             <NotebookText className="size-4 shrink-0" />
             インタビュー分量
           </span>
-          <span className="text-[13px] font-bold text-mirai-text">
+          <span className="text-[13px] font-bold text-foreground">
             {minutes !== null ? `${minutes} 分 / ` : ""}
             {characterCount} 文字
           </span>

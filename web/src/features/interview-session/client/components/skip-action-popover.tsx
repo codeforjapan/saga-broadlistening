@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import {
   ChevronRight,
   CircleArrowRight,
   LogOut,
   MessageCircleMore,
 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -52,7 +52,7 @@ export function SkipActionPopover({
         <Button
           variant="ghost"
           disabled={disabled}
-          className="h-auto gap-1 p-0 text-xs font-medium leading-[1.8] text-gray-400 hover:text-gray-600 hover:bg-transparent"
+          className="h-auto gap-1 p-0 text-xs font-medium leading-[1.8] text-muted-foreground hover:text-muted-foreground hover:bg-transparent"
         >
           スキップする
           <ChevronRight className="size-[18px]" />
@@ -62,7 +62,7 @@ export function SkipActionPopover({
         align="end"
         side="top"
         sideOffset={8}
-        className="w-auto rounded-2xl border border-gray-200 bg-white px-2 py-4 shadow-md"
+        className="w-auto rounded-2xl bg-white px-2 py-4 shadow-raised"
       >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-4 px-4">
@@ -71,19 +71,19 @@ export function SkipActionPopover({
                 key={action.label}
                 variant="ghost"
                 onClick={() => handleSelect(action.label)}
-                className="h-auto justify-start gap-2 p-0 text-xs font-medium leading-[1.8] text-mirai-text hover:bg-transparent hover:opacity-70"
+                className="h-auto justify-start gap-2 p-0 text-xs font-medium leading-[1.8] text-foreground hover:bg-transparent hover:opacity-70"
               >
                 <action.icon className="size-5 shrink-0" />
                 {action.label}
               </Button>
             ))}
           </div>
-          <div className="border-t border-gray-200" />
+          <div className="border-t border-border" />
           <div className="px-4">
             <Button
               variant="ghost"
               onClick={() => handleSelect(END_ACTION.label)}
-              className="h-auto justify-start gap-2 p-0 text-xs font-medium leading-[1.8] text-mirai-text hover:bg-transparent hover:opacity-70"
+              className="h-auto justify-start gap-2 p-0 text-xs font-medium leading-[1.8] text-foreground hover:bg-transparent hover:opacity-70"
             >
               <END_ACTION.icon className="size-5 shrink-0" />
               {END_ACTION.label}

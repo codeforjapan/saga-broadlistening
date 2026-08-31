@@ -27,7 +27,7 @@ export async function createBill(input: BillCreateInput) {
   } catch (error) {
     console.error("Create bill error:", error);
     throw new Error(
-      getErrorMessage(error, "議案の作成中にエラーが発生しました")
+      getErrorMessage(error, "施策の作成中にエラーが発生しました")
     );
   }
 

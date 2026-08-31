@@ -37,17 +37,21 @@ export const DEFAULT_CONFIG_SLUG = "default-theme";
 export const ABSTRACT_CONFIG_SLUG = "machi-no-mirai";
 /** 募集終了済みの意見募集 */
 export const CLOSED_CONFIG_SLUG = "kyushoku-2025";
+/** トップページの AI インタビュー一覧を埋めるデモ用テーマ（テーマ自身の画像あり） */
+export const KOSODATE_CONFIG_SLUG = "kosodate-shien";
+/** 同上（テーマ自身の画像なし＝施策の画像にフォールバックする例） */
+export const SEIJI_SANKA_CONFIG_SLUG = "seiji-sanka";
 
 // タグデータ
 export const tags: TagInsert[] = [
   {
     label: "エネルギー・環境",
-    description: "エネルギー政策、環境保護、気候変動対策に関する施策",
+    description: "エネルギー施策、環境保護、気候変動対策に関する施策",
     featured_priority: 1,
   },
   {
     label: "子育て・教育",
-    description: "子育て支援、教育政策、若者支援に関する施策",
+    description: "子育て支援、教育施策、若者支援に関する施策",
     featured_priority: 2,
   },
   {
@@ -198,6 +202,8 @@ const policyConfigSlugMap: { [policyName: string]: string[] } = {
   ガソリン税暫定税率廃止法案: [DEFAULT_CONFIG_SLUG, BULK_OPINION_CONFIG_SLUG],
   船荷証券の電子化に関する法律案: [BULK_OPINION_CONFIG_SLUG],
   学校給食無償化促進法案: [CLOSED_CONFIG_SLUG],
+  こども家庭庁予算大幅増額法案: [KOSODATE_CONFIG_SLUG],
+  "18歳選挙権完全実施法案": [SEIJI_SANKA_CONFIG_SLUG],
 };
 
 export function createPoliciesInterviewConfigs(
@@ -254,6 +260,29 @@ export const additionalInterviewConfigs: InterviewConfigInsert[] = [
     deliberation_enabled: true,
   },
   {
+    name: "子育て支援について",
+    slug: KOSODATE_CONFIG_SLUG,
+    description:
+      "子育てしやすいまちにするために、どんな支援が必要でしょうか。日々感じていることを聞かせてください。",
+    status: "open",
+    chat_model: DEFAULT_CHAT_MODEL,
+    estimated_duration: 5,
+    starts_at: "2025-09-01T00:00:00+09:00",
+    // テーマ自身の画像を持つ例
+    thumbnail_url: "https://placehold.co/600x400/eaf7ff/0077c8/png?text=Kosodate",
+  },
+  {
+    name: "若い世代の政治参加について",
+    slug: SEIJI_SANKA_CONFIG_SLUG,
+    description:
+      "選挙や地域の意思決定に、若い世代がもっと関わるには何が必要かを伺います。",
+    status: "open",
+    chat_model: DEFAULT_CHAT_MODEL,
+    estimated_duration: 3,
+    starts_at: "2025-09-10T00:00:00+09:00",
+    // thumbnail_url なし＝紐づく施策の画像にフォールバックする例
+  },
+  {
     name: "学校給食の無償化について",
     slug: CLOSED_CONFIG_SLUG,
     description: "学校給食の無償化について意見を伺ったテーマ（募集終了）",
@@ -289,6 +318,29 @@ export function createInterviewQuestions(
       question_order: 2,
     },
   ];
+}
+
+/**
+ * 参加人数の表示確認用に、対話ログを持たないセッションだけを積む。
+ * トップページのテーマカードは参加人数を出すため、テーマごとに件数の差が要る。
+ */
+export function createThemeDemoSessions(
+  interviewConfigId: string,
+  respondentIds: string[],
+  count: number
+): SeededInterviewSession[] {
+  const now = new Date();
+
+  return Array.from({ length: count }, (_, index) => {
+    const startedAt = new Date(now.getTime() - (index + 1) * 3600000);
+    return {
+      id: randomUUID(),
+      interview_config_id: interviewConfigId,
+      user_id: pickRespondent(respondentIds, index),
+      started_at: startedAt.toISOString(),
+      completed_at: new Date(startedAt.getTime() + 600000).toISOString(),
+    };
+  });
 }
 
 /** 対話の 5 パターン（意見あり 3 / 意見なし 1 / 途中離脱 1） */
@@ -599,7 +651,7 @@ export function createDemoMessages(): Omit<
       interview_session_id: DEMO_SESSION_ID,
       role: "assistant",
       content:
-        "こんにちは！本日はインタビューにご協力いただきありがとうございます。\n\n市では今後1年で取り組むことをまとめた「1年プラン」を策定しようとしています。今後の市政に期待する内容や、アイデア、意見について率直なご意見をお聞かせください。今後、市はどのようなことを達成してゆくと良いと思いますか？",
+        "こんにちは！本日はインタビューにご協力いただきありがとうございます。\n\n佐賀市では、今後の市政の重点的な取り組みをまとめた計画を策定しようとしています。今後の市政に期待する内容や、アイデア、意見について率直なご意見をお聞かせください。佐賀市はどのようなことに取り組んでいくと良いと思いますか？",
     },
     {
       interview_session_id: DEMO_SESSION_ID,
@@ -610,7 +662,7 @@ export function createDemoMessages(): Omit<
       interview_session_id: DEMO_SESSION_ID,
       role: "assistant",
       content:
-        "なるほど。窓口のレスポンス速度の向上と、職員の長時間労働の削減を通じて、より優秀な人材が市役所を志望する好循環を期待されているということですね。とても重要な指摘だと思います。\n\nそうした働き方改革や人材確保という視点から見たとき、これまでの取り組みは今のあなたの期待にどの程度応えていると評価されますか？",
+        "なるほど。窓口のレスポンス速度の向上と、職員の長時間労働の削減を通じて、より優秀な人材が市役所を志望する好循環を期待されているということですね。とても重要な指摘だと思います。\n\nそうした働き方改革や人材確保という視点から見たとき、佐賀市がこれまで進めてきた行政のデジタル化や情報公開の取り組みは、今のあなたの期待にどの程度応えていると評価されますか？",
     },
     {
       interview_session_id: DEMO_SESSION_ID,
@@ -785,9 +837,9 @@ const additionalDemoData = [
     ],
     opinion: {
       final_text:
-        "ガソリン税の減税は短期的には家計の支えになりますが、環境負荷の面では化石燃料への依存を長引かせる可能性もあります。EVの普及支援と組み合わせた総合的なエネルギー政策として検討してほしいです。",
+        "ガソリン税の減税は短期的には家計の支えになりますが、環境負荷の面では化石燃料への依存を長引かせる可能性もあります。EVの普及支援と組み合わせた総合的なエネルギー施策として検討してほしいです。",
       summary:
-        "ガソリン税減税は短期的な家計支援になるが、環境負荷の観点からは懸念もある。EV普及支援策と組み合わせた総合的な政策として検討すべき。",
+        "ガソリン税減税は短期的な家計支援になるが、環境負荷の観点からは懸念もある。EV普及支援策と組み合わせた総合的な施策として検討すべき。",
       role_title: "会社員",
       role_description:
         "会社員\n環境問題に関心あり\n電気自動車への乗り換えを検討中",

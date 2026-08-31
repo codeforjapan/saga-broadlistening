@@ -18,7 +18,7 @@ const baseSnapshot: OriginalInterviewSnapshot = {
     },
   ],
   conversation: [
-    { role: "interviewer", content: "この法案についてどう思いますか？" },
+    { role: "interviewer", content: "この施策についてどう思いますか？" },
     { role: "interviewee", content: "うーん、難しいですね。" },
   ],
   totalContentRichness: 6,
@@ -42,7 +42,7 @@ describe("buildPersonaExtractorPrompt", () => {
   it("会話ログがインタビュアー/インタビュイーラベル付きで含まれる", () => {
     const result = buildPersonaExtractorPrompt(baseSnapshot);
     expect(result).toContain(
-      "[インタビュアー] この法案についてどう思いますか？"
+      "[インタビュアー] この施策についてどう思いますか？"
     );
     expect(result).toContain("[インタビュイー] うーん、難しいですね。");
   });

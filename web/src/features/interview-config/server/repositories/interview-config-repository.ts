@@ -77,6 +77,56 @@ export async function findPrimaryInterviewConfigByPolicyId(policyId: string) {
 }
 
 /**
+ * 募集中（open）のテーマと、それに紐づく公開済み施策の組み合わせを全件取得する。
+ *
+ * テーマ一覧のカードは施策の画像・タグをフォールバックに使い、参加導線にも
+ * 施策IDが要るため、紐付けテーブル側から引いて両方をまとめて取得する。
+ * 参加人数は埋め込み集計（interview_sessions(count)）で同じ1本に含める。
+ * 1件に絞り込む並び順の再現は呼び出し側（buildInterviewThemes）に委ねる。
+ */
+export async function findOpenInterviewConfigLinks() {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("policies_interview_configs")
+    .select(
+      `
+      policy_id,
+      created_at,
+      policies!inner (
+        thumbnail_url,
+        policies_tags (
+          tags (
+            label
+          )
+        )
+      ),
+      interview_configs!inner (
+        id,
+        name,
+        description,
+        estimated_duration,
+        thumbnail_url,
+        created_at,
+        interview_sessions (
+          count
+        )
+      )
+    `
+    )
+    .eq("interview_configs.status", "open")
+    .eq("policies.publish_status", "published")
+    // カードに出すのは代表タグ1件だけなので、転送量を増やさない
+    .order("created_at", { referencedTable: "policies.policies_tags" })
+    .limit(1, { referencedTable: "policies.policies_tags" });
+
+  if (error) {
+    throw new Error(`Failed to fetch open interview configs: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
  * interview_config_idからインタビュー質問一覧を取得（question_order昇順）
  */
 export async function findInterviewQuestionsByConfigId(

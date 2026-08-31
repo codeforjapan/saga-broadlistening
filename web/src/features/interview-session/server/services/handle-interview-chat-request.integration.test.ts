@@ -73,7 +73,7 @@ async function consumeResponseStream(response: Response): Promise<string> {
 
 // interviewChatTextSchema に準拠したモックレスポンス
 const validChatResponse = JSON.stringify({
-  text: "法案についてのご意見をお聞かせください。",
+  text: "施策についてのご意見をお聞かせください。",
   quick_replies: ["賛成です", "反対です"],
   question_id: null,
   topic_title: null,
@@ -133,7 +133,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
 
       const response = await handleInterviewChatRequest({
         messages: [
-          { role: "user", content: "この法案についてどう思いますか？" },
+          { role: "user", content: "この施策についてどう思いますか？" },
         ],
         billId,
         currentStage: "chat",
@@ -158,7 +158,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       // user: 1件 + assistant: 1件
       expect(messages).toHaveLength(2);
       expect(messages[0].role).toBe("user");
-      expect(messages[0].content).toBe("この法案についてどう思いますか？");
+      expect(messages[0].content).toBe("この施策についてどう思いますか？");
       expect(messages[1].role).toBe("assistant");
       expect(messages[1].content).toBe(validChatResponse);
     });
@@ -196,14 +196,14 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       await adminClient.from("interview_messages").insert({
         interview_session_id: sessionId,
         role: "user",
-        content: "この法案についてどう思いますか？",
+        content: "この施策についてどう思いますか？",
       });
 
       const mockModel = createStreamMock([validChatResponse]);
 
       const response = await handleInterviewChatRequest({
         messages: [
-          { role: "user", content: "この法案についてどう思いますか？" },
+          { role: "user", content: "この施策についてどう思いますか？" },
         ],
         billId,
         currentStage: "chat",
