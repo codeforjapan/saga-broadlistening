@@ -42,20 +42,12 @@ cd ../mirai-gikai-<branch-name> && pnpm install --frozen-lockfile
 実装完了後（コミット前）に、以下の順で必ずセルフレビューを実施すること：
 
 1. **`/simplify` を実行**: 変更コードの重複・可読性・効率の観点から自己修正を行う。明らかな問題を先に潰しておくことで、後段の `/review` の指摘ノイズを減らす。
-2. **`/review` を実行**: Codexレビュー・`test-guidelines-checker` によるテストガイドラインチェック・`code-quality-checker` によるコード品質チェックを同時に実行する。指摘があれば修正する。
+2. **`/review` を実行**: `test-guidelines-checker` によるテストガイドラインチェック・`code-quality-checker` によるコード品質チェックを同時に実行する。指摘があれば修正する。
 
 両方を通過したら、ユーザーに確認せずそのままコミット → push → PR作成まで一気に進めること（`gh pr create`）。
 
-### UI変更時のスクリーンショット必須
-PR作成後、変更差分にUI関連ファイル（`web/src/`, `admin/src/` 配下の `.tsx`, `.css` 等）が含まれる場合は、必ず `/pr-screenshot` スキルを実行すること。スキルが自動でdevサーバー起動→スクリーンショット撮影→R2アップロード→PR本文更新まで行う。
-
 ### 並列PR作成
 複数の独立したPRを作成する場合は `/parallel-pr` スキルを使用すること。
-
-### Linearタスクのステータス管理
-Linear issue ID（例: `MIR-123`）を含むタスクを依頼された場合、以下のタイミングで `/linear` スキルを実行すること：
-- **作業着手時**: `/linear start <issue-id>` でステータスを `In Progress` に更新
-- **PR作成後**: `/linear review <issue-id>` でステータスを `In Review` に更新し、PR URLをissueにリンク
 
 ## Project Structure & Module Organization
 - `web/` は公開用 Next.js アプリ。共通 UI は `src/components`、Vitest のテストは `src/**/*.test.ts` に配置します。
@@ -150,14 +142,13 @@ Repository レイヤーの詳細は [docs/repository-layer.md](docs/repository-l
 - **push / PR作成前のGitHub状態確認（必須）**: `git push` やPR作成を行う前に、必ず `gh pr list` や `gh pr view <番号>` でGitHub上のPR状態（open/merged/closed）を確認すること。マージ済みブランチへの追加pushや、既にクローズされたPRとの重複を防ぐ。
 - **PRのスコープを厳守**: PRには現在のタスクに関係する変更のみを含めること。レビューやセルフレビューで無関係な変更（別タスクの修正、ついでのリファクタ等）が混入していた場合は、コミット前に取り除く。
 - コミットメッセージは既存履歴同様、短い命令形主体（日本語可）とし、課題連携は `(#id)` を付与します。
-- PR ではスコープ概要、実行テスト記録（例: `pnpm dev`, `pnpm --filter web test`）、UI 変更時のスクリーンショットや GIF を添付します。
+- PR ではスコープ概要、実行テスト記録（例: `pnpm dev`, `pnpm --filter web test`）を添付します。
 - スキーマ・シード・環境変数の変更は本文で明示し、レビューフィードバックへの対応状況を追跡コメントで共有して Ready for Review に切り替えます。
 - **イシュー連携**: 特定のイシューに対応する PR を作成する場合、PR 本文に `Resolves #123` の形式で記載してください。これにより PR マージ時にイシューが自動クローズされます。複数のイシューを閉じる場合は `Resolves #123, Resolves #456` のように列挙します。
 - **PR作成後の状態確認（必須）**: PR作成後、以下の4点を確認すること：
   1. **Conflict確認**: `gh pr view <番号> --json mergeable,mergeStateStatus` でマージ可能か確認。conflictがあれば解消してpushする。
   2. **CI確認**: `gh pr checks <番号>` でCIの状態を確認。失敗があれば原因を調査し修正してpushする。CIが実行中の場合は完了まで待つ。
-  3. **CodeRabbitレビュー確認**: CodeRabbitのレビューが届くまで待ってからコメントを確認する。レビューは通常2〜3分で届く。`gh api repos/{owner}/{repo}/pulls/{number}/comments` でコメントを取得し、空なら少し待って再取得する。**Minor以上（Minor/Major/Critical）の指摘はすべて対応が必須。** 対応とは「修正してpush」または「スキップ理由を該当コメントに返信」のいずれか。Nitpickのみスキップ可。
-  4. **対応済みコメントへの返信とresolve（必須）**: 対応済みコメント（修正pushした場合・スキップした場合の両方）に対して、該当コメントへ返信した上でGraphQL APIでresolveする。返信なしで黙ってresolveするのは禁止。
+  3. **対応済みコメントへの返信とresolve（必須）**: 対応済みコメント（修正pushした場合・スキップした場合の両方）に対して、該当コメントへ返信した上でGraphQL APIでresolveする。返信なしで黙ってresolveするのは禁止。
      ```bash
      # 1. 該当コメントに返信（対応内容の概要を記載、修正の場合はコミットSHAを含める）
      gh api repos/{owner}/{repo}/pulls/{number}/comments -X POST \
