@@ -19,7 +19,7 @@ export function FeaturedBillSection({ bills }: FeaturedBillSectionProps) {
       {/* セクションヘッダー */}
       <SectionHeading
         as="h3"
-        title="注目の施策🔥"
+        title="注目の施策📈"
         description="佐賀市が検討している注目施策"
       />
 

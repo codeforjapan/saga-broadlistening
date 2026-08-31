@@ -38,7 +38,7 @@ const FEATURES: {
   {
     iconSrc: "/icons/interview-messages.svg",
     iconSize: { w: 33, h: 26 },
-    text: "寄せられた回答は佐賀市の政策検討に活用します",
+    text: "寄せられた回答は佐賀市の施策検討に活用します",
   },
   {
     iconSrc: "/icons/interview-landmark.svg",
@@ -159,7 +159,7 @@ function _InterviewOverviewSection({
           について、AIがあなたの考えを深掘りするチャット型インタビューです
         </p>
         <p>
-          いただいたご意見は、政策研究や施策の検討に活用し、本サービス上に公開される可能性があります。
+          いただいたご意見は、施策研究や施策の検討に活用し、本サービス上に公開される可能性があります。
         </p>
       </div>
       <div>

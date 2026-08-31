@@ -69,7 +69,7 @@ export function findUserMessageContent(
   return text || null;
 }
 
-const SYSTEM_INSTRUCTIONS = `あなたは政策分析の専門家です。市民インタビューから抽出済みの「意見」を読み、政務調査で集計できる形にタグ付けします。
+const SYSTEM_INSTRUCTIONS = `あなたは施策分析の専門家です。市民インタビューから抽出済みの「意見」を読み、政務調査で集計できる形にタグ付けします。
 
 意見の本文（title / content）を書き換える仕事ではありません。**既存の意見に対してタグだけを付けます。**
 

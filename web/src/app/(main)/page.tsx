@@ -44,7 +44,7 @@ export default async function Home() {
               themes={interviewThemes.slice(0, TOP_INTERVIEW_THEME_LIMIT)}
             />
 
-            {/* 政策紹介セクション（注目の施策 + タグ別一覧） */}
+            {/* 施策紹介セクション（注目の施策 + タグ別一覧） */}
             <PolicyShowcaseSection
               sectionId={TOP_SECTIONS.policy}
               featuredBills={featuredBills}

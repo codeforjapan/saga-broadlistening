@@ -46,12 +46,12 @@ export const SEIJI_SANKA_CONFIG_SLUG = "seiji-sanka";
 export const tags: TagInsert[] = [
   {
     label: "エネルギー・環境",
-    description: "エネルギー政策、環境保護、気候変動対策に関する施策",
+    description: "エネルギー施策、環境保護、気候変動対策に関する施策",
     featured_priority: 1,
   },
   {
     label: "子育て・教育",
-    description: "子育て支援、教育政策、若者支援に関する施策",
+    description: "子育て支援、教育施策、若者支援に関する施策",
     featured_priority: 2,
   },
   {
@@ -83,8 +83,8 @@ const policySeeds: PolicyInsert[] = [
   {
     name: "こども家庭庁予算大幅増額法案",
     slug: "kodomo-katei-budget",
-    department: "こども未来部 こども政策課",
-    contact: "こども政策課（代表電話の内線 2345）",
+    department: "こども未来部 こども施策課",
+    contact: "こども施策課（代表電話の内線 2345）",
     publish_status: "published",
     published_at: "2025-01-20T10:00:00+09:00",
     is_featured: true,
@@ -124,8 +124,8 @@ const policySeeds: PolicyInsert[] = [
   {
     name: "船荷証券の電子化に関する法律案",
     slug: "denshi-bl-policy",
-    department: "経済部 産業政策課",
-    contact: "産業政策課（代表電話の内線 5678）",
+    department: "経済部 産業施策課",
+    contact: "産業施策課（代表電話の内線 5678）",
     publish_status: "published",
     published_at: "2025-09-15T09:00:00+09:00",
     is_featured: false,
@@ -837,9 +837,9 @@ const additionalDemoData = [
     ],
     opinion: {
       final_text:
-        "ガソリン税の減税は短期的には家計の支えになりますが、環境負荷の面では化石燃料への依存を長引かせる可能性もあります。EVの普及支援と組み合わせた総合的なエネルギー政策として検討してほしいです。",
+        "ガソリン税の減税は短期的には家計の支えになりますが、環境負荷の面では化石燃料への依存を長引かせる可能性もあります。EVの普及支援と組み合わせた総合的なエネルギー施策として検討してほしいです。",
       summary:
-        "ガソリン税減税は短期的な家計支援になるが、環境負荷の観点からは懸念もある。EV普及支援策と組み合わせた総合的な政策として検討すべき。",
+        "ガソリン税減税は短期的な家計支援になるが、環境負荷の観点からは懸念もある。EV普及支援策と組み合わせた総合的な施策として検討すべき。",
       role_title: "会社員",
       role_description:
         "会社員\n環境問題に関心あり\n電気自動車への乗り換えを検討中",

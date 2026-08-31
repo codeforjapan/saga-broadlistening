@@ -52,7 +52,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(env.webUrl),
   title: SITE_NAME,
   description: siteDescription,
-  keywords: [SITE_NAME, "施策", "政治", "佐賀市", "政策", "解説", "公聴"],
+  keywords: [SITE_NAME, "施策", "政治", "佐賀市", "施策", "解説", "公聴"],
   icons: {
     icon: isDev
       ? "/icons/pwa/icon_dev_192_v3.png"

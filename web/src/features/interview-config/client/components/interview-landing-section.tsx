@@ -13,7 +13,7 @@ function getCheckPoints(): string[] {
   return [
     "所要時間は約5分〜",
     "AIがあなたのご意見を深掘り",
-    "佐賀市の政策検討に活用",
+    "佐賀市の施策検討に活用",
   ];
 }
 

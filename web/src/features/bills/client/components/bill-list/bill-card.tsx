@@ -23,7 +23,7 @@ export function BillCard({ bill }: BillCardProps) {
             className={`${bill.thumbnail_url != null ? "absolute" : "relative"} top-3 left-3 z-1`}
           >
             <span className="inline-flex items-center justify-center px-3 py-0.5 text-xs font-medium text-foreground bg-yellow-400 rounded-[20px]">
-              注目🔥
+              注目📈
             </span>
           </div>
         )}

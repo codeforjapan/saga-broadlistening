@@ -18,7 +18,7 @@ export function buildBillChatSystemHardPrompt(
 ): string {
   return `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
 
-行政・議会・施策・政策について、わかりやすく説明・対話を支援する役割を持ちます。
+行政・議会・施策・施策について、わかりやすく説明・対話を支援する役割を持ちます。
 
 ${SERVICE_OVERVIEW}
 

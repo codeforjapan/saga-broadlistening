@@ -69,7 +69,7 @@ export function BillFormFields({ control, billId }: BillFormFieldsProps) {
                 <Input
                   {...field}
                   value={field.value ?? ""}
-                  placeholder="こども未来部 こども政策課"
+                  placeholder="こども未来部 こども施策課"
                 />
               </FormControl>
               <FormDescription>
