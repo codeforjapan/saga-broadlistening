@@ -40,12 +40,15 @@ import {
   createOpinions,
   createPoliciesInterviewConfigs,
   createPoliciesTags,
+  createThemeDemoSessions,
   DEFAULT_CONFIG_SLUG,
   DEMO_OPINION_ID,
   DEMO_OPINION_ID_CITIZEN,
   DEMO_OPINION_ID_DAILY,
   DEMO_OPINION_ID_WORK,
+  KOSODATE_CONFIG_SLUG,
   policies,
+  SEIJI_SANKA_CONFIG_SLUG,
   tags,
 } from "./data";
 import { createPolicyContents } from "./policy-contents-data";
@@ -254,11 +257,23 @@ async function seedDatabase() {
       bulkConfigId,
       respondentIds
     );
+    // トップページのテーマカードに出す参加人数を、テーマごとに差をつけて用意する
+    const themeDemoSessions = [
+      { slug: KOSODATE_CONFIG_SLUG, count: 128 },
+      { slug: SEIJI_SANKA_CONFIG_SLUG, count: 46 },
+    ].flatMap(({ slug, count }) => {
+      const configId = configIdBySlug.get(slug);
+      if (!configId) {
+        throw new Error(`Interview config not found for slug: ${slug}`);
+      }
+      return createThemeDemoSessions(configId, respondentIds, count);
+    });
     const allSessions = [
       ...defaultSessions,
       ...demoSessions,
       ...bulkSessions,
       realisticSession,
+      ...themeDemoSessions,
     ];
 
     await expectOk(

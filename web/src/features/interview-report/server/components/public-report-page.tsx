@@ -46,15 +46,15 @@ export async function PublicReportPage({
   const ogImageUrl = `${origin}/api/og/report?id=${reportId}`;
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "法案詳細", href: routes.billDetail(data.bill_id) },
+    { label: "施策詳細", href: routes.billDetail(data.bill_id) },
     { label: "レポート詳細" },
   ];
 
   return (
-    <div className="min-h-dvh bg-mirai-surface pt-24 md:pt-0">
+    <div className="min-h-dvh bg-background pt-24 md:pt-0">
       <Container>
         <div className="flex flex-col gap-8 pb-8 md:pt-8">
-          {/* パンくず + 法案タイトル */}
+          {/* パンくず + 施策タイトル */}
           <div className="flex flex-col gap-2">
             <Breadcrumb items={breadcrumbItems} />
             <Link
@@ -66,7 +66,7 @@ export async function PublicReportPage({
             </Link>
           </div>
 
-          <h1 className="text-[22px] font-bold leading-9 text-mirai-text">
+          <h1 className="text-[22px] font-bold leading-9 text-foreground">
             💬インタビューレポート
           </h1>
 

@@ -38,7 +38,7 @@ export async function BillInterviewOpinionsSection({
       {/* セクションヘッダー */}
       <div className="flex items-center gap-4">
         <h2 className="text-[22px] font-bold leading-[1.636]">
-          <span className="mr-1">💬</span>法案に寄せられた意見
+          <span className="mr-1">💬</span>施策に寄せられた意見
         </h2>
         <span className="text-[22px] font-bold leading-[1.636]">
           {totalCount}件
@@ -59,13 +59,13 @@ export async function BillInterviewOpinionsSection({
 
           {/* もっと読むリンク（グラデーションオーバーレイ付き） */}
           {totalCount > reports.length && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[164px] bg-mirai-white-fade rounded-b-2xl z-10">
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[164px] bg-surface-fade rounded-b-2xl z-10">
               <div className="absolute inset-x-0 bottom-6 flex justify-center pointer-events-auto">
                 <Button
                   variant="outline"
                   size="lg"
                   asChild
-                  className="w-[214px] h-12 text-base font-bold border-mirai-text rounded-full hover:bg-gray-50 bg-white"
+                  className="w-[214px] h-12 text-base font-bold border-foreground rounded-full hover:bg-muted bg-white"
                 >
                   <Link href={routes.billOpinions(billId) as Route}>
                     もっと読む

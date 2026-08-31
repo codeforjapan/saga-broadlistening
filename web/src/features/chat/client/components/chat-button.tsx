@@ -115,7 +115,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
       <>
         <div className="fixed max-w-[460px] mx-auto left-6 right-6 bottom-4 z-50 md:bottom-8 flex justify-center pc:hidden">
           <div
-            className="relative rounded-[50px] bg-gradient-to-tr from-mirai-gradient-start to-mirai-gradient-end p-[2px] shadow-[2px_2px_2px_0px_rgba(0,0,0,0.25)] origin-center flex transition-[flex-basis] ease-in-out"
+            className="relative rounded-[50px] bg-primary p-[2px] shadow-raised origin-center flex transition-[flex-basis] ease-in-out"
             style={{
               flexBasis: isCompact ? "120px" : "100%",
               transitionDuration: `${ANIMATION_DURATION.SIZE_TRANSITION}ms`,
@@ -134,12 +134,12 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
               style={{
                 transitionDuration: `${ANIMATION_DURATION.SIZE_TRANSITION}ms`,
               }}
-              aria-label="議案について質問する"
+              aria-label="施策について質問する"
               aria-haspopup="dialog"
               aria-expanded={isOpen}
             >
               <span
-                className={`text-mirai-text-placeholder text-sm font-medium leading-[1.5em] tracking-[0.01em] ${
+                className={`text-muted-foreground text-sm font-medium leading-[1.5em] tracking-[0.01em] ${
                   isCompact ? "text-center" : "flex-1 text-left"
                 } ${
                   showText
@@ -157,7 +157,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
                 {isCompact ? "AIに質問" : "わからないことをAIに質問する"}
               </span>
               {!isCompact && (
-                <div className="relative w-10 h-10 rounded-[20px] bg-mirai-gradient flex items-center justify-center flex-shrink-0">
+                <div className="relative w-10 h-10 rounded-[20px] bg-primary flex items-center justify-center flex-shrink-0">
                   <Image
                     src="/icons/chat-button-icon.svg"
                     alt="チャット"

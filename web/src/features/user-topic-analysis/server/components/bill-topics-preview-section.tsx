@@ -16,12 +16,12 @@ interface BillTopicsPreviewSectionProps {
   billId: string;
   /** 公開トピック（呼び出し側で取得済みのものを渡す）。 */
   topics: PublicTopic[];
-  /** 議案の公開レポート件数（ピル表示・引用→メッセージリンクの表示判定に使う）。 */
+  /** 施策の公開レポート件数（ピル表示・引用→メッセージリンクの表示判定に使う）。 */
   publicReportCount: number;
 }
 
 /**
- * 議案詳細ページに差し込むトピック一覧プレビュー。
+ * 施策詳細ページに差し込むトピック一覧プレビュー。
  * 公開トピックが無ければ何も描画しない。
  */
 export function BillTopicsPreviewSection({
@@ -42,8 +42,8 @@ export function BillTopicsPreviewSection({
         href={routes.billTopics(billId) as Route}
         className="flex items-center gap-4"
       >
-        <h2 className="flex items-center gap-4 font-bold leading-9 text-mirai-text">
-          <span className="text-[22px]">💬法案のトピック一覧</span>
+        <h2 className="flex items-center gap-4 font-bold leading-9 text-foreground">
+          <span className="text-[22px]">💬施策のトピック一覧</span>
           <span className="text-[20px]">{topics.length}件</span>
         </h2>
         <ChevronRight className="size-6 shrink-0 text-primary" />
@@ -74,7 +74,7 @@ export function BillTopicsPreviewSection({
           variant="outline"
           size="lg"
           asChild
-          className="h-12 w-full gap-2.5 rounded-full border-mirai-text bg-white text-[15px] font-medium text-mirai-text hover:bg-mirai-surface-gray"
+          className="h-12 w-full gap-2.5 rounded-full border-foreground bg-white text-[15px] font-medium text-foreground hover:bg-muted"
         >
           <Link href={routes.billTopics(billId) as Route}>
             トピック一覧をすべて見る

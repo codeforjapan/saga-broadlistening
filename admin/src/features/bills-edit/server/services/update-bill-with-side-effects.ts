@@ -8,7 +8,7 @@ import type { BillUpdateInput } from "../../shared/types";
 import { updateBillRecord } from "../repositories/bill-edit-repository";
 
 /**
- * 議案の更新と、それに伴う副作用（キャッシュ無効化）を一括で実行する。
+ * 施策の更新と、それに伴う副作用（キャッシュ無効化）を一括で実行する。
  * admin の server action と MCP の update_bill ツールから共通で呼び出す。
  * 部分更新に対応するため input は Partial で受ける（undefined フィールドは更新対象外）。
  */

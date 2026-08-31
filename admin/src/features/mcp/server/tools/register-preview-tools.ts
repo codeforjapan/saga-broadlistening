@@ -11,16 +11,16 @@ export function registerPreviewTools(server: McpServer): void {
   server.registerTool(
     "generate_preview_url",
     {
-      title: "議案のプレビューURLを発行",
+      title: "施策のプレビューURLを発行",
       description:
-        "指定IDの議案のプレビューURLを発行する。下書き(draft)の議案を確認するために使用。既存の有効なトークンがあればそれを再利用し、なければ新規発行する（30日有効）。type で議案詳細ページまたはインタビューページのURLを切り替え可能。",
+        "指定IDの施策のプレビューURLを発行する。下書き(draft)の施策を確認するために使用。既存の有効なトークンがあればそれを再利用し、なければ新規発行する（30日有効）。type で施策詳細ページまたはインタビューページのURLを切り替え可能。",
       inputSchema: {
-        billId: z.string().uuid().describe("議案ID"),
+        billId: z.string().uuid().describe("施策ID"),
         type: z
           .enum(["bill", "interview"])
           .default("bill")
           .describe(
-            "プレビュー対象: bill=議案詳細ページ, interview=インタビューページ"
+            "プレビュー対象: bill=施策詳細ページ, interview=インタビューページ"
           ),
       },
     },

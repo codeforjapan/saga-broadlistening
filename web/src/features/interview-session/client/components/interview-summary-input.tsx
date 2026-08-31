@@ -57,7 +57,7 @@ export function InterviewSummaryInput({
             </Button>
           ) : (
             <>
-              <p className="text-sm font-medium leading-[1.8] text-mirai-text mb-2">
+              <p className="text-sm font-medium leading-[1.8] text-foreground mb-2">
                 お話しいただいた内容が短く、レポートを作成できませんでした。もう少しインタビューを続けると、レポートを作成できます。
               </p>
               <Button onClick={() => onResume?.()}>インタビューを続ける</Button>

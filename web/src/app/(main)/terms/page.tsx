@@ -1,3 +1,4 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/layouts/container";
@@ -11,8 +12,8 @@ import {
 import { routes } from "@/lib/routes";
 
 export const metadata: Metadata = {
-  title: "利用規約 | みらい議会",
-  description: "みらい議会の利用規約",
+  title: `利用規約 | ${SITE_NAME}`,
+  description: `${SITE_NAME}の利用規約`,
 };
 
 export default function TermsPage() {
@@ -20,7 +21,7 @@ export default function TermsPage() {
     <LegalPageLayout
       title="利用規約"
       enLabel="Terms of Service"
-      description="みらい議会をご利用いただくにあたっての基本的なルールを定めています。"
+      description={`${SITE_NAME}をご利用いただくにあたっての基本的なルールを定めています。`}
       className="pt-24 md:pt-12"
     >
       <Container className="space-y-10">
@@ -29,7 +30,8 @@ export default function TermsPage() {
         </LegalParagraph>
 
         <LegalParagraph>
-          みらい議会（以下「本サービス」といいます。）をご利用いただく場合、以下の規約に同意いただいたものとみなします。
+          {SITE_NAME}
+          （以下「本サービス」といいます。）をご利用いただく場合、以下の規約に同意いただいたものとみなします。
         </LegalParagraph>
 
         <section className="space-y-4">
@@ -71,7 +73,7 @@ export default function TermsPage() {
                 "サーバへの過剰な負荷、システムへの妨害・侵入・解析（リバースエンジニアリング等）行為。",
                 "自動化ツール、ボット等による不正操作。",
                 "AIモデルの悪用：システムプロンプト等の内部設定の推測、プロンプトインジェクション等による意図的な誤動作の誘発。",
-                "目的外利用：「みらい議会」の趣旨（国会提出法案等の関連テーマ）を著しく逸脱した応答を生成させる行為。",
+                `目的外利用：「${SITE_NAME}」の趣旨（佐賀市の施策等の関連テーマ）を著しく逸脱した応答を生成させる行為。`,
                 "なりすまし：他の人物や組織になりすまして本サービスを利用する行為。",
               ]}
             />
@@ -102,7 +104,7 @@ export default function TermsPage() {
                 id: "publish-consent",
                 content: (
                   <>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-foreground">
                       公開と同意：
                     </span>
                     AIインタビューを通じて取得した回答ログおよびサマリー（以下「インタビューデータ」といいます。）は、ユーザー本人が公開に同意した場合に限り、以下の各号の方法で公開または第三者に提供されることがあります。本人が公開に同意しなかったインタビューデータは、第三者に公開または提供されることはありません。
@@ -122,7 +124,7 @@ export default function TermsPage() {
                                 href={routes.interviewDataTerms()}
                                 className="text-primary-accent underline"
                               >
-                                みらい議会AIインタビューデータ利用規約
+                                {SITE_NAME}AIインタビューデータ利用規約
                               </Link>
                               」に同意する者であれば誰でもダウンロード可能なオープンデータとして第三者に提供すること
                             </>
@@ -137,7 +139,7 @@ export default function TermsPage() {
                 id: "internal-analysis",
                 content: (
                   <>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-foreground">
                       内部分析利用：
                     </span>
                     本人が公開に同意しなかったインタビューデータについても、当組織内において、サービス向上、政策立案、不正対策その他当組織サービスの運営上必要な目的で利用するものとし、ユーザーはこれに同意するものとします。この場合でも、当該データが第三者に公開または提供されることはありません。ただし、法令に基づく場合、および個人を特定できない統計情報に加工して利用・公表する場合を除きます。
@@ -148,7 +150,7 @@ export default function TermsPage() {
                 id: "rights-attribution",
                 content: (
                   <>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-foreground">
                       権利の帰属：
                     </span>
                     本サービスを通じて生成された応答や対話ログに関する権利（著作権法第27条および第28条の権利を含みます。）は、当組織に帰属すること、またはユーザーが当組織に対して無償で利用（複製、加工、公表、および本人が公開に同意した範囲におけるオープンデータとしての第三者への利用許諾を含みます。）することを許諾したものとみなします。また、ユーザーは、当組織および当組織から利用を許諾された第三者に対し、著作者人格権を行使しないものとします。なお、公表については、本条第1項のとおりユーザー本人が公表に同意した場合のみ実施するものとします。

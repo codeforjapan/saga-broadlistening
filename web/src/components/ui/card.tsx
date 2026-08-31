@@ -2,12 +2,19 @@ import type { HTMLAttributes } from "react";
 import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * カードの面。
+ *
+ * 面の区切りはシャドウで表現する（D-6）。見え方を変えたい場合は
+ * `packages/design-tokens/src/shadows.ts` の `--shadow-card` を差し替える。
+ * 呼び出し側で `className="border ..."` と罫線色を直接書かないこと。
+ */
 const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "rounded-xl border bg-card text-card-foreground shadow",
+        "rounded-xl bg-card text-card-foreground shadow-card",
         className
       )}
       {...props}

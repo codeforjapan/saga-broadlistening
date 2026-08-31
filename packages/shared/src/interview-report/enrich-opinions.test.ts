@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { enrichOpinionsWithSourceContent } from "./enrich-opinions";
 
 const messages = [
-  { id: "u1", role: "user", content: "この法案に賛成です" },
+  { id: "u1", role: "user", content: "この施策に賛成です" },
   { id: "a1", role: "assistant", content: "なぜですか？" },
 ];
 
@@ -16,7 +16,7 @@ describe("enrichOpinionsWithSourceContent", () => {
       title: "賛成",
       content: "理由",
       source_message_id: "u1",
-      source_message_content: "この法案に賛成です",
+      source_message_content: "この施策に賛成です",
     });
   });
 
@@ -62,7 +62,7 @@ describe("enrichOpinionsWithSourceContent", () => {
     expect(result[0]).toMatchObject({
       contextual_quote: "（施策について）賛成",
       richness: 80,
-      source_message_content: "この法案に賛成です",
+      source_message_content: "この施策に賛成です",
     });
   });
 });

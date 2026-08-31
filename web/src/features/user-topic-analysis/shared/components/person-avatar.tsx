@@ -15,13 +15,13 @@ export function PersonAvatar({ className }: PersonAvatarProps) {
   return (
     <span
       className={cn(
-        "flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-mirai-surface-warm",
+        "flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-background",
         className
       )}
     >
       <svg
         viewBox="0 0 46 46"
-        className="size-full text-mirai-text-muted"
+        className="size-full text-muted-foreground"
         fill="currentColor"
         aria-hidden="true"
         xmlns="http://www.w3.org/2000/svg"

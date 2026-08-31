@@ -1,3 +1,4 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { describe, expect, it } from "vitest";
 import { SourceCodePromptProvider } from "./source-code-prompt-provider";
 
@@ -6,26 +7,28 @@ describe("SourceCodePromptProvider", () => {
 
   it("top-chat-system プロンプトを変数付きで返す", async () => {
     const result = await provider.getPrompt("top-chat-system", {
-      billSummary: '[{"id":"1","name":"テスト法案"}]',
+      billSummary: '[{"id":"1","name":"テスト施策"}]',
     });
 
-    expect(result.content).toContain("みらい議会");
-    expect(result.content).toContain('[{"id":"1","name":"テスト法案"}]');
+    expect(result.content).toContain(SITE_NAME);
+    expect(result.content).not.toContain("チームみらい");
+    expect(result.content).not.toContain("みらい議会");
+    expect(result.content).toContain('[{"id":"1","name":"テスト施策"}]');
   });
 
   it("bill-chat-system-normal プロンプトを変数付きで返す", async () => {
     const result = await provider.getPrompt("bill-chat-system-normal", {
-      billName: "テスト法案",
-      billTitle: "テスト法案のタイトル",
-      billSummary: "テスト法案の要約",
-      billContent: "テスト法案の詳細内容",
+      billName: "テスト施策",
+      billTitle: "テスト施策のタイトル",
+      billSummary: "テスト施策の要約",
+      billContent: "テスト施策の詳細内容",
     });
 
-    expect(result.content).toContain("みらい議会");
-    expect(result.content).toContain("テスト法案");
-    expect(result.content).toContain("テスト法案のタイトル");
-    expect(result.content).toContain("テスト法案の要約");
-    expect(result.content).toContain("テスト法案の詳細内容");
+    expect(result.content).toContain(SITE_NAME);
+    expect(result.content).toContain("テスト施策");
+    expect(result.content).toContain("テスト施策のタイトル");
+    expect(result.content).toContain("テスト施策の要約");
+    expect(result.content).toContain("テスト施策の詳細内容");
     expect(result.content).toContain("回答の難易度：ふつう");
   });
 
@@ -67,22 +70,22 @@ describe("SourceCodePromptProvider", () => {
       billContent: "",
     });
 
-    expect(result.content).toContain("みらい議会");
+    expect(result.content).toContain(SITE_NAME);
   });
 
   it("bill-chat-system-hard プロンプトを変数付きで返す", async () => {
     const result = await provider.getPrompt("bill-chat-system-hard", {
-      billName: "テスト法案",
-      billTitle: "テスト法案のタイトル",
-      billSummary: "テスト法案の要約",
-      billContent: "テスト法案の詳細内容",
+      billName: "テスト施策",
+      billTitle: "テスト施策のタイトル",
+      billSummary: "テスト施策の要約",
+      billContent: "テスト施策の詳細内容",
     });
 
-    expect(result.content).toContain("みらい議会");
-    expect(result.content).toContain("テスト法案");
-    expect(result.content).toContain("テスト法案のタイトル");
-    expect(result.content).toContain("テスト法案の要約");
-    expect(result.content).toContain("テスト法案の詳細内容");
+    expect(result.content).toContain(SITE_NAME);
+    expect(result.content).toContain("テスト施策");
+    expect(result.content).toContain("テスト施策のタイトル");
+    expect(result.content).toContain("テスト施策の要約");
+    expect(result.content).toContain("テスト施策の詳細内容");
     expect(result.content).toContain("回答の難易度：難しい");
   });
 
@@ -102,7 +105,7 @@ describe("SourceCodePromptProvider", () => {
       billContent: "",
     });
 
-    expect(result.content).toContain("みらい議会");
+    expect(result.content).toContain(SITE_NAME);
   });
 
   it("knowledgeSource を渡すと bill-chat-system-normal の出力に含まれる", async () => {

@@ -3,7 +3,7 @@ import { isUuid } from "./uuid";
 export type OpenDataCursor = {
   /** ISO 8601 の created_at */
   createdAt: string;
-  /** レコードID（UUID）。レポート・議案など一覧対象のID */
+  /** レコードID（UUID）。レポート・施策など一覧対象のID */
   id: string;
 };
 

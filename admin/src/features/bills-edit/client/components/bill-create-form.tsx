@@ -37,7 +37,7 @@ export function BillCreateForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>議案新規作成</CardTitle>
+        <CardTitle>施策新規作成</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -45,7 +45,7 @@ export function BillCreateForm() {
             <BillFormFields control={form.control} />
 
             {error && (
-              <div className="rounded-md bg-red-50 p-4 text-sm text-red-800">
+              <div className="rounded-md bg-yellow-400/20 p-4 text-sm text-system-warning">
                 {error}
               </div>
             )}

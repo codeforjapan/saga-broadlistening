@@ -1,35 +1,39 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import Image from "next/image";
 import { Container } from "@/components/layouts/container";
+import { TopEntryNav } from "@/components/top/top-entry-nav";
 
 export function Hero() {
   return (
-    <div className="relative w-full h-[80vh] min-h-[400px] md:h-[70vh]">
-      <Image
-        src="/img/hero_background.png"
-        alt="国会議事堂"
-        fill
-        priority
-        className="object-cover"
-        sizes="100vw"
-        quality={85}
-      />
-      <div className="absolute bottom-[30vh] left-0 right-0 py-4">
-        <Container>
-          <p className="font-bold text-xl md:text-2xl leading-relaxed">
-            いま国会で議論されていること <br />
-            やさしい言葉で説明します
-          </p>
-          <p className="mt-2 font-lexend text-xs">powered by Team Mirai & AI</p>
-        </Container>
+    <div className="flex w-full flex-col">
+      {/* 背景画像。装飾なので alt は空にする */}
+      <div className="relative h-40 w-full sm:h-52">
+        <Image
+          src="/img/hero_background.png"
+          alt=""
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+          quality={60}
+        />
       </div>
 
-      {/* スクロールインジケーター */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce-gentle">
-        <div className="w-[1px] h-[34px] bg-black"></div>
-        <p className="mt-2 font-lexend text-[10px] leading-[20px] text-black">
-          Scroll
-        </p>
-      </div>
+      <Container className="flex flex-col gap-5 py-6">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-xl font-bold leading-relaxed md:text-2xl">
+            まちの今を知り、
+            <br className="sm:hidden" />
+            未来に声を届ける
+          </h1>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            {SITE_NAME}（チカット）は、市の政策をわかりやすく解説し、
+            あなたの声を市政につなぐ参加型プラットフォームです。
+          </p>
+        </div>
+
+        <TopEntryNav />
+      </Container>
     </div>
   );
 }

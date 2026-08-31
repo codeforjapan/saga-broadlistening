@@ -257,13 +257,13 @@ export function InterviewConfigList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label="他法案へ複製"
+                              aria-label="他施策へ複製"
                               onClick={() => setCopyToBillTarget(config)}
                             >
                               <FolderInput className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>他法案へ複製</TooltipContent>
+                          <TooltipContent>他施策へ複製</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -304,7 +304,7 @@ export function InterviewConfigList({
                   </p>
                 ) : (
                   deleteTargetSessionCount > 0 && (
-                    <p className="font-medium text-red-600">
+                    <p className="font-medium text-destructive">
                       この設定には{deleteTargetSessionCount}
                       件のセッションが紐づいています。
                     </p>
@@ -341,7 +341,7 @@ export function InterviewConfigList({
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting || !deleteConfirmed}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {isDeleting ? "削除中..." : "削除する"}
             </AlertDialogAction>

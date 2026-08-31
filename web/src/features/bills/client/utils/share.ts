@@ -1,3 +1,4 @@
+import { SITE_HASHTAG } from "@mirai-gikai/shared/site";
 import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
 import { getOrigin } from "@/lib/utils/url";
@@ -19,7 +20,7 @@ export function createBillShareUrl(
  */
 export function createShareMessage(bill: BillWithContent): string {
   const displayTitle = bill.bill_content?.title ?? bill.name;
-  return `${displayTitle} #みらい議会`;
+  return `${displayTitle} #${SITE_HASHTAG}`;
 }
 
 /**
@@ -38,7 +39,7 @@ export async function getShareContext(): Promise<{
 }
 
 /**
- * 議案のシェアに必要なすべてのデータを取得
+ * 施策のシェアに必要なすべてのデータを取得
  */
 export async function getBillShareData(bill: BillWithContent) {
   const { origin, difficulty } = await getShareContext();

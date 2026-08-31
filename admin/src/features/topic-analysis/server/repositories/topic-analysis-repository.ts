@@ -323,7 +323,7 @@ export async function findTopicsByVersionId(versionId: string) {
 }
 
 /**
- * 議案とコンテンツを取得する
+ * 施策とコンテンツを取得する
  */
 export async function fetchBillWithContents(billId: string) {
   const supabase = createAdminClient();

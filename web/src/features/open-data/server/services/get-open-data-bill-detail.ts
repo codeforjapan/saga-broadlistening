@@ -6,7 +6,7 @@ import { toOpenDataBillDetail } from "../../shared/utils/to-open-data-bill";
 import { findOpenDataPublishedBillById } from "../repositories/open-data-repository";
 
 /**
- * 公開データAPI用の議案詳細を取得する。
+ * 公開データAPI用の施策詳細を取得する。
  * 非公開・存在しない・指定難易度のコンテンツがない場合は null。
  */
 export async function getOpenDataBillDetail(params: {

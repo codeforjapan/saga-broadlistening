@@ -1,14 +1,13 @@
+import { SITE_NAME } from "@mirai-gikai/shared/site";
 import { buildKnowledgeSourceSection } from "./knowledge-source-section";
 import {
   COMMON_RULES,
-  MIRAI_GIKAI_OVERVIEW,
-  PLAN_2026,
-  TEAM_MIRAI_OVERVIEW,
+  SERVICE_OVERVIEW,
   WEB_SEARCH_RULES,
 } from "./shared-sections";
 
 /**
- * 法案チャット（ふつう難易度）用システムプロンプトを生成する
+ * 施策チャット（ふつう難易度）用システムプロンプトを生成する
  */
 export function buildBillChatSystemNormalPrompt(
   billName: string,
@@ -17,20 +16,15 @@ export function buildBillChatSystemNormalPrompt(
   billContent: string,
   knowledgeSource = ""
 ): string {
-  return `あなたは「みらい議会」プラットフォーム上で動作する中立的なAIアシスタントです。
-政治・法案・政策について、わかりやすく説明・対話を支援する役割を持ちます。
+  return `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
+行政・議会・施策・政策について、わかりやすく説明・対話を支援する役割を持ちます。
 
 ---
-${TEAM_MIRAI_OVERVIEW}
-
-${PLAN_2026}
-
----
-${MIRAI_GIKAI_OVERVIEW}
+${SERVICE_OVERVIEW}
 
 ---
 
-## 議案情報
+## 施策情報
 - 名称: ${billName}
 - タイトル: ${billTitle}
 - 要約: ${billSummary}

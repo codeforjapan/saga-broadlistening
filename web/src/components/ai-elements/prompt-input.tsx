@@ -1,6 +1,5 @@
 "use client";
 
-import type { ReactNode } from "react";
 import type { ChatStatus, FileUIPart } from "ai";
 import {
   ImageIcon,
@@ -12,6 +11,7 @@ import {
   XIcon,
 } from "lucide-react";
 import { nanoid } from "nanoid";
+import type { ReactNode } from "react";
 import {
   type ChangeEventHandler,
   Children,
@@ -524,7 +524,7 @@ export const PromptInputTextarea = ({
     <Textarea
       className={cn(
         "w-full resize-none rounded-none border-none p-3 shadow-none outline-none ring-0",
-        "field-sizing-content bg-transparent dark:bg-transparent",
+        "field-sizing-content bg-transparent",
         "max-h-48",
         "focus-visible:ring-0",
         className
@@ -572,7 +572,7 @@ export const PromptInputHint = ({
 }: PromptInputHintProps) => {
   return (
     <div
-      className={cn("px-3 py-2 text-xs text-gray-400", className)}
+      className={cn("px-3 py-2 text-xs text-muted-foreground", className)}
       {...props}
     >
       {children ??

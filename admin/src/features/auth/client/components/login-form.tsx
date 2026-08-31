@@ -120,7 +120,7 @@ export function LoginForm() {
           />
 
           {(displayError || urlError) && (
-            <div className="flex items-center space-x-2 p-3 text-sm text-red-800 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center space-x-2 p-3 text-sm text-system-warning bg-yellow-400/20 border border-yellow-400 rounded-md">
               <AlertCircle className="h-4 w-4" />
               <span>
                 {displayError ||

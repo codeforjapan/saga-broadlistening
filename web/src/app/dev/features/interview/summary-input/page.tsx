@@ -10,7 +10,7 @@ export default function SummaryInputPreview() {
 
   return (
     <>
-      <h1 className="text-3xl font-bold text-mirai-text mb-8">
+      <h1 className="text-3xl font-bold text-foreground mb-8">
         InterviewSummaryInput
       </h1>
 

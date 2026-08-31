@@ -70,7 +70,7 @@ describe("ChatButton", () => {
     renderChatButton();
 
     const trigger = screen.getByRole("button", {
-      name: "議案について質問する",
+      name: "施策について質問する",
     });
     expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
     expect(trigger).toHaveAttribute("aria-expanded", "false");
@@ -114,7 +114,7 @@ describe("ChatButton", () => {
 
     act(() => chatWindowMock.props?.onClose());
     await user.click(
-      screen.getByRole("button", { name: "議案について質問する" })
+      screen.getByRole("button", { name: "施策について質問する" })
     );
 
     expect(chatWindowMock.props?.disableAutoFocus).toBe(false);

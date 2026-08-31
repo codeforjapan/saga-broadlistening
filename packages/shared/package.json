@@ -8,6 +8,10 @@
     "test:watch": "vitest"
   },
   "exports": {
+    "./site": {
+      "types": "./src/site/site.ts",
+      "default": "./src/site/site.ts"
+    },
     "./ai/models": {
       "types": "./src/ai/models.ts",
       "default": "./src/ai/models.ts"

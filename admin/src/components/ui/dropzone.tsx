@@ -83,10 +83,12 @@ export function Dropzone({
           {fileRejections.map(({ file, errors }) => (
             <div
               key={`${file.name}-${file.size}-${file.lastModified}`}
-              className="p-3 bg-red-50 border border-red-200 rounded-lg"
+              className="p-3 bg-yellow-400/20 border border-yellow-400 rounded-lg"
             >
-              <p className="text-sm font-medium text-red-900">{file.name}</p>
-              <ul className="mt-1 text-xs text-red-700 list-disc list-inside">
+              <p className="text-sm font-medium text-system-warning">
+                {file.name}
+              </p>
+              <ul className="mt-1 text-xs text-system-warning list-disc list-inside">
                 {errors.map((error) => (
                   <li key={error.code}>{error.message}</li>
                 ))}

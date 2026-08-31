@@ -30,7 +30,7 @@ export interface ReportDetailForSimulation {
 }
 
 /**
- * シミュレーションに必要な「元レポート + 設定 + 質問 + 議案」を一括取得する。
+ * シミュレーションに必要な「元レポート + 設定 + 質問 + 施策」を一括取得する。
  */
 export async function getReportDetailForSimulation(
   reportId: string
