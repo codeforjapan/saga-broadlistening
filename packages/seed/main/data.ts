@@ -83,8 +83,8 @@ const policySeeds: PolicyInsert[] = [
   {
     name: "こども家庭庁予算大幅増額法案",
     slug: "kodomo-katei-budget",
-    department: "こども未来部 こども施策課",
-    contact: "こども施策課（代表電話の内線 2345）",
+    department: "こども未来部 こども政策課",
+    contact: "こども政策課（代表電話の内線 2345）",
     publish_status: "published",
     published_at: "2025-01-20T10:00:00+09:00",
     is_featured: true,
@@ -124,8 +124,8 @@ const policySeeds: PolicyInsert[] = [
   {
     name: "船荷証券の電子化に関する法律案",
     slug: "denshi-bl-policy",
-    department: "経済部 産業施策課",
-    contact: "産業施策課（代表電話の内線 5678）",
+    department: "経済部 産業政策課",
+    contact: "産業政策課（代表電話の内線 5678）",
     publish_status: "published",
     published_at: "2025-09-15T09:00:00+09:00",
     is_featured: false,
