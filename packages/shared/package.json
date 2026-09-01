@@ -72,6 +72,10 @@
       "types": "./src/interview-prompts/loop-mode.ts",
       "default": "./src/interview-prompts/loop-mode.ts"
     },
+    "./interview-prompts/subject-section": {
+      "types": "./src/interview-prompts/subject-section.ts",
+      "default": "./src/interview-prompts/subject-section.ts"
+    },
     "./interview-prompts/summary": {
       "types": "./src/interview-prompts/summary.ts",
       "default": "./src/interview-prompts/summary.ts"

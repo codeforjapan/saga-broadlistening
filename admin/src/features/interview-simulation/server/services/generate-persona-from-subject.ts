@@ -11,10 +11,11 @@ import {
   type PersonaCharacterSheet,
   personaSchema,
 } from "../../shared/schemas";
-import { buildPersonaFromBillPrompt } from "../../shared/utils/build-persona-from-bill-prompt";
+import { buildPersonaPrompt } from "../../shared/utils/build-persona-prompt";
 import { withTimeoutRetry } from "../../shared/utils/with-timeout-retry";
 
-interface GeneratePersonaFromBillParams {
+interface GeneratePersonaFromSubjectParams {
+  /** 対象の施策。抽象テーマ型では null で、テーマの説明だけを材料にする */
   bill: PromptBillInput;
   interviewConfig: PromptInterviewConfig;
   stanceHint?: "for" | "against" | "neutral";
@@ -26,10 +27,10 @@ interface GeneratePersonaFromBillParams {
 }
 
 /**
- * 施策内容からシミュ用ペルソナを 1 件生成する。
+ * 対象（施策 or テーマ）の内容からシミュ用ペルソナを 1 件生成する。
  * タイムアウト + 自動リトライは withTimeoutRetry ヘルパに委譲。
  */
-export async function generatePersonaFromBill({
+export async function generatePersonaFromSubject({
   bill,
   interviewConfig,
   stanceHint,
@@ -37,8 +38,8 @@ export async function generatePersonaFromBill({
   model,
   traceId,
   signal,
-}: GeneratePersonaFromBillParams): Promise<PersonaCharacterSheet> {
-  const prompt = buildPersonaFromBillPrompt({
+}: GeneratePersonaFromSubjectParams): Promise<PersonaCharacterSheet> {
+  const prompt = buildPersonaPrompt({
     bill,
     interviewConfig,
     stanceHint,
@@ -55,6 +56,7 @@ export async function generatePersonaFromBill({
           abortSignal: attemptSignal,
           experimental_telemetry: {
             isEnabled: true,
+            // 既存のテレメトリ集計と接続を保つため、ID は施策時代のまま据え置く
             functionId: "sim-generate-persona-from-bill",
             metadata: {
               traceId,
@@ -66,7 +68,7 @@ export async function generatePersonaFromBill({
         externalSignal: signal,
         timeoutMs: LLM_TIMEOUT_MS.persona,
         maxAttempts: LLM_MAX_ATTEMPTS,
-        label: "sim-generate-persona-from-bill",
+        label: "sim-generate-persona-from-subject",
       }
     );
 
@@ -79,7 +81,7 @@ export async function generatePersonaFromBill({
     // schema 不一致は SDK 側のメッセージだけだと原因が分からないので、
     // 生 text と cause を吐いて次回以降の調査に備える
     if (NoObjectGeneratedError.isInstance(error)) {
-      console.warn("[generatePersonaFromBill] schema mismatch", {
+      console.warn("[generatePersonaFromSubject] schema mismatch", {
         roleHint,
         stanceHint,
         finishReason: error.finishReason,

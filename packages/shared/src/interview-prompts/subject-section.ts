@@ -18,6 +18,8 @@ export function buildInterviewSubject(
 
   if (!bill) {
     return {
+      /** プロンプト内で対象を指す語 */
+      label: "テーマ",
       /** 対象を説明するセクション */
       knowledgeSection: `## インタビューの対象
 このインタビューは特定の施策についてではなく、以下のテーマについて市民の経験や考えを伺うものです。
@@ -44,6 +46,7 @@ export function buildInterviewSubject(
   const knowledgeSource = bill.knowledge_source || "";
 
   return {
+    label: "施策",
     knowledgeSection: `## 施策に関する知識
 - 施策名: ${billName}
 - 施策タイトル: ${billTitle}
@@ -65,4 +68,38 @@ ${knowledgeSource || "（知識ソース未設定）"}
 - 施策タイトル: ${billTitle}
 - 施策要約: ${billSummary}`,
   };
+}
+
+/**
+ * インタビューの冒頭で名乗る対象名。
+ *
+ * 施策があれば難易度別コンテンツの見出し、なければ施策名、
+ * それもなければテーマ名を使う。本番の初回質問生成とシミュレータで揃える。
+ */
+export function resolveSubjectTitle(
+  bill: PromptBillInput,
+  interviewConfig: InterviewConfig
+): string {
+  return (
+    bill?.bill_content?.title ||
+    bill?.name ||
+    interviewConfig?.name ||
+    "このテーマ"
+  );
+}
+
+/**
+ * インタビュー開始ターン用に、システムプロンプトへ付け足す指示。
+ *
+ * 本番（generateInitialQuestion）とシミュレータ（runSimulatedInterview）で
+ * 同じ文言を使う。片方だけ直して挙動がずれるのを防ぐため、ここに一本化する。
+ */
+export function buildInitialTurnInstruction({
+  subjectTitle,
+  firstQuestionId,
+}: {
+  subjectTitle: string;
+  firstQuestionId: string | null;
+}): string {
+  return `## 重要: これはインタビューの開始です。ユーザーからのメッセージはありません。事前定義質問の最初の質問から始めてください。挨拶は温かく丁寧に（2文程度）、「${subjectTitle}」についてのインタビューであることを明確に伝えた上で、すぐに最初の質問をしてください。最初の質問にクイックリプライが設定されている場合は、必ず quick_replies フィールドに含めてください。${firstQuestionId ? `最初の質問は ID: ${firstQuestionId} であり、レスポンスの question_id にこの値を含めてください。` : ""}`;
 }

@@ -5,7 +5,7 @@ import { multiSimulationRunRequestSchema } from "./schemas";
 import type { PersonaSlotInput } from "./types";
 
 type ValidRequest = {
-  billId: string;
+  interviewConfigId: string;
   personaSlots: PersonaSlotInput[];
   improvedConfig: {
     description: string | null;
@@ -24,7 +24,7 @@ type ValidRequest = {
 
 function baseValidRequest(): ValidRequest {
   return {
-    billId: "bill-1",
+    interviewConfigId: "config-1",
     personaSlots: [{ kind: "bill" }],
     improvedConfig: {
       description: "テーマ A",
@@ -172,10 +172,20 @@ describe("multiSimulationRunRequestSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("billId が 100 文字を超えると拒否", () => {
+  it("interviewConfigId が 100 文字を超えると拒否", () => {
     const body = baseValidRequest();
-    body.billId = "a".repeat(101);
+    body.interviewConfigId = "a".repeat(101);
     const result = multiSimulationRunRequestSchema.safeParse(body);
+    expect(result.success).toBe(false);
+  });
+
+  it("施策IDを送りつけられても拒否する（範囲はサーバー側で意見募集から決めるため）", () => {
+    const body = {
+      ...baseValidRequest(),
+      policyId: "policy-injected",
+    };
+    const result = multiSimulationRunRequestSchema.safeParse(body);
+
     expect(result.success).toBe(false);
   });
 
