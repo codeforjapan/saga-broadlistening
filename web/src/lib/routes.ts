@@ -36,6 +36,9 @@ export const routes = {
   interviewThemeDisclosure: (slug: string) =>
     `/interviews/${slug}/disclosure` as const,
   interviewThemeChat: (slug: string) => `/interviews/${slug}/chat` as const,
+  interviewThemeTopics: (slug: string) => `/interviews/${slug}/topics` as const,
+  interviewThemeTopicDetail: (slug: string, topicId: string) =>
+    `/interviews/${slug}/topics/${topicId}` as const,
 
   // ── プレビュー（token 付き） ──────────────────────
   previewBillDetail: (billId: string, token: string) =>

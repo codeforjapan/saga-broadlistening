@@ -1,30 +1,30 @@
 import "server-only";
 
-import { ChevronLeft, ChevronRight, Undo2 } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layouts/container";
-import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
-import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
-import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
-import { getLinkedInterviewConfigId } from "@/features/interview-config/server/loaders/get-linked-interview-config-id";
-import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
-import { countPublicOpinionsByInterviewConfigId } from "@/features/interview-report/server/repositories/interview-report-repository";
-import { routes } from "@/lib/routes";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { TopicOpinionList } from "../../client/components/topic-opinion-list";
 import { splitSummaryLines } from "../../shared/utils/split-summary-lines";
-import { getPublicTopicDetail } from "../loaders/get-public-topic-detail";
+import {
+  getTopicDetailLink,
+  getTopicsLink,
+} from "../../shared/utils/topic-analysis-links";
+import { getTopicAnalysisContext } from "../loaders/get-topic-analysis-context";
+import { getTopicLocation } from "../loaders/get-topic-location";
+import { TopicSubjectHeader } from "./topic-subject-header";
 
 function TopicNav({
-  billId,
+  target,
   position,
   total,
   prevTopicId,
   nextTopicId,
 }: {
-  billId: string;
+  target: InterviewTarget;
   position: number;
   total: number;
   prevTopicId: string | null;
@@ -38,7 +38,7 @@ function TopicNav({
       <div className="justify-self-start">
         {prevTopicId && (
           <Link
-            href={routes.billTopicDetail(billId, prevTopicId) as Route}
+            href={getTopicDetailLink(target, prevTopicId) as Route}
             className="flex items-center gap-1 text-primary-accent hover:underline"
           >
             <ChevronLeft className="size-4 shrink-0" />
@@ -55,7 +55,7 @@ function TopicNav({
       <div className="justify-self-end">
         {nextTopicId && (
           <Link
-            href={routes.billTopicDetail(billId, nextTopicId) as Route}
+            href={getTopicDetailLink(target, nextTopicId) as Route}
             className="flex items-center gap-1 text-primary-accent hover:underline"
           >
             次のトピック
@@ -68,26 +68,21 @@ function TopicNav({
 }
 
 interface TopicDetailPageProps {
-  billId: string;
+  /** 分析の起点。施策配下・テーマ配下のどちらから来たかでリンクが変わる */
+  target: InterviewTarget;
   topicId: string;
 }
 
 export async function TopicDetailPage({
-  billId,
+  target,
   topicId,
 }: TopicDetailPageProps) {
-  const [bill, detail, interviewConfigId, interviewConfig] = await Promise.all([
-    getBillById(billId),
-    getPublicTopicDetail(billId, topicId),
-    getLinkedInterviewConfigId(billId),
-    getInterviewConfig(billId),
+  const [context, detail] = await Promise.all([
+    getTopicAnalysisContext(target),
+    getTopicLocation(target, topicId),
   ]);
-  // 使うのは k-匿名性ゲートの判定に必要な件数だけなので、公開意見の本体は引かない
-  const publicReportCount = interviewConfigId
-    ? await countPublicOpinionsByInterviewConfigId(interviewConfigId)
-    : 0;
 
-  if (!bill || !detail) {
+  if (!context || !detail) {
     notFound();
   }
 
@@ -95,36 +90,26 @@ export async function TopicDetailPage({
   const nowMs = Date.now();
 
   const { topic, position, total, prevTopicId, nextTopicId } = detail;
-  const billTitle = bill.bill_content?.title || bill.name;
-
-  const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "施策詳細", href: routes.billDetail(billId) },
-    { label: "トピック一覧", href: routes.billTopics(billId) },
-    { label: "トピック詳細" },
-  ];
+  const { subject } = context;
 
   return (
     <div className="min-h-dvh bg-background pt-24 md:pt-0">
       <Container>
         <div className="flex flex-col gap-6 pb-8 md:pt-8">
-          {/* パンくず + 施策タイトル */}
-          <div className="flex flex-col gap-2">
-            <Breadcrumb items={breadcrumbItems} />
-            <Link
-              href={routes.billDetail(billId) as Route}
-              className="inline-flex items-center gap-2 text-[15px] font-medium leading-6 text-black"
-            >
-              <span className="underline">{billTitle}</span>
-              <Undo2 className="size-4 shrink-0" />
-            </Link>
-          </div>
+          <TopicSubjectHeader
+            subject={subject}
+            trail={[
+              { label: "トピック一覧", href: getTopicsLink(target) },
+              { label: "トピック詳細" },
+            ]}
+          />
 
           <h1 className="text-[22px] font-bold leading-9 text-foreground">
             💬トピックに含まれる意見
           </h1>
 
           <TopicNav
-            billId={billId}
+            target={target}
             position={position}
             total={total}
             prevTopicId={prevTopicId}
@@ -155,14 +140,14 @@ export async function TopicDetailPage({
             </h3>
             <TopicOpinionList
               opinions={topic.opinions}
-              publicReportCount={publicReportCount}
+              publicReportCount={context.publicOpinionCount}
               nowMs={nowMs}
             />
           </div>
 
           {/* AIインタビューCTA */}
-          {interviewConfig != null && (
-            <InterviewLandingSection target={policyInterviewTarget(billId)} />
+          {context.isInterviewOpen && (
+            <InterviewLandingSection target={target} />
           )}
         </div>
       </Container>

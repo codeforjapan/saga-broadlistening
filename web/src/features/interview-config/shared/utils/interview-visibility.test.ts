@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isInterviewVisible,
   isLinkedPolicy,
+  isOpenInterview,
   selectPrimaryPolicyId,
   toLinkedPolicies,
 } from "./interview-visibility";
@@ -83,5 +84,16 @@ describe("isLinkedPolicy", () => {
 
   it("抽象テーマ型はどの施策とも紐づかない", () => {
     expect(isLinkedPolicy([], "policy-1")).toBe(false);
+  });
+});
+
+describe("isOpenInterview", () => {
+  it("募集中なら true", () => {
+    expect(isOpenInterview("open")).toBe(true);
+  });
+
+  it("募集終了・下書きは false（結果は見せても参加導線は出さない）", () => {
+    expect(isOpenInterview("closed")).toBe(false);
+    expect(isOpenInterview("draft")).toBe(false);
   });
 });

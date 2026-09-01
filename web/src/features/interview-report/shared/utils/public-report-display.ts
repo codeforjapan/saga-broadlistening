@@ -2,17 +2,15 @@ import {
   isPublicReportVisible,
   type OpinionReviewStatus,
 } from "@mirai-gikai/shared/report-publication/auto-publish";
-import { themeInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import {
   getBillDetailLink,
-  getInterviewLPLink,
+  getThemeHomeLink,
 } from "@/features/interview-config/shared/utils/interview-links";
 import {
   type LinkedPolicyRow,
   selectPrimaryPolicyId,
   toLinkedPolicies,
 } from "@/features/interview-config/shared/utils/interview-visibility";
-import { routes } from "@/lib/routes";
 
 /** 公開意見一覧のカード1件（取得した行をそのまま表示に使う）。 */
 export type PublicInterviewReport = {
@@ -147,9 +145,7 @@ export function getReportOriginLink(origin: ReportOrigin): string {
     return getBillDetailLink(origin.policyId);
   }
 
-  return origin.theme.isOpen
-    ? getInterviewLPLink(themeInterviewTarget(origin.theme.slug))
-    : routes.interviews();
+  return getThemeHomeLink(origin.theme);
 }
 
 /**

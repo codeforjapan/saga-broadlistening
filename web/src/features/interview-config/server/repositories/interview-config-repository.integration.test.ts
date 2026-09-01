@@ -14,6 +14,7 @@ import {
   findInterviewConfigWithPoliciesById,
   findOpenInterviewConfigs,
   findOpenInterviewConfigWithPoliciesBySlug,
+  findResultsInterviewConfigWithPoliciesBySlug,
 } from "./interview-config-repository";
 
 /**
@@ -200,6 +201,54 @@ describe("findOpenInterviewConfigWithPoliciesBySlug 統合テスト", () => {
     );
 
     expect(data).toBeNull();
+  });
+});
+
+describe("findResultsInterviewConfigWithPoliciesBySlug 統合テスト", () => {
+  const cleanups: Array<() => Promise<void>> = [];
+
+  afterEach(async () => {
+    await cleanupAll(...cleanups.map((cleanup) => cleanup()));
+    cleanups.length = 0;
+  });
+
+  it("募集が終わったテーマも引ける（結果は募集終了後も見せる）", async () => {
+    const config = await createTestInterviewConfig({ status: "closed" });
+    cleanups.push(() => cleanupTestInterviewConfig(config.id));
+
+    const { data } = await findResultsInterviewConfigWithPoliciesBySlug(
+      config.slug
+    );
+
+    expect(data?.id).toBe(config.id);
+    expect(data?.status).toBe("closed");
+  });
+
+  it("下書きのテーマは引けない（結果ページも表に出さない）", async () => {
+    const config = await createTestInterviewConfig({ status: "draft" });
+    cleanups.push(() => cleanupTestInterviewConfig(config.id));
+
+    const { data } = await findResultsInterviewConfigWithPoliciesBySlug(
+      config.slug
+    );
+
+    expect(data).toBeNull();
+  });
+
+  it("紐づく施策の公開状態を返す（公開判定は呼び出し側が行う）", async () => {
+    const { policy, config, cleanup } = await createTestPolicyWithConfig({
+      policy: { publish_status: "draft" },
+      config: { status: "closed" },
+    });
+    cleanups.push(cleanup);
+
+    const { data } = await findResultsInterviewConfigWithPoliciesBySlug(
+      config.slug
+    );
+
+    const linkedPolicy = data?.policies_interview_configs[0]?.policies;
+    expect(linkedPolicy?.id).toBe(policy.id);
+    expect(linkedPolicy?.publish_status).toBe("draft");
   });
 });
 

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { resolveBillShareImageUrl } from "@/features/bills/shared/utils/bill-share-image";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { TopicDetailPage } from "@/features/user-topic-analysis/server/components/topic-detail-page";
-import { getPublicTopicDetail } from "@/features/user-topic-analysis/server/loaders/get-public-topic-detail";
+import { getTopicLocation } from "@/features/user-topic-analysis/server/loaders/get-topic-location";
+import { buildTopicDetailMetadata } from "@/features/user-topic-analysis/shared/utils/topic-analysis-metadata";
 import { env } from "@/lib/env";
 import { routes } from "@/lib/routes";
 
@@ -14,51 +16,25 @@ export async function generateMetadata({
   params,
 }: TopicDetailRouteProps): Promise<Metadata> {
   const { id, topicId } = await params;
-  // DB取得は getPublicTopicAnalysis の React cache() でページ本体と共有され、
-  // リクエスト内で重複クエリにならない。
+  // どちらの取得もキャッシュ済みで、ページ本体とクエリを共有する。
   const [bill, location] = await Promise.all([
     getBillById(id),
-    getPublicTopicDetail(id, topicId),
+    getTopicLocation(policyInterviewTarget(id), topicId),
   ]);
-  const billName = bill?.bill_content?.title || bill?.name || "施策";
-  const topic = location?.topic;
 
-  const title = topic
-    ? `${topic.title} - ${billName}`
-    : `トピック詳細 - ${billName}`;
-  const description =
-    topic?.description || `${billName}に寄せられた意見トピックの詳細`;
-  const shareImageUrl = resolveBillShareImageUrl(bill, env.webUrl);
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: routes.billTopicDetail(id, topicId),
-    },
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      images: [
-        {
-          url: shareImageUrl,
-          alt: `${title} のOGPイメージ`,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [shareImageUrl],
-    },
-  };
+  return buildTopicDetailMetadata({
+    subjectName: bill?.bill_content?.title || bill?.name || "施策",
+    canonical: routes.billTopicDetail(id, topicId),
+    shareImageUrl: resolveBillShareImageUrl(bill, env.webUrl),
+    topic: location?.topic ?? null,
+  });
 }
 
 export default async function TopicDetailRoute({
   params,
 }: TopicDetailRouteProps) {
   const { id, topicId } = await params;
-  return <TopicDetailPage billId={id} topicId={topicId} />;
+  return (
+    <TopicDetailPage target={policyInterviewTarget(id)} topicId={topicId} />
+  );
 }

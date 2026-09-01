@@ -1,5 +1,6 @@
 import "server-only";
 
+import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -15,11 +16,21 @@ const AVATAR_CLASSES = [
 
 interface InterviewCountPillProps {
   count: number;
-  href: string;
+  /** 回答一覧ページへのリンク。null（一覧ページが無い導線）なら何も描画しない。 */
+  href: string | null;
 }
 
-/** 「N人のAIインタビュー回答から」へ遷移するピル。回答一覧ページにリンクする。 */
+/**
+ * 「N人のAIインタビュー回答から」へ遷移するピル。回答一覧ページにリンクする。
+ *
+ * 公開意見が k-匿名性しきい値に満たないテーマでは回答一覧が空になるため、
+ * リンクごと出さない（判断をここに集約し、呼び出し側では条件を持たない）。
+ */
 export function InterviewCountPill({ count, href }: InterviewCountPillProps) {
+  if (!href || !shouldDisplayPublicReports(count)) {
+    return null;
+  }
+
   return (
     <Link
       href={href as Route}

@@ -15,6 +15,7 @@ import {
   getInterviewMessageLink,
   getInterviewReportCompleteLink,
   getPublicReportLink,
+  getThemeHomeLink,
 } from "./interview-links";
 
 describe("getBillDetailLink", () => {
@@ -104,6 +105,20 @@ describe("getInterviewExitLink", () => {
 
   it("returns the theme list for a theme target because it has no bill page", () => {
     expect(getInterviewExitLink(themeInterviewTarget("saga-no-mirai"))).toBe(
+      "/interviews"
+    );
+  });
+});
+
+describe("getThemeHomeLink", () => {
+  it("募集中のテーマはテーマのページを指す", () => {
+    expect(getThemeHomeLink({ slug: "saga-no-mirai", isOpen: true })).toBe(
+      "/interviews/saga-no-mirai"
+    );
+  });
+
+  it("募集が終わったテーマは個別ページが無いためテーマ一覧を指す", () => {
+    expect(getThemeHomeLink({ slug: "saga-no-mirai", isOpen: false })).toBe(
       "/interviews"
     );
   });

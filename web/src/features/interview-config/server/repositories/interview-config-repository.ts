@@ -1,6 +1,6 @@
 import "server-only";
 
-import { createAdminClient } from "@mirai-gikai/supabase";
+import { createAdminClient, type Database } from "@mirai-gikai/supabase";
 
 // Epic #54 で interview_configs.bill_id が廃止され、施策との紐づけは
 // policies_interview_configs（多対多）経由になった。
@@ -80,18 +80,44 @@ export async function findPrimaryInterviewConfigByPolicyId(policyId: string) {
 const CONFIG_WITH_POLICIES_SELECT =
   "*, policies_interview_configs(policies(id, publish_status))";
 
-/**
- * slug から募集中（status = 'open'）の意見募集を、紐づく施策つきで1件取得。
- * テーマ単独の参加導線（/interviews/[slug]）の入口で使う。
- */
-export async function findOpenInterviewConfigWithPoliciesBySlug(slug: string) {
+/** slug 引きの取得結果（募集中・結果表示用で同じ select を使う）。 */
+export type InterviewConfigWithPoliciesResult = Awaited<
+  ReturnType<typeof findInterviewConfigWithPoliciesBySlug>
+>;
+
+/** slug から意見募集を、紐づく施策つきで1件取得する（対象ステータスは呼び出し側が決める）。 */
+function findInterviewConfigWithPoliciesBySlug(
+  slug: string,
+  statuses: Database["public"]["Enums"]["interview_config_status_enum"][]
+) {
   const supabase = createAdminClient();
   return supabase
     .from("interview_configs")
     .select(CONFIG_WITH_POLICIES_SELECT)
     .eq("slug", slug)
-    .eq("status", "open")
+    .in("status", statuses)
     .maybeSingle();
+}
+
+/**
+ * slug から募集中（status = 'open'）の意見募集を、紐づく施策つきで1件取得。
+ * テーマ単独の参加導線（/interviews/[slug]）の入口で使う。
+ */
+export async function findOpenInterviewConfigWithPoliciesBySlug(slug: string) {
+  return findInterviewConfigWithPoliciesBySlug(slug, ["open"]);
+}
+
+/**
+ * slug から結果表示用の意見募集を、紐づく施策つきで1件取得（下書きを除く）。
+ *
+ * 「募集が終わっても結果は見せる」画面（トピック分析）で使う。
+ * 施策経由で findPrimaryInterviewConfigByPolicyId がステータスを問わないのと同じ方針だが、
+ * 下書き（draft）のテーマは表に出さない。
+ */
+export async function findResultsInterviewConfigWithPoliciesBySlug(
+  slug: string
+) {
+  return findInterviewConfigWithPoliciesBySlug(slug, ["open", "closed"]);
 }
 
 /**
