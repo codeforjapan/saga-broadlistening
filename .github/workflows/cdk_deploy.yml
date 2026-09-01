@@ -1,0 +1,27 @@
+name: CDK Deploy [prd]
+
+# main へのマージ（push）で infra/aws-cdk に変更があるとき、prd環境へ cdk deploy する。
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/aws-cdk/**"
+      - ".github/workflows/cdk_deploy.yml"
+      - ".github/workflows/_cdk_deploy.yml"
+
+concurrency:
+  group: cdk-deploy-prd
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  cdk-deploy:
+    uses: ./.github/workflows/_cdk_deploy.yml
+    with:
+      environment: production
+      context_env: prd
+    secrets:
+      role_arn: ${{ secrets.AWS_CDK_PRD_DEPLOY_ROLE_ARN }}

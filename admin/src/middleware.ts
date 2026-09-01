@@ -11,6 +11,11 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/api/mcp" || pathname.startsWith("/api/mcp/")) {
     return NextResponse.next();
   }
+  // /api/tests/* も同様に、共有シークレットヘッダーで独自認証する
+  // （requireSecretHeader）ため、Supabaseセッションを要求するmiddlewareをバイパスする。
+  if (pathname.startsWith("/api/tests/")) {
+    return NextResponse.next();
+  }
 
   const { supabaseResponse, user } = await updateSession(request);
 

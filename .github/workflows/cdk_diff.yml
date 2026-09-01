@@ -1,0 +1,32 @@
+name: CDK Diff [prd]
+
+# main への PR で infra/aws-cdk に変更があるとき、prd環境に対する cdk diff を実行し、
+# 結果を PR コメントに表示する（実際のデプロイは行わない）。
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/aws-cdk/**"
+      - ".github/workflows/cdk_diff.yml"
+      - ".github/workflows/_cdk_diff.yml"
+
+concurrency:
+  group: cdk-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  cdk-diff:
+    # fork からの PR は OIDC で本番アカウントの認証情報を取得できてしまうと危険なため対象外
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/_cdk_diff.yml
+    with:
+      environment: production
+      context_env: prd
+      pr_number: ${{ github.event.pull_request.number }}
+    secrets:
+      role_arn: ${{ secrets.AWS_CDK_PRD_DEPLOY_ROLE_ARN }}
