@@ -43,7 +43,7 @@ export function InterviewThemeCard({
           />
         </div>
 
-        <div className="flex flex-1 items-center gap-3 p-4">
+        <div className="flex flex-1 flex-col gap-3 p-4 sm:flex-row sm:items-center">
           <div className="flex flex-1 flex-col gap-1.5">
             {theme.categoryLabel && (
               <Badge variant="secondary" className="rounded-full px-3">
@@ -75,7 +75,7 @@ export function InterviewThemeCard({
             )}
           </div>
 
-          <div className="flex shrink-0 items-center gap-1 text-xs font-bold text-primary-accent sm:text-sm">
+          <div className="flex shrink-0 items-center gap-1 self-end text-xs font-bold text-primary-accent sm:self-auto sm:text-sm">
             <span>はじめる</span>
             <span className="flex size-8 items-center justify-center rounded-full bg-secondary">
               <ChevronRight className="size-4" aria-hidden="true" />
