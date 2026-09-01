@@ -1,5 +1,10 @@
 /**
  * AIモデルの識別子を一元管理する定数（Vercel AI Gateway形式）
+ *
+ * ここに載せるIDは AI Gateway に実在するものだけにすること。
+ * preview 版は GA 化やリタイアでIDごと消えることがあり、消えたIDを指したまま
+ * 実行すると「Model '...' not found」で落ちる。
+ * `pnpm check:ai-models` で実在チェックができる。
  */
 export const AI_MODELS = {
   // --- OpenAI ---
@@ -13,8 +18,6 @@ export const AI_MODELS = {
   gpt5: "openai/gpt-5",
   gpt5_mini: "openai/gpt-5-mini",
   gpt5_nano: "openai/gpt-5-nano",
-  gpt5_chat: "openai/gpt-5-chat",
-  gpt5_1_instant: "openai/gpt-5.1-instant",
   gpt5_1_thinking: "openai/gpt-5.1-thinking",
   gpt5_2: "openai/gpt-5.2",
   gpt5_6_sol: "openai/gpt-5.6-sol",
@@ -22,8 +25,7 @@ export const AI_MODELS = {
   gpt5_6_luna: "openai/gpt-5.6-luna",
   // --- Google ---
   gemini3_flash: "google/gemini-3-flash",
-  gemini3_flash_preview: "google/gemini-3-flash-preview",
-  gemini3_1_flash_lite_preview: "google/gemini-3.1-flash-lite-preview",
+  gemini3_1_flash_lite: "google/gemini-3.1-flash-lite",
   gemini3_1_pro_preview: "google/gemini-3.1-pro-preview",
   gemma4_26b_a4b: "google/gemma-4-26b-a4b-it",
   // --- Anthropic ---

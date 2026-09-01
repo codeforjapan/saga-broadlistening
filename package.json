@@ -18,6 +18,7 @@
     "typecheck": "pnpm -r run typecheck",
     "lint": "biome format . && biome lint .",
     "lint:fix": "biome format --write . && biome lint --write .",
+    "check:ai-models": "node scripts/check-ai-models.mjs",
     "postinstall": "npx simple-git-hooks"
   },
   "devDependencies": {
