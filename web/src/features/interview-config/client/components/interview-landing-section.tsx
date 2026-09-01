@@ -3,10 +3,11 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { routes } from "@/lib/routes";
+import type { InterviewTarget } from "../../shared/types/interview-target";
+import { getInterviewLPLink } from "../../shared/utils/interview-links";
 
 interface InterviewLandingSectionProps {
-  billId: string;
+  target: InterviewTarget;
 }
 
 function getCheckPoints(): string[] {
@@ -49,10 +50,10 @@ function _CheckPointsList() {
   );
 }
 
-function _InterviewCTAButton({ billId }: { billId: string }) {
+function _InterviewCTAButton({ target }: { target: InterviewTarget }) {
   return (
     <Link
-      href={routes.interviewLP(billId) as Route}
+      href={getInterviewLPLink(target) as Route}
       className="block w-full max-w-[224px]"
     >
       <Button className="w-full bg-primary text-primary-foreground rounded-3xl h-[42px] px-5 font-bold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-1">
@@ -78,7 +79,7 @@ function _InterviewIllustration() {
 }
 
 export function InterviewLandingSection({
-  billId,
+  target,
 }: InterviewLandingSectionProps) {
   return (
     <div className="relative w-full overflow-hidden rounded-xl bg-white p-6">
@@ -99,7 +100,7 @@ export function InterviewLandingSection({
             <_CheckPointsList />
 
             <div className="pt-2">
-              <_InterviewCTAButton billId={billId} />
+              <_InterviewCTAButton target={target} />
             </div>
           </div>
         </div>

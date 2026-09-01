@@ -47,6 +47,13 @@ export const interviewConfigSchema = z.object({
     .max(180, "180分以内で設定してください")
     .nullable()
     .optional(),
+  thumbnail_url: z.string().nullable().optional(),
+  /**
+   * 紐づける施策のID一覧。施策と意見募集は多対多で、0件（＝抽象テーマ型）も許容する。
+   * 未指定（undefined）のときは紐付けを更新しない。施策配下の画面のように
+   * 紐付けを扱わないフォームから保存しても、既存の紐付けを消さないため。
+   */
+  policy_ids: z.array(z.string().uuid()).optional(),
 });
 
 export const interviewQuestionSchema = z.object({

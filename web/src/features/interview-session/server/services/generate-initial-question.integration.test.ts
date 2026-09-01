@@ -29,17 +29,18 @@ const expectedResponse = JSON.stringify({
 describe("generateInitialQuestion 統合テスト", () => {
   let testUser: TestUser;
   let sessionId: string;
-  let billId: string;
   let cleanupInterviewData: () => Promise<void>;
-  let interviewConfigId: string;
+  // 施策なし（抽象テーマ型）でも初期質問を生成できることを兼ねて bill: null で呼ぶ
+  let interviewConfig: Awaited<
+    ReturnType<typeof createTestInterviewData>
+  >["config"];
 
   beforeEach(async () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.policy.id;
     cleanupInterviewData = data.cleanup;
-    interviewConfigId = data.config.id;
+    interviewConfig = data.config;
   });
 
   afterEach(async () => {
@@ -52,8 +53,8 @@ describe("generateInitialQuestion 統合テスト", () => {
 
     const result = await generateInitialQuestion({
       sessionId,
-      billId,
-      interviewConfigId,
+      interviewConfig,
+      bill: null,
       userId: testUser.id,
       deps: { model: mockModel },
     });
@@ -81,8 +82,8 @@ describe("generateInitialQuestion 統合テスト", () => {
 
     const result = await generateInitialQuestion({
       sessionId,
-      billId,
-      interviewConfigId,
+      interviewConfig,
+      bill: null,
       userId: testUser.id,
       deps: { model: mockModel },
     });
@@ -97,22 +98,5 @@ describe("generateInitialQuestion 統合テスト", () => {
       .eq("interview_session_id", sessionId);
 
     expect(messages).toHaveLength(0);
-  });
-
-  it("interview_configが存在しないbillIdの場合はnullを返す", async () => {
-    // 存在しないbillId
-    const nonExistentBillId = "00000000-0000-0000-0000-000000000000";
-    const mockModel = createGenerateMock(llmResponse);
-
-    const result = await generateInitialQuestion({
-      sessionId,
-      billId: nonExistentBillId,
-      interviewConfigId,
-      userId: testUser.id,
-      deps: { model: mockModel },
-    });
-
-    // interview_config が見つからないためnullが返ること
-    expect(result).toBeNull();
   });
 });

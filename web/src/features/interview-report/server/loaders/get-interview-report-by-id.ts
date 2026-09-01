@@ -5,11 +5,15 @@ import {
   isSessionOwner,
 } from "@/features/interview-session/server/utils/verify-session-ownership";
 import type { InterviewReport } from "../../shared/types";
-import { getBillIdFromPublicReportSession } from "../../shared/utils/public-report-display";
+import {
+  getReportOrigin,
+  type ReportOrigin,
+} from "../../shared/utils/public-report-display";
 import { findReportWithSessionById } from "../repositories/interview-report-repository";
 
 export type InterviewReportWithSessionInfo = InterviewReport & {
-  bill_id: string;
+  /** 意見が寄せられた対象（施策・テーマ） */
+  origin: ReportOrigin;
   session_started_at: string;
   session_completed_at: string | null;
 };
@@ -58,10 +62,10 @@ export async function getInterviewReportById(
     return null;
   }
 
-  // 意見募集に紐づく施策IDを取得
-  const billId = getBillIdFromPublicReportSession(session);
-  if (!billId) {
-    console.error("Policy not found for interview session");
+  // 意見の起点（施策・テーマ）を取得。抽象テーマ型では施策IDが null になる
+  const origin = getReportOrigin(session);
+  if (!origin) {
+    console.error("Interview config not found for interview session");
     return null;
   }
 
@@ -69,7 +73,7 @@ export async function getInterviewReportById(
   const { interview_sessions: _, ...reportData } = report;
   return {
     ...reportData,
-    bill_id: billId,
+    origin,
     session_started_at: session.started_at,
     session_completed_at: session.completed_at,
   };

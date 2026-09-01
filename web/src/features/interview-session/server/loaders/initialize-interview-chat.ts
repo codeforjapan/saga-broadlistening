@@ -1,8 +1,10 @@
 import "server-only";
 
-import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
-import { generateInitialQuestion } from "@/features/interview-session/server/services/generate-initial-question";
 import type { LanguageModel } from "ai";
+import type { BillWithContent } from "@/features/bills/shared/types";
+import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
+import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
+import { generateInitialQuestion } from "@/features/interview-session/server/services/generate-initial-question";
 import type { InterviewMessage, InterviewSession } from "../../shared/types";
 import {
   createInterviewSessionRecord,
@@ -26,8 +28,8 @@ type InitializeInterviewChatResult = {
  * セッション取得/作成、メッセージ履歴取得、最初の質問生成を行う
  */
 export async function initializeInterviewChat(
-  billId: string,
-  interviewConfigId: string,
+  interviewConfig: NonNullable<InterviewConfig>,
+  bill: BillWithContent | null,
   deps?: InitializeInterviewChatDeps
 ): Promise<InitializeInterviewChatResult> {
   // 認証
@@ -44,10 +46,10 @@ export async function initializeInterviewChat(
   }
 
   // セッション取得または作成
-  let session = await findActiveInterviewSession(interviewConfigId, user.id);
+  let session = await findActiveInterviewSession(interviewConfig.id, user.id);
   if (!session) {
     session = await createInterviewSessionRecord({
-      interviewConfigId,
+      interviewConfigId: interviewConfig.id,
       userId: user.id,
     });
   }
@@ -59,8 +61,8 @@ export async function initializeInterviewChat(
   if (messages.length === 0) {
     const initialQuestion = await generateInitialQuestion({
       sessionId: session.id,
-      billId,
-      interviewConfigId,
+      interviewConfig,
+      bill,
       userId: user.id,
       deps: { model: deps?.model },
     });

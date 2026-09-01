@@ -2,7 +2,7 @@ import "server-only";
 
 import { shouldDisplayPublicReports } from "@mirai-gikai/shared/report-publication/auto-publish";
 import {
-  getBillIdFromPublicReportSession,
+  getReportOrigin,
   selectPrimaryBillContent,
 } from "../../shared/utils/public-report-display";
 import {
@@ -43,11 +43,12 @@ export async function getReportOgData(
       return null;
     }
 
-    // 施策名はテーマに施策が紐づいているときだけ出す（無ければ空文字）
-    const billId = getBillIdFromPublicReportSession(session);
-    let billName = "";
-    if (billId) {
-      const bill = await findBillWithContentById(billId);
+    // 施策名はテーマに施策が紐づいているときだけ出す。
+    // 抽象テーマ型はテーマ名で代替する
+    const origin = getReportOrigin(session);
+    let billName = origin?.theme.name ?? "";
+    if (origin?.policyId) {
+      const bill = await findBillWithContentById(origin.policyId);
       const billContent = selectPrimaryBillContent(bill.policy_contents);
       billName = billContent?.title || bill.name;
     }

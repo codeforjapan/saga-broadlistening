@@ -7,23 +7,19 @@ import {
   Output,
   streamText,
 } from "ai";
-import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
-import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
-import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
-import type { BillWithContent } from "@/features/bills/shared/types";
 import {
   isWithinDailyCostLimit,
   recordChatUsage,
 } from "@/features/chat/server/services/cost-tracker";
 import { ChatError, ChatErrorCode } from "@/features/chat/shared/types/errors";
-import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
-import { resolveInterviewChatLoaders } from "@/features/interview-session/shared/utils/resolve-interview-chat-loaders";
-import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config-admin";
-import { getInterviewConfigAdmin } from "@/features/interview-config/server/loaders/get-interview-config-admin";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
 import { createInterviewSession } from "@/features/interview-session/server/actions/create-interview-session";
 import { getInterviewMessages } from "@/features/interview-session/server/loaders/get-interview-messages";
 import { getInterviewSession } from "@/features/interview-session/server/loaders/get-interview-session";
+import {
+  type InterviewChatContext,
+  resolveInterviewChatContext,
+} from "@/features/interview-session/server/loaders/resolve-interview-chat-context";
 import {
   interviewChatTextSchema,
   interviewChatWithReportSchema,
@@ -38,12 +34,12 @@ import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { buildSummaryModelMessages } from "../../shared/utils/build-summary-model-messages";
 import { ensureTrailingUserMessage } from "../../shared/utils/ensure-trailing-user-message";
+import { calculateLoopModeNextQuestionId } from "../../shared/utils/interview-logic/loop-mode";
 import { mergeMessagesWithIds } from "../../shared/utils/merge-messages-with-ids";
 import {
   buildInterviewSystemPrompt,
   buildSummarySystemPrompt,
 } from "../utils/build-interview-system-prompt";
-import { calculateLoopModeNextQuestionId } from "../../shared/utils/interview-logic/loop-mode";
 import { collectAskedQuestionIds } from "../utils/interview-logic";
 import { saveInterviewMessage } from "./save-interview-message";
 
@@ -55,10 +51,10 @@ export type InterviewChatDeps = {
   getSession?: (configId: string) => Promise<InterviewSession | null>;
   /** テスト時に認証をバイパスするためのメッセージ取得関数 */
   getMessages?: (sessionId: string) => Promise<InterviewMessage[]>;
-  /** テスト時にcookies依存をバイパスするための施策取得関数 */
-  getBill?: (billId: string) => Promise<BillWithContent | null>;
-  /** テスト時にnext/cache依存をバイパスするためのインタビュー設定取得関数 */
-  getInterviewConfig?: (billId: string) => Promise<InterviewConfig | null>;
+  /** テスト時にnext/cache・cookies依存をバイパスするためのコンテキスト取得関数 */
+  resolveContext?: (
+    interviewConfigId: string
+  ) => Promise<InterviewChatContext | null>;
 };
 
 /**
@@ -69,9 +65,10 @@ export type InterviewChatDeps = {
  */
 export async function handleInterviewChatRequest({
   messages,
-  billId,
+  interviewConfigId,
   currentStage,
   isRetry = false,
+  previewPolicyId,
   previewToken,
   userId,
   deps,
@@ -82,38 +79,28 @@ export async function handleInterviewChatRequest({
   // リクエスト単位のトレースID（同一リクエスト内のLLM呼び出しをまとめる）
   const traceId = crypto.randomUUID();
 
-  // プレビュートークンが有効な場合のみ、非公開の施策・インタビュー設定も読める
-  // 管理者用ローダーを使う。トークンがない/無効なリクエスト（＝一般公開の経路）は
-  // 公開ローダーに限定し、未公開施策の本文や非公開設定へ到達させない。
-  const loaders = await resolveInterviewChatLoaders({
-    billId,
-    previewToken,
-    validate: validatePreviewToken,
-    adminLoaders: {
-      getInterviewConfig: getInterviewConfigAdmin,
-      getBill: getBillByIdAdmin,
-    },
-    publicLoaders: { getInterviewConfig, getBill: getBillById },
-  });
-
   // TTFB短縮のため、互いに依存しないDBアクセスは並列実行する。
   // 日次コスト制限チェック（fail-closed: エラー時もリクエストをブロック）と
-  // インタビュー設定・施策情報の取得（テスト時はdeps経由でNext.js依存をバイパス）
-  const getInterviewConfigFn =
-    deps?.getInterviewConfig ?? loaders.getInterviewConfig;
-  const getBillFn = deps?.getBill ?? loaders.getBill;
-  const [isWithinLimit, interviewConfig, bill] = await Promise.all([
+  // 意見募集・施策の解決（テスト時はdeps経由でNext.js依存をバイパス）
+  const [isWithinLimit, context] = await Promise.all([
     isWithinDailyCostLimit(userId, env.chat.dailyUserCostLimitUsd),
-    getInterviewConfigFn(billId),
-    getBillFn(billId),
+    deps?.resolveContext
+      ? deps.resolveContext(interviewConfigId)
+      : resolveInterviewChatContext({
+          interviewConfigId,
+          previewPolicyId,
+          previewToken,
+        }),
   ]);
   if (!isWithinLimit) {
     throw new ChatError(ChatErrorCode.DAILY_COST_LIMIT_REACHED);
   }
 
-  if (!interviewConfig) {
+  if (!context) {
     throw new Error("Interview config not found");
   }
+
+  const { interviewConfig, bill, policyId } = context;
 
   // 最新のメッセージを取得
   const lastMessage = messages[messages.length - 1];
@@ -200,14 +187,14 @@ export async function handleInterviewChatRequest({
     messages,
     sessionId: session.id,
     userId,
-    billId,
+    policyId,
     isSummaryPhase,
     chatModel: deps?.chatModel,
     summaryModel: deps?.summaryModel,
     configChatModel: interviewConfig.chat_model,
     telemetry: {
       sessionId: session.id,
-      billId,
+      policyId,
       traceId,
       stage: currentStage,
     },
@@ -225,7 +212,7 @@ async function generateStreamingResponse({
   messages,
   sessionId,
   userId,
-  billId,
+  policyId,
   isSummaryPhase,
   chatModel,
   summaryModel,
@@ -236,14 +223,15 @@ async function generateStreamingResponse({
   messages: { role: string; content: string }[];
   sessionId: string;
   userId: string;
-  billId: string;
+  /** 紐づく施策ID。抽象テーマ型では null */
+  policyId: string | null;
   isSummaryPhase: boolean;
   chatModel?: LanguageModel;
   summaryModel?: LanguageModel;
   configChatModel?: string | null;
   telemetry?: {
     sessionId: string;
-    billId: string;
+    policyId: string | null;
     traceId: string;
     stage: string;
   };
@@ -292,7 +280,7 @@ async function generateStreamingResponse({
         costUsd: providerCost,
         metadata: {
           pageType: "interview",
-          billId,
+          billId: policyId,
           finishReason: null,
           stepCount: 0,
         },
@@ -329,10 +317,11 @@ async function generateStreamingResponse({
       ? {
           isEnabled: true as const,
           functionId,
+          // 計装のメタデータは文字列しか受け付けないため、施策なしは空文字で表す
           metadata: {
             langfuseTraceId: telemetry.traceId,
             sessionId: telemetry.sessionId,
-            billId: telemetry.billId,
+            billId: telemetry.policyId ?? "",
             stage: telemetry.stage,
           },
         }

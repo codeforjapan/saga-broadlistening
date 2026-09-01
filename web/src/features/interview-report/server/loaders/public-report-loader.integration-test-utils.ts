@@ -32,11 +32,25 @@ type CreatePublicReportOptions = {
   messages?: TestMessage[];
 };
 
+/**
+ * 公開意見の loader を検証するための一式（公開済み施策 + 意見募集 + ユーザー）を作る。
+ *
+ * 施策は公開済みにしておくこと。意見の表示は「公開済み施策」だけを起点として扱うため、
+ * 下書きのままだと施策なし（抽象テーマ型）と同じ経路に落ちる。
+ */
 export async function createPublicReportLoaderContext(
-  billContentTitle = "施策タイトル"
+  billContentTitle = "施策タイトル",
+  options: { publishPolicy?: boolean } = {}
 ): Promise<PublicReportLoaderContext> {
+  const publishPolicy = options.publishPolicy ?? true;
   const user = await createTestUser();
   const { policy, config, cleanup } = await createTestPolicyWithConfig({
+    policy: publishPolicy
+      ? {
+          publish_status: "published",
+          published_at: new Date().toISOString(),
+        }
+      : { publish_status: "draft" },
     config: { name: `公開レポート loader テスト ${Date.now()}` },
   });
 

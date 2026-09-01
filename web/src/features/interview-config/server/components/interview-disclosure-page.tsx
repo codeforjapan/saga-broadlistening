@@ -2,15 +2,16 @@ import "server-only";
 
 import { DEFAULT_INTERVIEW_CHAT_MODEL } from "@/lib/ai/models";
 import { DisclosureBreadcrumb } from "../../shared/components/disclosure-breadcrumb";
+import type { InterviewTarget } from "../../shared/types/interview-target";
 import type { InterviewConfig } from "../loaders/get-interview-config";
 
 interface InterviewDisclosurePageProps {
-  billId: string;
-  billName: string;
+  target: InterviewTarget;
+  /** プロンプトの見出しに出す対象名。施策があれば施策名、なければテーマ名 */
+  subjectName: string;
   interviewConfig: InterviewConfig;
   systemPrompt: string;
   summaryPrompt: string;
-  previewToken?: string;
 }
 
 function StaticDisclosureSection() {
@@ -113,12 +114,12 @@ function ModelSection({
 }
 
 function PromptSection({
-  billName,
+  subjectName,
   systemPrompt,
   summaryPrompt,
 }: Pick<
   InterviewDisclosurePageProps,
-  "billName" | "systemPrompt" | "summaryPrompt"
+  "subjectName" | "systemPrompt" | "summaryPrompt"
 >) {
   return (
     <div className="flex flex-col gap-3">
@@ -128,7 +129,7 @@ function PromptSection({
 
       <div className="bg-white rounded-2xl p-6 space-y-4">
         <p className="text-[15px] font-normal text-black leading-[1.87]">
-          {billName}に関するAIインタビューにおけるプロンプト
+          {subjectName}に関するAIインタビューにおけるプロンプト
         </p>
 
         <div className="space-y-2">
@@ -159,22 +160,21 @@ function PromptSection({
 }
 
 export function InterviewDisclosurePage({
-  billId,
-  previewToken,
+  target,
   ...props
 }: InterviewDisclosurePageProps) {
   return (
     <div className="flex flex-col gap-8 pb-8 bg-secondary">
       <div className="flex flex-col gap-8 px-4 pt-24 md:pt-12 max-w-[600px] mx-auto w-full">
-        <DisclosureBreadcrumb billId={billId} previewToken={previewToken} />
+        <DisclosureBreadcrumb target={target} />
         <StaticDisclosureSection />
         <ModelSection interviewConfig={props.interviewConfig} />
         <PromptSection
-          billName={props.billName}
+          subjectName={props.subjectName}
           systemPrompt={props.systemPrompt}
           summaryPrompt={props.summaryPrompt}
         />
-        <DisclosureBreadcrumb billId={billId} previewToken={previewToken} />
+        <DisclosureBreadcrumb target={target} />
       </div>
     </div>
   );

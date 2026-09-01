@@ -2,10 +2,12 @@ import { AlertTriangle } from "lucide-react";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+
 import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
 import { getInterviewConfigAdmin } from "@/features/interview-config/server/loaders/get-interview-config-admin";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
@@ -73,23 +75,23 @@ export default async function InterviewPreviewChatPage({
   // インタビューチャットの初期化処理
   try {
     const { session, messages } = await initializeInterviewChat(
-      billId,
-      interviewConfig.id
+      interviewConfig,
+      bill
     );
 
     return (
       <>
         <PreviewBanner />
         <InterviewChatClient
-          billId={billId}
-          billTitle={bill.bill_content?.title ?? bill.name}
+          target={policyInterviewTarget(billId, token)}
+          interviewConfigId={interviewConfig.id}
+          bill={{ id: bill.id, title: bill.bill_content?.title ?? bill.name }}
           sessionId={session.id}
           initialMessages={messages}
           totalQuestions={questions.length}
           estimatedDuration={interviewConfig.estimated_duration}
           sessionStartedAt={session.started_at}
           hasRated={session.rating != null}
-          previewToken={token}
         />
       </>
     );
@@ -98,7 +100,9 @@ export default async function InterviewPreviewChatPage({
     return (
       <>
         <PreviewBanner />
-        <InterviewSessionErrorView billId={billId} previewToken={token} />
+        <InterviewSessionErrorView
+          target={policyInterviewTarget(billId, token)}
+        />
       </>
     );
   }

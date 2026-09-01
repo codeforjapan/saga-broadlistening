@@ -6,10 +6,11 @@ import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import type { MutableRefObject } from "react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { type FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -30,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ThumbnailUpload } from "@/features/bills-edit/client/components/thumbnail-upload";
 import { routes } from "@/lib/routes";
 import { generateInterviewPreviewUrl } from "../../server/actions/generate-interview-preview-url";
 import {
@@ -48,24 +50,41 @@ import {
 } from "../../shared/utils/chat-model-options";
 import { generateDefaultConfigName } from "../../shared/utils/default-config-name";
 
+/** 紐づけ先として選べる施策 */
+export type PolicyOption = { id: string; name: string };
+
+/**
+ * フォームの現在値。保存時に渡す形と同じで、任意項目は null に揃えてある。
+ * 読み手（AI生成からの自動作成・シミュレーション）が undefined を都度潰さずに済む。
+ */
+export type InterviewConfigFormValues = InterviewConfigInput & {
+  description: string | null;
+  chat_model: string | null;
+  estimated_duration: number | null;
+};
+
 interface InterviewConfigFormProps {
-  billId: string;
+  /**
+   * 施策配下のフォームから開いたときの施策ID。
+   * テーマ単独のフォーム（抽象テーマ型）では null になる。
+   * プレビューは施策単位で発行するため、null のときは出さない。
+   */
+  billId: string | null;
   config: InterviewConfig | null;
   aiGeneratedThemes?: string[] | null;
   onAiThemesApplied?: () => void;
   onConfigCreated?: (configId: string) => Promise<void>;
-  getFormValuesRef?: MutableRefObject<
-    | (() => {
-        name: string;
-        slug: string;
-        description: string | null;
-        chat_model: string | null;
-        estimated_duration: number | null;
-      })
-    | null
-  >;
+  /** 親コンポーネントがフォームの現在値を読むための ref */
+  getFormValuesRef?: MutableRefObject<(() => InterviewConfigFormValues) | null>;
   /** 新規作成時の設定名初期値（ログインユーザー名） */
   initialName?: string | null;
+  /**
+   * 紐づけ先として選べる施策の一覧。渡されたときだけ紐づけ欄を出す。
+   * 施策配下のフォームでは渡さず、その施策との紐づけを維持する。
+   */
+  policyOptions?: PolicyOption[];
+  /** 現在紐づいている施策のID一覧 */
+  linkedPolicyIds?: string[];
 }
 
 export function InterviewConfigForm({
@@ -76,10 +95,14 @@ export function InterviewConfigForm({
   onConfigCreated,
   getFormValuesRef,
   initialName,
+  policyOptions,
+  linkedPolicyIds,
 }: InterviewConfigFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isNew = !config;
+  // 紐づけ欄を出すかどうか。施策配下のフォームでは出さず、その施策との紐づけを維持する
+  const canEditPolicyLinks = policyOptions !== undefined;
 
   const form = useForm<InterviewConfigInput>({
     resolver: zodResolver(interviewConfigSchema),
@@ -90,17 +113,20 @@ export function InterviewConfigForm({
       description: config?.description ?? "",
       chat_model: config?.chat_model || null,
       estimated_duration: isNew ? 10 : (config?.estimated_duration ?? null),
+      thumbnail_url: config?.thumbnail_url ?? null,
+      // 紐づけ欄を出さないフォームでは undefined のままにして、保存時に紐づけへ触れない
+      policy_ids: canEditPolicyLinks ? (linkedPolicyIds ?? []) : undefined,
     },
   });
 
-  // 親コンポーネントからフォーム値を読み取れるようにする
+  // 親コンポーネントからフォーム値を読み取れるようにする。
+  // AI生成からの自動作成もこの値をそのまま保存するため、一部だけ返さないこと
   useEffect(() => {
     if (getFormValuesRef) {
       getFormValuesRef.current = () => {
         const values = form.getValues();
         return {
-          name: values.name,
-          slug: values.slug,
+          ...values,
           description: values.description ?? null,
           chat_model: values.chat_model || null,
           estimated_duration: values.estimated_duration ?? null,
@@ -124,7 +150,13 @@ export function InterviewConfigForm({
     setIsSubmitting(true);
     try {
       const result = isNew
-        ? await createInterviewConfig(billId, data)
+        ? await createInterviewConfig({
+            ...data,
+            // 施策配下の新規作成では、開いている施策との紐づけを必ず作る。
+            // 更新は policy_ids を送らない（＝紐づけに触れない）ままにして、
+            // 他の施策との紐づけを失わないようにする
+            policy_ids: billId ? [billId] : (data.policy_ids ?? []),
+          })
         : await updateInterviewConfig(config.id, data);
 
       if (result.success) {
@@ -135,7 +167,9 @@ export function InterviewConfigForm({
           }
           toast.success("インタビュー設定を作成しました");
           router.push(
-            routes.billInterviewEdit(billId, result.data.id) as Route
+            (billId
+              ? routes.billInterviewEdit(billId, result.data.id)
+              : routes.interviewEdit(result.data.id)) as Route
           );
         } else {
           toast.success("インタビュー設定を保存しました");
@@ -152,10 +186,17 @@ export function InterviewConfigForm({
     }
   };
 
+  // 入力欄の外（紐づく施策・サムネイル）で弾かれると画面に何も出ず、
+  // 保存ボタンが無反応に見えるため、まとめて知らせる
+  const handleInvalid = (errors: FieldErrors<InterviewConfigInput>) => {
+    console.error("Interview config validation error:", errors);
+    toast.error("入力内容を確認してください");
+  };
+
   const [isPreviewing, setIsPreviewing] = useState(false);
   const handlePreview = async () => {
-    if (!config) {
-      toast.error("プレビューは設定保存後に利用できます");
+    if (!config || !billId) {
+      toast.error("プレビューは施策に紐づく設定を保存した後に利用できます");
       return;
     }
 
@@ -194,7 +235,7 @@ export function InterviewConfigForm({
 
   return (
     <div className="space-y-4">
-      {config && (
+      {config && billId && (
         <div className="flex justify-end">
           <Button
             type="button"
@@ -216,7 +257,7 @@ export function InterviewConfigForm({
         <CardContent>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(handleSubmit)}
+              onSubmit={form.handleSubmit(handleSubmit, handleInvalid)}
               className="space-y-6"
             >
               <FormField
@@ -275,7 +316,7 @@ export function InterviewConfigForm({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      意見募集の状態を設定します。募集中にできるのは施策ごとに1つのみです。
+                      意見募集の状態を設定します。募集中にできるのは施策ごとに1つのみです（施策に紐づかないテーマはこの制限を受けません）。
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -382,6 +423,49 @@ export function InterviewConfigForm({
                 )}
               />
 
+              {policyOptions && (
+                <FormField
+                  control={form.control}
+                  name="policy_ids"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>紐づく施策</FormLabel>
+                      <FormDescription>
+                        この意見募集を紐づける施策を選びます。1件も選ばない場合は、特定の施策に紐づかないテーマ（抽象テーマ）になります。
+                      </FormDescription>
+                      <PolicyLinkCheckboxes
+                        options={policyOptions}
+                        value={field.value ?? []}
+                        onChange={field.onChange}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="thumbnail_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>サムネイル画像</FormLabel>
+                    <FormDescription>
+                      テーマ一覧のカードに表示する画像です。未設定の場合は紐づく施策の画像を使います。
+                    </FormDescription>
+                    {/* billId はファイル名の接頭辞にしか使われないため、
+                        意見募集のIDを渡してテーマごとのファイル名にする */}
+                    <ThumbnailUpload
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      billId={config?.id}
+                      storagePrefix="interview"
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="flex gap-2">
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? "保存中..." : "保存"}
@@ -391,6 +475,51 @@ export function InterviewConfigForm({
           </Form>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/** 紐づける施策を複数選ぶチェックボックス群 */
+function PolicyLinkCheckboxes({
+  options,
+  value,
+  onChange,
+}: {
+  options: PolicyOption[];
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  if (options.length === 0) {
+    return (
+      <p className="text-sm text-gray-500">紐づけられる施策がありません。</p>
+    );
+  }
+
+  const toggle = (policyId: string, checked: boolean) => {
+    onChange(
+      checked ? [...value, policyId] : value.filter((id) => id !== policyId)
+    );
+  };
+
+  return (
+    <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3">
+      {options.map((option) => {
+        const checkboxId = `policy-link-${option.id}`;
+        return (
+          <label
+            key={option.id}
+            htmlFor={checkboxId}
+            className="flex cursor-pointer items-center gap-2 text-sm"
+          >
+            <Checkbox
+              id={checkboxId}
+              checked={value.includes(option.id)}
+              onCheckedChange={(checked) => toggle(option.id, checked === true)}
+            />
+            <span>{option.name}</span>
+          </label>
+        );
+      })}
     </div>
   );
 }

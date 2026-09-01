@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { Container } from "@/components/layouts/container";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
-import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
+import { themeInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { ShareArticleButton } from "@/features/interview-report/client/components/share-article-button";
 import { routes } from "@/lib/routes";
 import { getOrigin } from "@/lib/utils/url";
@@ -16,6 +16,7 @@ import { ChatLogSection } from "../../shared/components/chat-log-section";
 import { ReportIntervieweeCard } from "../../shared/components/report-interviewee-card";
 import { ReportMainOpinions } from "../../shared/components/report-main-opinions";
 import { ReportProblemButton } from "../../shared/components/report-problem-button";
+import { resolveReportSubject } from "../../shared/utils/public-report-display";
 import { getPublicReportById } from "../loaders/get-public-report-by-id";
 
 interface PublicReportPageProps {
@@ -39,14 +40,17 @@ export async function PublicReportPage({
     notFound();
   }
 
-  const interviewConfig = await getInterviewConfig(data.bill_id);
-  const billName = data.bill.bill_content?.title || data.bill.name;
-  const origin = await getOrigin();
-  const shareUrl = `${origin}${routes.publicReport(reportId)}`;
-  const ogImageUrl = `${origin}/api/og/report?id=${reportId}`;
+  // 見出し・戻り導線は、施策があれば施策、なければ起点になったテーマを指す
+  const subject = resolveReportSubject(data.bill, data.origin);
+  const siteOrigin = await getOrigin();
+  const shareUrl = `${siteOrigin}${routes.publicReport(reportId)}`;
+  const ogImageUrl = `${siteOrigin}/api/og/report?id=${reportId}`;
 
   const breadcrumbItems: BreadcrumbItem[] = [
-    { label: "施策詳細", href: routes.billDetail(data.bill_id) },
+    {
+      label: data.origin.policyId ? "施策詳細" : "AIインタビュー",
+      href: subject.href,
+    },
     { label: "レポート詳細" },
   ];
 
@@ -58,10 +62,10 @@ export async function PublicReportPage({
           <div className="flex flex-col gap-2">
             <Breadcrumb items={breadcrumbItems} />
             <Link
-              href={routes.billDetail(data.bill_id) as Route}
+              href={subject.href as Route}
               className="inline-flex items-center gap-2 text-[15px] font-medium leading-6 text-black"
             >
-              <span className="underline">{billName}</span>
+              <span className="underline">{subject.name}</span>
               <Undo2 className="size-4 shrink-0" />
             </Link>
           </div>
@@ -91,20 +95,22 @@ export async function PublicReportPage({
             />
           )}
 
-          {/* AIインタビューCTA */}
-          {interviewConfig != null && (
-            <InterviewLandingSection billId={data.bill_id} />
+          {/* AIインタビューCTA。募集中のときだけ、この意見が寄せられたテーマへ誘導する */}
+          {data.origin.theme.isOpen && (
+            <InterviewLandingSection
+              target={themeInterviewTarget(data.origin.theme.slug)}
+            />
           )}
 
           {/* アクション */}
           <div className="flex flex-col items-center gap-3 pt-2">
             <ShareArticleButton
-              billName={billName}
+              billName={subject.name}
               shareUrl={shareUrl}
               ogImageUrl={ogImageUrl}
               shareMessage={data.summary}
             />
-            <BackToBillButton billId={data.bill_id} from={from} />
+            <BackToBillButton origin={data.origin} from={from} />
             <ReportProblemButton />
           </div>
         </div>

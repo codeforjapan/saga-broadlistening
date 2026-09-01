@@ -14,8 +14,12 @@ export const routes = {
   admins: () => "/admins" as const,
   tags: () => "/tags" as const,
   interviews: () => "/interviews" as const,
+  interviewNew: () => "/interviews/new" as const,
   interviewOpinionBackfill: () => "/interview-opinion-backfill" as const,
   userTopicAnalysisAll: () => "/user-topic-analysis" as const,
+
+  // ── 意見募集（テーマ単位。施策に紐づかない抽象テーマ型もここで編集する） ──
+  interviewEdit: (configId: string) => `/interviews/${configId}/edit` as const,
 
   // ── 施策配下 ──────────────────────────────────────
   billEdit: (billId: string) => `/bills/${billId}/edit` as const,

@@ -31,6 +31,12 @@ export const routes = {
     `/bills/${billId}/interview/disclosure` as const,
   interviewChat: (billId: string) => `/bills/${billId}/interview/chat` as const,
 
+  // ── インタビュー（テーマ単独。施策に紐づかない抽象テーマ型もここを通る） ──
+  interviewThemeLP: (slug: string) => `/interviews/${slug}` as const,
+  interviewThemeDisclosure: (slug: string) =>
+    `/interviews/${slug}/disclosure` as const,
+  interviewThemeChat: (slug: string) => `/interviews/${slug}/chat` as const,
+
   // ── プレビュー（token 付き） ──────────────────────
   previewBillDetail: (billId: string, token: string) =>
     `/preview/bills/${billId}?token=${encodeURIComponent(token)}` as const,

@@ -25,10 +25,18 @@ export type InterviewQuestion =
 // Request types
 export interface InterviewChatRequestParams {
   messages: Array<{ role: string; content: string }>;
-  billId: string;
+  /**
+   * 対話する意見募集のID。施策はサーバー側で紐付けから引くため、
+   * クライアントは施策を指定できない。
+   */
+  interviewConfigId: string;
   currentStage: "chat" | "summary" | "summary_complete";
   isRetry?: boolean;
   nextQuestionId?: string;
+  /**
+   * プレビュートークンの発行元施策ID。プレビュー画面からのリクエストのみが送る。
+   */
+  previewPolicyId?: string;
   /**
    * プレビュー用トークン。プレビュー画面からのリクエストのみが送る。
    * サーバー側で検証が通った場合に限り、非公開の施策・設定を対象にできる。

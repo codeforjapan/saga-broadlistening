@@ -9,44 +9,76 @@ interface ExistingQuestion {
   quick_replies?: string[] | null;
 }
 
+/**
+ * 生成の題材。施策があれば施策情報を、なければテーマ名だけを手がかりにする。
+ * 抽象テーマ型（施策に紐づかない意見募集）では bill 側が丸ごと存在しない。
+ */
+export type PromptSubject =
+  | {
+      kind: "bill";
+      billName: string;
+      billTitle: string;
+      billSummary: string;
+      billContent: string;
+      knowledgeSource?: string;
+    }
+  | { kind: "theme"; themeName: string; themeDescription?: string };
+
 interface BuildPromptParams {
-  billName: string;
-  billTitle: string;
-  billSummary: string;
-  billContent: string;
+  subject: PromptSubject;
   stage: ConfigGenerationStage;
-  knowledgeSource?: string;
   existingThemes?: string[];
   existingQuestions?: ExistingQuestion[];
   confirmedQuestions?: ExistingQuestion[];
 }
 
+/** プロンプト内で題材を指す語。施策の有無で「施策」「テーマ」を使い分ける */
+export function getSubjectLabel(subject: PromptSubject): string {
+  return subject.kind === "bill" ? "施策" : "テーマ";
+}
+
+/** 題材の説明セクション（施策情報 or テーマ情報） */
+function buildSubjectSection(subject: PromptSubject): string {
+  if (subject.kind === "theme") {
+    const description = subject.themeDescription?.trim();
+    return `## テーマ情報
+- テーマ名: ${subject.themeName}
+${description ? `- テーマの説明:\n${description}` : "- テーマの説明: （未設定）"}
+
+このインタビューは特定の施策についてではなく、上記テーマについて市民の経験や考えを
+広く伺うものです。参照できる施策の資料はないため、存在しない制度や施策を前提にした
+質問は作らないでください。`;
+  }
+
+  return `## 施策情報
+- 施策名: ${subject.billName}
+- タイトル: ${subject.billTitle}
+- 要約: ${subject.billSummary}
+- 詳細内容:
+${subject.billContent}`;
+}
+
 export function buildConfigGenerationPrompt(params: BuildPromptParams): string {
   const {
-    billName,
-    billTitle,
-    billSummary,
-    billContent,
+    subject,
     stage,
-    knowledgeSource,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   } = params;
 
-  const billSection = `## 施策情報
-- 施策名: ${billName}
-- タイトル: ${billTitle}
-- 要約: ${billSummary}
-- 詳細内容:
-${billContent}`;
+  const subjectSection = buildSubjectSection(subject);
 
+  const knowledgeSource =
+    subject.kind === "bill" ? subject.knowledgeSource : undefined;
   const knowledgeSection = knowledgeSource?.trim()
     ? `\n## ナレッジソース（チームの仮説や補足情報）\n${knowledgeSource}\n`
     : "";
 
+  const subjectLabel = getSubjectLabel(subject);
+
   const baseRole = `あなたは、市民インタビューの設計を支援する専門家です。
-施策に関する市民の意見を効果的に収集するためのインタビューテーマと質問を提案します。
+${subjectLabel}に関する市民の意見を効果的に収集するためのインタビューテーマと質問を提案します。
 管理者と対話しながら、より良いインタビュー設定を一緒に作り上げてください。`;
 
   if (stage === "default_questions") {
@@ -65,10 +97,10 @@ ${billContent}`;
 
     return `${baseRole}
 
-${billSection}
+${subjectSection}
 ${knowledgeSection}
 ## あなたの役割
-この施策に合わせた **2種類のクイックリプライ選択肢** を生成してください。
+この${subjectLabel}に合わせた **2種類のクイックリプライ選択肢** を生成してください。
 質問文・フォローアップ指針は固定テンプレートを使うため、あなたは選択肢配列だけ出力します。
 
 ## 出力する2種類
@@ -84,13 +116,13 @@ ${knowledgeSection}
 
 **特に重要**: \`topics\` と \`stance\` を絶対に取り違えないこと。次のサンプル出力のどちらがどちらか照合してから出力してください。
 
-## サンプル（あくまで参考。施策に合わせて差し替えること）
+## サンプル（あくまで参考。${subjectLabel}に合わせて差し替えること）
 - topics サンプル（論点）: ${topicsEntry.sample_quick_replies.join(" / ")}
 - stance サンプル（立場）: ${stanceEntry.sample_quick_replies.join(" / ")}
 
 ## 生成ガイドライン
-- \`topics\`: 施策の主要論点の中から、市民が関心を持ちそうなテーマを5件。論点は施策の内容に固有のもの（制度・対象など）とし、抽象論にしない。
-- \`stance\`: この施策の影響を受けそうな立場・属性を5件。「一般市民として関心がある」を1件必ず含める。
+- \`topics\`: ${subjectLabel}の主要論点の中から、市民が関心を持ちそうなテーマを5件。論点は${subjectLabel}の内容に固有のものとし、抽象論にしない。
+- \`stance\`: この${subjectLabel}に関わりのありそうな立場・属性を5件。「一般市民として関心がある」を1件必ず含める。
 - 各スロットとも5件挙げること（末尾の「その他（自由記述）」はコード側で自動付与するため**出力に含めない**）。
 - 選択肢は各20文字以内を目安に簡潔に。
 - **括弧書きの補足（例: 「データ消失（障害・ランサム等）」）は使わない**。選択肢は単一の短い語句のみ。
@@ -109,7 +141,7 @@ ${knowledgeSection}
 
     return `${baseRole}
 
-${billSection}
+${subjectSection}
 ${knowledgeSection}${existingQuestionsSection}
 
 ## あなたの役割
@@ -146,18 +178,18 @@ ${knowledgeSection}${existingQuestionsSection}
 
     return `${baseRole}
 
-${billSection}
+${subjectSection}
 ${knowledgeSection}${confirmedQuestionsSection}${existingThemesSection}
 ## あなたの役割
-確定済みの質問内容と施策情報をもとに、このインタビューで扱うテーマを提案してください。
+確定済みの質問内容と${subjectLabel}の情報をもとに、このインタビューで扱うテーマを提案してください。
 テーマは、後段の分析で論点を集計・分類するためのラベルとして使われます。
 
 ## テーマ提案のガイドライン
 - 確定質問で実際に聞かれている論点を漏れなくカバーする
-- 施策の主要論点に対応するテーマにする
+- ${subjectLabel}の主要論点に対応するテーマにする
 - 市民の生活や仕事への影響に関連する
 - 具体的かつ分かりやすい表現にする
-- 件数は施策内容と質問に応じて3〜6件程度を目安とする（固定ではない）
+- 件数は${subjectLabel}の内容と質問に応じて3〜6件程度を目安とする（固定ではない）
 
 ## 出力形式
 - text: 提案の概要説明（なぜこれらのテーマにしたか）

@@ -23,6 +23,7 @@ import {
   findInterviewQuestionsByConfigId,
   findPolicyIdsByInterviewConfigId,
   linkPolicyToInterviewConfig,
+  replacePolicyLinksForConfig,
   unpublishReportsByConfigId,
   updateInterviewConfigRecord,
 } from "../repositories/interview-config-repository";
@@ -35,16 +36,31 @@ export type DuplicateInterviewConfigResult =
   | { success: true; data: { id: string; billId: string } }
   | { success: false; error: string };
 
+/** 意見募集のレコードに書き込む値を、フォーム入力から組み立てる */
+function toConfigRecord(validatedData: InterviewConfigInput) {
+  return {
+    name: validatedData.name,
+    slug: validatedData.slug,
+    status: validatedData.status,
+    description: validatedData.description || null,
+    chat_model: validatedData.chat_model || DEFAULT_INTERVIEW_CHAT_MODEL,
+    estimated_duration: validatedData.estimated_duration ?? null,
+    thumbnail_url: validatedData.thumbnail_url || null,
+  };
+}
+
 /** interview_configs.slug は NOT NULL かつ一意なため、複製時に採番する */
 function buildDuplicatedSlug(originalSlug: string): string {
   return `${originalSlug}-copy-${randomBytes(4).toString("hex")}`;
 }
 
 /**
- * 新しいインタビュー設定を作成し、施策に紐づける
+ * 新しいインタビュー設定を作成し、指定された施策に紐づける。
+ *
+ * `input.policy_ids` が空（または未指定）なら施策に紐づかない
+ * 抽象テーマ型の意見募集になる。
  */
 export async function createInterviewConfig(
-  billId: string,
   input: InterviewConfigInput
 ): Promise<InterviewConfigResult> {
   try {
@@ -52,24 +68,21 @@ export async function createInterviewConfig(
 
     // バリデーション
     const validatedData = interviewConfigSchema.parse(input);
+    const policyIds = validatedData.policy_ids ?? [];
 
     // 募集中にする場合、同じ施策の他の募集中設定を終了する
     if (validatedData.status === "open") {
-      await closeOtherOpenConfigs([billId]);
+      await closeOtherOpenConfigs(policyIds);
     }
 
     // 新規作成
-    const data = await createInterviewConfigRecord({
-      name: validatedData.name,
-      slug: validatedData.slug,
-      status: validatedData.status,
-      description: validatedData.description || null,
-      chat_model: validatedData.chat_model || DEFAULT_INTERVIEW_CHAT_MODEL,
-      estimated_duration: validatedData.estimated_duration ?? null,
-    });
+    const data = await createInterviewConfigRecord(
+      toConfigRecord(validatedData)
+    );
 
-    // 施策との紐づけ（policies_interview_configs）
-    await linkPolicyToInterviewConfig(billId, data.id);
+    // 施策との紐づけ（policies_interview_configs）。
+    // 作成直後は外す紐付けがないので、更新と同じ関数で一括投入できる
+    await replacePolicyLinksForConfig(data.id, policyIds);
 
     // web側のキャッシュを無効化
     await invalidateWebCache([WEB_CACHE_TAGS.INTERVIEW_CONFIGS]);
@@ -88,7 +101,11 @@ export async function createInterviewConfig(
 }
 
 /**
- * 既存のインタビュー設定を更新する
+ * 既存のインタビュー設定を更新する。
+ *
+ * `input.policy_ids` を渡した場合のみ、施策との紐づけを指定された集合に揃える。
+ * 未指定なら紐づけには触れない（施策配下のフォームからの保存で
+ * 他の施策との紐づけを失わないようにするため）。
  */
 export async function updateInterviewConfig(
   configId: string,
@@ -100,20 +117,24 @@ export async function updateInterviewConfig(
     // バリデーション
     const validatedData = interviewConfigSchema.parse(input);
 
-    // 募集中にする場合、同じ施策の他の募集中設定を終了する
+    // 紐づけの更新は、募集中の重複チェックより先に行う。
+    // 新しく紐づけた施策側の募集中設定も終了対象に含めるため。
+    if (validatedData.policy_ids) {
+      await replacePolicyLinksForConfig(configId, validatedData.policy_ids);
+    }
+
+    // 募集中にする場合、同じ施策の他の募集中設定を終了する。
+    // 紐付けを更新した場合は書き込んだ集合がそのまま対象になるので読み直さない
     if (validatedData.status === "open") {
-      const policyIds = await findPolicyIdsByInterviewConfigId(configId);
+      const policyIds =
+        validatedData.policy_ids ??
+        (await findPolicyIdsByInterviewConfigId(configId));
       await closeOtherOpenConfigs(policyIds, configId);
     }
 
     // 更新
     const data = await updateInterviewConfigRecord(configId, {
-      name: validatedData.name,
-      slug: validatedData.slug,
-      status: validatedData.status,
-      description: validatedData.description || null,
-      chat_model: validatedData.chat_model || DEFAULT_INTERVIEW_CHAT_MODEL,
-      estimated_duration: validatedData.estimated_duration ?? null,
+      ...toConfigRecord(validatedData),
       updated_at: new Date().toISOString(),
     });
 
@@ -180,6 +201,7 @@ export async function duplicateInterviewConfig(
         description: originalConfig.description,
         chat_model: originalConfig.chat_model,
         estimated_duration: originalConfig.estimated_duration,
+        thumbnail_url: originalConfig.thumbnail_url,
       });
       await linkPolicyToInterviewConfig(targetBillId, newConfig.id);
     } catch (error) {

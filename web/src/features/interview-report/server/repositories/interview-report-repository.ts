@@ -1,16 +1,21 @@
 import "server-only";
 
-import { createAdminClient } from "@mirai-gikai/supabase";
 import { resolveOpinionPublicSettingUpdate } from "@mirai-gikai/shared/report-publication/review-status";
+import { createAdminClient } from "@mirai-gikai/supabase";
 import type { SortOrder } from "../../shared/utils/sort-order";
 
 // Epic #54 で interview_report → opinions に再定義され、公開状態の正本は
 // review_status になった。ファイル名・関数名（*Report*）の改名は
 // Epic #8 完了後のフォローアップ。
 
-/** 意見・セッション・意見募集・施策を一度に引くための select 句 */
+/**
+ * 意見・セッション・意見募集・施策を一度に引くための select 句。
+ *
+ * 施策に紐づかない抽象テーマ型の意見も表示できるよう、施策だけでなく
+ * 意見募集の slug と name（戻り先とヘッダーに使う）も併せて引く。
+ */
 const OPINION_WITH_SESSION_SELECT =
-  "*, interview_sessions(user_id, started_at, completed_at, interview_config_id, interview_configs(policies_interview_configs(policy_id)))";
+  "*, interview_sessions(user_id, started_at, completed_at, interview_config_id, interview_configs(slug, name, status, policies_interview_configs(policies(id, publish_status))))";
 
 /**
  * 意見IDから意見とセッション情報を結合取得

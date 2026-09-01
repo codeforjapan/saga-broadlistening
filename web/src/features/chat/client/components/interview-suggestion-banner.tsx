@@ -2,6 +2,7 @@ import { ArrowRight, BotMessageSquare, Check } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
 
 interface InterviewSuggestionBannerProps {
@@ -55,7 +56,9 @@ export function InterviewSuggestionBanner({
           asChild
           className="bg-primary text-primary-foreground rounded-3xl h-9 px-4 font-medium text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2.5"
         >
-          <Link href={getInterviewLPLink(billId) as Route}>
+          <Link
+            href={getInterviewLPLink(policyInterviewTarget(billId)) as Route}
+          >
             <span>AIインタビューを受ける</span>
             <ArrowRight className="size-3" />
           </Link>

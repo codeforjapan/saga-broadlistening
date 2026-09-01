@@ -17,18 +17,19 @@ export function isMainPage(pathname: string): boolean {
 
 /** インタビューチャットページかどうかを判定 */
 export function isInterviewPage(pathname: string): boolean {
-  // /bills/[id]/interview/chat
-  return /\/bills\/[^/]+\/interview\/chat$/.test(pathname);
+  // /bills/[id]/interview/chat または /interviews/[slug]/chat
+  return (
+    /\/bills\/[^/]+\/interview\/chat$/.test(pathname) ||
+    /^\/interviews\/[^/]+\/chat$/.test(pathname)
+  );
 }
 
 /** インタビューセクション（LP・チャット含む）かどうかを判定 */
 export function isInterviewSection(pathname: string): boolean {
-  // /bills/[id]/interview 以下すべて
-  return /\/bills\/[^/]+\/interview(\/|$)/.test(pathname);
-}
-
-/** インタビューページからbillIdを抽出 */
-export function extractBillIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/\/bills\/([^/]+)/);
-  return match ? match[1] : null;
+  // /bills/[id]/interview 以下すべて、およびテーマ単独の /interviews/[slug] 以下すべて。
+  // テーマ一覧ページ（/interviews）自体は通常のページなので含めない。
+  return (
+    /\/bills\/[^/]+\/interview(\/|$)/.test(pathname) ||
+    /^\/interviews\/[^/]+(\/|$)/.test(pathname)
+  );
 }

@@ -3,6 +3,7 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
 import { formatDateWithDots } from "@/lib/utils/date";
@@ -122,7 +123,11 @@ export async function BillDetailHeader({
               asChild
               className="bg-secondary text-[13px] font-bold text-foreground gap-1.5 py-1 px-3"
             >
-              <Link href={getInterviewLPLink(bill.id) as Route}>
+              <Link
+                href={
+                  getInterviewLPLink(policyInterviewTarget(bill.id)) as Route
+                }
+              >
                 <Image
                   src="/icons/interview-cooperation.svg"
                   alt=""

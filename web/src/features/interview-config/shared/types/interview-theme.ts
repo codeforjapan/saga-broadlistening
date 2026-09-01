@@ -1,13 +1,15 @@
 /**
  * トップページ・テーマ一覧で扱う「AIインタビューのテーマ」の表示単位。
  *
- * 参加導線（LP・チャット）は現状 /bills/[policyId]/interview のため、
- * カードから参加できるのは施策に紐づくテーマだけになる。
- * 施策を持たない抽象テーマ型の導線はテーマ単独のURLが必要で、未対応。
+ * 参加導線は施策の有無によらずテーマ単独URL（/interviews/[slug]）を使うため、
+ * 施策に紐づかない抽象テーマ型もそのままカードとして並べられる。
+ * 施策の画像・タグは、紐づく施策があるときだけ表示のフォールバックに使う。
  */
 export type InterviewTheme = {
   /** interview_configs.id */
   id: string;
+  /** 参加導線のURLに使う識別子（interview_configs.slug） */
+  slug: string;
   /** テーマ名 */
   name: string;
   /** テーマの説明（未設定なら null） */
@@ -20,6 +22,4 @@ export type InterviewTheme = {
   participantCount: number;
   /** カテゴリ表示に使う、紐づく施策の代表タグ */
   categoryLabel: string | null;
-  /** 参加導線に使う施策ID */
-  policyId: string;
 };

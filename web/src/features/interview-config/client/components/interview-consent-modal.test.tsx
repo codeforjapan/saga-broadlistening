@@ -3,6 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { policyInterviewTarget } from "../../shared/types/interview-target";
 import { InterviewConsentModal } from "./interview-consent-modal";
 
 vi.mock("next/navigation", () => ({
@@ -10,7 +11,13 @@ vi.mock("next/navigation", () => ({
 }));
 
 function renderModal() {
-  render(<InterviewConsentModal open onOpenChange={vi.fn()} billId="bill-1" />);
+  render(
+    <InterviewConsentModal
+      open
+      onOpenChange={vi.fn()}
+      target={policyInterviewTarget("bill-1")}
+    />
+  );
 }
 
 describe("InterviewConsentModal", () => {

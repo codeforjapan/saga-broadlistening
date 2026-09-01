@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { InterviewConsentModal } from "@/features/interview-config/client/components/interview-consent-modal";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { ComponentShowcase } from "../../../_components/component-showcase";
 import { PreviewSection } from "../../../_components/preview-section";
 
@@ -24,7 +25,7 @@ export default function ConsentModalPreview() {
           <InterviewConsentModal
             open={openDefault}
             onOpenChange={setOpenDefault}
-            billId="mock-bill-001"
+            target={policyInterviewTarget("mock-bill-001")}
           />
         </PreviewSection>
       </ComponentShowcase>

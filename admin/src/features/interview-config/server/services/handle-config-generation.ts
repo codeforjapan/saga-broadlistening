@@ -11,7 +11,11 @@ import {
   questionProposalSchema,
   themeProposalSchema,
 } from "../../shared/schemas";
-import { buildConfigGenerationPrompt } from "../utils/build-config-generation-prompt";
+import {
+  buildConfigGenerationPrompt,
+  getSubjectLabel,
+  type PromptSubject,
+} from "../utils/build-config-generation-prompt";
 
 interface ExistingQuestion {
   question: string;
@@ -21,7 +25,12 @@ interface ExistingQuestion {
 
 interface HandleConfigGenerationParams {
   messages: Array<{ role: string; content: string }>;
-  billId: string;
+  /** 施策配下から呼ばれたときの施策ID。抽象テーマ型では null */
+  billId: string | null;
+  /** 施策がないときに題材にするテーマ名 */
+  themeName?: string | null;
+  /** 施策がないときに題材にするテーマの説明 */
+  themeDescription?: string | null;
   stage: ConfigGenerationStage;
   existingThemes?: string[];
   existingQuestions?: ExistingQuestion[];
@@ -31,42 +40,29 @@ interface HandleConfigGenerationParams {
 export async function handleConfigGeneration({
   messages,
   billId,
+  themeName,
+  themeDescription,
   stage,
   existingThemes,
   existingQuestions,
   confirmedQuestions,
 }: HandleConfigGenerationParams) {
-  const [bill, billContents] = await Promise.all([
-    getBillById(billId),
-    getBillContents(billId),
-  ]);
-
-  if (!bill) {
-    throw new Error("Bill not found");
-  }
-
-  // ふつう（normal）の難易度コンテンツを使用
-  const normalContent = billContents.find(
-    (c) => c.difficulty_level === "normal"
-  );
+  const subject = await loadPromptSubject(billId, themeName, themeDescription);
 
   const systemPrompt = buildConfigGenerationPrompt({
-    billName: bill.name,
-    billTitle: normalContent?.title || "",
-    billSummary: normalContent?.summary || "",
-    billContent: normalContent?.content || "",
+    subject,
     stage,
-    knowledgeSource: bill.knowledge_source ?? undefined,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   });
 
+  const subjectLabel = getSubjectLabel(subject);
   const initialUserMessage =
     stage === "default_questions"
-      ? "施策内容を分析して、topics（Q1の論点選択肢）とstance（Q2の立場選択肢）を生成してください。"
+      ? `${subjectLabel}の内容を分析して、topics（Q1の論点選択肢）とstance（Q2の立場選択肢）を生成してください。`
       : stage === "theme_proposal"
-        ? "確定した質問と施策内容をもとに、テーマを提案してください。"
+        ? `確定した質問と${subjectLabel}の内容をもとに、テーマを提案してください。`
         : "質問を提案・ブラッシュアップしてください。";
 
   const effectiveMessages =
@@ -118,4 +114,50 @@ export async function handleConfigGeneration({
   return new Response(transformedStream, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
+}
+
+/**
+ * 生成の題材を読み込む。
+ *
+ * 施策IDがあれば施策とその「ふつう」難易度のコンテンツを、なければテーマ名を使う。
+ */
+async function loadPromptSubject(
+  billId: string | null,
+  themeName: string | null | undefined,
+  themeDescription: string | null | undefined
+): Promise<PromptSubject> {
+  if (!billId) {
+    const trimmed = themeName?.trim();
+    if (!trimmed) {
+      throw new Error("Neither bill nor theme name is available");
+    }
+    return {
+      kind: "theme",
+      themeName: trimmed,
+      themeDescription: themeDescription ?? undefined,
+    };
+  }
+
+  const [bill, billContents] = await Promise.all([
+    getBillById(billId),
+    getBillContents(billId),
+  ]);
+
+  if (!bill) {
+    throw new Error("Bill not found");
+  }
+
+  // ふつう（normal）の難易度コンテンツを使用
+  const normalContent = billContents.find(
+    (c) => c.difficulty_level === "normal"
+  );
+
+  return {
+    kind: "bill",
+    billName: bill.name,
+    billTitle: normalContent?.title || "",
+    billSummary: normalContent?.summary || "",
+    billContent: normalContent?.content || "",
+    knowledgeSource: bill.knowledge_source ?? undefined,
+  };
 }

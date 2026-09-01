@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { InterviewSummaryInput } from "@/features/interview-session/client/components/interview-summary-input";
 import { ComponentShowcase } from "../../../_components/component-showcase";
 import { PreviewSection } from "../../../_components/preview-section";
@@ -22,7 +23,7 @@ export default function SummaryInputPreview() {
           <div className="w-full max-w-md">
             <InterviewSummaryInput
               sessionId="mock-session-001"
-              billId="mock-bill-001"
+              target={policyInterviewTarget("mock-bill-001")}
               hasReport={false}
               input={input}
               onInputChange={setInput}
@@ -42,7 +43,7 @@ export default function SummaryInputPreview() {
           <div className="w-full max-w-md">
             <InterviewSummaryInput
               sessionId="mock-session-001"
-              billId="mock-bill-001"
+              target={policyInterviewTarget("mock-bill-001")}
               hasReport={true}
               input={input}
               onInputChange={setInput}

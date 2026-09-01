@@ -3,8 +3,10 @@
 import type { Route } from "next";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
-import { extractBillIdFromPath } from "@/lib/page-layout-utils";
+import {
+  extractInterviewTargetFromPath,
+  getInterviewLPLink,
+} from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
 
 export function InterviewHeaderActions() {
@@ -14,13 +16,13 @@ export function InterviewHeaderActions() {
 
   const handleSaveAndExit = () => {
     const isPreview = pathname.startsWith("/preview");
-    const billId = extractBillIdFromPath(pathname);
     const previewToken = isPreview
       ? searchParams.get("token") || undefined
       : undefined;
+    const target = extractInterviewTargetFromPath(pathname, previewToken);
 
-    if (billId) {
-      router.push(getInterviewLPLink(billId, previewToken) as Route);
+    if (target) {
+      router.push(getInterviewLPLink(target) as Route);
     } else {
       router.push(routes.home());
     }

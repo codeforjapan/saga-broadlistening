@@ -13,13 +13,17 @@ export async function POST(req: Request) {
   const {
     messages,
     billId,
+    themeName,
+    themeDescription,
     stage,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   }: {
     messages: Array<{ role: string; content: string }>;
-    billId: string;
+    billId: string | null;
+    themeName?: string | null;
+    themeDescription?: string | null;
     stage: Extract<
       ConfigGenerationStage,
       "default_questions" | "question_proposal" | "theme_proposal"
@@ -37,17 +41,23 @@ export async function POST(req: Request) {
     }>;
   } = body;
 
-  if (!billId) {
-    return new Response(JSON.stringify({ error: "billId is required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  // 抽象テーマ型には施策がないため、代わりにテーマ名を手がかりにする
+  if (!billId && !themeName?.trim()) {
+    return new Response(
+      JSON.stringify({ error: "billId or themeName is required" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
   try {
     return await handleConfigGeneration({
       messages,
       billId,
+      themeName,
+      themeDescription,
       stage,
       existingThemes,
       existingQuestions,

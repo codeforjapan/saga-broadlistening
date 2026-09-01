@@ -117,8 +117,8 @@ describe("公開レポート loader 統合テスト", () => {
 
     const result = await getPublicReportById(target.report.id);
 
-    expect(result?.bill_id).toBe(context.billId);
-    expect(result?.bill.bill_content).toEqual({ title: "統合テスト施策" });
+    expect(result?.origin.policyId).toBe(context.billId);
+    expect(result?.bill?.bill_content).toEqual({ title: "統合テスト施策" });
     expect(result?.characterCount).toBe(5);
   });
 
@@ -137,6 +137,21 @@ describe("公開レポート loader 統合テスト", () => {
     });
   });
 
+  it("紐づく施策が未公開なら、施策なし（テーマ起点）として返す", async () => {
+    context = await createPublicReportLoaderContext("未公開施策", {
+      publishPolicy: false,
+    });
+    const target = await createPublicReport(context, { summary: "未公開要約" });
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
+
+    const result = await getPublicReportById(target.report.id);
+
+    // 未公開施策へのリンクは 404 になるため、テーマ側にフォールバックさせる
+    expect(result?.origin.policyId).toBeNull();
+    expect(result?.bill).toBeNull();
+    expect(result?.origin.theme.slug).toBeTruthy();
+  });
+
   it("チャットログ loader は非所有者に公開済み件数ゲートを適用する", async () => {
     context = await createPublicReportLoaderContext("チャットログ施策");
     const target = await createPublicReport(context, {
@@ -150,8 +165,8 @@ describe("公開レポート loader 統合テスト", () => {
 
     const result = await getReportWithMessages(target.report.id);
 
-    expect(result?.report.bill_id).toBe(context.billId);
+    expect(result?.report.origin.policyId).toBe(context.billId);
     expect(result?.messages).toHaveLength(1);
-    expect(result?.bill.bill_content).toEqual({ title: "チャットログ施策" });
+    expect(result?.bill?.bill_content).toEqual({ title: "チャットログ施策" });
   });
 });

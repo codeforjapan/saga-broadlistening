@@ -38,16 +38,19 @@ const expectedResponse = JSON.stringify({
 describe("initializeInterviewChat 統合テスト", () => {
   let testUser: TestUser;
   let sessionId: string;
-  let billId: string;
   let cleanupInterviewData: () => Promise<void>;
+  let config: Awaited<ReturnType<typeof createTestInterviewData>>["config"];
   let interviewConfigId: string;
+  // 初期質問の生成はモデルをモックするため、施策の中身はここでは効かない。
+  // 施策なし（抽象テーマ型）でもセッション初期化が通ることを兼ねて null で呼ぶ。
+  const bill = null;
 
   beforeEach(async () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.policy.id;
     cleanupInterviewData = data.cleanup;
+    config = data.config;
     interviewConfigId = data.config.id;
   });
 
@@ -60,7 +63,7 @@ describe("initializeInterviewChat 統合テスト", () => {
     // メッセージを事前に作成してLLM呼び出しを回避する
     await createTestInterviewMessages(sessionId, 2);
 
-    const result = await initializeInterviewChat(billId, interviewConfigId, {
+    const result = await initializeInterviewChat(config, bill, {
       getUser: createGetUser(testUser.id),
     });
 
@@ -79,7 +82,7 @@ describe("initializeInterviewChat 統合テスト", () => {
       .update({ archived_at: new Date().toISOString() })
       .eq("id", sessionId);
 
-    const result = await initializeInterviewChat(billId, interviewConfigId, {
+    const result = await initializeInterviewChat(config, bill, {
       getUser: createGetUser(testUser.id),
       model: mockModel,
     });

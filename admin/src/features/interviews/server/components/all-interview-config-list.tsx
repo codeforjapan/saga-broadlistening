@@ -72,22 +72,27 @@ function ConfigRow({
   config: InterviewConfigWithBill;
   sessionCount: number | null;
 }) {
-  // 施策が紐づいていない意見募集（抽象テーマ型）は施策配下のリンクを出せない
+  // 施策が紐づいていない意見募集（抽象テーマ型）は施策配下のリンクを出せない。
+  // レポート・トピック解析は施策配下の画面しかないため、その列だけ省く
   const bill = config.bill;
 
   return (
     <TableRow>
       <TableCell>
-        {bill ? (
-          <Link
-            href={routes.billInterviewEdit(bill.id, config.id) as Route}
-            className="font-medium hover:underline"
-          >
-            {config.name}
-          </Link>
-        ) : (
-          <span className="font-medium">{config.name}</span>
-        )}
+        {/*
+          施策に紐づく設定は、プレビューとシミュレーションが使える施策配下の編集画面へ。
+          施策0件の抽象テーマ型はそれらを使えないため、テーマ単位の編集画面へ送る。
+        */}
+        <Link
+          href={
+            (bill
+              ? routes.billInterviewEdit(bill.id, config.id)
+              : routes.interviewEdit(config.id)) as Route
+          }
+          className="font-medium hover:underline"
+        >
+          {config.name}
+        </Link>
       </TableCell>
       <TableCell>
         {bill ? (
@@ -98,7 +103,7 @@ function ConfigRow({
             {bill.name}
           </Link>
         ) : (
-          <span className="text-gray-500">-</span>
+          <span className="text-gray-500">施策に紐づかないテーマ</span>
         )}
       </TableCell>
       <TableCell>

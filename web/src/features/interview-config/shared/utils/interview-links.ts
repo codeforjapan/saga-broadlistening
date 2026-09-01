@@ -1,4 +1,32 @@
 import { routes } from "@/lib/routes";
+import {
+  type InterviewTarget,
+  policyInterviewTarget,
+  themeInterviewTarget,
+} from "../types/interview-target";
+
+/**
+ * インタビュー関連ページのパスから参加導線の起点を復元する。
+ *
+ * ヘッダーのように pathname しか持たないクライアントコンポーネントが、
+ * 施策経由かテーマ単独かを判別してリンクを組み立てるために使う。
+ */
+export function extractInterviewTargetFromPath(
+  pathname: string,
+  previewToken?: string
+): InterviewTarget | null {
+  const themeMatch = pathname.match(/^\/interviews\/([^/]+)/);
+  if (themeMatch) {
+    return themeInterviewTarget(themeMatch[1]);
+  }
+
+  const billMatch = pathname.match(/\/bills\/([^/]+)/);
+  if (billMatch) {
+    return policyInterviewTarget(billMatch[1], previewToken);
+  }
+
+  return null;
+}
 
 /**
  * 施策詳細ページへのリンクを取得
@@ -16,40 +44,56 @@ export function getBillDetailLink(
 /**
  * インタビューLPページへのリンクを取得
  */
-export function getInterviewLPLink(
-  billId: string,
-  previewToken?: string
-): string {
-  if (previewToken) {
-    return routes.previewInterviewLP(billId, previewToken);
+export function getInterviewLPLink(target: InterviewTarget): string {
+  if (target.kind === "theme") {
+    return routes.interviewThemeLP(target.slug);
   }
-  return routes.interviewLP(billId);
+  if (target.previewToken) {
+    return routes.previewInterviewLP(target.policyId, target.previewToken);
+  }
+  return routes.interviewLP(target.policyId);
 }
 
 /**
  * インタビュー情報開示ページへのリンクを取得
  */
-export function getInterviewDisclosureLink(
-  billId: string,
-  previewToken?: string
-): string {
-  if (previewToken) {
-    return routes.previewInterviewDisclosure(billId, previewToken);
+export function getInterviewDisclosureLink(target: InterviewTarget): string {
+  if (target.kind === "theme") {
+    return routes.interviewThemeDisclosure(target.slug);
   }
-  return routes.interviewDisclosure(billId);
+  if (target.previewToken) {
+    return routes.previewInterviewDisclosure(
+      target.policyId,
+      target.previewToken
+    );
+  }
+  return routes.interviewDisclosure(target.policyId);
 }
 
 /**
  * インタビューチャットページへのリンクを取得
  */
-export function getInterviewChatLink(
-  billId: string,
-  previewToken?: string
-): string {
-  if (previewToken) {
-    return routes.previewInterviewChat(billId, previewToken);
+export function getInterviewChatLink(target: InterviewTarget): string {
+  if (target.kind === "theme") {
+    return routes.interviewThemeChat(target.slug);
   }
-  return routes.interviewChat(billId);
+  if (target.previewToken) {
+    return routes.previewInterviewChat(target.policyId, target.previewToken);
+  }
+  return routes.interviewChat(target.policyId);
+}
+
+/**
+ * インタビューを離脱したときの戻り先へのリンクを取得。
+ *
+ * 施策経由なら施策詳細、テーマ単独なら参加元のテーマ一覧に戻す
+ * （抽象テーマ型には戻り先になる施策ページがないため）。
+ */
+export function getInterviewExitLink(target: InterviewTarget): string {
+  if (target.kind === "theme") {
+    return routes.interviews();
+  }
+  return getBillDetailLink(target.policyId, target.previewToken);
 }
 
 /**

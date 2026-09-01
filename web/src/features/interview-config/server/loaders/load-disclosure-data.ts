@@ -7,15 +7,20 @@ import type { InterviewConfig } from "./get-interview-config";
 import { getInterviewQuestions } from "./get-interview-questions";
 
 export interface DisclosureData {
-  billId: string;
-  billName: string;
+  subjectName: string;
   interviewConfig: InterviewConfig;
   systemPrompt: string;
   summaryPrompt: string;
 }
 
+/**
+ * 情報開示ページに出すプロンプトを、実際の対話と同じ組み立てで生成する。
+ *
+ * 抽象テーマ型には施策がないため bill は null を受け付ける。
+ * その場合プロンプトにも施策情報は含まれず、見出しにはテーマ名を出す。
+ */
 export async function loadDisclosureData(
-  bill: BillWithContent,
+  bill: BillWithContent | null,
   interviewConfig: NonNullable<InterviewConfig>
 ): Promise<DisclosureData> {
   const questions = await getInterviewQuestions(interviewConfig.id);
@@ -36,8 +41,7 @@ export async function loadDisclosureData(
   });
 
   return {
-    billId: bill.id,
-    billName: bill.name,
+    subjectName: bill?.name ?? interviewConfig.name,
     interviewConfig,
     systemPrompt,
     summaryPrompt,

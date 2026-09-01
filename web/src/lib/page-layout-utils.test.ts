@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  extractBillIdFromPath,
   isInterviewPage,
   isInterviewSection,
   isMainPage,
@@ -31,15 +30,23 @@ describe("isMainPage", () => {
 });
 
 describe("isInterviewPage", () => {
-  it("returns true for an interview chat page", () => {
+  it("returns true for the bill-scoped interview chat page", () => {
     expect(isInterviewPage("/bills/abc-123/interview/chat")).toBe(true);
   });
 
-  it("returns false for an interview page without /chat", () => {
+  it("returns true for the standalone theme chat page", () => {
+    expect(isInterviewPage("/interviews/saga-no-mirai/chat")).toBe(true);
+  });
+
+  it("returns false for the interview LP page", () => {
     expect(isInterviewPage("/bills/abc-123/interview")).toBe(false);
   });
 
-  it("returns false for a bill detail page", () => {
+  it("returns false for the standalone theme LP page", () => {
+    expect(isInterviewPage("/interviews/saga-no-mirai")).toBe(false);
+  });
+
+  it("returns false for the bill detail page", () => {
     expect(isInterviewPage("/bills/abc-123")).toBe(false);
   });
 
@@ -49,15 +56,27 @@ describe("isInterviewPage", () => {
 });
 
 describe("isInterviewSection", () => {
-  it("returns true for the interview LP page", () => {
+  it("returns true for the bill-scoped interview LP page", () => {
     expect(isInterviewSection("/bills/abc-123/interview")).toBe(true);
   });
 
-  it("returns true for the interview chat page", () => {
+  it("returns true for the bill-scoped interview chat page", () => {
     expect(isInterviewSection("/bills/abc-123/interview/chat")).toBe(true);
   });
 
-  it("returns false for a bill detail page", () => {
+  it("returns true for the standalone theme LP page", () => {
+    expect(isInterviewSection("/interviews/saga-no-mirai")).toBe(true);
+  });
+
+  it("returns true for the standalone theme chat page", () => {
+    expect(isInterviewSection("/interviews/saga-no-mirai/chat")).toBe(true);
+  });
+
+  it("returns false for the theme list page itself", () => {
+    expect(isInterviewSection("/interviews")).toBe(false);
+  });
+
+  it("returns false for the bill detail page", () => {
     expect(isInterviewSection("/bills/abc-123")).toBe(false);
   });
 
@@ -65,27 +84,7 @@ describe("isInterviewSection", () => {
     expect(isInterviewSection("/")).toBe(false);
   });
 
-  it("returns false for unrelated paths", () => {
+  it("returns false for an unrelated page", () => {
     expect(isInterviewSection("/about")).toBe(false);
-  });
-});
-
-describe("extractBillIdFromPath", () => {
-  it("extracts bill ID from a bill detail path", () => {
-    expect(extractBillIdFromPath("/bills/abc-123")).toBe("abc-123");
-  });
-
-  it("extracts bill ID from a bill sub-path", () => {
-    expect(extractBillIdFromPath("/bills/abc-123/interview/chat")).toBe(
-      "abc-123"
-    );
-  });
-
-  it("returns null when path does not contain /bills/", () => {
-    expect(extractBillIdFromPath("/about")).toBeNull();
-  });
-
-  it("returns null for the top page", () => {
-    expect(extractBillIdFromPath("/")).toBeNull();
   });
 });

@@ -4,8 +4,11 @@ import {
   buildPublicReportsPage,
   canViewReportWithMessages,
   countUserMessageCharacters,
-  getBillIdFromPublicReportSession,
+  getReportOrigin,
+  getReportOriginLink,
   type PublicInterviewReport,
+  type ReportOrigin,
+  resolveReportSubject,
   selectPrimaryBillContent,
 } from "./public-report-display";
 
@@ -33,26 +36,73 @@ describe("public report display utilities", () => {
     });
   });
 
-  it("意見のセッションから施策IDを取り出す（多対多は最初の1件）", () => {
+  it("意見のセッションから起点の施策とテーマを取り出す（多対多は公開済みの最初の1件）", () => {
     expect(
-      getBillIdFromPublicReportSession({
+      getReportOrigin({
         started_at: "2026-05-06T00:00:00.000Z",
         completed_at: null,
         interview_config_id: "config-1",
         interview_configs: {
+          slug: "saga-no-mirai",
+          name: "佐賀市のみらい",
+          status: "open",
           policies_interview_configs: [
-            { policy_id: "policy-1" },
-            { policy_id: "policy-2" },
+            { policies: { id: "policy-1", publish_status: "draft" } },
+            { policies: { id: "policy-2", publish_status: "published" } },
+            { policies: { id: "policy-3", publish_status: "published" } },
           ],
         },
       })
-    ).toBe("policy-1");
+    ).toEqual({
+      policyId: "policy-2",
+      theme: { slug: "saga-no-mirai", name: "佐賀市のみらい", isOpen: true },
+    });
+  });
+
+  it("施策に紐づかない抽象テーマ型はテーマだけを起点にする", () => {
     expect(
-      getBillIdFromPublicReportSession({
+      getReportOrigin({
         started_at: "2026-05-06T00:00:00.000Z",
         completed_at: null,
         interview_config_id: "config-1",
-        interview_configs: { policies_interview_configs: [] },
+        interview_configs: {
+          slug: "saga-no-mirai",
+          name: "佐賀市のみらい",
+          status: "open",
+          policies_interview_configs: [],
+        },
+      })
+    ).toEqual({
+      policyId: null,
+      theme: { slug: "saga-no-mirai", name: "佐賀市のみらい", isOpen: true },
+    });
+  });
+
+  it("紐づく施策がすべて未公開なら施策なしとして扱う", () => {
+    expect(
+      getReportOrigin({
+        started_at: "2026-05-06T00:00:00.000Z",
+        completed_at: null,
+        interview_config_id: "config-1",
+        interview_configs: {
+          slug: "saga-no-mirai",
+          name: "佐賀市のみらい",
+          status: "open",
+          policies_interview_configs: [
+            { policies: { id: "policy-1", publish_status: "draft" } },
+          ],
+        },
+      })?.policyId
+    ).toBeNull();
+  });
+
+  it("意見募集を辿れないセッションは起点を決められない", () => {
+    expect(
+      getReportOrigin({
+        started_at: "2026-05-06T00:00:00.000Z",
+        completed_at: null,
+        interview_config_id: "config-1",
+        interview_configs: null,
       })
     ).toBeNull();
   });
@@ -99,5 +149,60 @@ describe("public report display utilities", () => {
         publicOpinionCount: MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1,
       })
     ).toBe(false);
+  });
+});
+
+const openThemeOrigin: ReportOrigin = {
+  policyId: null,
+  theme: { slug: "saga-no-mirai", name: "佐賀市のみらい", isOpen: true },
+};
+
+describe("getReportOriginLink", () => {
+  it("施策があれば施策詳細を指す", () => {
+    expect(
+      getReportOriginLink({ ...openThemeOrigin, policyId: "policy-1" })
+    ).toBe("/bills/policy-1");
+  });
+
+  it("施策がなく募集中ならテーマのページを指す", () => {
+    expect(getReportOriginLink(openThemeOrigin)).toBe(
+      "/interviews/saga-no-mirai"
+    );
+  });
+
+  it("募集が終わったテーマは個別ページが公開されないのでテーマ一覧に送る", () => {
+    expect(
+      getReportOriginLink({
+        ...openThemeOrigin,
+        theme: { ...openThemeOrigin.theme, isOpen: false },
+      })
+    ).toBe("/interviews");
+  });
+});
+
+describe("resolveReportSubject", () => {
+  it("施策があれば難易度別コンテンツの見出しを名前に使う", () => {
+    expect(
+      resolveReportSubject(
+        { name: "学校給食の無償化", bill_content: { title: "給食費をなくす" } },
+        { ...openThemeOrigin, policyId: "policy-1" }
+      )
+    ).toEqual({ name: "給食費をなくす", href: "/bills/policy-1" });
+  });
+
+  it("見出しがなければ施策名にフォールバックする", () => {
+    expect(
+      resolveReportSubject(
+        { name: "学校給食の無償化", bill_content: null },
+        { ...openThemeOrigin, policyId: "policy-1" }
+      ).name
+    ).toBe("学校給食の無償化");
+  });
+
+  it("施策がなければテーマ名とテーマのページを使う", () => {
+    expect(resolveReportSubject(null, openThemeOrigin)).toEqual({
+      name: "佐賀市のみらい",
+      href: "/interviews/saga-no-mirai",
+    });
   });
 });

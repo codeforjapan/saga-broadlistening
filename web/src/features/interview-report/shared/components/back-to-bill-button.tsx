@@ -1,21 +1,44 @@
 import { Undo2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
+import {
+  getReportOriginLink,
+  type ReportOrigin,
+} from "../utils/public-report-display";
 
 interface BackToBillButtonProps {
-  billId: string;
+  /** 意見が寄せられた対象（施策・テーマ） */
+  origin: ReportOrigin;
   /** "opinions" の場合、レポート一覧に戻るボタンを表示 */
   from?: "complete" | "opinions";
 }
 
-export function BackToBillButton({ billId, from }: BackToBillButtonProps) {
-  const href =
-    from === "opinions"
-      ? routes.billOpinions(billId)
-      : getBillDetailLink(billId);
-  const label = from === "opinions" ? "レポート一覧に戻る" : "施策の記事に戻る";
+/**
+ * 意見の読み終わりに置く戻り導線の遷移先を決める。
+ *
+ * 施策に紐づく意見は施策（またはその意見一覧）へ、施策を持たない抽象テーマ型は
+ * そのテーマのページへ戻す。ヘッダーのリンクと同じ場所を指すよう、
+ * 遷移先は getReportOriginLink に揃える。
+ */
+function resolveDestination({ origin, from }: BackToBillButtonProps) {
+  if (origin.policyId) {
+    return from === "opinions"
+      ? {
+          href: routes.billOpinions(origin.policyId),
+          label: "レポート一覧に戻る",
+        }
+      : { href: getReportOriginLink(origin), label: "施策の記事に戻る" };
+  }
+
+  return {
+    href: getReportOriginLink(origin),
+    label: origin.theme.isOpen ? "テーマのページに戻る" : "テーマ一覧に戻る",
+  };
+}
+
+export function BackToBillButton(props: BackToBillButtonProps) {
+  const { href, label } = resolveDestination(props);
 
   return (
     <Link

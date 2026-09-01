@@ -27,6 +27,8 @@ export type PromptBillInput = {
  * インタビュー設定の型（純粋関数用）
  */
 export type InterviewConfig = {
+  /** テーマ名（interview_configs.name）。施策を持たない抽象テーマ型では対象名になる。 */
+  name?: string | null;
   /** 職員が設定したテーマの説明文（interview_configs.description）。 */
   description?: string | null;
   [key: string]: unknown;
