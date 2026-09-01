@@ -134,7 +134,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
               style={{
                 transitionDuration: `${ANIMATION_DURATION.SIZE_TRANSITION}ms`,
               }}
-              aria-label="施策について質問する"
+              aria-label="わからないことをAIに質問する"
               aria-haspopup="dialog"
               aria-expanded={isOpen}
             >

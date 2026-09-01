@@ -22,6 +22,13 @@ export const PRIMITIVES = {
   "sky-400": "#55c1ff",
   "sky-500": "#2fb0ff",
   "sky-700": "#0077c8",
+  /**
+   * 仕様3.1のパレットには無い拡張シェード（2026-09-01 追加、Epic #8 に記録）。
+   * 本文の地が base-surface になったことで sky-700 の通常サイズ文字が
+   * 有彩色面・薄グレー面上で 4.5:1 を割るため、文字用アクセントとして新設した。
+   * base-surface 5.4:1 / sky-50 5.4:1 / sky-100 4.9:1。--ring は従来どおり sky-700。
+   */
+  "sky-800": "#0068af",
 
   // Green ＝ 黄緑（差し色／優先度2）
   "green-100": "#edf7dc",
@@ -61,7 +68,7 @@ export const SEMANTICS = {
   "popover-foreground": "base-ink",
   primary: "sky-400",
   "primary-foreground": "base-ink",
-  "primary-accent": "sky-700",
+  "primary-accent": "sky-800",
   secondary: "sky-50",
   "secondary-foreground": "base-ink",
   muted: "base-surface",
@@ -127,6 +134,7 @@ export const TEXT_SAFE_TOKENS = [
   "base-ink",
   "base-ink-muted",
   "sky-700",
+  "sky-800",
   "green-700",
   "lavender-600",
   "yellow-700",
