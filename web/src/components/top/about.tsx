@@ -16,7 +16,7 @@ export function About() {
               priority
             />
           </h2>
-          <p className="text-sm font-bold text-primary-accent">
+          <p className="text-sm font-bold text-foreground">
             本システムについて
           </p>
         </div>

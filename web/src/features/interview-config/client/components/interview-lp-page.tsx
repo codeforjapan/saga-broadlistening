@@ -107,7 +107,7 @@ function _InterviewLPHero({
     <div className="flex flex-col items-center gap-6 px-4">
       <div className="flex flex-col items-center gap-3">
         <div className="inline-flex items-center justify-center gap-2 px-6 py-1 mb-3 bg-primary rounded-2xl">
-          <span className="text-[13px] font-medium text-white leading-tight">
+          <span className="text-[13px] font-medium text-primary-foreground leading-tight">
             当事者・有識者の方へ
           </span>
         </div>
@@ -179,7 +179,7 @@ function _InterviewOverviewSection({
               佐賀市で検討されている
               <Link
                 href={billLink as Route}
-                className="text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
+                className="text-primary-accent underline underline-offset-2 hover:opacity-70 transition-opacity"
               >
                 {getBillName(bill)}
               </Link>
