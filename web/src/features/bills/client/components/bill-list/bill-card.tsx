@@ -15,7 +15,7 @@ export function BillCard({ bill }: BillCardProps) {
   const summary = bill.bill_content?.summary;
 
   return (
-    <Card className="hover:bg-muted/50 transition-colors relative overflow-hidden max-w-[634px]">
+    <Card className="hover:bg-muted/50 transition-colors relative overflow-hidden max-w-[634px] h-full">
       <div className="flex flex-col">
         {/* 注目バッジエリア */}
         {bill.is_featured && (
@@ -36,7 +36,8 @@ export function BillCard({ bill }: BillCardProps) {
               alt={bill.name}
               fill
               className="object-cover"
-              sizes="100vw"
+              // md以上では2カラムグリッドに置かれるため約半分の幅で十分
+              sizes="(min-width: 700px) 50vw, 100vw"
             />
           </div>
         )}

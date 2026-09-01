@@ -24,7 +24,10 @@ export function MainLayout({ children }: MainLayoutProps) {
         // インタビューページ以外ではshadowを表示
         !isInterview && "sm:shadow-lg",
         // TOPページと施策詳細ページのみ、チャットサイドバー用のオフセット
-        useSidebarLayout && "pc:mr-[500px] xl:ml-[calc(calc(100vw-1180px)/2)]"
+        // チャットパネル(CHAT_PANEL_PC_WIDTH_CLASS: 300px)+右マージン・ガターぶんの
+        // 350pxを右に確保しつつ、メインパネルを850pxへ拡大（850+350=1180で中央寄せ計算と一致）
+        useSidebarLayout &&
+          "pc:max-w-[850px] pc:mr-[350px] xl:ml-[calc(calc(100vw-1180px)/2)]"
       )}
     >
       {children}

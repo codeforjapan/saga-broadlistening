@@ -25,6 +25,7 @@ import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useViewportHeight } from "@/hooks/use-viewport-height";
 import {
+  CHAT_PANEL_PC_WIDTH_CLASS,
   CHAT_PANEL_RESPONSIVE_CLASSES,
   MobileChatDialog,
 } from "./mobile-chat-dialog";
@@ -288,7 +289,7 @@ export function ChatWindow({
     return createPortal(
       <section
         aria-label="佐賀市の施策についてAIに質問する"
-        className={`fixed inset-x-0 bottom-0 z-50 bg-white shadow-md rounded-t-2xl flex flex-col pc:h-[70vh] xl:right-[calc(calc(100%-1180px)/2)] ${CHAT_PANEL_RESPONSIVE_CLASSES}`}
+        className={`fixed inset-x-0 bottom-0 z-50 bg-white shadow-md rounded-t-2xl flex flex-col pc:h-[70vh] xl:right-[calc(calc(100%-1180px)/2)] ${CHAT_PANEL_RESPONSIVE_CLASSES} ${CHAT_PANEL_PC_WIDTH_CLASS}`}
       >
         {chatPanelContent}
       </section>,

@@ -22,13 +22,13 @@ export function Hero() {
       <Container className="flex flex-col gap-5 py-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-xl font-bold leading-relaxed md:text-2xl">
-            まちの今を知り、
+            まちのこと、
             <br className="sm:hidden" />
-            未来に声を届ける
+            ちかっと知る。ちかっと話す。
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {SITE_NAME}（チカット）は、市の施策をわかりやすく解説し、
-            あなたの声を市政につなぐ参加型プラットフォームです。
+            {SITE_NAME}
+            （チカット）は、佐賀市の今の取組を気軽に知ったり、AIと話しながら日ごろ感じていることや考えを伝えたりできる、新しい広聴のしくみです。見るだけでも、話すだけでも大丈夫です。
           </p>
         </div>
 
