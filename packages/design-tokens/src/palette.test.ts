@@ -142,6 +142,23 @@ describe("shadcnセマンティックマッピング", () => {
     }
   });
 
+  it("primary-accent の文字は薄い面の上でも 4.5:1 以上（ページ背景が base-surface のため）", () => {
+    // #96 の再発防止: sky-700 は白面では 4.7:1 だが base-surface 上で 4.37:1 と AA を割った。
+    // 文字用アクセントは、文字が載りうる薄い面すべてで AA を満たすことを機械的に担保する
+    const accent = resolveSemantic("primary-accent");
+    for (const surface of [
+      "base-white",
+      "base-surface",
+      "sky-50",
+      "sky-100",
+    ] as const) {
+      expect(
+        contrastRatio(accent, PRIMITIVES[surface]),
+        surface
+      ).toBeGreaterThanOrEqual(AA_TEXT);
+    }
+  });
+
   it("destructive の面には白文字を載せられる（破壊的操作の視認性）", () => {
     expect(
       contrastRatio(

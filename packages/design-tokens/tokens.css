@@ -18,6 +18,7 @@
   --color-sky-400: #55c1ff;
   --color-sky-500: #2fb0ff;
   --color-sky-700: #0077c8;
+  --color-sky-800: #0068af;
   --color-green-100: #edf7dc;
   --color-green-400: #8cc63f;
   --color-green-500: #7ab32f;
@@ -99,7 +100,7 @@
   --popover-foreground: var(--color-base-ink);
   --primary: var(--color-sky-400);
   --primary-foreground: var(--color-base-ink);
-  --primary-accent: var(--color-sky-700);
+  --primary-accent: var(--color-sky-800);
   --secondary: var(--color-sky-50);
   --secondary-foreground: var(--color-base-ink);
   --muted: var(--color-base-surface);
