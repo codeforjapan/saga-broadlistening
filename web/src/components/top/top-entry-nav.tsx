@@ -6,18 +6,20 @@ import { Card } from "@/components/ui/card";
 
 const TOP_ENTRY_ITEMS = [
   {
-    href: `#${TOP_SECTIONS.interview}`,
-    logo: "/icons/chikat-kikasete.svg",
-    logoAlt: `${SITE_NAME}きかせて`,
-    title: "AIインタビュー",
-    description: "AIとの対話で、あなたの意見や経験を聞かせてください。",
-  },
-  {
     href: `#${TOP_SECTIONS.policy}`,
     logo: "/icons/chikat-mitemite.svg",
     logoAlt: `${SITE_NAME}みてみて`,
     title: "施策紹介",
-    description: "市の施策や計画をわかりやすく解説。背景や論点を整理します。",
+    description:
+      "佐賀市の今の取組を、1〜2分でちかっと紹介。背景や暮らしとのつながりも、できるだけわかりやすくお伝えします。",
+  },
+  {
+    href: `#${TOP_SECTIONS.interview}`,
+    logo: "/icons/chikat-kikasete.svg",
+    logoAlt: `${SITE_NAME}きかせて`,
+    title: "AIインタビュー",
+    description:
+      "日ごろ感じていることを、AIにちかっと話してみませんか。AIが聞き役になって、あなたの経験や考えを少しずつ整理します。",
   },
 ];
 

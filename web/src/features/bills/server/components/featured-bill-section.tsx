@@ -1,8 +1,5 @@
-import type { Route } from "next";
-import Link from "next/link";
 import { SectionHeading } from "@/components/section-heading";
-import { routes } from "@/lib/routes";
-import { BillCard } from "../../client/components/bill-list/bill-card";
+import { BillList } from "../../client/components/bill-list/bill-list";
 import type { BillWithContent } from "../../shared/types";
 
 interface FeaturedBillSectionProps {
@@ -24,13 +21,7 @@ export function FeaturedBillSection({ bills }: FeaturedBillSectionProps) {
       />
 
       {/* 注目の施策カード */}
-      <div className="flex flex-col gap-4">
-        {bills.map((bill) => (
-          <Link key={bill.id} href={routes.billDetail(bill.id) as Route}>
-            <BillCard bill={bill} />
-          </Link>
-        ))}
-      </div>
+      <BillList bills={bills} />
     </section>
   );
 }
