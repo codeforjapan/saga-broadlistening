@@ -30,15 +30,16 @@ export function InterviewThemeCard({
       href={getInterviewLPLink(themeInterviewTarget(theme.slug)) as Route}
       className="block"
     >
-      <Card className="flex overflow-hidden transition-colors hover:bg-muted/50">
+      {/* モバイルでは画像を上に縦積みし、sm以上で画像左の横並びに切り替える */}
+      <Card className="flex flex-col overflow-hidden transition-colors hover:bg-muted/50 sm:flex-row">
         {/* テーマ画像。装飾なので alt は空にし、テーマ名は見出しで読ませる */}
-        <div className="relative w-28 shrink-0 self-stretch min-h-28 sm:w-36">
+        <div className="relative h-36 w-full sm:h-auto sm:min-h-28 sm:w-36 sm:shrink-0 sm:self-stretch">
           <Image
             src={theme.thumbnailUrl}
             alt=""
             fill
             className="object-cover"
-            sizes="(min-width: 500px) 144px, 112px"
+            sizes="(min-width: 640px) 144px, 100vw"
           />
         </div>
 
