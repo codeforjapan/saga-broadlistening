@@ -1,14 +1,8 @@
 import "server-only";
 
-import type {
-  PromptBillInput,
-  InterviewConfig as PromptInterviewConfig,
-  InterviewQuestion as PromptInterviewQuestion,
-} from "@mirai-gikai/shared/interview-prompts/types";
 import { parseAssistantMessageContent } from "@mirai-gikai/shared/interview-report/parse-assistant-message";
 import {
   findInterviewConfigById,
-  findInterviewQuestionsByConfigId,
   findPolicyIdsByInterviewConfigId,
 } from "@/features/interview-config/server/repositories/interview-config-repository";
 import {
@@ -16,44 +10,33 @@ import {
   findInterviewSessionById,
   findOpinionSegmentsByOpinionId,
 } from "@/features/interview-reports/server/repositories/interview-report-repository";
-import { fetchBillWithContents } from "@/features/topic-analysis/server/repositories/topic-analysis-repository";
 import type { OriginalInterviewSnapshot } from "../../shared/types";
 import { findInterviewReportById } from "../repositories/interview-simulation-repository";
 
-export interface ReportDetailForSimulation {
-  snapshot: OriginalInterviewSnapshot;
-  bill: PromptBillInput;
-  interviewConfig: PromptInterviewConfig;
-  questions: PromptInterviewQuestion[];
-  /** 保存済み config の estimated_duration（分）。本番のタイムマネジメント用 */
-  estimatedDurationMinutes: number | null;
-}
-
 /**
- * シミュレーションに必要な「元レポート + 設定 + 質問 + 施策」を一括取得する。
+ * ペルソナ抽出に使う元インタビューのスナップショットを取得する。
+ *
+ * 対話に使う設定・質問・施策は「編集中の設定値」を渡すため（改善版で再演する）、
+ * ここでは元レポートの会話と属性だけを返す。
  */
-export async function getReportDetailForSimulation(
+export async function getReportSnapshotForSimulation(
   reportId: string
-): Promise<ReportDetailForSimulation | null> {
+): Promise<OriginalInterviewSnapshot | null> {
   const report = await findInterviewReportById(reportId);
   if (!report) return null;
 
   const session = await findInterviewSessionById(report.interview_session_id);
   if (!session) return null;
 
-  const [interviewConfig, questions, messages] = await Promise.all([
+  const [interviewConfig, messages] = await Promise.all([
     findInterviewConfigById(session.interview_config_id),
-    findInterviewQuestionsByConfigId(session.interview_config_id),
     findInterviewMessagesBySessionId(session.id),
   ]);
 
   if (!interviewConfig) return null;
 
-  // 施策と意見募集は多対多。既存 UI は最初の1件だけを使う
-  const [policyId] = await findPolicyIdsByInterviewConfigId(interviewConfig.id);
-  if (!policyId) return null;
-
-  const billData = await fetchBillWithContents(policyId);
+  // 施策と意見募集は多対多。範囲判定では紐づく施策をすべて見る
+  const policyIds = await findPolicyIdsByInterviewConfigId(interviewConfig.id);
 
   // 元会話を interviewer / interviewee の text のみに正規化。
   // Summary フェーズ（report 生成・確認ターン）は除外する。
@@ -98,7 +81,7 @@ export async function getReportDetailForSimulation(
     reportId: report.id,
     sessionId: session.id,
     configId: interviewConfig.id,
-    billId: policyId,
+    policyIds,
     summary: report.summary ?? null,
     roleTitle: report.role_title ?? null,
     roleDescription: report.role_description ?? null,
@@ -108,34 +91,5 @@ export async function getReportDetailForSimulation(
     rating: session.rating ?? null,
   };
 
-  const bill: PromptBillInput = {
-    name: billData.bill.name,
-    knowledge_source: billData.bill.knowledge_source,
-    bill_content: {
-      title: billData.billTitle,
-      summary: billData.billSummary,
-      content: billData.billContent,
-    },
-  };
-
-  const promptInterviewConfig: PromptInterviewConfig = {
-    description: interviewConfig.description,
-  };
-
-  const promptQuestions: PromptInterviewQuestion[] = (questions ?? []).map(
-    (q) => ({
-      id: q.id,
-      question: q.question,
-      quick_replies: q.quick_replies ?? null,
-      follow_up_guide: q.follow_up_guide ?? null,
-    })
-  );
-
-  return {
-    snapshot,
-    bill,
-    interviewConfig: promptInterviewConfig,
-    questions: promptQuestions,
-    estimatedDurationMinutes: interviewConfig.estimated_duration ?? null,
-  };
+  return snapshot;
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminClient } from "@mirai-gikai/supabase";
 import type { CompletedReportListItem } from "../../shared/types";
+import type { SimulationScope } from "../../shared/utils/simulation-scope";
 
 /**
  * シミュレーション画面の Select 候補として取得する上限。
@@ -11,7 +12,7 @@ import type { CompletedReportListItem } from "../../shared/types";
  */
 const MAX_REPORTS_FOR_SIMULATION = 300;
 
-export interface CompletedReportsForBillResult {
+export interface CompletedReportsResult {
   reports: CompletedReportListItem[];
   /** true なら MAX_REPORTS_FOR_SIMULATION で切り詰められている */
   isTruncated: boolean;
@@ -20,25 +21,42 @@ export interface CompletedReportsForBillResult {
 }
 
 /**
- * 指定施策の「完了済みインタビュー + 意見あり」の一覧を取得する。
+ * ペルソナ素材に使える「完了済みインタビュー + 意見あり」の一覧を取得する。
  *
- * シミュレーション画面で、編集中の config に紐づくものと施策全体のものの
- * 両方から選べるようにするため、施策で引いて config_id 情報も返す。
- * クライアント側で configId フィルタを切り替えられる設計。
+ * 施策に紐づくテーマでは施策全体から引く。シミュレーション画面で、編集中の config に
+ * 紐づくものと施策全体のものの両方から選べるようにするため、config_id 情報も返す
+ * （クライアント側で configId フィルタを切り替えられる設計）。
+ * 施策と意見募集は policies_interview_configs による多対多のため、中間テーブル経由で絞り込む。
  *
- * 施策と意見募集は policies_interview_configs による多対多のため、
- * 中間テーブル経由で絞り込む。
+ * 施策を持たない抽象テーマ型は借りてこられる施策がないため、
+ * そのテーマ自身の完了インタビューだけを対象にする。
+ * 絞り込みの規則は canUseReportForSimulation（サーバー側のガード）と揃えること。
  */
-export async function getCompletedReportsForBill(
-  billId: string
-): Promise<CompletedReportsForBillResult> {
+export async function getCompletedReportsForSimulation(
+  scope: SimulationScope
+): Promise<CompletedReportsResult> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("interview_sessions")
-    .select(
-      "id, completed_at, interview_config_id, interview_configs!inner(name, policies_interview_configs!inner(policy_id)), opinions!inner(id, role_title, summary, total_content_richness)"
-    )
-    .eq("interview_configs.policies_interview_configs.policy_id", billId)
+
+  // 施策で絞る場合だけ紐付けを内部結合する。テーマで絞る場合に内部結合すると
+  // 紐付けが0件の抽象テーマ型が丸ごと除外され、候補が常に空になる
+  const scopedQuery = scope.policyId
+    ? supabase
+        .from("interview_sessions")
+        .select(
+          "id, completed_at, interview_config_id, interview_configs!inner(name, policies_interview_configs!inner(policy_id)), opinions!inner(id, role_title, summary, total_content_richness)"
+        )
+        .eq(
+          "interview_configs.policies_interview_configs.policy_id",
+          scope.policyId
+        )
+    : supabase
+        .from("interview_sessions")
+        .select(
+          "id, completed_at, interview_config_id, interview_configs!inner(name), opinions!inner(id, role_title, summary, total_content_richness)"
+        )
+        .eq("interview_config_id", scope.interviewConfigId);
+
+  const { data, error } = await scopedQuery
     .not("completed_at", "is", null)
     .order("completed_at", { ascending: false })
     .limit(MAX_REPORTS_FOR_SIMULATION + 1);

@@ -1,8 +1,11 @@
+import { resolveSubjectTitle } from "@mirai-gikai/shared/interview-prompts/subject-section";
 import type {
   PromptBillInput,
   InterviewQuestion as PromptInterviewQuestion,
 } from "@mirai-gikai/shared/interview-prompts/types";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
+import { findInterviewConfigById } from "@/features/interview-config/server/repositories/interview-config-repository";
+import { resolveSimulationScope } from "@/features/interview-simulation/server/loaders/resolve-simulation-scope";
 import { runMultiSimulationPipeline } from "@/features/interview-simulation/server/services/run-multi-simulation-pipeline";
 import { multiSimulationRunRequestSchema } from "@/features/interview-simulation/shared/schemas";
 import type {
@@ -38,8 +41,25 @@ async function authenticate(request: Request): Promise<Response | null> {
 
 /** MultiSimulationRunRequest → pipeline params */
 async function buildPipelineParams(params: MultiSimulationRunRequest) {
-  const billData = await fetchBillWithContents(params.billId);
-  if (!billData.bill) {
+  const config = await findInterviewConfigById(params.interviewConfigId);
+  if (!config) {
+    return {
+      ok: false as const,
+      error: "対象の意見募集が見つかりません",
+      status: 404,
+    };
+  }
+
+  // 範囲はサーバー側で意見募集から決める。クライアントが施策を指定できないため、
+  // 無関係な施策の資料でペルソナを作らせたり、その施策配下のレポートを
+  // 素材に使わせたりする余地がない
+  const scope = await resolveSimulationScope(params.interviewConfigId);
+
+  // 抽象テーマ型（施策なし）では施策を読まず、テーマの説明だけを材料にする
+  const billData = scope.policyId
+    ? await fetchBillWithContents(scope.policyId)
+    : null;
+  if (scope.policyId && !billData?.bill) {
     return {
       ok: false as const,
       error: "対象の施策が見つかりません",
@@ -47,15 +67,17 @@ async function buildPipelineParams(params: MultiSimulationRunRequest) {
     };
   }
 
-  const bill: PromptBillInput = {
-    name: billData.bill.name,
-    knowledge_source: billData.bill.knowledge_source,
-    bill_content: {
-      title: billData.billTitle,
-      summary: billData.billSummary,
-      content: billData.billContent,
-    },
-  };
+  const bill: PromptBillInput = billData?.bill
+    ? {
+        name: billData.bill.name,
+        knowledge_source: billData.bill.knowledge_source,
+        bill_content: {
+          title: billData.billTitle,
+          summary: billData.billSummary,
+          content: billData.billContent,
+        },
+      }
+    : null;
 
   const improvedQuestions: PromptInterviewQuestion[] =
     params.improvedConfig.questions.map((q) => ({
@@ -65,23 +87,25 @@ async function buildPipelineParams(params: MultiSimulationRunRequest) {
       follow_up_guide: q.follow_up_guide ?? null,
     }));
 
-  const billTitle = billData.billTitle || billData.bill.name || "この施策";
+  const promptInterviewConfig = {
+    name: config.name,
+    description: params.improvedConfig.description,
+  };
 
   return {
     ok: true as const,
     params: {
-      billId: params.billId,
+      scope,
       personaSlots: params.personaSlots,
       improvedPromptInputs: {
         bill,
-        interviewConfig: {
-          description: params.improvedConfig.description,
-        },
+        interviewConfig: promptInterviewConfig,
         questions: improvedQuestions,
         estimatedDurationMinutes:
           params.improvedConfig.estimatedDurationMinutes ?? null,
       },
-      billTitle,
+      // 名乗る対象名。本番の初回質問生成と同じ解決規則を使う
+      subjectTitle: resolveSubjectTitle(bill, promptInterviewConfig),
       interviewerModel: params.interviewerModel,
       intervieweeModel: params.intervieweeModel,
       personaModel: params.personaModel,

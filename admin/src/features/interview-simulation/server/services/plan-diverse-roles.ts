@@ -83,7 +83,7 @@ export async function planDiverseRoles({
       return null;
     }
     // ユーザー指定の stanceHint と planner 出力 stance が矛盾していないか検証。
-    // 下流の generatePersonaFromBill は stanceHint を最優先で使うので実害は
+    // 下流の generatePersonaFromSubject は stanceHint を最優先で使うので実害は
     // ないが、planner 側が指示に追従していない兆候なのでログを残して fallback
     for (let i = 0; i < slotsToPlan.length; i++) {
       const slotHint = slotsToPlan[i]?.stanceHint;

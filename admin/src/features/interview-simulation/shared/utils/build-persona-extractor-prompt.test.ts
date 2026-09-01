@@ -6,7 +6,7 @@ const baseSnapshot: OriginalInterviewSnapshot = {
   reportId: "report-1",
   sessionId: "session-1",
   configId: "config-1",
-  billId: "bill-1",
+  policyIds: ["bill-1"],
   summary: "業務負担が増えるのが心配だが、安全のためなら必要かも",
   roleTitle: "看護師",
   roleDescription: "都内総合病院で 10 年勤務する看護師",
