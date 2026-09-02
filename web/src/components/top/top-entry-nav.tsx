@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { TOP_SECTIONS } from "@/components/top/top-sections";

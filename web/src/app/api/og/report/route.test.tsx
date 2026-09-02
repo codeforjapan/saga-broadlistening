@@ -1,4 +1,4 @@
-import { OG_COLORS } from "@mirai-gikai/design-tokens/brand-meta";
+import { OG_COLORS } from "@mirai-gikai/branding/brand-meta";
 import type { ReactElement, ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";

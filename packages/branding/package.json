@@ -1,5 +1,5 @@
 {
-  "name": "@mirai-gikai/design-tokens",
+  "name": "@mirai-gikai/branding",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -21,6 +21,14 @@
     "./contrast": {
       "types": "./src/contrast.ts",
       "default": "./src/contrast.ts"
+    },
+    "./site": {
+      "types": "./src/site.ts",
+      "default": "./src/site.ts"
+    },
+    "./assets": {
+      "types": "./src/assets.ts",
+      "default": "./src/assets.ts"
     }
   },
   "devDependencies": {

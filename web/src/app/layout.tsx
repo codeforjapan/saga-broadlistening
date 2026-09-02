@@ -2,8 +2,8 @@ import "./globals.css";
 import {
   PROGRESS_BAR_COLOR,
   THEME_COLOR,
-} from "@mirai-gikai/design-tokens/brand-meta";
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+} from "@mirai-gikai/branding/brand-meta";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Zen_Maru_Gothic } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";

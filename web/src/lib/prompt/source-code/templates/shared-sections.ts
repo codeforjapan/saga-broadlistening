@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 
 /**
  * プロンプトテンプレート間で共有されるセクション定義

@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/layouts/container";

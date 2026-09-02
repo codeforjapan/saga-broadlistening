@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { describe, expect, it } from "vitest";
 import { buildBillChatSystemHardPrompt } from "./bill-chat-system-hard";
 

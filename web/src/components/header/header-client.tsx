@@ -1,6 +1,6 @@
 "use client";
 
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { logoImageProps } from "@/lib/logo";
 import Image from "next/image";
 import Link from "next/link";

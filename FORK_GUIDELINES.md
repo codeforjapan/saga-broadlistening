@@ -11,13 +11,14 @@
 - 「みらい議会」の名称を使用する場合は **「みらい議会＠地域名」** の形式にしてください
   - 例: 「みらい議会＠渋谷区」「みらい議会＠福岡市」
 - 独自のサービス名を使用する場合は、この形式に限りません
-- `web/src/app/layout.tsx` の `siteTitle`、`siteName` などを変更してください
+- `packages/branding/src/site.ts` の `SITE_NAME` 等と、`web/src/app/layout.tsx` の説明文を変更してください
 
 ### 2. ロゴの変更
 
 - **チームみらいのロゴは使用しないでください**
 - `web/public/img/logo.svg` および `web/public/img/ogp-logo.png` を独自のロゴに差し替えてください
 - favicon やPWAアイコン（`web/public/icons/`）も独自のものに変更してください
+- チャットのAIアバター等のアセットは環境変数 `NEXT_PUBLIC_BRAND_*` でパスを差し替えられます（`packages/branding/src/assets.ts` 参照。未設定時はデフォルト表示）。`NEXT_PUBLIC_*` はビルド時にインライン化されるため、**ビルド実行時に設定されている必要があります**（ビルド後のランタイム注入では反映されません）。また、指定できるのは `public/` 配下のローカルパス（`/img/...` 等）のみです。外部URLを使う場合は `next.config.ts` の `images.remotePatterns` への追加が必要で、未登録のままだとページがランタイムエラーになります
 
 ### 3. トップ画像の変更
 
@@ -27,12 +28,8 @@
 ### 4. カラーテーマの変更
 
 - **primary カラーをそのまま使用しないでください**
-- `web/src/app/globals.css` の以下の変数を変更してください:
-  - `--primary`（現在: `#2aa693`）
-  - `--primary-accent`（現在: `#0f8472`）
-  - `--mirai-gradient-start`（現在: `#64d8c6`）
-  - `--mirai-gradient-end`（現在: `#bcecd3`）
-- `layout.tsx` の `themeColor` も合わせて変更してください
+- カラーは `packages/branding/src/palette.ts` に集約されています。パレットを変更後、`pnpm --filter @mirai-gikai/branding build:css` で `tokens.css` を再生成してください
+- ブラウザUI・PWAのテーマ色は `packages/branding/src/brand-meta.ts` の `THEME_COLOR` 等を変更してください
 
 ### 5. 免責文言の表示
 
@@ -56,9 +53,11 @@
 
 | 対象 | ファイルパス | 変更内容 |
 |------|------------|----------|
-| サービス名 | `web/src/app/layout.tsx` | `siteTitle`, `siteName`, `description` |
-| テーマカラー | `web/src/app/globals.css` | `--primary`, `--primary-accent` 等 |
-| テーマカラー | `web/src/app/layout.tsx` | `themeColor` |
+| サービス名 | `packages/branding/src/site.ts` | `SITE_NAME`, `SITE_HASHTAG`, `COPYRIGHT_TEXT` |
+| サービス説明文 | `web/src/app/layout.tsx` | `description`, `keywords` |
+| アセットパス差し替え | `.env`（`NEXT_PUBLIC_BRAND_*`） | チャットアバター等のパスを上書き |
+| テーマカラー | `packages/branding/src/palette.ts` | パレット変更後 `build:css` で再生成 |
+| テーマカラー | `packages/branding/src/brand-meta.ts` | `THEME_COLOR` 等 |
 | ロゴ | `web/public/img/logo.svg` | 独自ロゴに差し替え |
 | ロゴ（OGP） | `web/public/img/ogp-logo.png` | 独自ロゴに差し替え |
 | ヒーロー画像 | `web/public/img/hero_background.png` | 独自画像に差し替え |

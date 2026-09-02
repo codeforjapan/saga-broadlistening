@@ -1,4 +1,5 @@
 import type { UIMessage } from "@ai-sdk/react";
+import { CHAT_AVATAR_SRC } from "@mirai-gikai/branding/assets";
 import Image from "next/image";
 import type { ComponentProps, ReactNode } from "react";
 import { useMemo } from "react";
@@ -38,7 +39,7 @@ export function InterviewMessage({
     <div className="flex flex-col gap-1">
       <div className="flex-shrink-0">
         <Image
-          src="/icons/ai-chat.svg"
+          src={CHAT_AVATAR_SRC}
           alt="AI"
           width={36}
           height={36}

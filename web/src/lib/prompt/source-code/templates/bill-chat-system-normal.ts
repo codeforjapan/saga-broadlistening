@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { buildKnowledgeSourceSection } from "./knowledge-source-section";
 import {
   COMMON_RULES,

@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { Home, User } from "lucide-react";
 import type { ReactNode } from "react";
 import { LogoutButton } from "@/features/auth/client/components/logout-button";
