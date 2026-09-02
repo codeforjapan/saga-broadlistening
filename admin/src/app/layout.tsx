@@ -1,5 +1,5 @@
-import { PROGRESS_BAR_COLOR } from "@mirai-gikai/design-tokens/brand-meta";
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { PROGRESS_BAR_COLOR } from "@mirai-gikai/branding/brand-meta";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Metadata } from "next";
 import { Geist_Mono, Noto_Sans_JP, Zen_Maru_Gothic } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";

@@ -17,7 +17,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.1",
     "@ai-sdk/react": "^3.0.3",
-    "@mirai-gikai/design-tokens": "workspace:*",
+    "@mirai-gikai/branding": "workspace:*",
     "@mirai-gikai/shared": "workspace:*",
     "@mirai-gikai/supabase": "workspace:*",
     "@mirai-gikai/topic-analysis-core": "workspace:*",

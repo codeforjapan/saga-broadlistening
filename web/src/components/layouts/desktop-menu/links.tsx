@@ -1,4 +1,4 @@
-import { COPYRIGHT_TEXT } from "@mirai-gikai/shared/site";
+import { COPYRIGHT_TEXT } from "@mirai-gikai/branding/site";
 import type { Route } from "next";
 import Link from "next/link";
 import { routes } from "@/lib/routes";

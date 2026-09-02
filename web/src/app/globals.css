@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@mirai-gikai/design-tokens/tokens.css";
+@import "@mirai-gikai/branding/tokens.css";
 
 /* チャットUIのマークダウン表示用 */
 @source "../../node_modules/streamdown/dist/index.js";
@@ -8,7 +8,7 @@
 @plugin "@tailwindcss/typography";
 
 @theme inline {
-  /* shadcn セマンティックの --color-* エイリアスは design-tokens 側で定義 */
+  /* shadcn セマンティックの --color-* エイリアスは branding 側で定義 */
   --breakpoint-sm: 500px;
   --breakpoint-md: 700px;
   --breakpoint-pc: 1000px;
@@ -25,7 +25,7 @@
 }
 
 :root {
-  /* 色のセマンティック変数は @mirai-gikai/design-tokens/tokens.css で定義 */
+  /* 色のセマンティック変数は @mirai-gikai/branding/tokens.css で定義 */
   --radius: 0.625rem;
 }
 

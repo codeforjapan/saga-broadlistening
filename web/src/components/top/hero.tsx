@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import Image from "next/image";
 import { Container } from "@/components/layouts/container";
 import { TopEntryNav } from "@/components/top/top-entry-nav";

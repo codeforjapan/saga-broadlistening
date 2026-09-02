@@ -1,7 +1,7 @@
 /**
  * `palette.ts` から `tokens.css` を生成する。
  *
- *   pnpm --filter @mirai-gikai/design-tokens build:css
+ *   pnpm --filter @mirai-gikai/branding build:css
  *
  * 生成結果はリポジトリにコミットする（Tailwind から `@import` するため）。
  * `tokens-css.test.ts` がコミット済みCSSと生成結果の一致を検証するので、
@@ -70,8 +70,8 @@ export function renderTokensCss(): string {
  * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
  *
  * このファイルは自動生成です。直接編集しないでください。
- * 値の変更は packages/design-tokens/src/palette.ts を編集し、
- * pnpm --filter @mirai-gikai/design-tokens build:css で再生成します。
+ * 値の変更は packages/branding/src/palette.ts を編集し、
+ * pnpm --filter @mirai-gikai/branding build:css で再生成します。
  */
 
 @theme {

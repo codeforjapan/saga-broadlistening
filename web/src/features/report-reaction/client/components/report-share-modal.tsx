@@ -1,6 +1,6 @@
 "use client";
 
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import Image from "next/image";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { Button } from "@/components/ui/button";

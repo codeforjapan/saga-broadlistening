@@ -1,6 +1,6 @@
 "use client";
 
-import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/shared/site";
+import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/branding/site";
 import { logoImageProps } from "@/lib/logo";
 import type { Route } from "next";
 import Image from "next/image";

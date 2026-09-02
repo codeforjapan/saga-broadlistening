@@ -1,10 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@mirai-gikai/design-tokens/tokens.css";
+@import "@mirai-gikai/branding/tokens.css";
 @plugin "@tailwindcss/typography";
 
 @theme inline {
-  /* shadcn セマンティックの --color-* エイリアスは design-tokens 側で定義 */
+  /* shadcn セマンティックの --color-* エイリアスは branding 側で定義 */
   --font-mono: var(--font-geist-mono);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -13,7 +13,7 @@
 }
 
 :root {
-  /* 色のセマンティック変数は @mirai-gikai/design-tokens/tokens.css で定義 */
+  /* 色のセマンティック変数は @mirai-gikai/branding/tokens.css で定義 */
   --radius: 0.625rem;
 }
 

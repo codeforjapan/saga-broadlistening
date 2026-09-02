@@ -1,7 +1,7 @@
 /**
  * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
  *
- * ここが色の唯一の出所。`tokens.css` は `pnpm --filter @mirai-gikai/design-tokens build:css`
+ * ここが色の唯一の出所。`tokens.css` は `pnpm --filter @mirai-gikai/branding build:css`
  * で本ファイルから生成する（`tokens-css.test.ts` が同期を検証する）。
  *
  * 値の根拠は Epic #8 の要求仕様3章。すべて `#FFFFFF` 背景上での使用を前提とする。
