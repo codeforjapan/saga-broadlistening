@@ -26,15 +26,10 @@ export function getTopicDetailLink(
   return routes.billTopicDetail(target.policyId, topicId);
 }
 
-/**
- * 回答一覧ページへのリンクを取得する。
- *
- * 抽象テーマ型にはテーマ配下の回答一覧ページがまだ無いため null を返す
- * （呼び出し側は回答件数ピルを出さない）。
- */
-export function getOpinionsLink(target: InterviewTarget): string | null {
+/** AIインタビュー回答一覧ページへのリンクを取得する。 */
+export function getOpinionsLink(target: InterviewTarget): string {
   if (target.kind === "theme") {
-    return null;
+    return routes.interviewThemeOpinions(target.slug);
   }
   return routes.billOpinions(target.policyId);
 }

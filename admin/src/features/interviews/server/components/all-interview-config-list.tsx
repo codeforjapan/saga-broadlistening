@@ -1,4 +1,4 @@
-import { BarChart3, Sparkles } from "lucide-react";
+import { BarChart3, MessagesSquare, Sparkles } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +65,42 @@ export function AllInterviewConfigList({
   );
 }
 
+/**
+ * 行から開ける画面へのリンク。
+ * レポート・審議用トピック解析は施策配下の画面しかないため施策があるときだけ、
+ * ユーザー向けトピック分析はテーマ単位なので常に出す。
+ */
+function ConfigActionLinks({ config }: { config: InterviewConfigWithBill }) {
+  const bill = config.bill;
+
+  return (
+    <div className="flex items-center gap-1">
+      {bill && (
+        <>
+          <Button asChild variant="ghost" size="sm" className="gap-1">
+            <Link href={routes.billReports(bill.id, config.id) as Route}>
+              <BarChart3 className="h-4 w-4" />
+              レポート
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="gap-1">
+            <Link href={routes.billTopicAnalysis(bill.id, config.id) as Route}>
+              <Sparkles className="h-4 w-4" />
+              トピック解析
+            </Link>
+          </Button>
+        </>
+      )}
+      <Button asChild variant="ghost" size="sm" className="gap-1">
+        <Link href={routes.interviewUserTopicAnalysis(config.id) as Route}>
+          <MessagesSquare className="h-4 w-4" />
+          ユーザー向け分析
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
 function ConfigRow({
   config,
   sessionCount,
@@ -73,7 +109,6 @@ function ConfigRow({
   sessionCount: number | null;
 }) {
   // 施策が紐づいていない意見募集（抽象テーマ型）は施策配下のリンクを出せない。
-  // レポート・トピック解析は施策配下の画面しかないため、その列だけ省く
   const bill = config.bill;
 
   return (
@@ -119,26 +154,7 @@ function ConfigRow({
         {new Date(config.created_at).toLocaleDateString("ja-JP")}
       </TableCell>
       <TableCell>
-        {bill ? (
-          <div className="flex items-center gap-1">
-            <Button asChild variant="ghost" size="sm" className="gap-1">
-              <Link href={routes.billReports(bill.id, config.id) as Route}>
-                <BarChart3 className="h-4 w-4" />
-                レポート
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="gap-1">
-              <Link
-                href={routes.billTopicAnalysis(bill.id, config.id) as Route}
-              >
-                <Sparkles className="h-4 w-4" />
-                トピック解析
-              </Link>
-            </Button>
-          </div>
-        ) : (
-          <span className="text-gray-500">-</span>
-        )}
+        <ConfigActionLinks config={config} />
       </TableCell>
     </TableRow>
   );

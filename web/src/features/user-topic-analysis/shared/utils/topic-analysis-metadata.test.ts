@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildOpinionsMetadata,
   buildTopicDetailMetadata,
   buildTopicListMetadata,
 } from "./topic-analysis-metadata";
@@ -77,5 +78,22 @@ describe("buildTopicDetailMetadata", () => {
     expect(metadata.description).toBe(
       "子育て支援策に寄せられた意見トピックの詳細"
     );
+  });
+});
+
+describe("buildOpinionsMetadata", () => {
+  it("対象名をタイトルと説明に入れる", () => {
+    const metadata = buildOpinionsMetadata({
+      subjectName: "まちの未来について",
+      canonical: "/interviews/machi/opinions",
+    });
+
+    expect(metadata.title).toBe(
+      "AIインタビューの回答一覧 - まちの未来について"
+    );
+    expect(metadata.description).toBe(
+      "まちの未来についてに寄せられたAIインタビューの回答一覧"
+    );
+    expect(metadata.alternates?.canonical).toBe("/interviews/machi/opinions");
   });
 });

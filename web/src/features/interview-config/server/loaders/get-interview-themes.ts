@@ -5,45 +5,41 @@ import { CACHE_TAGS } from "@/lib/cache-tags";
 import type { InterviewTheme } from "../../shared/types/interview-theme";
 import {
   buildInterviewThemes,
-  type InterviewThemeRow,
+  type InterviewConfigListRow,
+  toInterviewThemeRows,
 } from "../../shared/utils/interview-theme";
-import { isPublishedPolicy } from "../../shared/utils/interview-visibility";
-import { findOpenInterviewConfigs } from "../repositories/interview-config-repository";
+import {
+  findClosedInterviewConfigsWithPublishedAnalysis,
+  findOpenInterviewConfigs,
+} from "../repositories/interview-config-repository";
+
+/** 取得結果をカード表示用に整える（募集中・募集終了で共通）。 */
+function buildThemes(configs: InterviewConfigListRow[]): InterviewTheme[] {
+  return buildInterviewThemes(toInterviewThemeRows(configs));
+}
 
 /**
  * 募集中のAIインタビューのテーマ一覧を取得する。
  * トップページのテーマセクションとテーマ一覧ページで使う。
  */
 export const getInterviewThemes = unstable_cache(
-  async (): Promise<InterviewTheme[]> => {
-    const configs = await findOpenInterviewConfigs();
-
-    const rows: InterviewThemeRow[] = configs.map((config) => ({
-      id: config.id,
-      slug: config.slug,
-      name: config.name,
-      description: config.description,
-      estimatedDuration: config.estimated_duration,
-      thumbnailUrl: config.thumbnail_url,
-      createdAt: config.created_at,
-      participantCount: config.interview_sessions[0]?.count ?? 0,
-      // 公開済みかどうかの判定は他の導線と同じ規則に揃える
-      policies: config.policies_interview_configs.flatMap((link) =>
-        link.policies
-          ? [
-              {
-                isPublished: isPublishedPolicy(link.policies.publish_status),
-                thumbnailUrl: link.policies.thumbnail_url,
-                tagLabel: link.policies.policies_tags[0]?.tags?.label ?? null,
-              },
-            ]
-          : []
-      ),
-    }));
-
-    return buildInterviewThemes(rows);
-  },
+  async (): Promise<InterviewTheme[]> =>
+    buildThemes(await findOpenInterviewConfigs()),
   ["interview-themes"],
+  {
+    revalidate: 600, // 10分（600秒）
+    tags: [CACHE_TAGS.INTERVIEW_CONFIGS, CACHE_TAGS.BILLS],
+  }
+);
+
+/**
+ * 募集が終わったテーマのうち、公開中のトピック分析があるものを取得する。
+ * テーマ一覧ページの「募集終了したテーマ」セクションで使う（結果だけ読める導線）。
+ */
+export const getClosedInterviewThemes = unstable_cache(
+  async (): Promise<InterviewTheme[]> =>
+    buildThemes(await findClosedInterviewConfigsWithPublishedAnalysis()),
+  ["closed-interview-themes"],
   {
     revalidate: 600, // 10分（600秒）
     tags: [CACHE_TAGS.INTERVIEW_CONFIGS, CACHE_TAGS.BILLS],

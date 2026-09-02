@@ -1,6 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { routes } from "@/lib/routes";
+import { getPublicReportLink } from "@/features/interview-config/shared/utils/interview-links";
 import type { PublicRespondent } from "../types";
 import { formatOpinionDate } from "../utils/format-opinion-date";
 import {
@@ -29,7 +29,7 @@ export function RespondentCard({ respondent, now }: RespondentCardProps) {
 
   return (
     <Link
-      href={routes.publicReport(respondent.id) as Route}
+      href={getPublicReportLink(respondent.id, "opinions") as Route}
       prefetch={false}
       className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-sm transition-colors hover:bg-muted"
     >

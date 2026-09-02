@@ -3,6 +3,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { routes } from "@/lib/routes";
 import {
+  getReportOpinionsLink,
   getReportOriginLink,
   type ReportOrigin,
 } from "../utils/public-report-display";
@@ -17,18 +18,18 @@ interface BackToBillButtonProps {
 /**
  * 意見の読み終わりに置く戻り導線の遷移先を決める。
  *
- * 施策に紐づく意見は施策（またはその意見一覧）へ、施策を持たない抽象テーマ型は
+ * 回答一覧から来た場合（from = "opinions"）は、その一覧に戻す。
+ * それ以外は施策に紐づく意見なら施策へ、施策を持たない抽象テーマ型は
  * そのテーマのページへ戻す。ヘッダーのリンクと同じ場所を指すよう、
  * 遷移先は getReportOriginLink に揃える。
  */
 function resolveDestination({ origin, from }: BackToBillButtonProps) {
+  if (from === "opinions") {
+    return { href: getReportOpinionsLink(origin), label: "レポート一覧に戻る" };
+  }
+
   if (origin.policyId) {
-    return from === "opinions"
-      ? {
-          href: routes.billOpinions(origin.policyId),
-          label: "レポート一覧に戻る",
-        }
-      : { href: getReportOriginLink(origin), label: "施策の記事に戻る" };
+    return { href: getReportOriginLink(origin), label: "施策の記事に戻る" };
   }
 
   return {

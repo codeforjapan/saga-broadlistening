@@ -36,6 +36,8 @@ export const routes = {
   interviewThemeDisclosure: (slug: string) =>
     `/interviews/${slug}/disclosure` as const,
   interviewThemeChat: (slug: string) => `/interviews/${slug}/chat` as const,
+  interviewThemeOpinions: (slug: string) =>
+    `/interviews/${slug}/opinions` as const,
   interviewThemeTopics: (slug: string) => `/interviews/${slug}/topics` as const,
   interviewThemeTopicDetail: (slug: string, topicId: string) =>
     `/interviews/${slug}/topics/${topicId}` as const,

@@ -5,7 +5,7 @@ import {
   getLeafTopicsWithOpinions,
   listVersionsByInterviewConfig,
 } from "@mirai-gikai/topic-analysis-core/repository";
-import { findInterviewConfigsByPolicyId } from "@/features/interview-config/server/repositories/interview-config-repository";
+import { notFound } from "next/navigation";
 import { DeleteTopicButton } from "../../client/components/delete-topic-button";
 import { PublishToggleButton } from "../../client/components/publish-toggle-button";
 import { RunAnalysisButton } from "../../client/components/run-analysis-button";
@@ -17,29 +17,29 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "失敗",
 };
 
-export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
-  // Epic #54 でトピック分析の単位は施策から意見募集（テーマ）に移った。
-  // このページのURLは施策IDのままなので、紐づくテーマの先頭1件を対象にする。
-  const configs = await findInterviewConfigsByPolicyId(billId);
-  const interviewConfigId = configs[0]?.id;
-
-  if (!interviewConfigId) {
-    return (
-      <div className="container mx-auto py-8">
-        <h1 className="mb-1 text-2xl font-bold">ユーザー向けトピック分析</h1>
-        <p className="text-sm text-gray-600">
-          この施策に紐づく意見募集がありません。
-        </p>
-      </div>
-    );
-  }
-
+/**
+ * ユーザー向けトピック分析の実行・公開画面。
+ *
+ * 分析は意見募集（テーマ）単位なので、施策配下（/bills/[id]/user-topic-analysis）と
+ * テーマ配下（/interviews/[configId]/user-topic-analysis）の両方から同じ画面を出す。
+ * 施策IDからテーマを解決するのは施策配下のページ側の責務。
+ */
+export async function UserTopicAnalysisPage({
+  interviewConfigId,
+}: {
+  interviewConfigId: string;
+}) {
   // 見出しに出すのはテーマ名だけなので、紐づく施策本文まで引く
   // fetchInterviewConfigContext は使わない。
   const [configName, versions] = await Promise.all([
     findInterviewConfigNameById(interviewConfigId),
     listVersionsByInterviewConfig(interviewConfigId),
   ]);
+
+  // 存在しないテーマのURLを直接叩かれた場合（名前が引けない）は404にする。
+  if (configName === null) {
+    notFound();
+  }
 
   const latestCompleted = versions.find((v) => v.status === "completed");
   // 大トピックは意見を直接持たないので、階層UIを持たないこの画面では葉だけを出す。
@@ -57,7 +57,7 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
   return (
     <div className="container mx-auto py-8">
       <h1 className="mb-1 text-2xl font-bold">ユーザー向けトピック分析</h1>
-      <p className="mb-1 text-sm text-gray-600">テーマ: {configName ?? "-"}</p>
+      <p className="mb-1 text-sm text-gray-600">テーマ: {configName}</p>
       <p className="mb-6 text-sm text-gray-500">
         公開に同意された意見（モデレーションOK）のみを対象に、論点（トピック）を抽出・分類します。
       </p>
@@ -111,7 +111,7 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
                         )}
                         <PublishToggleButton
                           versionId={v.id}
-                          billId={billId}
+                          interviewConfigId={interviewConfigId}
                           isPublished={v.is_published}
                         />
                       </div>
@@ -153,7 +153,7 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
                         <DeleteTopicButton
                           topicId={topic.id}
                           versionId={latestCompleted.id}
-                          billId={billId}
+                          interviewConfigId={interviewConfigId}
                           title={topic.title}
                         />
                       </div>

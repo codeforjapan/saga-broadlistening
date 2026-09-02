@@ -133,6 +133,41 @@ export async function findInterviewConfigWithPoliciesById(configId: string) {
     .maybeSingle();
 }
 
+/** テーマ一覧のカードに出す列（参加人数・施策の画像とタグまで1本で引く） */
+const CONFIG_LIST_SELECT = `
+  id,
+  slug,
+  name,
+  description,
+  estimated_duration,
+  thumbnail_url,
+  created_at,
+  interview_sessions (
+    count
+  ),
+  policies_interview_configs (
+    policies (
+      publish_status,
+      thumbnail_url,
+      policies_tags (
+        tags (
+          label
+        )
+      )
+    )
+  )
+`;
+
+/**
+ * 「募集終了したテーマ」に出す件数の上限。
+ * 終了テーマは増え続けるため、新しいものから一定数で打ち切る。
+ */
+const CLOSED_CONFIG_LIST_LIMIT = 30;
+
+/** カードに出す代表タグは施策ごとに1件だけなので、転送量を増やさない。 */
+const PRIMARY_TAG_TABLE =
+  "policies_interview_configs.policies.policies_tags" as const;
+
 /**
  * 募集中（open）のテーマを、紐づく施策の表示用情報つきで全件取得する。
  *
@@ -146,42 +181,42 @@ export async function findOpenInterviewConfigs() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_configs")
-    .select(
-      `
-      id,
-      slug,
-      name,
-      description,
-      estimated_duration,
-      thumbnail_url,
-      created_at,
-      interview_sessions (
-        count
-      ),
-      policies_interview_configs (
-        policies (
-          publish_status,
-          thumbnail_url,
-          policies_tags (
-            tags (
-              label
-            )
-          )
-        )
-      )
-    `
-    )
+    .select(CONFIG_LIST_SELECT)
     .eq("status", "open")
-    // カードに出す代表タグは施策ごとに1件だけなので、転送量を増やさない
-    .order("created_at", {
-      referencedTable: "policies_interview_configs.policies.policies_tags",
-    })
-    .limit(1, {
-      referencedTable: "policies_interview_configs.policies.policies_tags",
-    });
+    .order("created_at", { referencedTable: PRIMARY_TAG_TABLE })
+    .limit(1, { referencedTable: PRIMARY_TAG_TABLE });
 
   if (error) {
     throw new Error(`Failed to fetch open interview configs: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * 募集が終わった（closed）テーマのうち、公開中のトピック分析があるものを取得する。
+ *
+ * 募集終了テーマは参加できないため、一覧に出す意味があるのは結果を読めるものだけ。
+ * `topic_analysis_version` を inner join + is_published で絞ることで、
+ * 「公開済みの分析があるか」を1本のクエリで判定する
+ * （one_published_per_interview_config の部分ユニークインデックスに当たる）。
+ */
+export async function findClosedInterviewConfigsWithPublishedAnalysis() {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("interview_configs")
+    .select(`${CONFIG_LIST_SELECT}, topic_analysis_version!inner (id)`)
+    .eq("status", "closed")
+    .eq("topic_analysis_version.is_published", true)
+    .order("created_at", { ascending: false })
+    .limit(CLOSED_CONFIG_LIST_LIMIT)
+    .order("created_at", { referencedTable: PRIMARY_TAG_TABLE })
+    .limit(1, { referencedTable: PRIMARY_TAG_TABLE });
+
+  if (error) {
+    throw new Error(
+      `Failed to fetch closed interview configs: ${error.message}`
+    );
   }
 
   return data;

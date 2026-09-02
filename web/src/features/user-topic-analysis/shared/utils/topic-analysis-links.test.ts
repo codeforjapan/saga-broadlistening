@@ -50,7 +50,9 @@ describe("getOpinionsLink", () => {
     );
   });
 
-  it("抽象テーマ型は回答一覧ページが無いため null", () => {
-    expect(getOpinionsLink(themeInterviewTarget("theme-slug"))).toBeNull();
+  it("抽象テーマ型はテーマ配下の回答一覧を指す", () => {
+    expect(getOpinionsLink(themeInterviewTarget("theme-slug"))).toBe(
+      "/interviews/theme-slug/opinions"
+    );
   });
 });

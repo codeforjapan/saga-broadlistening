@@ -16,8 +16,8 @@ const AVATAR_CLASSES = [
 
 interface InterviewCountPillProps {
   count: number;
-  /** 回答一覧ページへのリンク。null（一覧ページが無い導線）なら何も描画しない。 */
-  href: string | null;
+  /** 回答一覧ページへのリンク。 */
+  href: string;
 }
 
 /**
@@ -27,7 +27,7 @@ interface InterviewCountPillProps {
  * リンクごと出さない（判断をここに集約し、呼び出し側では条件を持たない）。
  */
 export function InterviewCountPill({ count, href }: InterviewCountPillProps) {
-  if (!href || !shouldDisplayPublicReports(count)) {
+  if (!shouldDisplayPublicReports(count)) {
     return null;
   }
 

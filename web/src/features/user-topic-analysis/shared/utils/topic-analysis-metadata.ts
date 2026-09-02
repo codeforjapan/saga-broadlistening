@@ -81,3 +81,18 @@ export function buildTopicDetailMetadata({
     ...buildShareMetadata(title, description, shareImageUrl, "article"),
   };
 }
+
+/**
+ * AIインタビュー回答一覧ページのメタデータ。
+ * シェア画像は持たない（一覧そのものはシェア対象にしていない）。
+ */
+export function buildOpinionsMetadata({
+  subjectName,
+  canonical,
+}: Pick<TopicPageMetadataInput, "subjectName" | "canonical">): Metadata {
+  return {
+    title: `AIインタビューの回答一覧 - ${subjectName}`,
+    description: `${subjectName}に寄せられたAIインタビューの回答一覧`,
+    alternates: { canonical },
+  };
+}

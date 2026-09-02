@@ -8,11 +8,11 @@ import { setVersionPublishedAction } from "../../server/actions/publish-actions"
 /** completed version を公開／非公開に切り替えるボタン（§7・Admin 手動操作）。 */
 export function PublishToggleButton({
   versionId,
-  billId,
+  interviewConfigId,
   isPublished,
 }: {
   versionId: string;
-  billId: string;
+  interviewConfigId: string;
   isPublished: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -27,7 +27,7 @@ export function PublishToggleButton({
         startTransition(async () => {
           await setVersionPublishedAction({
             versionId,
-            billId,
+            interviewConfigId,
             published: !isPublished,
           });
         })
