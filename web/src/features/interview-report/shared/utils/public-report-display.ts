@@ -2,17 +2,21 @@ import {
   isPublicReportVisible,
   type OpinionReviewStatus,
 } from "@mirai-gikai/shared/report-publication/auto-publish";
-import { themeInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import {
+  type InterviewTarget,
+  policyInterviewTarget,
+  themeInterviewTarget,
+} from "@/features/interview-config/shared/types/interview-target";
 import {
   getBillDetailLink,
-  getInterviewLPLink,
+  getThemeHomeLink,
 } from "@/features/interview-config/shared/utils/interview-links";
 import {
   type LinkedPolicyRow,
   selectPrimaryPolicyId,
   toLinkedPolicies,
 } from "@/features/interview-config/shared/utils/interview-visibility";
-import { routes } from "@/lib/routes";
+import { getOpinionsLink } from "@/features/user-topic-analysis/shared/utils/topic-analysis-links";
 
 /** 公開意見一覧のカード1件（取得した行をそのまま表示に使う）。 */
 export type PublicInterviewReport = {
@@ -147,9 +151,25 @@ export function getReportOriginLink(origin: ReportOrigin): string {
     return getBillDetailLink(origin.policyId);
   }
 
-  return origin.theme.isOpen
-    ? getInterviewLPLink(themeInterviewTarget(origin.theme.slug))
-    : routes.interviews();
+  return getThemeHomeLink(origin.theme);
+}
+
+/**
+ * 意見の起点を、リンク組み立て用の InterviewTarget に変換する。
+ * 施策に紐づく意見は施策、施策を持たない抽象テーマ型はテーマが起点になる。
+ */
+export function getReportOriginTarget(origin: ReportOrigin): InterviewTarget {
+  return origin.policyId
+    ? policyInterviewTarget(origin.policyId)
+    : themeInterviewTarget(origin.theme.slug);
+}
+
+/**
+ * 意見が並んでいた回答一覧へのリンク。
+ * 施策配下・テーマ配下の出し分けは getOpinionsLink に委ねる。
+ */
+export function getReportOpinionsLink(origin: ReportOrigin): string {
+  return getOpinionsLink(getReportOriginTarget(origin));
 }
 
 /**

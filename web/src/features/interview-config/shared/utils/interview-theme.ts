@@ -1,5 +1,6 @@
 import type { InterviewTheme } from "../types/interview-theme";
-import { isInterviewVisible } from "./interview-visibility";
+import { getThemeCardLink } from "./interview-links";
+import { isInterviewVisible, isPublishedPolicy } from "./interview-visibility";
 
 /** テーマにも施策にも画像がないときに使う既定の画像 */
 export const DEFAULT_INTERVIEW_THUMBNAIL =
@@ -24,6 +25,56 @@ export type InterviewThemeRow = {
   }[];
 };
 
+/** テーマ一覧の取得結果1行（PostgREST の埋め込み結果そのまま） */
+export type InterviewConfigListRow = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  estimated_duration: number | null;
+  thumbnail_url: string | null;
+  created_at: string;
+  interview_sessions: { count: number }[];
+  policies_interview_configs: {
+    policies: {
+      publish_status: string;
+      thumbnail_url: string | null;
+      policies_tags: { tags: { label: string } | null }[];
+    } | null;
+  }[];
+};
+
+/**
+ * 取得結果をカード表示用の行に整える。
+ * 施策は画像・カテゴリのフォールバック元と公開判定にだけ使うので、
+ * 公開済みかどうかの判定は他の導線と同じ規則（isPublishedPolicy）に揃える。
+ */
+export function toInterviewThemeRows(
+  configs: InterviewConfigListRow[]
+): InterviewThemeRow[] {
+  return configs.map((config) => ({
+    id: config.id,
+    slug: config.slug,
+    name: config.name,
+    description: config.description,
+    estimatedDuration: config.estimated_duration,
+    thumbnailUrl: config.thumbnail_url,
+    createdAt: config.created_at,
+    participantCount: config.interview_sessions[0]?.count ?? 0,
+    policies: config.policies_interview_configs.flatMap((link) =>
+      link.policies
+        ? [
+            {
+              isPublished: isPublishedPolicy(link.policies.publish_status),
+              thumbnailUrl: link.policies.thumbnail_url,
+              tagLabel: link.policies.policies_tags[0]?.tags?.label ?? null,
+            },
+          ]
+        : []
+    ),
+  }));
+}
+
 /** 文字列の降順比較。同値なら 0 */
 function descending(a: string, b: string): number {
   if (a === b) {
@@ -46,7 +97,7 @@ export function resolveInterviewThumbnail(
 }
 
 /**
- * 募集中のテーマ行から、一覧に出すテーマを組み立てる。
+ * テーマ行から、一覧に出すテーマを組み立てる（募集中・募集終了で共通）。
  *
  * 画像とカテゴリは「テーマ自身 → 公開済み施策 → 既定」の順にフォールバックする。
  * 並び順はテーマの作成日時の新しい順、同値ならID降順。
@@ -79,6 +130,30 @@ export function buildInterviewThemes(
           publishedPolicies.find((policy) => policy.tagLabel)?.tagLabel ?? null,
       };
     });
+}
+
+/** テーマカードの用途。参加してもらうか、結果を読ませるか。 */
+export type InterviewThemeCardPurpose = "participate" | "results";
+
+/** テーマカードの遷移先とCTAラベル。 */
+export type InterviewThemeCardAction = {
+  href: string;
+  ctaLabel: string;
+};
+
+/**
+ * テーマカードの遷移先とCTAラベルを決める。
+ * 遷移先の判断は getThemeCardLink に委ね、ここでは文言だけを決める。
+ */
+export function buildInterviewThemeCardAction(
+  slug: string,
+  purpose: InterviewThemeCardPurpose
+): InterviewThemeCardAction {
+  const isOpen = purpose === "participate";
+  return {
+    href: getThemeCardLink({ slug, isOpen }),
+    ctaLabel: isOpen ? "はじめる" : "結果を見る",
+  };
 }
 
 /**

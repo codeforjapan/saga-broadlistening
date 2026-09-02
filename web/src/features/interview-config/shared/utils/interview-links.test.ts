@@ -15,6 +15,8 @@ import {
   getInterviewMessageLink,
   getInterviewReportCompleteLink,
   getPublicReportLink,
+  getThemeCardLink,
+  getThemeHomeLink,
 } from "./interview-links";
 
 describe("getBillDetailLink", () => {
@@ -105,6 +107,34 @@ describe("getInterviewExitLink", () => {
   it("returns the theme list for a theme target because it has no bill page", () => {
     expect(getInterviewExitLink(themeInterviewTarget("saga-no-mirai"))).toBe(
       "/interviews"
+    );
+  });
+});
+
+describe("getThemeHomeLink", () => {
+  it("募集中のテーマはテーマのページを指す", () => {
+    expect(getThemeHomeLink({ slug: "saga-no-mirai", isOpen: true })).toBe(
+      "/interviews/saga-no-mirai"
+    );
+  });
+
+  it("募集が終わったテーマは個別ページが無いためテーマ一覧を指す", () => {
+    expect(getThemeHomeLink({ slug: "saga-no-mirai", isOpen: false })).toBe(
+      "/interviews"
+    );
+  });
+});
+
+describe("getThemeCardLink", () => {
+  it("募集中のテーマは参加導線（テーマのLP）へ送る", () => {
+    expect(getThemeCardLink({ slug: "kosodate", isOpen: true })).toBe(
+      "/interviews/kosodate"
+    );
+  });
+
+  it("募集終了のテーマはLPが無いため結果（トピック一覧）へ送る", () => {
+    expect(getThemeCardLink({ slug: "kosodate", isOpen: false })).toBe(
+      "/interviews/kosodate/topics"
     );
   });
 });
