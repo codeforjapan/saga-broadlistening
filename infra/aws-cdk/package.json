@@ -7,13 +7,10 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "synth:dev": "cdk synth --context env=dev",
-    "synth:stg": "cdk synth --context env=stg",
     "synth:prd": "cdk synth --context env=prd",
     "diff:dev": "cdk diff --context env=dev",
-    "diff:stg": "cdk diff --context env=stg",
     "diff:prd": "cdk diff --context env=prd",
     "deploy:dev": "cdk deploy --all --context env=dev",
-    "deploy:stg": "cdk deploy --all --context env=stg",
     "deploy:prd": "cdk deploy --all --context env=prd"
   },
   "dependencies": {

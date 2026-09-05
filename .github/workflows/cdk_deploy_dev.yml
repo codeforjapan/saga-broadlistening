@@ -1,0 +1,29 @@
+name: CDK Deploy [dev]
+
+# develop へのマージ（push）で infra/aws-cdk に変更があるとき、dev環境へ cdk deploy する。
+# develop環境（staging）はAWSアカウントをdev環境（826784631888）と共用しているため、
+# 独立したstg環境は作らず、既存のdevスタックにそのままデプロイする。
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "infra/aws-cdk/**"
+      - ".github/workflows/cdk_deploy_dev.yml"
+      - ".github/workflows/_cdk_deploy.yml"
+
+concurrency:
+  group: cdk-deploy-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  cdk-deploy:
+    uses: ./.github/workflows/_cdk_deploy.yml
+    with:
+      environment: staging
+      context_env: dev
+    secrets:
+      role_arn: ${{ secrets.AWS_CDK_DEV_DEPLOY_ROLE_ARN }}
