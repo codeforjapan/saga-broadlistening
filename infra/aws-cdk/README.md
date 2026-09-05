@@ -135,10 +135,14 @@ AWS_PROFILE=<devアカウント用プロファイル> npx cdk deploy MiraiGikaiG
 
 ### 2. GitHub側の設定
 
-- `production` EnvironmentのSecretに `AWS_CDK_PRD_DEPLOY_ROLE_ARN` を追加し、
+各Environmentの同名Secret `AWS_CDK_DEPLOY_ROLE_ARN` に、その環境用のRole ARNを設定する
+（Environment Secretは環境ごとにスコープされるため、同じキー名を複数のEnvironmentで
+使い回せる。ワークフロー側は`environment:`の切り替えだけで対象を変えられる）。
+
+- `production` EnvironmentのSecret `AWS_CDK_DEPLOY_ROLE_ARN` に
   `arn:aws:iam::085350497655:role/MiraiGikaiGitHubActionsDeployRole-prd` を設定する
   （承認ゲートは設けない方針のため、protection ruleは追加不要）。
-- 既存の `staging` EnvironmentのSecretに `AWS_CDK_DEV_DEPLOY_ROLE_ARN` を追加し、
+- `staging` EnvironmentのSecret `AWS_CDK_DEPLOY_ROLE_ARN` に
   `arn:aws:iam::826784631888:role/MiraiGikaiGitHubActionsDeployRole-dev` を設定する。
   （このSecretが未設定の間は `cdk_deploy_dev.yml` / `cdk_diff_dev.yml` はgreen skipになります）
 

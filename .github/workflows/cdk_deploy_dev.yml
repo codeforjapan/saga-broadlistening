@@ -26,4 +26,4 @@ jobs:
       environment: staging
       context_env: dev
     secrets:
-      role_arn: ${{ secrets.AWS_CDK_DEV_DEPLOY_ROLE_ARN }}
+      role_arn: ${{ secrets.AWS_CDK_DEPLOY_ROLE_ARN }}
