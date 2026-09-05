@@ -146,13 +146,19 @@ AWS_PROFILE=<devアカウント用プロファイル> npx cdk deploy MiraiGikaiG
   `arn:aws:iam::826784631888:role/MiraiGikaiGitHubActionsDeployRole-dev` を設定する。
   （このSecretが未設定の間は `cdk_deploy_dev.yml` / `cdk_diff_dev.yml` はgreen skipになります）
 
-### worker イメージのCI（`.github/workflows/deploy_worker_ecs.yml`）
+### worker イメージのCI（`deploy_worker_ecs.yml` / `deploy_worker_ecs_dev.yml`）
 
-`worker/` 配下（および依存パッケージ）の変更が main にマージされると、
-`MiraiGikaiGitHubActionsDeployRole-prd` を使ってprd用ECRリポジトリへ
-`mirai-gikai-topic-analysis-worker-prd:latest` / `:<sha>` をpushする
-（タスク定義は常に`:latest`を参照するため、pushするだけで次回起動から反映される）。
-develop環境向けの同等ワークフローは未対応（手動で`docker push`するか、上記手順1を参照）。
+`worker/` 配下（および依存パッケージ）の変更がmain/developにマージされると、
+`_deploy_worker_ecs.yml`（reusable workflow）が対応する環境のECRリポジトリへ
+`:latest` / `:<sha>` をpushする（タスク定義は常に`:latest`を参照するため、
+pushするだけで次回起動から反映される）。
+
+- `deploy_worker_ecs.yml`: mainへのpush → `production` Environment →
+  `mirai-gikai-topic-analysis-worker-prd`
+- `deploy_worker_ecs_dev.yml`: developへのpush → `staging` Environment →
+  `mirai-gikai-topic-analysis-worker-dev`
+
+いずれも`AWS_CDK_DEPLOY_ROLE_ARN`が未設定の間はgreen skipになる。
 
 ## 現状のスコープ
 
@@ -194,7 +200,7 @@ develop環境向けの同等ワークフローは未対応（手動で`docker pu
      -t <account>.dkr.ecr.ap-northeast-1.amazonaws.com/mirai-gikai-topic-analysis-worker-<env>:latest .
    docker push <account>.dkr.ecr.ap-northeast-1.amazonaws.com/mirai-gikai-topic-analysis-worker-<env>:latest
    ```
-   以降は `.github/workflows/deploy_worker_ecs.yml`（mainブランチ・prd環境のみ）が
+   以降は `deploy_worker_ecs.yml`（main/prd）・`deploy_worker_ecs_dev.yml`（develop/dev）が
    `worker/` 配下の変更を検知して自動push する。
 3. **手動でジョブを実行して動作確認する**（Batchなのでsubnet/SGの指定は不要）:
    ```bash
