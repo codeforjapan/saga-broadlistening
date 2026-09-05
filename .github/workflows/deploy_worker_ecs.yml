@@ -4,9 +4,8 @@ name: Deploy Topic Analysis Worker (ECR)
 # イメージをビルドしてECRにpushする（#48 / #66）。Batch Job Definitionは常に:latestタグを
 # 参照するため、pushするだけで次回のSubmitJobから新しいイメージが使われる。
 #
-# 現状はprd環境のみ対象（MiraiGikaiGitHubActionsDeployRole-prdの信頼条件がmain限定のため）。
-# dev/stg環境への自動pushは未対応。infra/aws-cdk/README.mdの手順で手動push、または
-# 対象環境のOIDCロールの信頼条件を拡張してから同様のjobを追加すること。
+# 現状はprd環境のみ対象。dev環境（developブランチ）への自動pushは未対応。
+# infra/aws-cdk/README.mdの手順で手動push、またはdev用の同様のjobを追加すること。
 on:
   push:
     branches: [main]

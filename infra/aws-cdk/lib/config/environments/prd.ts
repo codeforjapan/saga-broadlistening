@@ -7,4 +7,6 @@ export const prdConfig: EnvConfig = {
   bedrockModelId: "jp.anthropic.claude-sonnet-4-6",
   // AWS Batch側の定期実行を有効化（GCP Cloud Schedulerからの移行に伴う）。
   topicAnalysisSchedulerEnabled: true,
+  trustedBranch: "main",
+  trustedGithubEnvironment: "production",
 };

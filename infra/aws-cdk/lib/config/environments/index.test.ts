@@ -8,10 +8,8 @@ describe("resolveEnvConfig", () => {
     expect(config.envName).toBe("dev");
     expect(config.account).toBe("826784631888");
     expect(config.region).toBe("ap-northeast-1");
-  });
-
-  it("stg環境はAWSアカウントが未設定のためエラーを投げる", () => {
-    expect(() => resolveEnvConfig("stg")).toThrow(/not configured/);
+    expect(config.trustedBranch).toBe("develop");
+    expect(config.trustedGithubEnvironment).toBe("staging");
   });
 
   it("prd環境の設定を返す", () => {
@@ -20,6 +18,8 @@ describe("resolveEnvConfig", () => {
     expect(config.envName).toBe("prd");
     expect(config.account).toBe("085350497655");
     expect(config.region).toBe("ap-northeast-1");
+    expect(config.trustedBranch).toBe("main");
+    expect(config.trustedGithubEnvironment).toBe("production");
   });
 
   it("未知の環境名の場合はエラーを投げる", () => {

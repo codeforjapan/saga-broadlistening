@@ -7,4 +7,8 @@ export const devConfig: EnvConfig = {
   bedrockModelId: "jp.anthropic.claude-sonnet-4-6",
   // dev環境では定期実行させない（動作確認はSubmitJobの手動起動で行う）。
   topicAnalysisSchedulerEnabled: false,
+  // develop環境はAWSアカウントをdevと共用するため、developブランチ/staging Environmentからの
+  // デプロイもこのdev環境のロールを信頼する。
+  trustedBranch: "develop",
+  trustedGithubEnvironment: "staging",
 };
