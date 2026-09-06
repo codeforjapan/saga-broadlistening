@@ -1,10 +1,10 @@
-name: Deploy Topic Analysis Worker (ECR) [dev]
+name: Deploy Topic Analysis Worker (ECR) [stg]
 
 # worker / topic-analysis-core / その依存パッケージがdevelopに変わったときだけ
 # イメージをビルドしてECRにpushする。Batch Job Definitionは常に:latestタグを
 # 参照するため、pushするだけで次回のSubmitJobから新しいイメージが使われる。
-# develop環境（staging）はAWSアカウントをdev環境（826784631888）と共用しているため、
-# push先はdev用ECRリポジトリになる。
+# develop環境（staging）はAWSアカウントをstg環境（826784631888）と共用しているため、
+# push先はstg用ECRリポジトリになる。
 on:
   push:
     branches: [develop]
@@ -14,7 +14,7 @@ on:
       - "packages/shared/**"
       - "packages/supabase/**"
       - "pnpm-lock.yaml"
-      - ".github/workflows/deploy_worker_ecs_dev.yml"
+      - ".github/workflows/deploy_worker_ecs_stg.yml"
       - ".github/workflows/_deploy_worker_ecs.yml"
 
 permissions:
@@ -22,7 +22,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: deploy-worker-ecs-dev
+  group: deploy-worker-ecs-stg
   cancel-in-progress: false
 
 jobs:
@@ -30,6 +30,6 @@ jobs:
     uses: ./.github/workflows/_deploy_worker_ecs.yml
     with:
       environment: staging
-      ecr_repository: mirai-gikai-topic-analysis-worker-dev
+      ecr_repository: mirai-gikai-topic-analysis-worker-stg
     secrets:
       role_arn: ${{ secrets.AWS_CDK_DEPLOY_ROLE_ARN }}

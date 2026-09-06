@@ -4,12 +4,12 @@ import { createTestBedrockStack } from "./test-support";
 
 describe("BedrockStack", () => {
   it("Bedrockモデル呼び出し用のManagedPolicyを作成する", () => {
-    const { bedrockStack } = createTestBedrockStack("Test1", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test1", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
     template.hasResourceProperties("AWS::IAM::ManagedPolicy", {
-      ManagedPolicyName: "mirai-gikai-bedrock-invoke-dev",
+      ManagedPolicyName: "mirai-gikai-bedrock-invoke-stg",
       PolicyDocument: {
         Statement: Match.arrayWith([
           Match.objectLike({
@@ -34,7 +34,7 @@ describe("BedrockStack", () => {
   });
 
   it("inference profileはjp.*のみに限定し、global.等を含むワイルドカードは許可しない", () => {
-    const { bedrockStack } = createTestBedrockStack("Test11", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test11", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
@@ -53,7 +53,7 @@ describe("BedrockStack", () => {
   });
 
   it("aws:RequestedRegionがunspecified（global.*経由）の呼び出しをDenyする", () => {
-    const { bedrockStack } = createTestBedrockStack("Test12", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test12", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
@@ -78,7 +78,7 @@ describe("BedrockStack", () => {
   });
 
   it("inference-profile/global.*を直接指定した呼び出しもDenyする", () => {
-    const { bedrockStack } = createTestBedrockStack("Test13", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test13", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
@@ -96,7 +96,7 @@ describe("BedrockStack", () => {
   });
 
   it("AWS Marketplace経由のモデルをサブスクライブする権限を付与する", () => {
-    const { bedrockStack } = createTestBedrockStack("Test14", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test14", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
@@ -118,7 +118,7 @@ describe("BedrockStack", () => {
   });
 
   it("モデル一覧取得（ListFoundationModels）の権限も付与する", () => {
-    const { bedrockStack } = createTestBedrockStack("Test4", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test4", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
@@ -147,18 +147,18 @@ describe("BedrockStack", () => {
   });
 
   it("invokeModelPolicyプロパティとしてポリシーを公開する", () => {
-    const { bedrockStack } = createTestBedrockStack("Test3", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test3", "stg");
 
     expect(bedrockStack.invokeModelPolicy).toBeDefined();
   });
 
   it("有害コンテンツを検知・ブロックするGuardrailを作成する", () => {
-    const { bedrockStack } = createTestBedrockStack("Test5", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test5", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
     template.hasResourceProperties("AWS::Bedrock::Guardrail", {
-      Name: "mirai-gikai-guardrail-dev",
+      Name: "mirai-gikai-guardrail-stg",
       ContentPolicyConfig: {
         FiltersConfig: Match.arrayWith([
           Match.objectLike({
@@ -172,7 +172,7 @@ describe("BedrockStack", () => {
   });
 
   it("PROMPT_ATTACKフィルタはoutputStrengthをNONEにする（Bedrock APIの制約）", () => {
-    const { bedrockStack } = createTestBedrockStack("Test9", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test9", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
@@ -190,7 +190,7 @@ describe("BedrockStack", () => {
   });
 
   it("Guardrailの発行済みバージョンを作成する", () => {
-    const { bedrockStack } = createTestBedrockStack("Test6", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test6", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
@@ -198,7 +198,7 @@ describe("BedrockStack", () => {
   });
 
   it("ApplyGuardrail権限をGuardrail ARNに限定して付与する", () => {
-    const { bedrockStack } = createTestBedrockStack("Test7", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test7", "stg");
 
     const template = Template.fromStack(bedrockStack);
 
@@ -219,7 +219,7 @@ describe("BedrockStack", () => {
   });
 
   it("guardrail/guardrailVersionプロパティを公開する", () => {
-    const { bedrockStack } = createTestBedrockStack("Test8", "dev");
+    const { bedrockStack } = createTestBedrockStack("Test8", "stg");
 
     expect(bedrockStack.guardrail).toBeDefined();
     expect(bedrockStack.guardrailVersion).toBeDefined();

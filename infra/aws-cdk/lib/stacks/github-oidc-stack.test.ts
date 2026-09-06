@@ -4,7 +4,7 @@ import { createTestGitHubOidcStack } from "./test-support";
 
 describe("GitHubOidcStack", () => {
   it("GitHub用OIDCプロバイダーを作成する", () => {
-    const { githubOidcStack } = createTestGitHubOidcStack("Test1", "dev");
+    const { githubOidcStack } = createTestGitHubOidcStack("Test1", "stg");
 
     const template = Template.fromStack(githubOidcStack);
 
@@ -14,8 +14,8 @@ describe("GitHubOidcStack", () => {
     });
   });
 
-  it("GitHub Actionsデプロイ用IAMロールを作成し、dev環境はdevelopブランチ/staging Environmentを信頼する", () => {
-    const { githubOidcStack, envConfig } = createTestGitHubOidcStack("Test2", "dev");
+  it("GitHub Actionsデプロイ用IAMロールを作成し、stg環境はdevelopブランチ/staging Environmentを信頼する", () => {
+    const { githubOidcStack, envConfig } = createTestGitHubOidcStack("Test2", "stg");
 
     const template = Template.fromStack(githubOidcStack);
 
@@ -127,7 +127,7 @@ describe("GitHubOidcStack", () => {
   });
 
   it("deployRoleプロパティを公開する", () => {
-    const { githubOidcStack } = createTestGitHubOidcStack("Test5", "dev");
+    const { githubOidcStack } = createTestGitHubOidcStack("Test5", "stg");
 
     expect(githubOidcStack.deployRole).toBeDefined();
   });

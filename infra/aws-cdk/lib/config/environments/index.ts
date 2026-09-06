@@ -1,9 +1,9 @@
 import type { EnvConfig, EnvName } from "../types";
-import { devConfig } from "./dev";
 import { prdConfig } from "./prd";
+import { stgConfig } from "./stg";
 
 const environments: Record<EnvName, EnvConfig> = {
-  dev: devConfig,
+  stg: stgConfig,
   prd: prdConfig,
 };
 

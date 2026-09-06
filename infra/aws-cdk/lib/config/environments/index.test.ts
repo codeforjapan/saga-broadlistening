@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { resolveEnvConfig } from "./index";
 
 describe("resolveEnvConfig", () => {
-  it("dev環境の設定を返す", () => {
-    const config = resolveEnvConfig("dev");
+  it("stg環境の設定を返す", () => {
+    const config = resolveEnvConfig("stg");
 
-    expect(config.envName).toBe("dev");
+    expect(config.envName).toBe("stg");
     expect(config.account).toBe("826784631888");
     expect(config.region).toBe("ap-northeast-1");
     expect(config.trustedBranch).toBe("develop");

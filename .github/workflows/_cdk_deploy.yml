@@ -10,7 +10,7 @@ on:
       context_env:
         required: true
         type: string
-        description: "CDK context environment name (e.g. prd, dev)"
+        description: "CDK context environment name (e.g. prd, stg)"
     secrets:
       role_arn:
         required: false
