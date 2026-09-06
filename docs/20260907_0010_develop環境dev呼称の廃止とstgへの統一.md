@@ -39,21 +39,21 @@
 - [develop環境AWSアカウント方針決定](20260905_2149_develop環境AWSアカウント方針決定.md)は
   当時の決定の記録として書き換えず残す（本ドキュメントが最新の方針）
 
+## 実施済み
+
+- `AWS_PROFILE=saga-koucho-dev npx cdk deploy --all --context env=stg` で新しい`-stg`系スタック
+  （`MiraiGikaiGitHubOidcStack-stg` / `MiraiGikaiBedrockStack-stg` / `MiraiGikaiLambdaStack-stg` /
+  `MiraiGikaiTopicAnalysisStack-stg` / `MiraiGikaiVercelOidcStack-stg`）をデプロイ済み
+  （CDK Bootstrap自体は`env`非依存で、`-dev`削除時にも`CDKToolkit`は残っていたため再bootstrap不要だった）
+- GitHubの`staging` EnvironmentのSecret（`AWS_CDK_DEPLOY_ROLE_ARN`）を、新しくデプロイされた
+  `MiraiGikaiGitHubActionsDeployRole-stg`のARNに更新済み（PR #113の`cdk-diff`がgreenになることを確認済み）
+
 ## 未実施（次のアクション）
 
-以下の`AWS_PROFILE`は本ドキュメント作成時点のプロファイル名（`saga-koucho-dev`）。
-上記「AWSアカウント名・プロファイル名の変更」を先に実施した場合は読み替えること。
-
-1. `AWS_PROFILE=<devアカウント用プロファイル> npx cdk bootstrap aws://826784631888/ap-northeast-1 --context env=stg`
-   （bootstrap自体は`env`非依存だが、初回の`cdk deploy`前提として記載）
-2. `AWS_PROFILE=<devアカウント用プロファイル> npx cdk deploy --all --context env=stg` で新しい`-stg`系スタックを
-   デプロイする
-3. GitHubの`staging` EnvironmentのSecret（`AWS_CDK_DEPLOY_ROLE_ARN`）に、新しくデプロイされた
-   `MiraiGikaiGitHubActionsDeployRole-stg`のARNを再設定する
-4. `develop`へpushして`CDK Deploy [stg]` / `Deploy Topic Analysis Worker (ECR) [stg]`
+1. `develop`へマージ後、`CDK Deploy [stg]` / `Deploy Topic Analysis Worker (ECR) [stg]`
    ワークフローが成功することを確認する
-5. Vercel環境変数・Secrets Manager実値の再設定
+2. Vercel環境変数・Secrets Manager実値の再設定
    （`docs/20260906_0848_develop環境Vercel環境変数とSecrets実値設定手順.md`参照。
    スタックを作り直したため出力ARNが変わっている点に注意）
-6. （任意・ユーザー実施）AWSアカウント名・IAMアカウントエイリアスの変更、
+3. （任意・ユーザー実施）AWSアカウント名・IAMアカウントエイリアスの変更、
    ローカル`~/.aws/config`の`saga-koucho-dev`プロファイル名を`saga-koucho-stg`へ変更
