@@ -4,7 +4,7 @@ import { createTestTopicAnalysisStack } from "./test-support";
 
 describe("TopicAnalysisStack", () => {
   it("NAT Gatewayを作らずパブリックサブネットのみのVPCを構成する", () => {
-    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test1", "dev");
+    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test1", "stg");
 
     const template = Template.fromStack(topicAnalysisStack);
 
@@ -17,7 +17,7 @@ describe("TopicAnalysisStack", () => {
   it("ECRリポジトリをイメージスキャン有効・ライフサイクルルール付きで作成する", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test2",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -30,7 +30,7 @@ describe("TopicAnalysisStack", () => {
   });
 
   it("ECRリポジトリのリソースポリシーでGitHub Actionsのpushを許可する", () => {
-    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test2b", "dev");
+    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test2b", "stg");
 
     const template = Template.fromStack(topicAnalysisStack);
 
@@ -50,7 +50,7 @@ describe("TopicAnalysisStack", () => {
   it("タスクロールにBedrock呼び出しポリシーをアタッチする", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test3",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -75,7 +75,7 @@ describe("TopicAnalysisStack", () => {
   it("Compute EnvironmentがNATなしのパブリックサブネットでFargate構成になっている", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test4",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -93,7 +93,7 @@ describe("TopicAnalysisStack", () => {
   it("Job Queueが唯一のCompute Environmentに紐づく", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test5",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -109,7 +109,7 @@ describe("TopicAnalysisStack", () => {
   it("Job Definitionがvcpu1・memory2048で、既定コマンドがanalyze-allのコンテナを持つ", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test6",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -136,7 +136,7 @@ describe("TopicAnalysisStack", () => {
   it("EventBridge Schedulerのcron式・タイムゾーン・Batch SubmitJobターゲットが正しい", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test7",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -170,7 +170,7 @@ describe("TopicAnalysisStack", () => {
   });
 
   it("EventBridge Schedulerロールのbatch:SubmitJobがワイルドカードでなくJobQueue/JobDefinitionに限定される", () => {
-    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test8", "dev");
+    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test8", "stg");
 
     const template = Template.fromStack(topicAnalysisStack);
 
@@ -191,7 +191,7 @@ describe("TopicAnalysisStack", () => {
   it("Job Queue/Job Definition ARNをCfnOutputとして出力する", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test10",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);

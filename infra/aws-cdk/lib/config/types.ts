@@ -1,4 +1,4 @@
-export type EnvName = "dev" | "prd";
+export type EnvName = "stg" | "prd";
 
 export interface EnvConfig {
   readonly envName: EnvName;

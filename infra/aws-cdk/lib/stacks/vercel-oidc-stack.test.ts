@@ -4,7 +4,7 @@ import { createTestVercelOidcStack } from "./test-support";
 
 describe("VercelOidcStack", () => {
   it("Vercel用OIDCプロバイダーを作成する", () => {
-    const { vercelOidcStack } = createTestVercelOidcStack("Test1", "dev");
+    const { vercelOidcStack } = createTestVercelOidcStack("Test1", "stg");
 
     const template = Template.fromStack(vercelOidcStack);
 
@@ -17,7 +17,7 @@ describe("VercelOidcStack", () => {
   it("Vercel Bedrockアクセス用IAMロールを作成し信頼条件を検証する", () => {
     const { vercelOidcStack, envConfig } = createTestVercelOidcStack(
       "Test2",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(vercelOidcStack);
@@ -51,7 +51,7 @@ describe("VercelOidcStack", () => {
   it("BedrockInvokeModelPolicyをロールにアタッチする", () => {
     const { vercelOidcStack, envConfig } = createTestVercelOidcStack(
       "Test3",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(vercelOidcStack);
@@ -66,7 +66,7 @@ describe("VercelOidcStack", () => {
   });
 
   it("トピック分析workerのbatch:SubmitJob権限をJob Queue/Job Definition ARNちょうど2つに限定して付与する", () => {
-    const { vercelOidcStack } = createTestVercelOidcStack("Test3b", "dev");
+    const { vercelOidcStack } = createTestVercelOidcStack("Test3b", "stg");
 
     const template = Template.fromStack(vercelOidcStack);
 
@@ -91,7 +91,7 @@ describe("VercelOidcStack", () => {
   });
 
   it("Vercelロールのポリシーにiam:PassRoleを含めない", () => {
-    const { vercelOidcStack } = createTestVercelOidcStack("Test3c", "dev");
+    const { vercelOidcStack } = createTestVercelOidcStack("Test3c", "stg");
 
     const template = Template.fromStack(vercelOidcStack);
 
@@ -124,7 +124,7 @@ describe("VercelOidcStack", () => {
   });
 
   it("bedrockAccessRoleプロパティを公開する", () => {
-    const { vercelOidcStack } = createTestVercelOidcStack("Test5", "dev");
+    const { vercelOidcStack } = createTestVercelOidcStack("Test5", "stg");
 
     expect(vercelOidcStack.bedrockAccessRole).toBeDefined();
   });

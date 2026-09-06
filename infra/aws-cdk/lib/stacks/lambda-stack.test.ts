@@ -4,12 +4,12 @@ import { createTestStacks } from "./test-support";
 
 describe("LambdaStack", () => {
   it("Bedrock疎通確認用のLambda関数を作成する", () => {
-    const { lambdaStack, envConfig } = createTestStacks("Test1", "dev");
+    const { lambdaStack, envConfig } = createTestStacks("Test1", "stg");
 
     const template = Template.fromStack(lambdaStack);
 
     template.hasResourceProperties("AWS::Lambda::Function", {
-      FunctionName: "mirai-gikai-bedrock-health-check-dev",
+      FunctionName: "mirai-gikai-bedrock-health-check-stg",
       Runtime: "nodejs22.x",
       Environment: {
         Variables: {
@@ -26,7 +26,7 @@ describe("LambdaStack", () => {
   });
 
   it("Lambdaの実行ロールにBedrock呼び出しポリシーがアタッチされる", () => {
-    const { lambdaStack } = createTestStacks("Test2", "dev");
+    const { lambdaStack } = createTestStacks("Test2", "stg");
 
     const template = Template.fromStack(lambdaStack);
 
