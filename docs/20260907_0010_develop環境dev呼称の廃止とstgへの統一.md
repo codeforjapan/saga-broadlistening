@@ -47,6 +47,8 @@
   （CDK Bootstrap自体は`env`非依存で、`-dev`削除時にも`CDKToolkit`は残っていたため再bootstrap不要だった）
 - GitHubの`staging` EnvironmentのSecret（`AWS_CDK_DEPLOY_ROLE_ARN`）を、新しくデプロイされた
   `MiraiGikaiGitHubActionsDeployRole-stg`のARNに更新済み（PR #113の`cdk-diff`がgreenになることを確認済み）
+- ローカル`~/.aws/config`のプロファイル名を`saga-koucho-dev`→`saga-koucho-stg`に変更済み
+  （AWSアカウント名・IAMアカウントエイリアス自体の変更は未実施）
 
 ## 未実施（次のアクション）
 
@@ -55,5 +57,4 @@
 2. Vercel環境変数・Secrets Manager実値の再設定
    （`docs/20260906_0848_develop環境Vercel環境変数とSecrets実値設定手順.md`参照。
    スタックを作り直したため出力ARNが変わっている点に注意）
-3. （任意・ユーザー実施）AWSアカウント名・IAMアカウントエイリアスの変更、
-   ローカル`~/.aws/config`の`saga-koucho-dev`プロファイル名を`saga-koucho-stg`へ変更
+3. （任意・ユーザー実施）AWSアカウント名・IAMアカウントエイリアスの変更
