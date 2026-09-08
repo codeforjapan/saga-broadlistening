@@ -1,5 +1,6 @@
 "use client";
 
+import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import type { CSSProperties, ReactNode, RefObject } from "react";
@@ -63,7 +64,7 @@ export function MobileChatDialog({
           }}
         >
           <DialogPrimitive.Title className="sr-only">
-            佐賀市の施策についてAIに質問する
+            {`${MUNICIPALITY_NAME}の施策についてAIに質問する`}
           </DialogPrimitive.Title>
           <DialogPrimitive.Close asChild>
             <Button

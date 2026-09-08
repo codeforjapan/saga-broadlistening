@@ -1,3 +1,4 @@
+import { SITE_HASHTAG } from "@mirai-gikai/shared/site";
 import { describe, expect, it } from "vitest";
 
 import type { BillWithContent } from "../../shared/types";
@@ -34,7 +35,9 @@ describe("createShareMessage", () => {
         title: "わかりやすいタイトル",
       } as BillWithContent["bill_content"],
     };
-    expect(createShareMessage(bill)).toBe("わかりやすいタイトル #CHIKAT");
+    expect(createShareMessage(bill)).toBe(
+      `わかりやすいタイトル #${SITE_HASHTAG}`
+    );
   });
 
   it("falls back to bill.name when bill_content is undefined", () => {
@@ -42,7 +45,7 @@ describe("createShareMessage", () => {
       ...baseBill,
       bill_content: undefined,
     };
-    expect(createShareMessage(bill)).toBe("正式施策名称 #CHIKAT");
+    expect(createShareMessage(bill)).toBe(`正式施策名称 #${SITE_HASHTAG}`);
   });
 
   it("falls back to bill.name when bill_content.title is null", () => {
@@ -52,11 +55,11 @@ describe("createShareMessage", () => {
         title: null,
       } as unknown as BillWithContent["bill_content"],
     };
-    expect(createShareMessage(bill)).toBe("正式施策名称 #CHIKAT");
+    expect(createShareMessage(bill)).toBe(`正式施策名称 #${SITE_HASHTAG}`);
   });
 
-  it("includes hashtag #CHIKAT", () => {
+  it("includes the site hashtag", () => {
     const message = createShareMessage(baseBill);
-    expect(message).toContain("#CHIKAT");
+    expect(message).toContain(`#${SITE_HASHTAG}`);
   });
 });

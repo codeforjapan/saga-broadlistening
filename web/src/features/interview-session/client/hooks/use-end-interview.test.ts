@@ -100,7 +100,7 @@ describe("useEndInterview", () => {
     mockArchive.mockResolvedValue({ success: true });
 
     const { result } = renderHook(() =>
-      useEndInterview("session-1", themeInterviewTarget("saga-no-mirai"))
+      useEndInterview("session-1", themeInterviewTarget("machi-no-mirai"))
     );
 
     await act(async () => {

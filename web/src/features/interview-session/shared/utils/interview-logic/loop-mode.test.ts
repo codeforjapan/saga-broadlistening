@@ -78,11 +78,11 @@ describe("buildLoopModeSystemPrompt", () => {
     const result = buildLoopModeSystemPrompt({
       ...baseParams,
       bill: null,
-      interviewConfig: { name: "佐賀市のみらい", description: "- 医療" },
+      interviewConfig: { name: "まちのみらい", description: "- 医療" },
     });
 
     expect(result).toContain("## インタビューの対象");
-    expect(result).toContain("テーマ名: 佐賀市のみらい");
+    expect(result).toContain("テーマ名: まちのみらい");
     // 空欄の施策情報を並べるとAIが存在しない施策を語り出すため、欄ごと出さない
     expect(result).not.toContain("- 施策名:");
     expect(result).not.toContain("<bill_detail>");

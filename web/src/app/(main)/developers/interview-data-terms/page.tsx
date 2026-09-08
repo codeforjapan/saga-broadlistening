@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/shared/site";
 import type { Metadata } from "next";
 import { Container } from "@/components/layouts/container";
 import {
@@ -28,9 +28,7 @@ export default function InterviewDataTermsPage() {
         </LegalParagraph>
 
         <LegalParagraph>
-          本規約は、佐賀市（以下「当組織」といいます。）が運営する「{SITE_NAME}
-          」のAIインタビュー機能（以下「{SITE_NAME}
-          AIインタビュー機能」といいます。）を通じて取得した回答内容に基づき、当組織がオープンデータとして公開するデータセット（以下「本データ」といいます。）を、第三者（以下「利用者」といいます。）が利用するにあたっての条件を定めるものです。利用者は、本データをダウンロードまたは利用することにより、本規約に同意したものとみなされます。
+          {`本規約は、${MUNICIPALITY_NAME}（以下「当組織」といいます。）が運営する「${SITE_NAME}」のAIインタビュー機能（以下「${SITE_NAME}AIインタビュー機能」といいます。）を通じて取得した回答内容に基づき、当組織がオープンデータとして公開するデータセット（以下「本データ」といいます。）を、第三者（以下「利用者」といいます。）が利用するにあたっての条件を定めるものです。利用者は、本データをダウンロードまたは利用することにより、本規約に同意したものとみなされます。`}
         </LegalParagraph>
 
         <section className="space-y-4">
@@ -166,7 +164,7 @@ export default function InterviewDataTermsPage() {
           <LegalParagraph>
             本規約および本データに関するお問い合わせは、下記までご連絡ください。
           </LegalParagraph>
-          {/* TODO(#16): 佐賀市の問い合わせ先に差し替え */}
+          {/* TODO(#16): 運営自治体の問い合わせ先に差し替え */}
           <LegalParagraph>（お問い合わせ先は準備中です）</LegalParagraph>
         </section>
       </Container>

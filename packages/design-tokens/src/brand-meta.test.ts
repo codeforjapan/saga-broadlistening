@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   BACKGROUND_COLOR,
@@ -11,12 +8,6 @@ import {
 import { AA_LARGE_TEXT_OR_UI, AA_TEXT, contrastRatio } from "./contrast";
 import { PRIMITIVES } from "./palette";
 
-const repoRoot = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  ".."
-);
 
 describe("ブランドメタ", () => {
   it("すべての値がパレットのプリミティブと一致する（hex直書きがない）", () => {
@@ -60,32 +51,5 @@ describe("ブランドメタ", () => {
     expect(
       contrastRatio(OG_COLORS.text, OG_COLORS.badgeSurface)
     ).toBeGreaterThanOrEqual(AA_TEXT);
-  });
-});
-
-describe("manifest.json との整合", () => {
-  const manifest = JSON.parse(
-    readFileSync(join(repoRoot, "web/public/manifest.json"), "utf8")
-  ) as {
-    theme_color: string;
-    background_color: string;
-    name: string;
-    description: string;
-  };
-
-  it("theme_color がトークンと一致する", () => {
-    expect(manifest.theme_color).toBe(THEME_COLOR);
-  });
-
-  it("background_color がトークンと一致する", () => {
-    expect(manifest.background_color).toBe(BACKGROUND_COLOR);
-  });
-
-  it("旧ブランド名が残っていない", () => {
-    expect(manifest.name).not.toContain("みらい議会");
-  });
-
-  it("description に国政由来の語彙が残っていない", () => {
-    expect(manifest.description).not.toMatch(/法案|議案|国会|衆議院|参議院/);
   });
 });

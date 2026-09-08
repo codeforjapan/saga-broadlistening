@@ -1,5 +1,6 @@
 "use client";
 
+import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
 import { ArrowRight, Lock } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
@@ -55,7 +56,7 @@ export function MakePrivateModal({
             非公開にした場合、あなたのご意見が世の中に公開されることはありません。
           </CheckListItem>
           <CheckListItem>
-            佐賀市の施策検討に最大限活用させていただきます。
+            {`${MUNICIPALITY_NAME}の施策検討に最大限活用させていただきます。`}
           </CheckListItem>
         </div>
 

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/shared/site";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps, FormEvent, ReactNode } from "react";
@@ -183,9 +184,11 @@ describe("ChatWindow", () => {
     expect(dialog).toHaveStyle({ maxHeight: "640px" });
     expect(screen.getAllByRole("button", { name: /何|施策/ })).toHaveLength(3);
 
-    await user.click(screen.getByRole("button", { name: "CHIKATって何？" }));
+    await user.click(
+      screen.getByRole("button", { name: `${SITE_NAME}って何？` })
+    );
     expect(sendMessage).toHaveBeenCalledWith({
-      text: "CHIKATって何？",
+      text: `${SITE_NAME}って何？`,
       metadata: {
         billContext: undefined,
         difficultyLevel: "normal",
@@ -242,7 +245,7 @@ describe("ChatWindow", () => {
 
     expect(
       await screen.findByRole("region", {
-        name: "佐賀市の施策についてAIに質問する",
+        name: `${MUNICIPALITY_NAME}の施策についてAIに質問する`,
       })
     ).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

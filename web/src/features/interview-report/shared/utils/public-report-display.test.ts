@@ -43,8 +43,8 @@ describe("public report display utilities", () => {
         completed_at: null,
         interview_config_id: "config-1",
         interview_configs: {
-          slug: "saga-no-mirai",
-          name: "佐賀市のみらい",
+          slug: "machi-no-mirai",
+          name: "まちのみらい",
           status: "open",
           policies_interview_configs: [
             { policies: { id: "policy-1", publish_status: "draft" } },
@@ -55,7 +55,7 @@ describe("public report display utilities", () => {
       })
     ).toEqual({
       policyId: "policy-2",
-      theme: { slug: "saga-no-mirai", name: "佐賀市のみらい", isOpen: true },
+      theme: { slug: "machi-no-mirai", name: "まちのみらい", isOpen: true },
     });
   });
 
@@ -66,15 +66,15 @@ describe("public report display utilities", () => {
         completed_at: null,
         interview_config_id: "config-1",
         interview_configs: {
-          slug: "saga-no-mirai",
-          name: "佐賀市のみらい",
+          slug: "machi-no-mirai",
+          name: "まちのみらい",
           status: "open",
           policies_interview_configs: [],
         },
       })
     ).toEqual({
       policyId: null,
-      theme: { slug: "saga-no-mirai", name: "佐賀市のみらい", isOpen: true },
+      theme: { slug: "machi-no-mirai", name: "まちのみらい", isOpen: true },
     });
   });
 
@@ -85,8 +85,8 @@ describe("public report display utilities", () => {
         completed_at: null,
         interview_config_id: "config-1",
         interview_configs: {
-          slug: "saga-no-mirai",
-          name: "佐賀市のみらい",
+          slug: "machi-no-mirai",
+          name: "まちのみらい",
           status: "open",
           policies_interview_configs: [
             { policies: { id: "policy-1", publish_status: "draft" } },
@@ -154,7 +154,7 @@ describe("public report display utilities", () => {
 
 const openThemeOrigin: ReportOrigin = {
   policyId: null,
-  theme: { slug: "saga-no-mirai", name: "佐賀市のみらい", isOpen: true },
+  theme: { slug: "machi-no-mirai", name: "まちのみらい", isOpen: true },
 };
 
 describe("getReportOriginLink", () => {
@@ -166,7 +166,7 @@ describe("getReportOriginLink", () => {
 
   it("施策がなく募集中ならテーマのページを指す", () => {
     expect(getReportOriginLink(openThemeOrigin)).toBe(
-      "/interviews/saga-no-mirai"
+      "/interviews/machi-no-mirai"
     );
   });
 
@@ -201,8 +201,8 @@ describe("resolveReportSubject", () => {
 
   it("施策がなければテーマ名とテーマのページを使う", () => {
     expect(resolveReportSubject(null, openThemeOrigin)).toEqual({
-      name: "佐賀市のみらい",
-      href: "/interviews/saga-no-mirai",
+      name: "まちのみらい",
+      href: "/interviews/machi-no-mirai",
     });
   });
 });

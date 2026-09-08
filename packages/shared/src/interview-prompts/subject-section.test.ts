@@ -12,7 +12,7 @@ const bill = {
 };
 
 const config = {
-  name: "佐賀市のみらい",
+  name: "まちのみらい",
   description: "暮らしのなかで感じている変化を伺います",
 };
 
@@ -63,7 +63,7 @@ describe("buildInterviewSubject", () => {
       const subject = buildInterviewSubject(null, config);
 
       expect(subject.knowledgeSection).toContain("## インタビューの対象");
-      expect(subject.knowledgeSection).toContain("佐賀市のみらい");
+      expect(subject.knowledgeSection).toContain("まちのみらい");
       expect(subject.knowledgeSection).not.toContain("施策名:");
       expect(subject.knowledgeSection).not.toContain("<bill_detail>");
     });
@@ -89,7 +89,7 @@ describe("buildInterviewSubject", () => {
       const subject = buildInterviewSubject(null, config);
 
       expect(subject.summarySection).toContain("## インタビューの対象");
-      expect(subject.summarySection).toContain("佐賀市のみらい");
+      expect(subject.summarySection).toContain("まちのみらい");
       expect(subject.summarySection).toContain(
         "暮らしのなかで感じている変化を伺います"
       );

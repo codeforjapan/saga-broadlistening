@@ -1,3 +1,4 @@
+import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
 import { BillCard } from "@/features/bills/client/components/bill-list/bill-card";
 import { ComponentShowcase } from "../../../_components/component-showcase";
 import { PreviewSection } from "../../../_components/preview-section";
@@ -38,8 +39,7 @@ export default function BillCardPreview() {
     bill_content: {
       id: "mock-content-long-title",
       policy_id: "mock-long-title",
-      title:
-        "デジタル社会の形成に向けた行政手続のオンライン化及びデータ連携基盤の整備に関する佐賀市の施策の一部見直しについての補足的な検討事項",
+      title: `デジタル社会の形成に向けた行政手続のオンライン化及びデータ連携基盤の整備に関する${MUNICIPALITY_NAME}の施策の一部見直しについての補足的な検討事項`,
       summary:
         "この施策は開発プレビュー用のサンプルデータです。施策の要約文がここに表示されます。",
       content: "",

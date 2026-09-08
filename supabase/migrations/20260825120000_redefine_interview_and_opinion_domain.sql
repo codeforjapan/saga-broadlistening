@@ -98,7 +98,7 @@ create trigger update_interview_configs_updated_at before update on interview_co
 alter table interview_configs enable row level security;
 
 comment on table interview_configs is '市民から意見を募集する単位（テーマ）。施策とは policies_interview_configs による多対多で紐づく（施策0件＝抽象テーマ型）';
-comment on column interview_configs.name is 'テーマ名（例：「佐賀市のみらい」）';
+comment on column interview_configs.name is 'テーマ名（例：「まちのみらい」）';
 comment on column interview_configs.slug is '公開ページのURLに使う短い文字列（重複不可）';
 comment on column interview_configs.description is '職員が設定するテーマの説明文（抽象テーマ型ではAIへの指示材料にもなる）';
 comment on column interview_configs.status is '状態（draft: 下書き, open: 募集中, closed: 終了）';
