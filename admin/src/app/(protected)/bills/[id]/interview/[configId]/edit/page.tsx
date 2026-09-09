@@ -7,7 +7,7 @@ import { getBillById } from "@/features/bills-edit/server/loaders/get-bill-by-id
 import { InterviewConfigEditClient } from "@/features/interview-config/client/components/interview-config-edit-client";
 import { getInterviewConfigById } from "@/features/interview-config/server/loaders/get-interview-config";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { getCompletedReportsForBill } from "@/features/interview-simulation/server/loaders/get-completed-reports-for-bill";
+import { getCompletedReportsForSimulation } from "@/features/interview-simulation/server/loaders/get-completed-reports-for-simulation";
 import { routes } from "@/lib/routes";
 
 interface InterviewEditPageProps {
@@ -32,7 +32,10 @@ export default async function InterviewEditPage({
 
   const [questions, completedReportsResult] = await Promise.all([
     getInterviewQuestions(config.id),
-    getCompletedReportsForBill(bill.id),
+    getCompletedReportsForSimulation({
+      interviewConfigId: config.id,
+      policyId: bill.id,
+    }),
   ]);
 
   return (
@@ -64,6 +67,7 @@ export default async function InterviewEditPage({
         completedReports={completedReportsResult.reports}
         completedReportsTruncated={completedReportsResult.isTruncated}
         completedReportsLimit={completedReportsResult.limit}
+        hasPolicyScope
       />
     </div>
   );

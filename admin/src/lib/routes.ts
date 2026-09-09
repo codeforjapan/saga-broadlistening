@@ -20,6 +20,8 @@ export const routes = {
 
   // ── 意見募集（テーマ単位。施策に紐づかない抽象テーマ型もここで編集する） ──
   interviewEdit: (configId: string) => `/interviews/${configId}/edit` as const,
+  interviewUserTopicAnalysis: (configId: string) =>
+    `/interviews/${configId}/user-topic-analysis` as const,
 
   // ── 施策配下 ──────────────────────────────────────
   billEdit: (billId: string) => `/bills/${billId}/edit` as const,

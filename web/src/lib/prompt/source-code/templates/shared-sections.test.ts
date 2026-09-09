@@ -1,4 +1,4 @@
-import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/branding/site";
 import { describe, expect, it } from "vitest";
 import { SERVICE_OVERVIEW } from "./shared-sections";
 

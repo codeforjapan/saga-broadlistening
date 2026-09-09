@@ -1,4 +1,4 @@
-import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/shared/site";
+import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/branding/site";
 import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoginForm } from "@/features/auth/client/components/login-form";

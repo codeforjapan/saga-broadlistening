@@ -1,4 +1,4 @@
-import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 export function BillDisclaimer() {
   return (
     <div className="space-y-6 pt-4 pb-10">

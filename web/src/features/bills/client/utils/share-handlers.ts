@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 
 export function shareOnTwitter(message: string, url: string) {
   const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(

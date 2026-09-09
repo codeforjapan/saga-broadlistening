@@ -1,4 +1,4 @@
-import { SITE_NAME, SITE_TAGLINE } from "@mirai-gikai/shared/site";
+import { SITE_NAME, SITE_TAGLINE } from "@mirai-gikai/branding/site";
 import { cn } from "@/lib/utils";
 
 /** ヘッダー(sm) / フッター(md) / デスクトップメニュー(lg) の3段階 */

@@ -33,7 +33,8 @@ export interface OriginalInterviewSnapshot {
   reportId: string;
   sessionId: string;
   configId: string;
-  billId: string;
+  /** 意見募集に紐づく施策ID一覧。抽象テーマ型では空 */
+  policyIds: string[];
   summary: string | null;
   roleTitle: string | null;
   roleDescription: string | null;
@@ -141,8 +142,11 @@ export type PersonaSlotInput =
  * 複数ペルソナシミュ API (/api/interview-simulation/run-multi) のリクエストボディ
  */
 export interface MultiSimulationRunRequest {
-  /** 対象施策 ID（全スロット共通） */
-  billId: string;
+  /**
+   * 対象の意見募集ID（全スロット共通）。
+   * ペルソナ素材に使える範囲はサーバー側でこのIDから決めるため、施策IDは受け取らない。
+   */
+  interviewConfigId: string;
   /** 各スロットのペルソナ定義（1〜MAX_PERSONA_SLOTS） */
   personaSlots: PersonaSlotInput[];
   /** 改善版 = 編集中 config スナップショット（全スロット共通） */

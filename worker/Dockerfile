@@ -1,6 +1,7 @@
-# トピック分析・意見再抽出バックフィルを実行する Cloud Run Job 用イメージ。
+# トピック分析・意見再抽出バックフィルを実行する Cloud Run Job / ECS Fargate 用イメージ。
 # pnpm workspace の .ts ソースをそのまま tsx で実行する（ビルド工程を持たない）。
-FROM node:22-slim
+# Fargateはlinux/amd64のみのため、Apple Siliconなどでビルドしても常にamd64になるよう固定する。
+FROM --platform=linux/amd64 node:22-slim
 
 # pnpm を有効化（packageManager フィールドのバージョンを使用）
 RUN corepack enable
@@ -19,6 +20,6 @@ WORKDIR /app/worker
 # shared 内の `import "server-only"` を空モジュールに解決させる（Next 非依存で実行するため）。
 ENV NODE_OPTIONS=--conditions=react-server
 
-# Cloud Run Job の --args が ENTRYPOINT の後ろに追加される
+# Cloud Run Jobの--args / ECSのcontainerOverrides.commandがENTRYPOINTの後ろに追加される
 #   例: --mode=analyze --bill-id=<uuid> --version-id=<uuid>
 ENTRYPOINT ["pnpm", "exec", "tsx", "src/main.ts"]

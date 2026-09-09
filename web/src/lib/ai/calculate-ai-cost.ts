@@ -54,14 +54,6 @@ export const modelPricing: Record<string, ModelPricing> = {
     inputTokensPerMillionUsd: 0.05,
     outputTokensPerMillionUsd: 0.4,
   },
-  [AI_MODELS.gpt5_chat]: {
-    inputTokensPerMillionUsd: 1.25,
-    outputTokensPerMillionUsd: 10,
-  },
-  [AI_MODELS.gpt5_1_instant]: {
-    inputTokensPerMillionUsd: 1.25,
-    outputTokensPerMillionUsd: 10,
-  },
   [AI_MODELS.gpt5_1_thinking]: {
     inputTokensPerMillionUsd: 1.25,
     outputTokensPerMillionUsd: 10,
@@ -87,9 +79,9 @@ export const modelPricing: Record<string, ModelPricing> = {
     inputTokensPerMillionUsd: 0.5,
     outputTokensPerMillionUsd: 3,
   },
-  [AI_MODELS.gemini3_flash_preview]: {
-    inputTokensPerMillionUsd: 0.5,
-    outputTokensPerMillionUsd: 3,
+  [AI_MODELS.gemini3_1_flash_lite]: {
+    inputTokensPerMillionUsd: 0.25,
+    outputTokensPerMillionUsd: 1.5,
   },
   [AI_MODELS.gemini3_1_pro_preview]: {
     inputTokensPerMillionUsd: 2,

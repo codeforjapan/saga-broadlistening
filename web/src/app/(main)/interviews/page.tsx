@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Metadata } from "next";
 import { InterviewThemesPage } from "@/features/interview-config/server/components/interview-themes-page";
 import { routes } from "@/lib/routes";

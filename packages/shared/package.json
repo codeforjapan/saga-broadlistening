@@ -8,10 +8,6 @@
     "test:watch": "vitest"
   },
   "exports": {
-    "./site": {
-      "types": "./src/site/site.ts",
-      "default": "./src/site/site.ts"
-    },
     "./ai/models": {
       "types": "./src/ai/models.ts",
       "default": "./src/ai/models.ts"
@@ -71,6 +67,10 @@
     "./interview-prompts/loop-mode": {
       "types": "./src/interview-prompts/loop-mode.ts",
       "default": "./src/interview-prompts/loop-mode.ts"
+    },
+    "./interview-prompts/subject-section": {
+      "types": "./src/interview-prompts/subject-section.ts",
+      "default": "./src/interview-prompts/subject-section.ts"
     },
     "./interview-prompts/summary": {
       "types": "./src/interview-prompts/summary.ts",

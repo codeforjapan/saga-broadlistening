@@ -1,5 +1,9 @@
 import "server-only";
 
+import {
+  buildInitialTurnInstruction,
+  resolveSubjectTitle,
+} from "@mirai-gikai/shared/interview-prompts/subject-section";
 import { generateText, type LanguageModel, Output } from "ai";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import {
@@ -53,11 +57,13 @@ export async function generateInitialQuestion({
     });
 
     // インタビュー開始の指示を追加（最初の質問にはクイックリプライとquestion_idを含める）
-    const firstQuestionId = questions[0]?.id;
-    // 施策があれば施策名、抽象テーマ型ではテーマ名を名乗る
-    const subjectTitle =
-      bill?.bill_content?.title ?? bill?.name ?? interviewConfig.name;
-    const enhancedSystemPrompt = `${systemPrompt}\n\n## 重要: これはインタビューの開始です。ユーザーからのメッセージはありません。事前定義質問の最初の質問から始めてください。挨拶は温かく丁寧に（2文程度）、「${subjectTitle}」についてのインタビューであることを明確に伝えた上で、すぐに最初の質問をしてください。最初の質問にクイックリプライが設定されている場合は、必ず quick_replies フィールドに含めてください。${firstQuestionId ? `最初の質問は ID: ${firstQuestionId} であり、レスポンスの question_id にこの値を含めてください。` : ""}`;
+    // 冒頭の指示はシミュレータと同じ実装を使う（片方だけ直して挙動がずれるのを防ぐ）
+    const enhancedSystemPrompt = `${systemPrompt}\n\n${buildInitialTurnInstruction(
+      {
+        subjectTitle: resolveSubjectTitle(bill, interviewConfig),
+        firstQuestionId: questions[0]?.id ?? null,
+      }
+    )}`;
 
     // 日次コスト制限チェック（fail-closed: エラー時も生成をブロック）
     try {

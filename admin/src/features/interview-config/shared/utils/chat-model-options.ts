@@ -25,8 +25,6 @@ const OPENAI_MODELS = [
   { value: "openai/gpt-5", label: "GPT-5" },
   { value: "openai/gpt-5-mini", label: "GPT-5 mini" },
   { value: "openai/gpt-5-nano", label: "GPT-5 nano" },
-  { value: "openai/gpt-5-chat", label: "GPT-5 Chat" },
-  { value: "openai/gpt-5.1-instant", label: "GPT-5.1 Instant" },
   { value: "openai/gpt-5.1-thinking", label: "GPT-5.1 Thinking" },
   { value: "openai/gpt-5.2", label: "GPT-5.2" },
   { value: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol" },
@@ -36,6 +34,7 @@ const OPENAI_MODELS = [
 
 const GOOGLE_MODELS = [
   { value: "google/gemini-3-flash", label: "Gemini 3 Flash" },
+  { value: "google/gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite" },
   {
     value: "google/gemini-3.1-pro-preview",
     label: "Gemini 3.1 Pro Preview",

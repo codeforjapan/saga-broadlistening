@@ -1,6 +1,6 @@
 "use client";
 
-import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { ArrowRight, LockOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {

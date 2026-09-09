@@ -1,4 +1,4 @@
-import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { BillCard } from "@/features/bills/client/components/bill-list/bill-card";
 import { ComponentShowcase } from "../../../_components/component-showcase";
 import { PreviewSection } from "../../../_components/preview-section";

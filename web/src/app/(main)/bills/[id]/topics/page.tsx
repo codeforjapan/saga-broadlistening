@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { resolveBillShareImageUrl } from "@/features/bills/shared/utils/bill-share-image";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { TopicListPage } from "@/features/user-topic-analysis/server/components/topic-list-page";
+import { buildTopicListMetadata } from "@/features/user-topic-analysis/shared/utils/topic-analysis-metadata";
+import { getSubjectKindLabel } from "@/features/user-topic-analysis/shared/utils/topic-analysis-subject";
 import { env } from "@/lib/env";
 import { routes } from "@/lib/routes";
 
@@ -14,38 +17,16 @@ export async function generateMetadata({
 }: TopicsPageProps): Promise<Metadata> {
   const { id } = await params;
   const bill = await getBillById(id);
-  const billName = bill?.bill_content?.title || bill?.name || "施策";
-  const title = `施策のトピック一覧 - ${billName}`;
-  const description = `${billName}に寄せられた意見をAIが整理したトピック一覧`;
-  const shareImageUrl = resolveBillShareImageUrl(bill, env.webUrl);
 
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: routes.billTopics(id),
-    },
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      images: [
-        {
-          url: shareImageUrl,
-          alt: `${billName} のOGPイメージ`,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [shareImageUrl],
-    },
-  };
+  return buildTopicListMetadata({
+    subjectName: bill?.bill_content?.title || bill?.name || "施策",
+    subjectKindLabel: getSubjectKindLabel(policyInterviewTarget(id)),
+    canonical: routes.billTopics(id),
+    shareImageUrl: resolveBillShareImageUrl(bill, env.webUrl),
+  });
 }
 
 export default async function TopicsPage({ params }: TopicsPageProps) {
   const { id } = await params;
-  return <TopicListPage billId={id} />;
+  return <TopicListPage target={policyInterviewTarget(id)} />;
 }

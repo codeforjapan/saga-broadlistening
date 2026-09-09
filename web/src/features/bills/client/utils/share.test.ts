@@ -1,4 +1,4 @@
-import { SITE_HASHTAG } from "@mirai-gikai/shared/site";
+import { SITE_HASHTAG } from "@mirai-gikai/branding/site";
 import { describe, expect, it } from "vitest";
 
 import type { BillWithContent } from "../../shared/types";

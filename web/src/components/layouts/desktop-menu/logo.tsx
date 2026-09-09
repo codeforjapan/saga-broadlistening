@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import Link from "next/link";
 import { SiteLogo } from "@/components/brand/site-logo";
 import { routes } from "@/lib/routes";

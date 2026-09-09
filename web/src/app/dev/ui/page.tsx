@@ -113,7 +113,7 @@ export default function UIPreviewPage() {
       </ComponentShowcase>
       <ComponentShowcase
         title="Color Tokens"
-        description="@mirai-gikai/design-tokens（案3-1パレット）"
+        description="@mirai-gikai/branding（案3-1パレット）"
       >
         <PreviewSection label="面トークン（文字は base-ink。白文字は禁止）">
           <div className="flex flex-wrap gap-3">

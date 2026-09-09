@@ -1,0 +1,33 @@
+name: Deploy Topic Analysis Worker (ECR) [prd]
+
+# worker / topic-analysis-core / その依存パッケージがmainに変わったときだけ
+# イメージをビルドしてECRにpushする（#48 / #66）。Batch Job Definitionは常に:latestタグを
+# 参照するため、pushするだけで次回のSubmitJobから新しいイメージが使われる。
+on:
+  push:
+    branches: [main]
+    paths:
+      - "worker/**"
+      - "packages/topic-analysis-core/**"
+      - "packages/shared/**"
+      - "packages/supabase/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/deploy_worker_ecs.yml"
+      - ".github/workflows/_deploy_worker_ecs.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-worker-ecs-prd
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    uses: ./.github/workflows/_deploy_worker_ecs.yml
+    with:
+      environment: production
+      ecr_repository: mirai-gikai-topic-analysis-worker-prd
+    secrets:
+      role_arn: ${{ secrets.AWS_CDK_DEPLOY_ROLE_ARN }}

@@ -47,6 +47,11 @@ interface InterviewConfigEditClientProps {
   policyOptions?: PolicyOption[];
   /** 現在紐づいている施策のID一覧 */
   linkedPolicyIds?: string[];
+  /**
+   * ペルソナ素材を施策全体から選べるか。抽象テーマ型では false になり、
+   * この意見募集自身の完了インタビューだけが候補になる。
+   */
+  hasPolicyScope?: boolean;
 }
 
 export function InterviewConfigEditClient({
@@ -59,6 +64,7 @@ export function InterviewConfigEditClient({
   initialName,
   policyOptions,
   linkedPolicyIds,
+  hasPolicyScope = false,
 }: InterviewConfigEditClientProps) {
   const router = useRouter();
   const [configId, setConfigId] = useState<string | undefined>(
@@ -200,14 +206,10 @@ export function InterviewConfigEditClient({
     <Tabs defaultValue="edit" className="w-full">
       <TabsList>
         <TabsTrigger value="edit">設定編集</TabsTrigger>
-        {/* シミュレーションは施策のナレッジと完了レポートを前提にするため、
-            施策に紐づかないテーマではタブごと出さない */}
-        {billId && (
-          <TabsTrigger value="simulation" disabled={!configId}>
-            シミュレーション
-            {!configId && "（保存後に有効）"}
-          </TabsTrigger>
-        )}
+        <TabsTrigger value="simulation" disabled={!configId}>
+          シミュレーション
+          {!configId && "（保存後に有効）"}
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent
@@ -267,15 +269,15 @@ export function InterviewConfigEditClient({
         </div>
       </TabsContent>
 
-      {configId && billId ? (
+      {configId ? (
         <TabsContent
           value="simulation"
           forceMount
           className="mt-4 data-[state=inactive]:hidden"
         >
           <MultiSimulationView
-            billId={billId}
             configId={configId}
+            hasPolicyScope={hasPolicyScope}
             getFormValues={() => getFormValuesRef.current?.() ?? null}
             getCurrentQuestions={() => getQuestionsRef.current?.() ?? []}
             completedReports={completedReports}

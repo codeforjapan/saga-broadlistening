@@ -1,17 +1,19 @@
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { ChevronDown } from "lucide-react";
 import { TOP_SECTIONS } from "@/components/top/top-sections";
 import { Card } from "@/components/ui/card";
 
 const TOP_ENTRY_ITEMS = [
   {
-    href: `#${TOP_SECTIONS.interview}`,
-    title: "AIインタビュー",
-    description: "AIとの対話で、あなたの意見や経験を聞かせてください。",
-  },
-  {
     href: `#${TOP_SECTIONS.policy}`,
     title: "施策紹介",
-    description: "市の施策や計画をわかりやすく解説。背景や論点を整理します。",
+    description: `${MUNICIPALITY_NAME}の今の取組を、1〜2分で手短に紹介。背景や暮らしとのつながりも、できるだけわかりやすくお伝えします。`,
+  },
+  {
+    href: `#${TOP_SECTIONS.interview}`,
+    title: "AIインタビュー",
+    description:
+      "日ごろ感じていることを、AIに話してみませんか。AIが聞き役になって、あなたの経験や考えを少しずつ整理します。",
   },
 ];
 

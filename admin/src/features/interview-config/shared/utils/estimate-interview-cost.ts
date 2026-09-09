@@ -25,8 +25,6 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
   "openai/gpt-5": { inputPerMillion: 1.25, outputPerMillion: 10 },
   "openai/gpt-5-mini": { inputPerMillion: 0.25, outputPerMillion: 2 },
   "openai/gpt-5-nano": { inputPerMillion: 0.05, outputPerMillion: 0.4 },
-  "openai/gpt-5-chat": { inputPerMillion: 1.25, outputPerMillion: 10 },
-  "openai/gpt-5.1-instant": { inputPerMillion: 1.25, outputPerMillion: 10 },
   "openai/gpt-5.1-thinking": { inputPerMillion: 1.25, outputPerMillion: 10 },
   "openai/gpt-5.2": { inputPerMillion: 1.75, outputPerMillion: 14 },
   "openai/gpt-5.6-sol": { inputPerMillion: 5, outputPerMillion: 30 },
@@ -34,6 +32,10 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
   "openai/gpt-5.6-luna": { inputPerMillion: 1, outputPerMillion: 6 },
   // --- Google ---
   "google/gemini-3-flash": { inputPerMillion: 0.5, outputPerMillion: 3 },
+  "google/gemini-3.1-flash-lite": {
+    inputPerMillion: 0.25,
+    outputPerMillion: 1.5,
+  },
   "google/gemini-3.1-pro-preview": {
     inputPerMillion: 2,
     outputPerMillion: 12,

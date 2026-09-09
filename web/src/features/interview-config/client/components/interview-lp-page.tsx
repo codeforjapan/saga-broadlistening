@@ -1,8 +1,9 @@
-import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { ArrowRight, Undo2 } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import { formatEstimatedDuration } from "@/features/interview-config/shared/utils/format-estimated-duration";
@@ -29,6 +30,11 @@ interface InterviewLPPageProps {
   interviewConfig: InterviewConfig;
   sessionInfo: LatestInterviewSession | null;
   userReports?: UserReportsResult | null;
+  /**
+   * これまでに寄せられた意見のトピック分析。
+   * 施策経由の導線では施策詳細ページ側に出すため、渡すのはテーマ単独の導線だけ。
+   */
+  topicsSection?: ReactNode;
 }
 
 const FEATURES: {
@@ -108,7 +114,7 @@ function _InterviewLPHero({
     <div className="flex flex-col items-center gap-6 px-4">
       <div className="flex flex-col items-center gap-3">
         <div className="inline-flex items-center justify-center gap-2 px-6 py-1 mb-3 bg-primary rounded-2xl">
-          <span className="text-[13px] font-medium text-white leading-tight">
+          <span className="text-[13px] font-medium text-primary-foreground leading-tight">
             当事者・有識者の方へ
           </span>
         </div>
@@ -180,7 +186,7 @@ function _InterviewOverviewSection({
               {MUNICIPALITY_NAME}で検討されている
               <Link
                 href={billLink as Route}
-                className="text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
+                className="text-primary-accent underline underline-offset-2 hover:opacity-70 transition-opacity"
               >
                 {getBillName(bill)}
               </Link>
@@ -346,6 +352,7 @@ export function InterviewLPPage({
   interviewConfig,
   sessionInfo,
   userReports,
+  topicsSection,
 }: InterviewLPPageProps) {
   return (
     <div className="flex flex-col gap-8 pb-8 bg-secondary">
@@ -374,6 +381,9 @@ export function InterviewLPPage({
           estimatedDuration={interviewConfig.estimated_duration}
         />
         <_InterviewThemesSection description={interviewConfig.description} />
+        {topicsSection && (
+          <div className="w-full max-w-[560px]">{topicsSection}</div>
+        )}
         <_InterviewNoticeSection />
         <_InterviewDisclosureLink target={target} />
         <_InterviewFooterActions target={target} sessionInfo={sessionInfo} />

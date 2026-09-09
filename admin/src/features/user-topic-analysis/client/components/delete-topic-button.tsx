@@ -9,12 +9,12 @@ import { deleteTopicAction } from "../../server/actions/delete-topic-actions";
 export function DeleteTopicButton({
   topicId,
   versionId,
-  billId,
+  interviewConfigId,
   title,
 }: {
   topicId: string;
   versionId: string;
-  billId: string;
+  interviewConfigId: string;
   title: string;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -31,7 +31,7 @@ export function DeleteTopicButton({
         );
         if (!confirmed) return;
         startTransition(async () => {
-          await deleteTopicAction({ topicId, versionId, billId });
+          await deleteTopicAction({ topicId, versionId, interviewConfigId });
         });
       }}
     >

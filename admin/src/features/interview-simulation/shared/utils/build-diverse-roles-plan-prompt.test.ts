@@ -106,3 +106,46 @@ describe("buildDiverseRolesPlanPrompt", () => {
     expect(out).toContain("禁止");
   });
 });
+
+describe("buildDiverseRolesPlanPrompt（施策に紐づかない抽象テーマ型）", () => {
+  const themeConfig = {
+    name: "佐賀市のみらい",
+    description: "暮らしのなかで感じている変化を伺います",
+  };
+
+  it("施策の欄を作らず、テーマを対象として説明する", () => {
+    const out = buildDiverseRolesPlanPrompt({
+      bill: null,
+      interviewConfig: themeConfig,
+      slotsToPlan: [{}, {}],
+    });
+
+    expect(out).toContain("## インタビューの対象");
+    expect(out).toContain("佐賀市のみらい");
+    // 空欄の施策情報を並べるとAIが存在しない施策を語り出すため、欄ごと出さない
+    expect(out).not.toContain("- 施策名:");
+    expect(out).not.toContain("<bill_detail>");
+  });
+
+  it("当事者像の指示も「テーマ」を基準にする", () => {
+    const out = buildDiverseRolesPlanPrompt({
+      bill: null,
+      interviewConfig: themeConfig,
+      slotsToPlan: [{}, {}],
+    });
+
+    expect(out).toContain("以下のテーマについて");
+    expect(out).toContain("このテーマに関わりが深そうな当事者");
+  });
+
+  it("施策があるときは従来どおり「施策」を基準にする", () => {
+    const out = buildDiverseRolesPlanPrompt({
+      bill: baseBill,
+      interviewConfig: baseConfig,
+      slotsToPlan: [{}, {}],
+    });
+
+    expect(out).toContain("以下の施策について");
+    expect(out).toContain("この施策に関わりが深そうな当事者");
+  });
+});

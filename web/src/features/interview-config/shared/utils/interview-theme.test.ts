@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildInterviewThemeCardAction,
   buildInterviewThemes,
   DEFAULT_INTERVIEW_THUMBNAIL,
   formatParticipantCount,
+  type InterviewConfigListRow,
   type InterviewThemeRow,
   resolveInterviewThumbnail,
+  toInterviewThemeRows,
 } from "./interview-theme";
 
 describe("resolveInterviewThumbnail", () => {
@@ -204,5 +207,99 @@ describe("formatParticipantCount", () => {
 
   it("0人のときは表示しない", () => {
     expect(formatParticipantCount(0)).toBeNull();
+  });
+});
+
+describe("buildInterviewThemeCardAction", () => {
+  it("募集中のテーマは参加導線（テーマのLP）へ送る", () => {
+    expect(buildInterviewThemeCardAction("kosodate", "participate")).toEqual({
+      href: "/interviews/kosodate",
+      ctaLabel: "はじめる",
+    });
+  });
+
+  it("募集終了のテーマはLPが無いため結果（トピック一覧）へ送る", () => {
+    expect(buildInterviewThemeCardAction("kosodate", "results")).toEqual({
+      href: "/interviews/kosodate/topics",
+      ctaLabel: "結果を見る",
+    });
+  });
+});
+
+describe("toInterviewThemeRows", () => {
+  const config: InterviewConfigListRow = {
+    id: "config-1",
+    slug: "kosodate",
+    name: "子育て支援について",
+    description: "説明",
+    estimated_duration: 5,
+    thumbnail_url: null,
+    created_at: "2026-01-01T00:00:00Z",
+    interview_sessions: [{ count: 3 }],
+    policies_interview_configs: [
+      {
+        policies: {
+          publish_status: "published",
+          thumbnail_url: "https://example.com/policy.png",
+          policies_tags: [{ tags: { label: "子育て" } }],
+        },
+      },
+    ],
+  };
+
+  it("参加人数・施策の画像とタグを表示用の形に移す", () => {
+    expect(toInterviewThemeRows([config])).toEqual([
+      {
+        id: "config-1",
+        slug: "kosodate",
+        name: "子育て支援について",
+        description: "説明",
+        estimatedDuration: 5,
+        thumbnailUrl: null,
+        createdAt: "2026-01-01T00:00:00Z",
+        participantCount: 3,
+        policies: [
+          {
+            isPublished: true,
+            thumbnailUrl: "https://example.com/policy.png",
+            tagLabel: "子育て",
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("参加0人・施策0件（抽象テーマ型）でも欠損なく移す", () => {
+    const rows = toInterviewThemeRows([
+      {
+        ...config,
+        interview_sessions: [],
+        policies_interview_configs: [],
+      },
+    ]);
+
+    expect(rows[0].participantCount).toBe(0);
+    expect(rows[0].policies).toEqual([]);
+  });
+
+  it("未公開施策は isPublished=false として移す", () => {
+    const rows = toInterviewThemeRows([
+      {
+        ...config,
+        policies_interview_configs: [
+          {
+            policies: {
+              publish_status: "draft",
+              thumbnail_url: null,
+              policies_tags: [],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(rows[0].policies).toEqual([
+      { isPublished: false, thumbnailUrl: null, tagLabel: null },
+    ]);
   });
 });

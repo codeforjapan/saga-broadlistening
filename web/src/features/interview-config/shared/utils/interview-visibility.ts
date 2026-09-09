@@ -15,6 +15,16 @@ export function isPublishedPolicy(publishStatus: string): boolean {
 }
 
 /**
+ * 意見募集が募集中か（＝参加導線を出してよいか）。
+ *
+ * 募集が終わった（closed）テーマは結果だけ見せて参加導線は出さないため、
+ * 「募集中とは status = 'open' のこと」の判断はここに一本化する。
+ */
+export function isOpenInterview(status: string): boolean {
+  return status === "open";
+}
+
+/**
  * 埋め込み結果を公開判定用の最小形に整える。
  *
  * 施策を埋め込むクエリはテーマ一覧・チャット・意見表示と複数あるため、

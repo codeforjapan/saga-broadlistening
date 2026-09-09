@@ -311,7 +311,7 @@ const personaSlotInputSchema = z.discriminatedUnion("kind", [
 /** 複数ペルソナシミュ API のリクエストボディ（実行時バリデーション用） */
 export const multiSimulationRunRequestSchema = z
   .object({
-    billId: z.string().min(1).max(ID_MAX),
+    interviewConfigId: z.string().min(1).max(ID_MAX),
     personaSlots: z
       .array(personaSlotInputSchema)
       .min(1, "ペルソナを 1 件以上選択してください")

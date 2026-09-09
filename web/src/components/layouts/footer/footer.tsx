@@ -1,6 +1,6 @@
 "use client";
 
-import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/shared/site";
+import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";

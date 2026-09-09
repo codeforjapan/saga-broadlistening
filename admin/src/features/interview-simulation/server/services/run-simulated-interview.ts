@@ -1,6 +1,7 @@
 import "server-only";
 
 import { buildLoopModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/loop-mode";
+import { buildInitialTurnInstruction } from "@mirai-gikai/shared/interview-prompts/subject-section";
 import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
 import type {
   PromptBillInput,
@@ -83,7 +84,8 @@ interface RunSimulatedInterviewParams {
    * messages なし・prompt 直渡しで LLM を呼ぶ。
    */
   initialTurnEnhancement?: {
-    billTitle: string;
+    /** 名乗る対象名。施策があれば施策名、なければテーマ名 */
+    subjectTitle: string;
     firstQuestionId: string | null;
   };
   /**
@@ -277,8 +279,9 @@ export async function runSimulatedInterview({
       // messages は渡さず prompt 直渡しで呼び出す。
       const isInitialTurn = turnIndex === 0 && transcript.length === 0;
       if (isInitialTurn && initialTurnEnhancement) {
-        const { billTitle, firstQuestionId } = initialTurnEnhancement;
-        const enhancedPrompt = `${interviewerSystemPromptForThisTurn}\n\n## 重要: これはインタビューの開始です。ユーザーからのメッセージはありません。事前定義質問の最初の質問から始めてください。挨拶は温かく丁寧に（2文程度）、「${billTitle}」についてのインタビューであることを明確に伝えた上で、すぐに最初の質問をしてください。最初の質問にクイックリプライが設定されている場合は、必ず quick_replies フィールドに含めてください。${firstQuestionId ? `最初の質問は ID: ${firstQuestionId} であり、レスポンスの question_id にこの値を含めてください。` : ""}`;
+        const enhancedPrompt = `${interviewerSystemPromptForThisTurn}\n\n${buildInitialTurnInstruction(
+          initialTurnEnhancement
+        )}`;
         const { object } = await withTimeoutRetry(
           (attemptSignal) =>
             generateObject({

@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/branding/site";
 import Image from "next/image";
 import { Container } from "@/components/layouts/container";
 import { TopEntryNav } from "@/components/top/top-entry-nav";
@@ -27,8 +27,8 @@ export function Hero() {
             未来に声を届ける
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {SITE_NAME}は、市の施策をわかりやすく解説し、
-            あなたの声を市政につなぐ参加型プラットフォームです。
+            {SITE_NAME}は、{MUNICIPALITY_NAME}
+            の今の取組を気軽に知ったり、AIと話しながら日ごろ感じていることや考えを伝えたりできる、新しい広聴のしくみです。見るだけでも、話すだけでも大丈夫です。
           </p>
         </div>
 

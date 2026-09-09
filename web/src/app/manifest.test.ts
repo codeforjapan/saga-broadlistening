@@ -3,8 +3,8 @@ import { join } from "node:path";
 import {
   BACKGROUND_COLOR,
   THEME_COLOR,
-} from "@mirai-gikai/design-tokens/brand-meta";
-import { SITE_DESCRIPTION, SITE_NAME } from "@mirai-gikai/shared/site";
+} from "@mirai-gikai/branding/brand-meta";
+import { SITE_DESCRIPTION, SITE_NAME } from "@mirai-gikai/branding/site";
 import { describe, expect, it } from "vitest";
 import manifest from "./manifest";
 

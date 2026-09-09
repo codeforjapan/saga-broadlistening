@@ -33,8 +33,9 @@ import { PersonaResultCard } from "./persona-result-card";
 import { PersonaSelectorList } from "./persona-selector-list";
 
 interface MultiSimulationViewProps {
-  billId: string;
   configId: string;
+  /** 施策全体から候補を選べるか。抽象テーマ型では false */
+  hasPolicyScope: boolean;
   /** 編集フォームの現在値を取り出す（未保存編集値を含む） */
   getFormValues: () => {
     description: string | null;
@@ -80,8 +81,8 @@ function ModelSelect({
 }
 
 export function MultiSimulationView({
-  billId,
   configId,
+  hasPolicyScope,
   getFormValues,
   getCurrentQuestions,
   completedReports,
@@ -147,7 +148,7 @@ export function MultiSimulationView({
       : DEFAULT_INTERVIEWER_MODEL;
 
     const body: MultiSimulationRunRequest = {
-      billId,
+      interviewConfigId: configId,
       personaSlots: slots,
       improvedConfig: snapshot,
       interviewerModel: resolvedInterviewerModel,
@@ -157,7 +158,7 @@ export function MultiSimulationView({
 
     await run(body);
   }, [
-    billId,
+    configId,
     slots,
     getFormValues,
     getCurrentQuestions,
@@ -196,8 +197,8 @@ export function MultiSimulationView({
         <PersonaSelectorList
           slots={slots}
           onChange={setSlots}
-          billId={billId}
           currentConfigId={configId}
+          hasPolicyScope={hasPolicyScope}
           completedReports={completedReports}
           completedReportsTruncated={completedReportsTruncated}
           completedReportsLimit={completedReportsLimit}

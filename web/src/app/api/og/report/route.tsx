@@ -1,5 +1,5 @@
-import { OG_COLORS } from "@mirai-gikai/design-tokens/brand-meta";
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { OG_COLORS } from "@mirai-gikai/branding/brand-meta";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { ImageResponse } from "next/og";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";
 import { truncateText } from "@/features/interview-report/shared/utils/truncate-text";

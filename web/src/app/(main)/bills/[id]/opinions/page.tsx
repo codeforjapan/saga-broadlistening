@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
-import { BillOpinionsPage } from "@/features/user-topic-analysis/server/components/bill-opinions-page";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { OpinionsPage } from "@/features/user-topic-analysis/server/components/opinions-page";
+import { buildOpinionsMetadata } from "@/features/user-topic-analysis/shared/utils/topic-analysis-metadata";
+import { routes } from "@/lib/routes";
 
-interface OpinionsPageProps {
+interface BillOpinionsRouteProps {
   params: Promise<{
     id: string;
   }>;
@@ -10,18 +13,19 @@ interface OpinionsPageProps {
 
 export async function generateMetadata({
   params,
-}: OpinionsPageProps): Promise<Metadata> {
+}: BillOpinionsRouteProps): Promise<Metadata> {
   const { id } = await params;
   const bill = await getBillById(id);
-  const title = bill?.bill_content?.title || bill?.name || "施策";
 
-  return {
-    title: `AIインタビューの回答一覧 - ${title}`,
-    description: `${title}に寄せられたAIインタビューの回答一覧`,
-  };
+  return buildOpinionsMetadata({
+    subjectName: bill?.bill_content?.title || bill?.name || "施策",
+    canonical: routes.billOpinions(id),
+  });
 }
 
-export default async function OpinionsPage({ params }: OpinionsPageProps) {
+export default async function BillOpinionsRoute({
+  params,
+}: BillOpinionsRouteProps) {
   const { id } = await params;
-  return <BillOpinionsPage billId={id} />;
+  return <OpinionsPage target={policyInterviewTarget(id)} />;
 }

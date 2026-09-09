@@ -1,4 +1,4 @@
-import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/branding/site";
 
 /**
  * プロンプトテンプレート間で共有されるセクション定義

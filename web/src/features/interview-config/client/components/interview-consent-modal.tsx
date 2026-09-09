@@ -1,6 +1,6 @@
 "use client";
 
-import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { ArrowRight, Loader2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -51,7 +51,7 @@ export function InterviewConsentModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="px-8 py-12">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-primary text-center">
+          <DialogTitle className="text-lg font-bold text-primary-accent text-center">
             AIインタビュー同意事項
           </DialogTitle>
           <div className="h-[1px] bg-border mt-6" />

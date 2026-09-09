@@ -2,9 +2,13 @@
 
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { routes } from "@/lib/routes";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { TopicCard } from "../../shared/components/topic-card";
 import type { PublicTopic } from "../../shared/types";
+import {
+  getTopicDetailLink,
+  getTopicsLink,
+} from "../../shared/utils/topic-analysis-links";
 import { useFilteredPagination } from "../hooks/use-filtered-pagination";
 
 /** 最初に表示するトピック件数と、「もっと見る」で1回に追加する件数。 */
@@ -12,14 +16,15 @@ const INITIAL_VISIBLE = 20;
 const LOAD_STEP = 40;
 
 interface TopicListProps {
-  billId: string;
+  /** トピック詳細へのリンク組み立てに使う起点（施策・テーマ）。 */
+  target: InterviewTarget;
   topics: PublicTopic[];
-  /** 引用→該当メッセージのリンク表示可否の判定に使う、施策の公開意見件数。 */
+  /** 引用→該当メッセージのリンク表示可否の判定に使う、意見募集の公開意見件数。 */
   publicReportCount: number;
 }
 
 export function TopicList({
-  billId,
+  target,
   topics,
   publicReportCount,
 }: TopicListProps) {
@@ -27,7 +32,7 @@ export function TopicList({
     topics,
     INITIAL_VISIBLE,
     LOAD_STEP,
-    `topic-list-pagination:${billId}`
+    `topic-list-pagination:${getTopicsLink(target)}`
   );
   // 「意見のまとめ」件数は全トピックの意見数の合計。
   const opinionCount = topics.reduce((sum, t) => sum + t.opinion_count, 0);
@@ -46,7 +51,7 @@ export function TopicList({
             <TopicCard
               key={topic.id}
               topic={topic}
-              href={routes.billTopicDetail(billId, topic.id)}
+              href={getTopicDetailLink(target, topic.id)}
               publicReportCount={publicReportCount}
             />
           ))

@@ -55,6 +55,38 @@ export function getInterviewLPLink(target: InterviewTarget): string {
 }
 
 /**
+ * テーマの入口へのリンクを取得。
+ *
+ * 募集中のテーマはそのテーマのページへ、募集が終わったテーマは個別ページが
+ * 公開されないためテーマ一覧へ送る。意見の戻り導線・トピック分析の戻り導線が
+ * 同じ場所を指すよう、この判断はここに一本化する。
+ */
+export function getThemeHomeLink(theme: {
+  slug: string;
+  isOpen: boolean;
+}): string {
+  return theme.isOpen
+    ? getInterviewLPLink(themeInterviewTarget(theme.slug))
+    : routes.interviews();
+}
+
+/**
+ * テーマ一覧のカードから飛ばす先を取得。
+ *
+ * 募集中のテーマは参加導線（テーマのLP）へ。募集が終わったテーマはLPが公開されないため、
+ * 寄せられた意見のまとめ（トピック一覧）へ送る。
+ * 「募集終了テーマの読者をどこへ送るか」は getThemeHomeLink と揃えてここで決める。
+ */
+export function getThemeCardLink(theme: {
+  slug: string;
+  isOpen: boolean;
+}): string {
+  return theme.isOpen
+    ? getInterviewLPLink(themeInterviewTarget(theme.slug))
+    : routes.interviewThemeTopics(theme.slug);
+}
+
+/**
  * インタビュー情報開示ページへのリンクを取得
  */
 export function getInterviewDisclosureLink(target: InterviewTarget): string {

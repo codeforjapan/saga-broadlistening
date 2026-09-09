@@ -1,5 +1,5 @@
 import { openai } from "@ai-sdk/openai";
-import { SITE_NAME } from "@mirai-gikai/shared/site";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Database } from "@mirai-gikai/supabase";
 import {
   convertToModelMessages,

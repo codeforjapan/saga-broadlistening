@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/branding/site";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ComponentProps, FormEvent, ReactNode } from "react";
@@ -88,6 +88,7 @@ vi.mock("@/components/ai-elements/prompt-input", () => ({
 vi.mock("./mobile-chat-dialog", () => ({
   CHAT_PANEL_RESPONSIVE_CLASSES:
     "md:bottom-4 md:right-4 md:left-auto md:w-[450px] md:rounded-2xl",
+  CHAT_PANEL_PC_WIDTH_CLASS: "pc:w-[300px]",
   MobileChatDialog: (props: {
     children: ReactNode;
     disableAutoFocus?: boolean;

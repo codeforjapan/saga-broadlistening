@@ -1,6 +1,6 @@
 "use client";
 
-import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { ArrowRight, Lock } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";

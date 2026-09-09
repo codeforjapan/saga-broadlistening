@@ -9,7 +9,7 @@ import {
   updateVersionStatus,
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
-import { executeTopicAnalysisJob } from "@/lib/cloud-run-job";
+import { executeTopicAnalysisJob } from "@/lib/topic-analysis-batch";
 
 export const maxDuration = 60;
 
@@ -19,7 +19,7 @@ const json = (body: unknown, status = 200) =>
     headers: { "Content-Type": "application/json" },
   });
 
-/** ユーザー向けトピック分析の手動実行入口（Admin）。version 作成 → Cloud Run Job 起動。 */
+/** ユーザー向けトピック分析の手動実行入口（Admin）。version 作成 → AWS Batch ジョブ起動。 */
 export async function POST(request: Request) {
   try {
     await requireAdmin();
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   try {
     // 二重起動防止（§5.3）: running/pending があればスキップ。
-    // ただし Cloud Run 実行が worker 到達前に死んだ等で失効した行は failed に倒し、
+    // ただし Batch ジョブが worker 到達前に死んだ等で失効した行は failed に倒し、
     // 再実行をブロックし続けないようにする（pending/running のままの残骸を自己回復）。
     const active = await findActiveVersionByInterviewConfig(interviewConfigId);
     if (active) {

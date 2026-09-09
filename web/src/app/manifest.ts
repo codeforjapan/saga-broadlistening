@@ -1,8 +1,8 @@
 import {
   BACKGROUND_COLOR,
   THEME_COLOR,
-} from "@mirai-gikai/design-tokens/brand-meta";
-import { SITE_DESCRIPTION, SITE_NAME } from "@mirai-gikai/shared/site";
+} from "@mirai-gikai/branding/brand-meta";
+import { SITE_DESCRIPTION, SITE_NAME } from "@mirai-gikai/branding/site";
 import type { MetadataRoute } from "next";
 import { routes } from "@/lib/routes";
 

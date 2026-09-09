@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { MUNICIPALITY_NAME } from "@mirai-gikai/shared/site";
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import type { Database } from "@mirai-gikai/supabase";
 import { withDefaults } from "../shared/insert-seed";
 import { pickRespondent } from "../shared/respondents";
