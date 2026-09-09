@@ -8,7 +8,7 @@ describe("rgba", () => {
   });
 
   it("パレットの値から変換するので二重管理にならない", () => {
-    expect(rgba(PRIMITIVES["sky-700"], 0.35)).toBe("rgba(0, 119, 200, 0.35)");
+    expect(rgba(PRIMITIVES["sky-700"], 0.35)).toBe("rgba(178, 82, 0, 0.35)");
   });
 });
 
@@ -28,7 +28,7 @@ describe("シャドウトークン（要求仕様3.4）", () => {
   });
 
   it("focus は sky/700 由来のリング", () => {
-    expect(SHADOWS.focus).toBe("0 0 0 3px rgba(0, 119, 200, 0.35)");
+    expect(SHADOWS.focus).toBe("0 0 0 3px rgba(178, 82, 0, 0.35)");
   });
 
   it("card / raised は base-ink 系（有彩色のシャドウを使わない）", () => {

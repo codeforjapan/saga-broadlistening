@@ -24,7 +24,7 @@ describe("ブランドメタ", () => {
     }
   });
 
-  it("theme-color は明るい水色（D-5: 大面積の渋いブルーを避ける）", () => {
+  it("theme-color は明るいパステルオレンジ（D-5: 大面積に渋い色を置かない）", () => {
     expect(THEME_COLOR).toBe(PRIMITIVES["sky-400"]);
   });
 

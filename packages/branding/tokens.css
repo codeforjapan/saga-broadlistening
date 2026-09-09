@@ -1,5 +1,5 @@
 /**
- * AI公聴基盤 デザイントークン（案3-1 水色基調）
+ * AI公聴基盤 デザイントークン（vanilla: パステルオレンジ基調）
  *
  * このファイルは自動生成です。直接編集しないでください。
  * 値の変更は packages/branding/src/palette.ts を編集し、
@@ -10,15 +10,15 @@
   /* プリミティブパレット */
   --color-base-white: #ffffff;
   --color-base-ink: #2b2b2b;
-  --color-base-ink-muted: #5a6570;
-  --color-base-surface: #f4f7fa;
-  --color-sky-50: #eaf7ff;
-  --color-sky-100: #d6efff;
-  --color-sky-200: #aedfff;
-  --color-sky-400: #55c1ff;
-  --color-sky-500: #2fb0ff;
-  --color-sky-700: #0077c8;
-  --color-sky-800: #0068af;
+  --color-base-ink-muted: #6b6259;
+  --color-base-surface: #faf5f0;
+  --color-sky-50: #fff4ec;
+  --color-sky-100: #ffe6d5;
+  --color-sky-200: #ffcda8;
+  --color-sky-400: #ffab63;
+  --color-sky-500: #ff9440;
+  --color-sky-700: #b25200;
+  --color-sky-800: #9a4600;
   --color-green-100: #edf7dc;
   --color-green-400: #8cc63f;
   --color-green-500: #7ab32f;
@@ -66,7 +66,7 @@
   /* シャドウ（D-6: 面の区切りは線ではなくシャドウで表現する） */
   --shadow-card: 0 1px 2px rgba(43, 43, 43, 0.06), 0 1px 1px rgba(43, 43, 43, 0.04);
   --shadow-raised: 0 2px 6px rgba(43, 43, 43, 0.08);
-  --shadow-focus: 0 0 0 3px rgba(0, 119, 200, 0.35);
+  --shadow-focus: 0 0 0 3px rgba(178, 82, 0, 0.35);
 }
 
 @layer base {
@@ -105,7 +105,7 @@
   --secondary-foreground: var(--color-base-ink);
   --muted: var(--color-base-surface);
   --muted-foreground: var(--color-base-ink-muted);
-  --accent: var(--color-lavender-300);
+  --accent: var(--color-sky-100);
   --accent-foreground: var(--color-base-ink);
   --destructive: var(--color-system-destructive);
   --destructive-foreground: var(--color-base-white);
