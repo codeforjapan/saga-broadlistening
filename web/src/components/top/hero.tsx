@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/branding/site";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/branding/site";
 import Image from "next/image";
 import { Container } from "@/components/layouts/container";
 import { TopEntryNav } from "@/components/top/top-entry-nav";
@@ -22,13 +22,13 @@ export function Hero() {
       <Container className="flex flex-col gap-5 py-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-xl font-bold leading-relaxed md:text-2xl">
-            まちのこと、
+            まちの今を知り、
             <br className="sm:hidden" />
-            ちかっと知る。ちかっと話す。
+            未来に声を届ける
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {SITE_NAME}
-            （チカット）は、佐賀市の今の取組を気軽に知ったり、AIと話しながら日ごろ感じていることや考えを伝えたりできる、新しい広聴のしくみです。見るだけでも、話すだけでも大丈夫です。
+            {SITE_NAME}は、{MUNICIPALITY_NAME}
+            の今の取組を気軽に知ったり、AIと話しながら日ごろ感じていることや考えを伝えたりできる、新しい広聴のしくみです。見るだけでも、話すだけでも大丈夫です。
           </p>
         </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { ArrowRight, Loader2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -58,7 +59,7 @@ export function InterviewConsentModal({
 
         <div className="flex flex-col gap-6 mt-6">
           <ul className="flex flex-col gap-3 list-disc pl-5 text-sm font-bold text-foreground leading-[22px]">
-            <li>回答データは佐賀市の施策検討に利用します。</li>
+            <li>{`回答データは${MUNICIPALITY_NAME}の施策検討に利用します。`}</li>
             <li>個人情報や機密情報の記載はお控えください。</li>
             <li>
               インタビュー回答後に公開を許可するかを選択できます。公開を許可した場合、のちに本サービスに全文が掲載される場合があります。

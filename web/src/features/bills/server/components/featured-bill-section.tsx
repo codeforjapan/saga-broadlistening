@@ -1,3 +1,4 @@
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { SectionHeading } from "@/components/section-heading";
 import { BillList } from "../../client/components/bill-list/bill-list";
 import type { BillWithContent } from "../../shared/types";
@@ -17,7 +18,7 @@ export function FeaturedBillSection({ bills }: FeaturedBillSectionProps) {
       <SectionHeading
         as="h3"
         title="注目の施策📈"
-        description="佐賀市が検討している注目施策"
+        description={`${MUNICIPALITY_NAME}が検討している注目施策`}
       />
 
       {/* 注目の施策カード */}

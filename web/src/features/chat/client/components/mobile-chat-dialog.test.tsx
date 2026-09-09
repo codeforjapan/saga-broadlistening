@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRef, useState } from "react";
@@ -54,7 +55,7 @@ describe("MobileChatDialog", () => {
 
     expect(
       screen.getByRole("dialog", {
-        name: "佐賀市の施策についてAIに質問する",
+        name: `${MUNICIPALITY_NAME}の施策についてAIに質問する`,
       })
     ).toHaveAttribute("aria-modal", "true");
     expect(

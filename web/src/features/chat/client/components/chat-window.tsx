@@ -1,6 +1,6 @@
 "use client";
 
-import { SITE_NAME } from "@mirai-gikai/branding/site";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/branding/site";
 import Image from "next/image";
 import type { ChangeEvent, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -93,7 +93,7 @@ function ChatMessages({
         {/* 初期メッセージ */}
         <div className="flex flex-col gap-1">
           <p className="text-sm font-bold leading-[1.8] text-foreground">
-            佐賀市の施策について、気になることをAIに質問してください。
+            {`${MUNICIPALITY_NAME}の施策について、気になることをAIに質問してください。`}
           </p>
           {billContext && (
             <p className="text-sm font-bold leading-[1.8] text-foreground">
@@ -108,7 +108,7 @@ function ChatMessages({
             ? ["この施策のポイントは？", "この施策は私にどんな影響がある？"]
             : [
                 `${SITE_NAME}って何？`,
-                "佐賀市はどんな施策を検討しているの？",
+                `${MUNICIPALITY_NAME}はどんな施策を検討しているの？`,
                 "注目の施策について教えて",
               ]
           ).map((question) => {
@@ -288,7 +288,7 @@ export function ChatWindow({
   if (isPc) {
     return createPortal(
       <section
-        aria-label="佐賀市の施策についてAIに質問する"
+        aria-label={`${MUNICIPALITY_NAME}の施策についてAIに質問する`}
         className={`fixed inset-x-0 bottom-0 z-50 bg-white shadow-md rounded-t-2xl flex flex-col pc:h-[70vh] xl:right-[calc(calc(100%-1180px)/2)] ${CHAT_PANEL_RESPONSIVE_CLASSES} ${CHAT_PANEL_PC_WIDTH_CLASS}`}
       >
         {chatPanelContent}

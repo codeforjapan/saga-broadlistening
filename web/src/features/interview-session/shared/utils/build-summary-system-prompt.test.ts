@@ -58,12 +58,12 @@ describe("buildSummarySystemPrompt", () => {
   it("bill=nullの場合は施策の欄を作らず、テーマを対象として載せる", () => {
     const result = buildSummarySystemPrompt({
       bill: null,
-      interviewConfig: { name: "佐賀市のみらい", description: "- テーマ1" },
+      interviewConfig: { name: "まちのみらい", description: "- テーマ1" },
       messages: [{ role: "user", content: "テスト" }],
     });
 
     expect(result).toContain("## インタビューの対象");
-    expect(result).toContain("テーマ名: 佐賀市のみらい");
+    expect(result).toContain("テーマ名: まちのみらい");
     expect(result).not.toContain("- 施策名:");
   });
 

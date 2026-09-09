@@ -287,7 +287,7 @@ export function InterviewConfigForm({
                   <FormItem>
                     <FormLabel>Slug</FormLabel>
                     <FormControl>
-                      <Input placeholder="saga-no-mirai" {...field} />
+                      <Input placeholder="machi-no-mirai" {...field} />
                     </FormControl>
                     <FormDescription>
                       公開ページのURLに使う識別子です（重複不可）

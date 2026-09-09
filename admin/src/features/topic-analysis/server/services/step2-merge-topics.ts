@@ -1,5 +1,6 @@
 import "server-only";
 
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { generateObject } from "ai";
 import { TOPIC_ANALYSIS_MODEL } from "../../shared/constants";
 import { topicMergeSchema } from "../../shared/schemas";
@@ -19,7 +20,7 @@ export async function mergeTopics(
   const { object } = await generateObject({
     model: TOPIC_ANALYSIS_MODEL,
     schema: topicMergeSchema,
-    prompt: `あなたは佐賀市の施策に関する市民意見のトピック整理を行います。
+    prompt: `あなたは${MUNICIPALITY_NAME}の施策に関する市民意見のトピック整理を行います。
 
 ## 施策
 ${billTitle}

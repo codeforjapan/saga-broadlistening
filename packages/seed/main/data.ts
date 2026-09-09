@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import type { Database } from "@mirai-gikai/supabase";
 import { withDefaults } from "../shared/insert-seed";
 import { pickRespondent } from "../shared/respondents";
@@ -651,7 +652,7 @@ export function createDemoMessages(): Omit<
       interview_session_id: DEMO_SESSION_ID,
       role: "assistant",
       content:
-        "こんにちは！本日はインタビューにご協力いただきありがとうございます。\n\n佐賀市では、今後の市政の重点的な取り組みをまとめた計画を策定しようとしています。今後の市政に期待する内容や、アイデア、意見について率直なご意見をお聞かせください。佐賀市はどのようなことに取り組んでいくと良いと思いますか？",
+        `こんにちは！本日はインタビューにご協力いただきありがとうございます。\n\n${MUNICIPALITY_NAME}では、今後の市政の重点的な取り組みをまとめた計画を策定しようとしています。今後の市政に期待する内容や、アイデア、意見について率直なご意見をお聞かせください。${MUNICIPALITY_NAME}はどのようなことに取り組んでいくと良いと思いますか？`,
     },
     {
       interview_session_id: DEMO_SESSION_ID,
@@ -662,7 +663,7 @@ export function createDemoMessages(): Omit<
       interview_session_id: DEMO_SESSION_ID,
       role: "assistant",
       content:
-        "なるほど。窓口のレスポンス速度の向上と、職員の長時間労働の削減を通じて、より優秀な人材が市役所を志望する好循環を期待されているということですね。とても重要な指摘だと思います。\n\nそうした働き方改革や人材確保という視点から見たとき、佐賀市がこれまで進めてきた行政のデジタル化や情報公開の取り組みは、今のあなたの期待にどの程度応えていると評価されますか？",
+        `なるほど。窓口のレスポンス速度の向上と、職員の長時間労働の削減を通じて、より優秀な人材が市役所を志望する好循環を期待されているということですね。とても重要な指摘だと思います。\n\nそうした働き方改革や人材確保という視点から見たとき、${MUNICIPALITY_NAME}がこれまで進めてきた行政のデジタル化や情報公開の取り組みは、今のあなたの期待にどの程度応えていると評価されますか？`,
     },
     {
       interview_session_id: DEMO_SESSION_ID,

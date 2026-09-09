@@ -1,5 +1,6 @@
 "use client";
 
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import Image from "next/image";
 import type { KeyboardEvent, MouseEvent } from "react";
 import {
@@ -103,7 +104,7 @@ export function BillShareModal({
         {/* シェアセクション */}
         <div className="flex flex-col items-center gap-4 w-full">
           <p className="text-base font-bold text-foreground text-center">
-            シェアして佐賀市の施策をオープンに
+            {`シェアして${MUNICIPALITY_NAME}の施策をオープンに`}
           </p>
 
           {/* SNSアイコン */}

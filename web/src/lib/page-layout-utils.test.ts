@@ -35,7 +35,7 @@ describe("isInterviewPage", () => {
   });
 
   it("returns true for the standalone theme chat page", () => {
-    expect(isInterviewPage("/interviews/saga-no-mirai/chat")).toBe(true);
+    expect(isInterviewPage("/interviews/machi-no-mirai/chat")).toBe(true);
   });
 
   it("returns false for the interview LP page", () => {
@@ -43,7 +43,7 @@ describe("isInterviewPage", () => {
   });
 
   it("returns false for the standalone theme LP page", () => {
-    expect(isInterviewPage("/interviews/saga-no-mirai")).toBe(false);
+    expect(isInterviewPage("/interviews/machi-no-mirai")).toBe(false);
   });
 
   it("returns false for the bill detail page", () => {
@@ -65,11 +65,11 @@ describe("isInterviewSection", () => {
   });
 
   it("returns true for the standalone theme LP page", () => {
-    expect(isInterviewSection("/interviews/saga-no-mirai")).toBe(true);
+    expect(isInterviewSection("/interviews/machi-no-mirai")).toBe(true);
   });
 
   it("returns true for the standalone theme chat page", () => {
-    expect(isInterviewSection("/interviews/saga-no-mirai/chat")).toBe(true);
+    expect(isInterviewSection("/interviews/machi-no-mirai/chat")).toBe(true);
   });
 
   it("returns false for the theme list page itself", () => {

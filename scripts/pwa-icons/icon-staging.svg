@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <!-- 案3-1パレット: sky/500 から sky/700 へ（primary 系から primary-accent へ） -->
+    <!-- パステルオレンジ: sky/500 から sky/700 へ（primary 系から primary-accent へ） -->
     <linearGradient id="bubble" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2fb0ff" />
-      <stop offset="100%" stop-color="#0077c8" />
+      <stop offset="0%" stop-color="#ff9440" />
+      <stop offset="100%" stop-color="#b25200" />
     </linearGradient>
     <linearGradient id="wave" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#d6efff" />
-      <stop offset="100%" stop-color="#0077c8" />
+      <stop offset="0%" stop-color="#ffe6d5" />
+      <stop offset="100%" stop-color="#b25200" />
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="96" fill="#ffffff"/>

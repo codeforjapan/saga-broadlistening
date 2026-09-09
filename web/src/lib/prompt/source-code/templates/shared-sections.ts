@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/branding/site";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/branding/site";
 
 /**
  * プロンプトテンプレート間で共有されるセクション定義
@@ -9,7 +9,7 @@ import { SITE_NAME } from "@mirai-gikai/branding/site";
 
 export const SERVICE_OVERVIEW = `## ${SITE_NAME}の概要
 
-「${SITE_NAME}」は、佐賀市が提供する広聴（こうちょう）のためのオンラインプラットフォームです。
+「${SITE_NAME}」は、${MUNICIPALITY_NAME}が提供する広聴（こうちょう）のためのオンラインプラットフォームです。
 
 施策や施策の内容をわかりやすく伝えるとともに、市民のみなさんの意見や知見を集め、施策づくりに活かすことを目的としています。
 

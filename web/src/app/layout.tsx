@@ -3,7 +3,11 @@ import {
   PROGRESS_BAR_COLOR,
   THEME_COLOR,
 } from "@mirai-gikai/branding/brand-meta";
-import { SITE_NAME } from "@mirai-gikai/branding/site";
+import {
+  MUNICIPALITY_NAME,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+} from "@mirai-gikai/branding/site";
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Zen_Maru_Gothic } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
@@ -39,8 +43,6 @@ const notoSerifJP = Noto_Serif_JP({
 
 const isDev = process.env.NODE_ENV === "development";
 const isStaging = process.env.VERCEL_TARGET_ENV === "staging";
-const siteDescription =
-  "佐賀市で今どんな施策が検討されているか、わかりやすく伝える公聴プラットフォーム";
 const ogImage = {
   url: "/ogp.jpg",
   width: 1200,
@@ -51,8 +53,8 @@ const ogImage = {
 export const metadata: Metadata = {
   metadataBase: new URL(env.webUrl),
   title: SITE_NAME,
-  description: siteDescription,
-  keywords: [SITE_NAME, "施策", "政治", "佐賀市", "施策", "解説", "公聴"],
+  description: SITE_DESCRIPTION,
+  keywords: [SITE_NAME, "施策", "政治", MUNICIPALITY_NAME, "解説", "公聴"],
   icons: {
     icon: isDev
       ? "/icons/pwa/icon_dev_192_v3.png"
@@ -63,17 +65,17 @@ export const metadata: Metadata = {
       ? "/icons/pwa/icon_staging_ios.png"
       : "/icons/pwa/icon_ios.png",
   },
-  manifest: "/manifest.json",
+  manifest: "/manifest.webmanifest",
   openGraph: {
     title: SITE_NAME,
-    description: siteDescription,
+    description: SITE_DESCRIPTION,
     images: [ogImage],
     siteName: SITE_NAME,
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_NAME,
-    description: siteDescription,
+    description: SITE_DESCRIPTION,
     images: [ogImage.url],
   },
   robots: {

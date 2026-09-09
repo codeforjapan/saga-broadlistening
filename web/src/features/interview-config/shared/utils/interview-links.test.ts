@@ -45,8 +45,8 @@ describe("getInterviewLPLink", () => {
   });
 
   it("returns the standalone theme LP path for a theme target", () => {
-    expect(getInterviewLPLink(themeInterviewTarget("saga-no-mirai"))).toBe(
-      "/interviews/saga-no-mirai"
+    expect(getInterviewLPLink(themeInterviewTarget("machi-no-mirai"))).toBe(
+      "/interviews/machi-no-mirai"
     );
   });
 });
@@ -66,8 +66,8 @@ describe("getInterviewDisclosureLink", () => {
 
   it("returns the standalone theme disclosure path for a theme target", () => {
     expect(
-      getInterviewDisclosureLink(themeInterviewTarget("saga-no-mirai"))
-    ).toBe("/interviews/saga-no-mirai/disclosure");
+      getInterviewDisclosureLink(themeInterviewTarget("machi-no-mirai"))
+    ).toBe("/interviews/machi-no-mirai/disclosure");
   });
 });
 
@@ -85,8 +85,8 @@ describe("getInterviewChatLink", () => {
   });
 
   it("returns the standalone theme chat path for a theme target", () => {
-    expect(getInterviewChatLink(themeInterviewTarget("saga-no-mirai"))).toBe(
-      "/interviews/saga-no-mirai/chat"
+    expect(getInterviewChatLink(themeInterviewTarget("machi-no-mirai"))).toBe(
+      "/interviews/machi-no-mirai/chat"
     );
   });
 });
@@ -105,7 +105,7 @@ describe("getInterviewExitLink", () => {
   });
 
   it("returns the theme list for a theme target because it has no bill page", () => {
-    expect(getInterviewExitLink(themeInterviewTarget("saga-no-mirai"))).toBe(
+    expect(getInterviewExitLink(themeInterviewTarget("machi-no-mirai"))).toBe(
       "/interviews"
     );
   });
@@ -254,8 +254,8 @@ describe("extractInterviewTargetFromPath", () => {
 
   it("returns a theme target for a standalone theme path", () => {
     expect(
-      extractInterviewTargetFromPath("/interviews/saga-no-mirai/chat")
-    ).toEqual({ kind: "theme", slug: "saga-no-mirai" });
+      extractInterviewTargetFromPath("/interviews/machi-no-mirai/chat")
+    ).toEqual({ kind: "theme", slug: "machi-no-mirai" });
   });
 
   it("returns null for the theme list page because it has no target", () => {

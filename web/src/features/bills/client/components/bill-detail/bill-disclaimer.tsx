@@ -1,3 +1,4 @@
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 export function BillDisclaimer() {
   return (
     <div className="space-y-6 pt-4 pb-10">
@@ -5,7 +6,7 @@ export function BillDisclaimer() {
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-black">掲載コンテンツについて</h3>
         <p className="text-xs leading-relaxed text-foreground">
-          掲載されている施策情報は、佐賀市が公開している情報を基に、AIを活用しながら背景情報を整理したものです。
+          {`掲載されている施策情報は、${MUNICIPALITY_NAME}が公開している情報を基に、AIを活用しながら背景情報を整理したものです。`}
         </p>
       </div>
 

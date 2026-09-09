@@ -1,10 +1,20 @@
 /**
- * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
+ * AI公聴基盤 デザイントークン（vanilla: パステルオレンジ基調）
  *
  * ここが色の唯一の出所。`tokens.css` は `pnpm --filter @mirai-gikai/branding build:css`
  * で本ファイルから生成する（`tokens-css.test.ts` が同期を検証する）。
  *
- * 値の根拠は Epic #8 の要求仕様3章。すべて `#FFFFFF` 背景上での使用を前提とする。
+ * 構造（トークン名・シェードの刻み・用途の割り当て）は要求仕様3章のままで、
+ * 色だけを水色基調からパステルオレンジ基調に差し替えている。
+ *
+ * `sky-*` というキー名を残しているのは意図的で、改名していない。トークン名は
+ * Tailwind のユーティリティクラス（`bg-sky-400` 等）としてコンポーネントから
+ * 参照されており、上流（develop）が新しく `sky-*` を使うコードを追加したときに
+ * このブランチへマージすると、クラスが解決できずビルドエラーにもならないまま
+ * 色が抜け落ちる。名前の分かりにくさより、その無言の破損を避けることを取った。
+ *
+ * すべて `#FFFFFF` 背景上での使用を前提とし、コントラスト比は
+ * `palette.test.ts` が機械的に検証する。
  */
 
 /** プリミティブパレット。キーが CSS 変数名（`--color-<key>`）になる */
@@ -12,23 +22,23 @@ export const PRIMITIVES = {
   // Base
   "base-white": "#ffffff",
   "base-ink": "#2b2b2b",
-  "base-ink-muted": "#5a6570",
-  "base-surface": "#f4f7fa",
+  "base-ink-muted": "#6b6259",
+  "base-surface": "#faf5f0",
 
-  // Sky（プライマリ／優先度1）
-  "sky-50": "#eaf7ff",
-  "sky-100": "#d6efff",
-  "sky-200": "#aedfff",
-  "sky-400": "#55c1ff",
-  "sky-500": "#2fb0ff",
-  "sky-700": "#0077c8",
+  // Sky（プライマリ／優先度1）＝ vanilla ではパステルオレンジ
+  "sky-50": "#fff4ec",
+  "sky-100": "#ffe6d5",
+  "sky-200": "#ffcda8",
+  "sky-400": "#ffab63",
+  "sky-500": "#ff9440",
+  "sky-700": "#b25200",
   /**
    * 仕様3.1のパレットには無い拡張シェード（2026-09-01 追加、Epic #8 に記録）。
    * 本文の地が base-surface になったことで sky-700 の通常サイズ文字が
-   * 有彩色面・薄グレー面上で 4.5:1 を割るため、文字用アクセントとして新設した。
-   * base-surface 5.4:1 / sky-50 5.4:1 / sky-100 4.9:1。--ring は従来どおり sky-700。
+   * 有彩色面・薄い面の上で 4.5:1 を割りうるため、文字用アクセントとして新設した。
+   * base-surface 6.0:1 / sky-50 6.0:1 / sky-100 5.4:1。--ring は従来どおり sky-700。
    */
-  "sky-800": "#0068af",
+  "sky-800": "#9a4600",
 
   // Green ＝ 黄緑（差し色／優先度2）
   "green-100": "#edf7dc",
@@ -56,7 +66,7 @@ export type PrimitiveToken = keyof typeof PRIMITIVES;
 /**
  * shadcn/ui セマンティック変数へのマッピング（要求仕様3.3）。
  *
- * `--primary-foreground` が `base-ink` である点が最重要。`sky-400` は対白 2.0:1 しかなく、
+ * `--primary-foreground` が `base-ink` である点が最重要。`sky-400` は対白 1.9:1 しかなく、
  * 白文字を載せると WCAG AA を満たさないため、有彩色の面に載せる文字は黒で統一する（D-13）。
  */
 export const SEMANTICS = {
@@ -73,7 +83,9 @@ export const SEMANTICS = {
   "secondary-foreground": "base-ink",
   muted: "base-surface",
   "muted-foreground": "base-ink-muted",
-  accent: "lavender-300",
+  // ホバー・フォーカスの面。shadcn の各UIが広く使うので、
+  // 紫を残すとオレンジ基調の中で浮くため sky 系の淡色に寄せた
+  accent: "sky-100",
   "accent-foreground": "base-ink",
   destructive: "system-destructive",
   "destructive-foreground": "base-white",

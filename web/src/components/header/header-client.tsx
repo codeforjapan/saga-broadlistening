@@ -1,10 +1,9 @@
 "use client";
 
 import { SITE_NAME } from "@mirai-gikai/branding/site";
-import { logoImageProps } from "@/lib/logo";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SiteLogo } from "@/components/brand/site-logo";
 import { DifficultySelector } from "@/features/bill-difficulty/client/components/difficulty-selector";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
 import { InterviewHeaderActions } from "@/features/interview-session/client/components/interview-header-actions";
@@ -33,9 +32,9 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
     <header className="px-3 fixed top-4 left-0 right-0 z-40 max-w-[1440px] mx-auto">
       <div className="rounded-2xl bg-secondary shadow-sm mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* ロゴ。小さく出すためタグライン抜き。ワードマークを含むのでサービス名は併記しない */}
+          {/* ロゴ。小さく出すためタグライン抜き */}
           <Link href={routes.home()} aria-label={`${SITE_NAME} ホーム`}>
-            <Image alt={SITE_NAME} {...logoImageProps("compact", 32)} />
+            <SiteLogo size="sm" />
           </Link>
 
           {/* Navigation */}

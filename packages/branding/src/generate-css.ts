@@ -67,7 +67,7 @@ export function renderTokensCss(): string {
     .join("\n");
 
   return `/**
- * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
+ * AI公聴基盤 デザイントークン（vanilla: パステルオレンジ基調）
  *
  * このファイルは自動生成です。直接編集しないでください。
  * 値の変更は packages/branding/src/palette.ts を編集し、

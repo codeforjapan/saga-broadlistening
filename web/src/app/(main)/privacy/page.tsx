@@ -1,4 +1,4 @@
-import { SITE_NAME } from "@mirai-gikai/branding/site";
+import { MUNICIPALITY_NAME, SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@/components/layouts/container";
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
       className="bg-transparent pt-24 md:pt-12"
       title="プライバシーポリシー"
       enLabel="Privacy Policy"
-      description="佐賀市（以下「当組織」といいます）における個人情報の取り扱いについてご説明します。"
+      description={`${MUNICIPALITY_NAME}（以下「当組織」といいます）における個人情報の取り扱いについてご説明します。`}
     >
       <Container className="space-y-8">
         <p className="text-sm text-muted-foreground">
@@ -159,7 +159,7 @@ export default function PrivacyPage() {
             個人情報の確認・修正・削除、または{SITE_NAME}
             AIインタビュー機能の回答公開の停止等のご相談は、下記までご連絡ください。
           </LegalParagraph>
-          {/* TODO(#16): 佐賀市の問い合わせ先に差し替え */}
+          {/* TODO(#16): 運営自治体の問い合わせ先に差し替え */}
           <LegalParagraph>（お問い合わせ先は準備中です）</LegalParagraph>
         </section>
       </Container>

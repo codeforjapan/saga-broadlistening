@@ -1,5 +1,5 @@
 /**
- * 佐賀市AI公聴基盤 タイポグラフィトークン（要求仕様4章）
+ * AI公聴基盤 タイポグラフィトークン（要求仕様4章）
  *
  * ここが値の唯一の出所。`tokens.css` は
  * `pnpm --filter @mirai-gikai/branding build:css` で本ファイルから生成する。

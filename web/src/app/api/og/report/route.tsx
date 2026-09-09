@@ -1,11 +1,8 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { OG_COLORS } from "@mirai-gikai/branding/brand-meta";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { ImageResponse } from "next/og";
 import { getReportOgData } from "@/features/interview-report/server/loaders/get-report-og-data";
 import { truncateText } from "@/features/interview-report/shared/utils/truncate-text";
-import { logoImageProps } from "@/lib/logo";
 
 /**
  * OGP画像のテキスト制限
@@ -15,8 +12,8 @@ const OG_BILL_NAME_MAX_LENGTH = 40;
 const OG_BILL_NAME_WIDTH = 820;
 const OG_BILL_NAME_MAX_HEIGHT = 96;
 
-/** OGP右下に配置するロゴの表示高さと、カード端からのオフセット(px) */
-const OG_LOGO = { height: 88, bottom: 26, right: 34 } as const;
+/** OGP右下に配置するワードマークの文字サイズと、カード端からのオフセット(px) */
+const OG_LOGO = { fontSize: 44, bottom: 26, right: 34 } as const;
 
 const FONT_FETCH_TIMEOUT_MS = 3000;
 
@@ -37,21 +34,6 @@ async function fetchWithTimeout(
 
 /** フォントデータをモジュールレベルでキャッシュ */
 let cachedFontData: ArrayBuffer | null = null;
-
-/** ロゴ画像のBase64データをモジュールレベルでキャッシュ */
-let cachedLogoDataUrl: string | null = null;
-
-async function loadLogo(): Promise<string | null> {
-  if (cachedLogoDataUrl) return cachedLogoDataUrl;
-  try {
-    const logoPath = join(process.cwd(), "public/img/ogp-logo.png");
-    const buf = await readFile(logoPath);
-    cachedLogoDataUrl = `data:image/png;base64,${buf.toString("base64")}`;
-    return cachedLogoDataUrl;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Google Fontsからフォントデータを取得する。
@@ -103,13 +85,7 @@ export async function GET(request: Request) {
     OG_BILL_NAME_MAX_LENGTH
   );
 
-  const [fontData, logoDataUrl] = await Promise.all([loadFont(), loadLogo()]);
-
-  // ロゴはラスター版(ogp-logo.png)を埋め込むのでsrcは使わず、寸法だけフル版の比率から引く
-  const { width: logoWidth, height: logoHeight } = logoImageProps(
-    "full",
-    OG_LOGO.height
-  );
+  const fontData = await loadFont();
   // フォント取得失敗時はプロパティ自体を省略し、デフォルトフォントにフォールバック
   const fontOptions = fontData
     ? {
@@ -192,21 +168,21 @@ export async function GET(request: Request) {
           </div>
         </div>
 
-        {/* ロゴ画像 */}
-        {logoDataUrl && (
-          // biome-ignore lint/performance/noImgElement: ignore
-          <img
-            alt={`${SITE_NAME}ロゴ`}
-            src={logoDataUrl}
-            width={logoWidth}
-            height={logoHeight}
-            style={{
-              position: "absolute",
-              bottom: OG_LOGO.bottom,
-              right: OG_LOGO.right,
-            }}
-          />
-        )}
+        {/* ロゴ。画像を持たないのでサービス名のワードマークを文字で組む */}
+        <div
+          style={{
+            display: "flex",
+            position: "absolute",
+            bottom: OG_LOGO.bottom,
+            right: OG_LOGO.right,
+            fontSize: OG_LOGO.fontSize,
+            fontWeight: 800,
+            letterSpacing: "0.05em",
+            color: OG_COLORS.accent,
+          }}
+        >
+          {SITE_NAME}
+        </div>
       </div>
     </div>,
     {

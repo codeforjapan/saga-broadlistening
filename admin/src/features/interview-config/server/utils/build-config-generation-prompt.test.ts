@@ -205,7 +205,7 @@ describe("buildConfigGenerationPrompt", () => {
 
   describe("施策に紐づかないテーマ（抽象テーマ型）", () => {
     const themeParams = {
-      subject: { kind: "theme" as const, themeName: "佐賀市のみらい" },
+      subject: { kind: "theme" as const, themeName: "まちのみらい" },
       stage: "theme_proposal" as const,
     };
 
@@ -213,7 +213,7 @@ describe("buildConfigGenerationPrompt", () => {
       const result = buildConfigGenerationPrompt(themeParams);
 
       expect(result).toContain("## テーマ情報");
-      expect(result).toContain("テーマ名: 佐賀市のみらい");
+      expect(result).toContain("テーマ名: まちのみらい");
       expect(result).not.toContain("## 施策情報");
     });
 

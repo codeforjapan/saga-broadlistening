@@ -11,13 +11,13 @@
 - 「みらい議会」の名称を使用する場合は **「みらい議会＠地域名」** の形式にしてください
   - 例: 「みらい議会＠渋谷区」「みらい議会＠福岡市」
 - 独自のサービス名を使用する場合は、この形式に限りません
-- `packages/branding/src/site.ts` の `SITE_NAME` 等と、`web/src/app/layout.tsx` の説明文を変更してください
+- `packages/branding/src/site.ts` の `SITE_NAME`、`SITE_HASHTAG`、`MUNICIPALITY_NAME` を変更してください（web / admin の表示文言はすべてここを参照しています）
 
 ### 2. ロゴの変更
 
 - **チームみらいのロゴは使用しないでください**
-- `web/public/img/logo.svg` および `web/public/img/ogp-logo.png` を独自のロゴに差し替えてください
-- favicon やPWAアイコン（`web/public/icons/`）も独自のものに変更してください
+- ロゴは `web/src/components/brand/site-logo.tsx` がサービス名の文字組みとして描画しています。独自のロゴ画像を使う場合はこのコンポーネントの中身を差し替えてください
+- favicon やPWAアイコン（`web/public/icons/pwa/`、`admin/public/icons/pwa/`）も独自のものに変更してください
 - チャットのAIアバター等のアセットは環境変数 `NEXT_PUBLIC_BRAND_*` でパスを差し替えられます（`packages/branding/src/assets.ts` 参照。未設定時はデフォルト表示）。`NEXT_PUBLIC_*` はビルド時にインライン化されるため、**ビルド実行時に設定されている必要があります**（ビルド後のランタイム注入では反映されません）。また、指定できるのは `public/` 配下のローカルパス（`/img/...` 等）のみです。外部URLを使う場合は `next.config.ts` の `images.remotePatterns` への追加が必要で、未登録のままだとページがランタイムエラーになります
 
 ### 3. トップ画像の変更
@@ -53,16 +53,18 @@
 
 | 対象 | ファイルパス | 変更内容 |
 |------|------------|----------|
-| サービス名 | `packages/branding/src/site.ts` | `SITE_NAME`, `SITE_HASHTAG`, `COPYRIGHT_TEXT` |
-| サービス説明文 | `web/src/app/layout.tsx` | `description`, `keywords` |
+| サービス名・自治体名 | `packages/branding/src/site.ts` | `SITE_NAME`, `MUNICIPALITY_NAME`, `SITE_DESCRIPTION`, `SITE_TAGLINE`（`SITE_HASHTAG` と `COPYRIGHT_TEXT` は導出されるので通常は変更不要） |
 | アセットパス差し替え | `.env`（`NEXT_PUBLIC_BRAND_*`） | チャットアバター等のパスを上書き |
 | テーマカラー | `packages/branding/src/palette.ts` | パレット変更後 `build:css` で再生成 |
 | テーマカラー | `packages/branding/src/brand-meta.ts` | `THEME_COLOR` 等 |
-| ロゴ | `web/public/img/logo.svg` | 独自ロゴに差し替え |
-| ロゴ（OGP） | `web/public/img/ogp-logo.png` | 独自ロゴに差し替え |
+| ロゴ（画面上） | `web/src/components/brand/site-logo.tsx` | 独自ロゴに差し替え |
+| ロゴ（OGP画像） | `web/src/app/api/og/report/route.tsx` | Satori で別途描画しているため、上記とは別に差し替えが必要 |
 | ヒーロー画像 | `web/public/img/hero_background.png` | 独自画像に差し替え |
 | OGP 画像 | `web/public/ogp.jpg` | 独自画像に差し替え |
-| favicon / PWA | `web/public/icons/` | 独自アイコンに差し替え |
+| favicon / PWA アイコン | `scripts/pwa-icons/*.svg` | 生成元SVGを差し替えて README の手順でPNGを再生成 |
+| OpenAPI ドキュメント | `web/public/openapi/open-data-api.json` | 静的JSONなので定数を参照できない。サービス名・出典表示例を手修正 |
+| 自治体種別に依存する語 | 各画面 | `MUNICIPALITY_NAME` は「市」を前提。町・村・区・県へ導入する場合は「市政」「市民」「市の施策」等を要 grep |
+| 不具合報告の宛先 | `web/src/config/external-links.ts` | `REPORT` を導入先の窓口に差し替え |
 | 免責文言 | フッター等 | 免責文言を追加 |
 
 ## AGPL-3.0 ライセンスとの関係

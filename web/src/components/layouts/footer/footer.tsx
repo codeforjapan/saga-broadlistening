@@ -1,11 +1,10 @@
 "use client";
 
 import { COPYRIGHT_TEXT, SITE_NAME } from "@mirai-gikai/branding/site";
-import { logoImageProps } from "@/lib/logo";
 import type { Route } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SiteLogo } from "@/components/brand/site-logo";
 import { isInterviewPage } from "@/lib/page-layout-utils";
 import { routes } from "@/lib/routes";
 import { policyLinks, primaryLinks } from "./footer.config";
@@ -33,7 +32,7 @@ function FooterLogoSection() {
   return (
     <div className="flex flex-col items-center text-center mb-9">
       <Link href={routes.home()} aria-label={`${SITE_NAME} トップページ`}>
-        <Image alt={SITE_NAME} {...logoImageProps("full", 76)} />
+        <SiteLogo size="md" withTagline className="items-center" />
       </Link>
     </div>
   );

@@ -1,3 +1,4 @@
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { ArrowRight, Undo2 } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
@@ -49,12 +50,12 @@ const FEATURES: {
   {
     iconSrc: "/icons/interview-messages.svg",
     iconSize: { w: 33, h: 26 },
-    text: "寄せられた回答は佐賀市の施策検討に活用します",
+    text: `寄せられた回答は${MUNICIPALITY_NAME}の施策検討に活用します`,
   },
   {
     iconSrc: "/icons/interview-landmark.svg",
     iconSize: { w: 30, h: 29 },
-    text: "ご意見は佐賀市の施策検討に届けられる可能性があります",
+    text: `ご意見は${MUNICIPALITY_NAME}の施策検討に届けられる可能性があります`,
   },
 ];
 
@@ -182,7 +183,7 @@ function _InterviewOverviewSection({
         <p>
           {bill && billLink ? (
             <>
-              佐賀市で検討されている
+              {MUNICIPALITY_NAME}で検討されている
               <Link
                 href={billLink as Route}
                 className="text-primary-accent underline underline-offset-2 hover:opacity-70 transition-opacity"

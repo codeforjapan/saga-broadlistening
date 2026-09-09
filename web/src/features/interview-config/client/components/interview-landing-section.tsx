@@ -1,3 +1,4 @@
+import { MUNICIPALITY_NAME } from "@mirai-gikai/branding/site";
 import { ArrowRight, Check } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
@@ -14,7 +15,7 @@ function getCheckPoints(): string[] {
   return [
     "所要時間は約5分〜",
     "AIがあなたのご意見を深掘り",
-    "佐賀市の施策検討に活用",
+    `${MUNICIPALITY_NAME}の施策検討に活用`,
   ];
 }
 
