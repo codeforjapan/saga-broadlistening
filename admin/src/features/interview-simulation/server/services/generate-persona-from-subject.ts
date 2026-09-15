@@ -1,11 +1,12 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import type {
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
 } from "@mirai-gikai/shared/interview-prompts/types";
+import type { LanguageModel } from "ai";
 import { generateObject, NoObjectGeneratedError } from "ai";
-import type { AiModel } from "@/lib/ai/models";
 import { LLM_MAX_ATTEMPTS, LLM_TIMEOUT_MS } from "../../shared/constants";
 import {
   type PersonaCharacterSheet,
@@ -20,7 +21,7 @@ interface GeneratePersonaFromSubjectParams {
   interviewConfig: PromptInterviewConfig;
   stanceHint?: "for" | "against" | "neutral";
   roleHint?: string;
-  model: AiModel;
+  model?: LanguageModel;
   traceId: string;
   /** クライアント abort 時に LLM 呼び出しも停止させる */
   signal?: AbortSignal;
@@ -50,7 +51,7 @@ export async function generatePersonaFromSubject({
     const { object } = await withTimeoutRetry(
       (attemptSignal) =>
         generateObject({
-          model,
+          ...getAiModel("simulation", model),
           schema: personaSchema,
           prompt,
           abortSignal: attemptSignal,

@@ -1,6 +1,6 @@
+import { isValidModelId } from "@mirai-gikai/shared/ai/validate-model-id";
 import { z } from "zod";
-import { AI_MODELS, type AiModel } from "@/lib/ai/models";
-import { MAX_PERSONA_SLOTS } from "./constants";
+import { ENV_DEFAULT_MODEL, MAX_PERSONA_SLOTS } from "./constants";
 
 /**
  * 外部入力の長さ上限（prompt injection / DoS 耐性の defensive limit）。
@@ -268,16 +268,13 @@ export const simulatedTurnSchema = z
 
 export type SimulatedTurn = z.infer<typeof simulatedTurnSchema>;
 
-/**
- * AI_MODELS の値のみを許可する zod スキーマ。
- * 未知のモデル ID を弾くため、値集合を runtime で検査する。
- */
-const aiModelSchema = z.custom<AiModel>(
-  (val): val is AiModel =>
-    typeof val === "string" &&
-    (Object.values(AI_MODELS) as string[]).includes(val),
-  { message: "Unknown AI model id" }
-);
+/** 接続先を明示したモデルIDを受け取り、利用許可は共通レジストリで検証する。 */
+const aiModelSchema = z
+  .union([
+    z.string().refine(isValidModelId, { message: "Invalid AI model id" }),
+    z.literal(ENV_DEFAULT_MODEL),
+  ])
+  .transform((model) => (model === ENV_DEFAULT_MODEL ? undefined : model));
 
 /**
  * 複数ペルソナシミュのリクエスト内で、各スロットを表すスキーマ。

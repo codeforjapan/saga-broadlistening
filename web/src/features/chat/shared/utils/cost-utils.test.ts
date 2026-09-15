@@ -38,15 +38,15 @@ describe("resolveCostUsd", () => {
   });
 
   it("costOverrideがnullなら無視して計算へフォールバック", () => {
-    // unknown modelなのでcalculateUsageCostUsdがthrowし、0にフォールバック
-    const result = resolveCostUsd("unknown-model", someUsage, null);
-    expect(result).toBe(0);
+    expect(() => resolveCostUsd("unknown-model", someUsage, null)).toThrow(
+      "Unknown pricing"
+    );
   });
 
   it("costOverrideがundefinedならトークンベース計算へフォールバック", () => {
-    const result = resolveCostUsd("unknown-model", someUsage);
-    // unknown modelなのでcalculateUsageCostUsdがthrowし、0にフォールバック
-    expect(result).toBe(0);
+    expect(() => resolveCostUsd("unknown-model", someUsage)).toThrow(
+      "Unknown pricing"
+    );
   });
 
   it("トークンが0でoverrideもなければ0を返す", () => {

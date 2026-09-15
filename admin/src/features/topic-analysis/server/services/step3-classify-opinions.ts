@@ -1,11 +1,11 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
 import { z } from "zod";
 import {
   TOPIC_ANALYSIS_BATCH_SIZE,
   TOPIC_ANALYSIS_MAX_CONCURRENCY,
-  TOPIC_ANALYSIS_MODEL,
 } from "../../shared/constants";
 import type { FlatOpinion } from "../../shared/types";
 import { retryTopicAnalysisRequest } from "../utils/retry-topic-analysis-request";
@@ -76,7 +76,7 @@ async function classifyBatch(
   const { object } = await retryTopicAnalysisRequest(
     () =>
       generateObject({
-        model: TOPIC_ANALYSIS_MODEL,
+        ...getAiModel("topicAnalysis"),
         schema: classifyBatchSchema,
         prompt: `あなたは施策分析の専門家です。各意見を適切なトピックに分類してください。
 

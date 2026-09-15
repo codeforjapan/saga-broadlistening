@@ -1,3 +1,4 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
 import type { PromptBillInput } from "@mirai-gikai/shared/interview-prompts/types";
 import { buildInterviewOpinionRows } from "@mirai-gikai/shared/interview-report/build-opinion-rows";
@@ -15,7 +16,6 @@ import {
   findInterviewMessagesBySessionId,
   findInterviewSessionById,
 } from "../repositories/interview-repository";
-import { OPINION_BACKFILL_MODEL } from "../shared/constants";
 import type {
   BackfillTargetOpinion,
   InterviewConfigContext,
@@ -37,10 +37,10 @@ export type LoadConfigContextFn = (
 ) => Promise<InterviewConfigContext>;
 
 /** 指定モデルで再抽出する既定の生成関数を作る。 */
-function createDefaultGenerateReport(model: string): GenerateReportFn {
+function createDefaultGenerateReport(model?: string): GenerateReportFn {
   return async ({ systemPrompt }) => {
     const { object } = await generateObject({
-      model,
+      ...getAiModel("opinionBackfill", model),
       schema: interviewReportSchema,
       prompt: systemPrompt,
       experimental_telemetry: {
@@ -70,8 +70,7 @@ export async function reextractReportOpinions(
 ): Promise<ReextractResult> {
   const { opinionId, sessionId } = target;
   const generateReport =
-    deps.generateReport ??
-    createDefaultGenerateReport(deps.model ?? OPINION_BACKFILL_MODEL);
+    deps.generateReport ?? createDefaultGenerateReport(deps.model);
   const loadConfigContext =
     deps.loadConfigContext ?? fetchInterviewConfigContext;
   const nowIso = new Date().toISOString();

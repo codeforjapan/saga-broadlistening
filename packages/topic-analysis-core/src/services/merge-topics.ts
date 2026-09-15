@@ -1,5 +1,5 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
-import { TOPIC_MODEL } from "../shared/constants";
 import { topicMergeSchema } from "../shared/schemas";
 import type { InterviewConfigContext, TopicDraft } from "../shared/types";
 import { withRetry } from "../utils/concurrency";
@@ -21,7 +21,7 @@ export async function mergeTopics(
   const { object } = await withRetry(
     () =>
       generateObject({
-        model: TOPIC_MODEL,
+        ...getAiModel("topicAnalysis"),
         schema: topicMergeSchema,
         prompt: buildMergePrompt(context, candidatesText),
         experimental_telemetry: {

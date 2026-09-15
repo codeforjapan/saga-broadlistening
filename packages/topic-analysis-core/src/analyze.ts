@@ -1,3 +1,4 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import {
   createVersion,
   fetchInterviewConfigContext,
@@ -19,7 +20,7 @@ import { extractTopics } from "./services/extract-topics";
 import { groupTopics } from "./services/group-topics";
 import { judgeNewTopics } from "./services/judge-new-topics";
 import { mergeTopics } from "./services/merge-topics";
-import { ANALYSIS_STEPS, PROMPT_VERSION, TOPIC_MODEL } from "./shared/constants";
+import { ANALYSIS_STEPS, PROMPT_VERSION } from "./shared/constants";
 import type {
   FinalTopicWithId,
   InterviewConfigContext,
@@ -329,7 +330,7 @@ export async function runAnalyzeAll(
       const version = await createVersion({
         interviewConfigId,
         trigger: "manual",
-        model: TOPIC_MODEL,
+        model: getAiModel("topicAnalysis").modelId,
         promptVersion: PROMPT_VERSION,
       });
       if (!version) {

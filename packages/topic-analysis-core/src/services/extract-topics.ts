@@ -1,9 +1,6 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
-import {
-  EXTRACT_BATCH_SIZE,
-  MAX_CONCURRENCY,
-  TOPIC_MODEL,
-} from "../shared/constants";
+import { EXTRACT_BATCH_SIZE, MAX_CONCURRENCY } from "../shared/constants";
 import { topicExtractionSchema } from "../shared/schemas";
 import type {
   InterviewConfigContext,
@@ -26,7 +23,7 @@ async function extractBatch(
   const { object } = await withRetry(
     () =>
       generateObject({
-        model: TOPIC_MODEL,
+        ...getAiModel("topicAnalysis"),
         schema: topicExtractionSchema,
         prompt: buildExtractPrompt(context, opinionsText),
         experimental_telemetry: {

@@ -1,3 +1,4 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import {
   countPendingReextraction,
   findOpinionsToReextract,
@@ -84,7 +85,7 @@ function buildSteps(
  * - scope="all": 指定テーマのウォーターマークを一旦リセットしてから全件処理し直す
  *   （interviewConfigId 必須）。リセットにより全件が未再抽出扱いになるため、
  *   進捗（pending）が正しく分母になる。
- * - model: 再抽出に使う AI モデル（未指定なら OPINION_BACKFILL_MODEL）。
+ * - model: 再抽出に使う AI モデル（未指定なら共通の opinionBackfill 設定）。
  */
 export async function runBackfill(
   options: BackfillOptions = {}
@@ -95,6 +96,8 @@ export async function runBackfill(
     generateReport,
     model,
   } = options;
+  // 設定不備ではウォーターマークを変更しない。DI時は実プロバイダー不要。
+  if (!generateReport) getAiModel("opinionBackfill", model);
   console.log(
     `[topic-analysis] start opinion backfill (scope=${scope} config=${interviewConfigId ?? "all"} model=${model ?? "default"})`
   );

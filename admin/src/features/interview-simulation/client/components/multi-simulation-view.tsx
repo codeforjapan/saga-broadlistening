@@ -1,5 +1,6 @@
 "use client";
 
+import { isValidModelId } from "@mirai-gikai/shared/ai/validate-model-id";
 import { Loader2, Play, Settings2, Square } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { InterviewQuestionInput } from "@/features/interview-config/shared/types";
-import type { AiModel } from "@/lib/ai/models";
 import {
   DEFAULT_INTERVIEWEE_MODEL,
   DEFAULT_INTERVIEWER_MODEL,
@@ -56,15 +56,15 @@ function ModelSelect({
 }: {
   id: string;
   label: string;
-  value: AiModel;
-  onChange: (v: AiModel) => void;
+  value: string;
+  onChange: (v: string) => void;
 }) {
   return (
     <div className="space-y-1">
       <Label htmlFor={id} className="text-xs text-muted-foreground">
         {label}
       </Label>
-      <Select value={value} onValueChange={(v) => onChange(v as AiModel)}>
+      <Select value={value} onValueChange={onChange}>
         <SelectTrigger id={id} className="h-8 text-xs">
           <SelectValue />
         </SelectTrigger>
@@ -91,10 +91,10 @@ export function MultiSimulationView({
 }: MultiSimulationViewProps) {
   const [slots, setSlots] = useState<PersonaSlotInput[]>([]);
   const [showModelConfig, setShowModelConfig] = useState(false);
-  const [intervieweeModel, setIntervieweeModel] = useState<AiModel>(
+  const [intervieweeModel, setIntervieweeModel] = useState<string>(
     DEFAULT_INTERVIEWEE_MODEL
   );
-  const [personaModel, setPersonaModel] = useState<AiModel>(
+  const [personaModel, setPersonaModel] = useState<string>(
     DEFAULT_PERSONA_MODEL
   );
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -135,17 +135,15 @@ export function MultiSimulationView({
       })),
     };
 
-    // chat_model は任意文字列なので AI_MODELS に含まれているか検証してから採用。
-    // 未マッチならデフォルトにフォールバック（そのまま送るとサーバ側 400 で不親切）
-    const allowedModels = new Set<string>(
-      SIMULATION_MODEL_OPTIONS.map((opt) => opt.value)
-    );
-    const candidateInterviewerModel = formValues.chat_model ?? "";
-    const resolvedInterviewerModel: AiModel = allowedModels.has(
-      candidateInterviewerModel
-    )
-      ? (candidateInterviewerModel as AiModel)
-      : DEFAULT_INTERVIEWER_MODEL;
+    const candidateInterviewerModel = formValues.chat_model;
+    let resolvedInterviewerModel: string = DEFAULT_INTERVIEWER_MODEL;
+    if (candidateInterviewerModel) {
+      if (!isValidModelId(candidateInterviewerModel)) {
+        setValidationError("設定されたAIモデルを確認してください");
+        return;
+      }
+      resolvedInterviewerModel = candidateInterviewerModel;
+    }
 
     const body: MultiSimulationRunRequest = {
       interviewConfigId: configId,

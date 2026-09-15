@@ -1,9 +1,9 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { buildModerationPrompt } from "@mirai-gikai/shared/moderation/build-prompt";
 import { moderationResultSchema } from "@mirai-gikai/shared/moderation/schemas";
 import { generateObject } from "ai";
-import { DEFAULT_MODERATION_MODEL } from "@/lib/ai/models";
 import {
   findInterviewMessagesBySessionId,
   findReportForModerationScoringById,
@@ -47,7 +47,7 @@ export async function runSingleModerationScoring(
   });
 
   const { object } = await generateObject({
-    model: DEFAULT_MODERATION_MODEL,
+    ...getAiModel("moderation"),
     schema: moderationResultSchema,
     system,
     messages: [{ role: "user", content: user }],

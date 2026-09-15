@@ -1,11 +1,11 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import type {
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
 } from "@mirai-gikai/shared/interview-prompts/types";
-import { generateObject } from "ai";
-import type { AiModel } from "@/lib/ai/models";
+import { generateObject, type LanguageModel } from "ai";
 import { LLM_MAX_ATTEMPTS, LLM_TIMEOUT_MS } from "../../shared/constants";
 import {
   type DiverseRolesPlan,
@@ -22,7 +22,7 @@ interface PlanDiverseRolesParams {
   interviewConfig: PromptInterviewConfig;
   slotsToPlan: DiversePlanSlotInput[];
   preassignedRoleHints?: string[];
-  model: AiModel;
+  model?: LanguageModel;
   traceId: string;
   signal?: AbortSignal;
 }
@@ -55,7 +55,7 @@ export async function planDiverseRoles({
     const { object } = await withTimeoutRetry(
       (attemptSignal) =>
         generateObject({
-          model,
+          ...getAiModel("simulation", model),
           schema: diverseRolesPlanSchema,
           prompt,
           abortSignal: attemptSignal,

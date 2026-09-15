@@ -29,7 +29,7 @@ import type {
   InterviewMessage,
   InterviewSession,
 } from "@/features/interview-session/shared/types";
-import { DEFAULT_INTERVIEW_CHAT_MODEL } from "@/lib/ai/models";
+import { getMeteredAiModel } from "@/lib/ai/get-metered-ai-model";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { buildSummaryModelMessages } from "../../shared/utils/build-summary-model-messages";
@@ -236,13 +236,15 @@ async function generateStreamingResponse({
     stage: string;
   };
 }) {
-  // summaryフェーズもchatフェーズと同じモデルを使用（インタビューAIとモデルを揃える）
-  const model = isSummaryPhase
-    ? (summaryModel ?? configChatModel ?? DEFAULT_INTERVIEW_CHAT_MODEL)
-    : (chatModel ?? configChatModel ?? DEFAULT_INTERVIEW_CHAT_MODEL);
-
-  const modelName =
-    typeof model === "string" ? model : (model.modelId ?? "unknown");
+  const {
+    model,
+    modelId: modelName,
+    providerOptions,
+  } = getMeteredAiModel(
+    isSummaryPhase ? "summary" : "interview",
+    (isSummaryPhase ? summaryModel : chatModel) ??
+      (configChatModel || undefined)
+  );
 
   const handleError = (error: unknown) => {
     console.error("LLM generation error:", error);
@@ -309,6 +311,7 @@ async function generateStreamingResponse({
 
   const streamParams = {
     model,
+    providerOptions,
     system: systemPrompt,
     messages: await convertToModelMessages(uiMessages),
     onError: handleError,

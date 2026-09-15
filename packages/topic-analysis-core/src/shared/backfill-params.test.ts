@@ -19,7 +19,9 @@ describe("resolveBackfillParams", () => {
   });
 
   it("scope=all は interviewConfigId があれば受け付ける", () => {
-    expect(resolveBackfillParams({ interviewConfigId: UUID, scope: "all" })).toEqual({
+    expect(
+      resolveBackfillParams({ interviewConfigId: UUID, scope: "all" })
+    ).toEqual({
       ok: true,
       params: { interviewConfigId: UUID, scope: "all" },
     });
@@ -50,7 +52,9 @@ describe("resolveBackfillParams", () => {
   });
 
   it("登録済みモデルIDを受け付ける", () => {
-    const result = resolveBackfillParams({ model: "anthropic/claude-sonnet-4.6" });
+    const result = resolveBackfillParams({
+      model: "anthropic/claude-sonnet-4.6",
+    });
     expect(result).toEqual({
       ok: true,
       params: {
@@ -70,7 +74,11 @@ describe("resolveBackfillParams", () => {
     const result = resolveBackfillParams({ model: "  " });
     expect(result).toEqual({
       ok: true,
-      params: { interviewConfigId: undefined, scope: "pending", model: undefined },
+      params: {
+        interviewConfigId: undefined,
+        scope: "pending",
+        model: undefined,
+      },
     });
   });
 
@@ -83,4 +91,24 @@ describe("resolveBackfillParams", () => {
     const result = resolveBackfillParams({ interviewConfigId: { id: 1 } });
     expect(result.ok).toBe(false);
   });
+});
+
+it.each([
+  "bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "openai:custom-model",
+  "google:gemini-custom",
+  "gateway:custom/new-model",
+])("CLI/API accepts a qualified model without catalog membership: %s", (model) => {
+  expect(resolveBackfillParams({ model })).toEqual({
+    ok: true,
+    params: { interviewConfigId: undefined, scope: "pending", model },
+  });
+});
+
+it.each([
+  "unknown:model",
+  "bedrock:",
+  "openai:model with spaces",
+])("rejects malformed provider model IDs: %s", (model) => {
+  expect(resolveBackfillParams({ model }).ok).toBe(false);
 });
