@@ -1,3 +1,4 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import {
   type OpinionTagsExtraction,
   opinionTagsExtractionSchema,
@@ -14,7 +15,7 @@ import {
   type TagTargetOpinion,
   updateOpinionSegmentTags,
 } from "../repositories/opinion-tags-repository";
-import { OPINION_TAG_MODEL, OPINION_TAG_TIMEOUT_MS } from "../shared/constants";
+import { OPINION_TAG_TIMEOUT_MS } from "../shared/constants";
 import { buildOpinionTagsPrompt } from "../utils/build-opinion-tags-prompt";
 import { prepareReextractionMessages } from "../utils/prepare-reextraction-messages";
 import { reconcileOpinionTags } from "../utils/reconcile-opinion-tags";
@@ -32,10 +33,10 @@ export type GenerateTagsFn = (params: {
   prompt: string;
 }) => Promise<OpinionTagsExtraction>;
 
-function createDefaultGenerateTags(model: string): GenerateTagsFn {
+function createDefaultGenerateTags(model?: string): GenerateTagsFn {
   return async ({ prompt }) => {
     const { object } = await generateObject({
-      model,
+      ...getAiModel("opinionTags", model),
       schema: opinionTagsExtractionSchema,
       prompt,
       // 並列 CONCURRENCY 本のうち1本が返らないとウェーブ全体が止まり、
@@ -67,8 +68,7 @@ export async function extractOpinionTagsForReport(
 ): Promise<TagExtractionResult> {
   const { opinionId, sessionId, roleTitle } = target;
   const generateTags =
-    deps.generateTags ??
-    createDefaultGenerateTags(deps.model ?? OPINION_TAG_MODEL);
+    deps.generateTags ?? createDefaultGenerateTags(deps.model);
   const nowIso = new Date().toISOString();
 
   try {

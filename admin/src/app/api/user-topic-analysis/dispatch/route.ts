@@ -1,7 +1,5 @@
-import {
-  PROMPT_VERSION,
-  TOPIC_MODEL,
-} from "@mirai-gikai/topic-analysis-core/constants";
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
+import { PROMPT_VERSION } from "@mirai-gikai/topic-analysis-core/constants";
 import {
   createVersion,
   findActiveVersionByInterviewConfig,
@@ -75,7 +73,7 @@ export async function POST(request: Request) {
     const version = await createVersion({
       interviewConfigId,
       trigger: "manual",
-      model: TOPIC_MODEL,
+      model: getAiModel("topicAnalysis").modelId,
       promptVersion: PROMPT_VERSION,
     });
     if (!version) {

@@ -1,3 +1,4 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import {
   countPendingTagExtraction,
   findOpinionsToTag,
@@ -58,6 +59,8 @@ export async function runTagBackfill(
   options: TagBackfillOptions = {}
 ): Promise<void> {
   const { interviewConfigId, scope = "pending", generateTags, model } = options;
+  // 設定不備ではウォーターマークを変更しない。DI時は実プロバイダー不要。
+  if (!generateTags) getAiModel("opinionTags", model);
   console.log(
     `[topic-analysis] start opinion tag backfill (scope=${scope} config=${interviewConfigId ?? "all"} model=${model ?? "default"})`
   );

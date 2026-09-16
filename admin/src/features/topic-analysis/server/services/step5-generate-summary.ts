@@ -1,7 +1,7 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
-import { TOPIC_ANALYSIS_WRITING_MODEL } from "../../shared/constants";
 import { overallSummarySchema } from "../../shared/schemas";
 
 type TopicSummaryInput = {
@@ -29,7 +29,7 @@ export async function generateOverallSummary(
     .join("\n\n");
 
   const result = await generateObject({
-    model: TOPIC_ANALYSIS_WRITING_MODEL,
+    ...getAiModel("topicWriting"),
     schema: overallSummarySchema,
     prompt: `あなたは市民意見の分析レポートの全体サマリを作成します。
 

@@ -124,10 +124,13 @@ describe("TopicAnalysisStack", () => {
           Match.objectLike({ Type: "MEMORY", Value: "2048" }),
           Match.objectLike({ Type: "VCPU", Value: "1" }),
         ]),
+        Environment: Match.arrayWith([
+          { Name: "AWS_REGION", Value: "ap-northeast-1" },
+          { Name: "AI_ALLOWED_PROVIDERS", Value: "bedrock" },
+        ]),
         Secrets: Match.arrayWith([
           Match.objectLike({ Name: "SUPABASE_URL" }),
           Match.objectLike({ Name: "SUPABASE_SECRET_KEY" }),
-          Match.objectLike({ Name: "AI_GATEWAY_API_KEY" }),
         ]),
       }),
     });

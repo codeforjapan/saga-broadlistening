@@ -1,3 +1,4 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import {
   type AnalysisStrategy,
   runAnalysis,
@@ -18,12 +19,12 @@ import { runTagBackfill } from "@mirai-gikai/topic-analysis-core/tag-backfill";
  *   tsx src/main.ts --mode=backfill                                          # 未再抽出を全テーマで処理
  *   tsx src/main.ts --mode=backfill --interview-config-id=<uuid>             # 指定テーマの未再抽出のみ
  *   tsx src/main.ts --mode=backfill --interview-config-id=<uuid> --scope=all # 指定テーマを全件やり直し
- *   tsx src/main.ts --mode=backfill --model=openai/gpt-5.2                   # 使用モデルを指定（省略時は既定）
+ *   tsx src/main.ts --mode=backfill --model=bedrock:jp.anthropic.claude-sonnet-4-6                   # 使用モデルを指定（省略時は既定）
  *   tsx src/main.ts --mode=tag-backfill                                          # タグ未抽出の論点を全テーマで処理
  *   tsx src/main.ts --mode=tag-backfill --interview-config-id=<uuid>             # 指定テーマのタグ未抽出のみ
  *   tsx src/main.ts --mode=tag-backfill --interview-config-id=<uuid> --scope=all # 指定テーマのタグを全件やり直し
  *
- * 必須env: SUPABASE_URL, SUPABASE_SECRET_KEY, AI_GATEWAY_API_KEY
+ * 必須env: SUPABASE_URL, SUPABASE_SECRET_KEY および選択プロバイダーの認証設定
  */
 
 type Mode = "analyze" | "analyze-all" | "backfill" | "tag-backfill";
@@ -65,7 +66,6 @@ async function main(): Promise<void> {
   // 接続情報が無ければ即座に失敗させる（部分実行を避ける）。
   requireEnv("SUPABASE_URL");
   requireEnv("SUPABASE_SECRET_KEY");
-  requireEnv("AI_GATEWAY_API_KEY");
 
   if (mode === "analyze") {
     const versionId = args["version-id"];
@@ -76,6 +76,7 @@ async function main(): Promise<void> {
       );
     }
     const strategy = parseStrategy(args.strategy, "full");
+    getAiModel("topicAnalysis");
     await runAnalysis(versionId, interviewConfigId, strategy);
     return;
   }
@@ -83,6 +84,7 @@ async function main(): Promise<void> {
   if (mode === "analyze-all") {
     // 全テーマを順次分析（既定は増分）。version 行は各テーマごとに内部で作成する。
     const strategy = parseStrategy(args.strategy, "incremental");
+    getAiModel("topicAnalysis");
     await runAnalyzeAll(strategy);
     return;
   }

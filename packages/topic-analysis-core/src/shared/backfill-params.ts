@@ -1,4 +1,4 @@
-import { isKnownModel } from "@mirai-gikai/shared/ai/models";
+import { isValidModelId } from "@mirai-gikai/shared/ai/validate-model-id";
 import { z } from "zod";
 
 /**
@@ -77,7 +77,7 @@ export function resolveBackfillParams(input: {
       error: "対象「全部」は意見募集を指定したときのみ実行できます",
     };
   }
-  if (model && (!isKnownModel(model) || model.includes(":"))) {
+  if (model && !isValidModelId(model)) {
     return { ok: false, error: `未知のモデルIDです: ${model}` };
   }
 

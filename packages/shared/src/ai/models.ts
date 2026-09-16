@@ -46,10 +46,10 @@ export function isKnownModel(model: string): model is AiModel {
 }
 
 /** インタビューチャットのデフォルトモデル */
-export const DEFAULT_INTERVIEW_CHAT_MODEL = AI_MODELS.claude_haiku_4_5;
+export const DEFAULT_INTERVIEW_CHAT_MODEL = AI_MODELS.bedrock_haiku_4_5;
 /** モデレーション評価のデフォルトモデル */
-export const DEFAULT_MODERATION_MODEL = AI_MODELS.gpt5_2;
+export const DEFAULT_MODERATION_MODEL = AI_MODELS.bedrock_sonnet_4_6;
 /** コンテンツ充実度評価のデフォルトモデル */
-export const DEFAULT_CONTENT_RICHNESS_MODEL = AI_MODELS.gpt5_2;
+export const DEFAULT_CONTENT_RICHNESS_MODEL = AI_MODELS.bedrock_sonnet_4_6;
 /** 意見バックフィル（再抽出）のデフォルトモデル */
-export const DEFAULT_OPINION_BACKFILL_MODEL = AI_MODELS.gpt5_2;
+export const DEFAULT_OPINION_BACKFILL_MODEL = AI_MODELS.bedrock_sonnet_4_6;

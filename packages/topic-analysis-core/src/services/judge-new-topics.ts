@@ -1,5 +1,5 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
-import { TOPIC_MODEL } from "../shared/constants";
 import { topicJudgeSchema } from "../shared/schemas";
 import type {
   ExistingTopic,
@@ -19,7 +19,7 @@ const defaultJudge: JudgeFn = async ({ prompt }) => {
   const { object } = await withRetry(
     () =>
       generateObject({
-        model: TOPIC_MODEL,
+        ...getAiModel("topicAnalysis"),
         schema: topicJudgeSchema,
         prompt,
         experimental_telemetry: {

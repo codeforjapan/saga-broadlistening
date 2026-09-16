@@ -1,5 +1,6 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
-import { GROUPING_MAX_MEDIUM_TOPICS, TOPIC_MODEL } from "../shared/constants";
+import { GROUPING_MAX_MEDIUM_TOPICS } from "../shared/constants";
 import { topicGroupingSchema } from "../shared/schemas";
 import type { FinalTopicWithId, InterviewConfigContext } from "../shared/types";
 import {
@@ -57,7 +58,7 @@ export async function groupTopics(
     const { object } = await withRetry(
       () =>
         generateObject({
-          model: TOPIC_MODEL,
+          ...getAiModel("topicAnalysis"),
           schema: topicGroupingSchema,
           prompt: buildGroupTopicsPrompt(context, mediumTopicsText),
           experimental_telemetry: {
