@@ -1,12 +1,13 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import type {
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
   InterviewQuestion as PromptInterviewQuestion,
 } from "@mirai-gikai/shared/interview-prompts/types";
-import type { AiModel } from "@/lib/ai/models";
+import type { LanguageModel } from "ai";
 import { registerNodeTelemetry } from "@/lib/telemetry/register";
 import { PROMPT_KIND } from "../../shared/constants";
 import type {
@@ -55,9 +56,9 @@ interface RunMultiSimulationParams {
   improvedPromptInputs: ImprovedPromptInputs;
   /** 初回ターン enhanced prompt で名乗る対象名（施策名 or テーマ名） */
   subjectTitle: string;
-  interviewerModel: AiModel;
-  intervieweeModel: AiModel;
-  personaModel: AiModel;
+  interviewerModel?: LanguageModel;
+  intervieweeModel?: LanguageModel;
+  personaModel?: LanguageModel;
   /** ストリーミング進捗コールバック */
   onProgress?: (event: MultiSimulationProgressEvent) => void;
   /** 中断シグナル。末端 LLM 呼び出しまで伝播 */
@@ -270,7 +271,7 @@ export async function runMultiSimulationPipeline(
           personaIndex,
           personaSource: slot,
           persona,
-          personaModel: params.personaModel,
+          personaModel: getAiModel("simulation", params.personaModel).modelId,
           original,
           run,
           elapsedMs: Date.now() - slotStartedAt,

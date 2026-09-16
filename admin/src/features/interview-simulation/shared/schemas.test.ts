@@ -52,6 +52,31 @@ describe("multiSimulationRunRequestSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("環境設定を使うモデル選択を未指定に正規化する", () => {
+    const result = multiSimulationRunRequestSchema.parse({
+      ...baseValidRequest(),
+      interviewerModel: "__default__",
+      intervieweeModel: "__default__",
+      personaModel: "__default__",
+    });
+    expect(result.interviewerModel).toBeUndefined();
+    expect(result.intervieweeModel).toBeUndefined();
+    expect(result.personaModel).toBeUndefined();
+  });
+
+  it.each([
+    "bedrock:custom-model:0",
+    "gateway:openai/gpt-4o",
+    "openai:gpt-4o",
+    "google:gemini-2.5-flash",
+  ])("明示的な接続先付きモデル %s を変更せずに受理する", (model) => {
+    const result = multiSimulationRunRequestSchema.parse({
+      ...baseValidRequest(),
+      interviewerModel: model,
+    });
+    expect(result.interviewerModel).toBe(model);
+  });
+
   it("personaSlots が空だと拒否", () => {
     const body = baseValidRequest();
     body.personaSlots = [];
@@ -203,17 +228,4 @@ describe("multiSimulationRunRequestSchema", () => {
     const result = multiSimulationRunRequestSchema.safeParse(body);
     expect(result.success).toBe(false);
   });
-});
-
-it.each([
-  AI_MODELS.bedrock_sonnet_4_6,
-  AI_MODELS.bedrock_haiku_4_5,
-  AI_MODELS.bedrock_gpt_oss_120b,
-])("rejects Bedrock until simulation uses the provider registry: %s", (model) => {
-  expect(
-    multiSimulationRunRequestSchema.safeParse({
-      ...baseValidRequest(),
-      interviewerModel: model,
-    }).success
-  ).toBe(false);
 });
