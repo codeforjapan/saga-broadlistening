@@ -24,12 +24,8 @@ type ChatSessionInsert =
 type ChatMessageInsert =
   Database["public"]["Tables"]["chat_messages"]["Insert"];
 
-/**
- * 対話に使うモデル。
- * `packages/shared` の DEFAULT_INTERVIEW_CHAT_MODEL と同じ値。
- * seed から shared へ依存を増やしたくないため定数を複製している。
- */
-export const DEFAULT_CHAT_MODEL = "anthropic/claude-haiku-4.5";
+/** 空文字は用途別envの既定モデルを使う。 */
+export const DEFAULT_CHAT_MODEL = "";
 
 /** 施策に紐づく標準の意見募集 */
 export const DEFAULT_CONFIG_SLUG = "default-theme";

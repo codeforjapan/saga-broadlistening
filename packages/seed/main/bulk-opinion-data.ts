@@ -14,12 +14,6 @@ type InterviewMessageInsert =
 export const BULK_OPINION_CONFIG_SLUG = "denshi-bl";
 
 /**
- * 対話に使うモデル。data.ts の DEFAULT_CHAT_MODEL と同じ値を使う。
- * data.ts から import すると循環参照になるため定数を分けている。
- */
-const BULK_OPINION_CHAT_MODEL = "anthropic/claude-haiku-4.5";
-
-/**
  * 大量意見の投入先となる意見募集を作成する。
  * 施策との紐付けは policies_interview_configs（data.ts）で行う。
  */
@@ -30,7 +24,7 @@ export function createBulkOpinionInterviewConfig(): InterviewConfigInsert {
     description:
       "船荷証券の電子化による影響、実務上の課題、国際整合性について意見を伺うテーマ",
     status: "open",
-    chat_model: BULK_OPINION_CHAT_MODEL,
+    chat_model: "", // 用途別envの既定モデルを使う
     estimated_duration: 20,
     starts_at: "2025-09-15T00:00:00+09:00",
   };

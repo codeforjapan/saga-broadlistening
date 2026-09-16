@@ -12,7 +12,7 @@ import {
 } from "@/features/chat/server/services/cost-tracker";
 import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { DEFAULT_INTERVIEW_CHAT_MODEL } from "@/lib/ai/models";
+import { getMeteredAiModel } from "@/lib/ai/get-metered-ai-model";
 import { env } from "@/lib/env";
 import { interviewChatTextSchema } from "../../shared/schemas";
 import type { InterviewMessage } from "../../shared/types";
@@ -82,10 +82,17 @@ export async function generateInitialQuestion({
 
     // メッセージ履歴なしで最初の質問を生成（構造化出力）
     const occurredAt = new Date().toISOString();
-    const model =
-      deps?.model ?? interviewConfig.chat_model ?? DEFAULT_INTERVIEW_CHAT_MODEL;
+    const {
+      model,
+      modelId: modelName,
+      providerOptions,
+    } = getMeteredAiModel(
+      "interview",
+      deps?.model ?? (interviewConfig.chat_model || undefined)
+    );
     const result = await generateText({
       model,
+      providerOptions,
       prompt: enhancedSystemPrompt,
       output: Output.object({ schema: interviewChatTextSchema }),
       experimental_telemetry: {
@@ -100,8 +107,6 @@ export async function generateInitialQuestion({
     });
 
     // LLM利用コストを記録
-    const modelName =
-      typeof model === "string" ? model : (model.modelId ?? "unknown");
     try {
       await recordChatUsage({
         userId,

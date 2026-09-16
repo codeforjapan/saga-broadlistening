@@ -1,6 +1,6 @@
 import "server-only";
 
-import { DEFAULT_INTERVIEW_CHAT_MODEL } from "@/lib/ai/models";
+import { parseAiConfig, resolveModelId } from "@mirai-gikai/shared/ai/config";
 import { DisclosureBreadcrumb } from "../../shared/components/disclosure-breadcrumb";
 import type { InterviewTarget } from "../../shared/types/interview-target";
 import type { InterviewConfig } from "../loaders/get-interview-config";
@@ -94,7 +94,11 @@ function StaticDisclosureSection() {
 function ModelSection({
   interviewConfig,
 }: Pick<InterviewDisclosurePageProps, "interviewConfig">) {
-  const chatModel = interviewConfig?.chat_model ?? DEFAULT_INTERVIEW_CHAT_MODEL;
+  const chatModel = resolveModelId(
+    parseAiConfig(process.env),
+    "interview",
+    interviewConfig?.chat_model || undefined
+  );
 
   return (
     <div className="flex flex-col gap-3">
