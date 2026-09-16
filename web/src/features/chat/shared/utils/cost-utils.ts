@@ -1,3 +1,4 @@
+import type { ModelPricingOverrides } from "@mirai-gikai/shared/ai/pricing";
 import {
   calculateUsageCostUsd,
   roundCost,
@@ -13,23 +14,20 @@ export function parseCost(row: { cost_usd: number | null }): number {
 }
 
 /**
- * override > calculated > default の3段階フォールバックでコストを決定する
+ * プロバイダーの実費を優先し、未指定なら確認済み単価で計算する。未知単価を0円にしない。
  */
 export function resolveCostUsd(
   model: string,
   usage: SanitizedUsage,
-  costOverride?: number | null
+  costOverride?: number | null,
+  pricingOverrides?: ModelPricingOverrides
 ): number {
   if (typeof costOverride === "number" && Number.isFinite(costOverride)) {
     return roundCost(costOverride);
   }
 
   if (usage.inputTokens > 0 || usage.outputTokens > 0) {
-    try {
-      return calculateUsageCostUsd(model, usage);
-    } catch (error) {
-      console.error("Failed to calculate usage cost:", error);
-    }
+    return calculateUsageCostUsd(model, usage, pricingOverrides);
   }
 
   return 0;
