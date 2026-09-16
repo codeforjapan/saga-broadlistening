@@ -275,7 +275,8 @@ export type SimulatedTurn = z.infer<typeof simulatedTurnSchema>;
 const aiModelSchema = z.custom<AiModel>(
   (val): val is AiModel =>
     typeof val === "string" &&
-    (Object.values(AI_MODELS) as string[]).includes(val),
+    (Object.values(AI_MODELS) as string[]).includes(val) &&
+    !val.includes(":"),
   { message: "Unknown AI model id" }
 );
 
