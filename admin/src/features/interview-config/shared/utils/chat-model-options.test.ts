@@ -36,7 +36,7 @@ describe("CHAT_MODEL_OPTIONS", () => {
 });
 
 describe("CHAT_MODEL_GROUPS", () => {
-  it("Bedrockと既存Gatewayモデルのグループが存在する", () => {
+  it("4つのprovider groupが存在する", () => {
     expect(CHAT_MODEL_GROUPS).toHaveLength(4);
     expect(CHAT_MODEL_GROUPS.map((g) => g.provider)).toEqual([
       "Amazon Bedrock",
