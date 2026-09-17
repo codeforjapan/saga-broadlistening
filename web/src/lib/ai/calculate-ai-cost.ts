@@ -1,113 +1,18 @@
+import {
+  getModelPricing,
+  type ModelPricingOverrides,
+} from "@mirai-gikai/shared/ai/pricing";
 import type { LanguageModelUsage } from "ai";
-import { AI_MODELS } from "./models";
 
-export type ModelPricing = {
-  inputTokensPerMillionUsd: number;
-  outputTokensPerMillionUsd: number;
-};
+export {
+  type ModelPricing,
+  modelPricing,
+} from "@mirai-gikai/shared/ai/pricing";
 
 export type SanitizedUsage = {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
-};
-
-export const modelPricing: Record<string, ModelPricing> = {
-  // --- OpenAI ---
-  [AI_MODELS.gpt4o]: {
-    inputTokensPerMillionUsd: 2.5,
-    outputTokensPerMillionUsd: 10,
-  },
-  [AI_MODELS.gpt4o_mini]: {
-    inputTokensPerMillionUsd: 0.15,
-    outputTokensPerMillionUsd: 0.6,
-  },
-  [AI_MODELS.gpt4_1]: {
-    inputTokensPerMillionUsd: 2,
-    outputTokensPerMillionUsd: 8,
-  },
-  [AI_MODELS.gpt4_1_mini]: {
-    inputTokensPerMillionUsd: 0.4,
-    outputTokensPerMillionUsd: 1.6,
-  },
-  [AI_MODELS.gpt4_1_nano]: {
-    inputTokensPerMillionUsd: 0.1,
-    outputTokensPerMillionUsd: 0.4,
-  },
-  [AI_MODELS.o3_mini]: {
-    inputTokensPerMillionUsd: 1.1,
-    outputTokensPerMillionUsd: 4.4,
-  },
-  [AI_MODELS.o4_mini]: {
-    inputTokensPerMillionUsd: 1.1,
-    outputTokensPerMillionUsd: 4.4,
-  },
-  [AI_MODELS.gpt5]: {
-    inputTokensPerMillionUsd: 1.25,
-    outputTokensPerMillionUsd: 10,
-  },
-  [AI_MODELS.gpt5_mini]: {
-    inputTokensPerMillionUsd: 0.25,
-    outputTokensPerMillionUsd: 2,
-  },
-  [AI_MODELS.gpt5_nano]: {
-    inputTokensPerMillionUsd: 0.05,
-    outputTokensPerMillionUsd: 0.4,
-  },
-  [AI_MODELS.gpt5_1_thinking]: {
-    inputTokensPerMillionUsd: 1.25,
-    outputTokensPerMillionUsd: 10,
-  },
-  [AI_MODELS.gpt5_2]: {
-    inputTokensPerMillionUsd: 1.75,
-    outputTokensPerMillionUsd: 14,
-  },
-  [AI_MODELS.gpt5_6_sol]: {
-    inputTokensPerMillionUsd: 5,
-    outputTokensPerMillionUsd: 30,
-  },
-  [AI_MODELS.gpt5_6_terra]: {
-    inputTokensPerMillionUsd: 2.5,
-    outputTokensPerMillionUsd: 15,
-  },
-  [AI_MODELS.gpt5_6_luna]: {
-    inputTokensPerMillionUsd: 1,
-    outputTokensPerMillionUsd: 6,
-  },
-  // --- Google ---
-  [AI_MODELS.gemini3_flash]: {
-    inputTokensPerMillionUsd: 0.5,
-    outputTokensPerMillionUsd: 3,
-  },
-  [AI_MODELS.gemini3_1_flash_lite]: {
-    inputTokensPerMillionUsd: 0.25,
-    outputTokensPerMillionUsd: 1.5,
-  },
-  [AI_MODELS.gemini3_1_pro_preview]: {
-    inputTokensPerMillionUsd: 2,
-    outputTokensPerMillionUsd: 12,
-  },
-  [AI_MODELS.gemma4_26b_a4b]: {
-    inputTokensPerMillionUsd: 0.06,
-    outputTokensPerMillionUsd: 0.33,
-  },
-  // --- Anthropic ---
-  [AI_MODELS.claude_haiku_4_5]: {
-    inputTokensPerMillionUsd: 1,
-    outputTokensPerMillionUsd: 5,
-  },
-  [AI_MODELS.claude_sonnet_4_6]: {
-    inputTokensPerMillionUsd: 3,
-    outputTokensPerMillionUsd: 15,
-  },
-  [AI_MODELS.claude_sonnet_5]: {
-    inputTokensPerMillionUsd: 3,
-    outputTokensPerMillionUsd: 15,
-  },
-  [AI_MODELS.claude_opus_4_6]: {
-    inputTokensPerMillionUsd: 5,
-    outputTokensPerMillionUsd: 25,
-  },
 };
 
 const COST_DECIMALS = 6;
@@ -138,9 +43,10 @@ export function sanitizeUsage(usage: LanguageModelUsage): SanitizedUsage {
 
 export function calculateUsageCostUsd(
   model: string,
-  usage: SanitizedUsage
+  usage: SanitizedUsage,
+  overrides?: ModelPricingOverrides
 ): number {
-  const pricing = modelPricing[model];
+  const pricing = getModelPricing(model, overrides);
   if (!pricing) {
     throw new Error(`Unknown pricing for model "${model}"`);
   }

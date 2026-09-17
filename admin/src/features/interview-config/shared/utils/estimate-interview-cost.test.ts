@@ -81,3 +81,27 @@ describe("formatEstimatedCost", () => {
     expect(formatEstimatedCost(0.5)).toBe("~75円");
   });
 });
+
+describe("provider-qualified estimates", () => {
+  it("uses the same rates for an explicit Gateway ID", () => {
+    expect(estimateInterviewCostUsd("gateway:openai/gpt-4o-mini")).toBeCloseTo(
+      0.01455,
+      4
+    );
+  });
+  it.each([
+    "openai:gpt-5.6-sol",
+    "google:gemini-3-flash",
+    "bedrock:custom-profile",
+  ])("leaves unverified provider pricing unknown: %s", (model) => {
+    expect(estimateInterviewCostUsd(model)).toBeNull();
+  });
+});
+
+it.each([
+  ["bedrock:jp.anthropic.claude-sonnet-4-6", 0.33],
+  ["bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0", 0.11],
+  ["bedrock:openai.gpt-oss-120b-1:0", 0.01749],
+])("estimates Bedrock interview cost using regional rates: %s", (model, expected) => {
+  expect(estimateInterviewCostUsd(model)).toBeCloseTo(expected, 5);
+});

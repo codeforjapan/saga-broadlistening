@@ -104,3 +104,56 @@ describe("sanitizeUsage", () => {
     expect(usage).toEqual({ inputTokens: 2, outputTokens: 3, totalTokens: 5 });
   });
 });
+
+describe("provider-qualified pricing", () => {
+  const usage = { inputTokens: 500, outputTokens: 1000, totalTokens: 1500 };
+
+  it("uses Gateway pricing for an explicitly qualified Gateway model", () => {
+    expect(calculateUsageCostUsd("gateway:openai/gpt-4o", usage)).toBeCloseTo(
+      0.01125
+    );
+  });
+
+  it.each([
+    "openai:gpt-5.6-sol",
+    "google:gemini-3-flash",
+    "bedrock:custom-profile",
+  ])("does not substitute Gateway pricing for %s", (model) => {
+    expect(() => calculateUsageCostUsd(model, usage)).toThrow(
+      "Unknown pricing"
+    );
+  });
+});
+
+it.each([
+  ["bedrock:jp.anthropic.claude-sonnet-4-6", 19.8],
+  ["bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0", 6.6],
+  ["bedrock:openai.gpt-oss-120b-1:0", 0.91],
+])("calculates default Bedrock usage cost: %s", (model, expected) => {
+  expect(
+    calculateUsageCostUsd(model, {
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+      totalTokens: 2_000_000,
+    })
+  ).toBeCloseTo(expected);
+});
+
+it("calculates direct provider cost using explicitly configured prices", () => {
+  expect(
+    calculateUsageCostUsd(
+      "google:custom",
+      {
+        inputTokens: 100_000,
+        outputTokens: 10_000,
+        totalTokens: 110_000,
+      },
+      {
+        "google:custom": {
+          inputTokensPerMillionUsd: 0.4,
+          outputTokensPerMillionUsd: 2,
+        },
+      }
+    )
+  ).toBeCloseTo(0.06);
+});
