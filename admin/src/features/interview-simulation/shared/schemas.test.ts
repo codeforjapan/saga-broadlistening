@@ -204,3 +204,16 @@ describe("multiSimulationRunRequestSchema", () => {
     expect(result.success).toBe(false);
   });
 });
+
+it.each([
+  AI_MODELS.bedrock_sonnet_4_6,
+  AI_MODELS.bedrock_haiku_4_5,
+  AI_MODELS.bedrock_gpt_oss_120b,
+])("rejects Bedrock until simulation uses the provider registry: %s", (model) => {
+  expect(
+    multiSimulationRunRequestSchema.safeParse({
+      ...baseValidRequest(),
+      interviewerModel: model,
+    }).success
+  ).toBe(false);
+});

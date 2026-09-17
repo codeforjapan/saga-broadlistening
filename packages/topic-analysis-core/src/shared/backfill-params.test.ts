@@ -84,3 +84,11 @@ describe("resolveBackfillParams", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+it.each([
+  "bedrock:jp.anthropic.claude-sonnet-4-6",
+  "bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "bedrock:openai.gpt-oss-120b-1:0",
+])("rejects Bedrock until backfill uses the provider registry: %s", (model) => {
+  expect(resolveBackfillParams({ model }).ok).toBe(false);
+});

@@ -1,12 +1,13 @@
 /**
- * AIモデルの識別子を一元管理する定数（Vercel AI Gateway形式）
- *
- * ここに載せるIDは AI Gateway に実在するものだけにすること。
- * preview 版は GA 化やリタイアでIDごと消えることがあり、消えたIDを指したまま
- * 実行すると「Model '...' not found」で落ちる。
- * `pnpm check:ai-models` で実在チェックができる。
+ * モデル選択肢の識別子。provider:modelId は接続先を明示する。
+ * 既存の provider/model は AI Gateway のIDとして維持する。
+ * `pnpm check:ai-models` は Gateway のモデルだけ実在チェックする。
  */
 export const AI_MODELS = {
+  // --- Amazon Bedrock ---
+  bedrock_sonnet_4_6: "bedrock:jp.anthropic.claude-sonnet-4-6",
+  bedrock_haiku_4_5: "bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0",
+  bedrock_gpt_oss_120b: "bedrock:openai.gpt-oss-120b-1:0",
   // --- OpenAI ---
   gpt4o: "openai/gpt-4o",
   gpt4o_mini: "openai/gpt-4o-mini",

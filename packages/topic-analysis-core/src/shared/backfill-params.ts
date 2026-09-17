@@ -77,7 +77,7 @@ export function resolveBackfillParams(input: {
       error: "対象「全部」は意見募集を指定したときのみ実行できます",
     };
   }
-  if (model && !isKnownModel(model)) {
+  if (model && (!isKnownModel(model) || model.includes(":"))) {
     return { ok: false, error: `未知のモデルIDです: ${model}` };
   }
 
