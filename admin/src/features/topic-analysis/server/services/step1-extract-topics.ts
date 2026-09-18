@@ -1,10 +1,10 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
 import {
   TOPIC_ANALYSIS_BATCH_SIZE,
   TOPIC_ANALYSIS_MAX_CONCURRENCY,
-  TOPIC_ANALYSIS_MODEL,
 } from "../../shared/constants";
 import { topicExtractionSchema } from "../../shared/schemas";
 import type { FlatOpinion } from "../../shared/types";
@@ -59,7 +59,7 @@ async function extractTopicsFromBatch(
   const { object } = await retryTopicAnalysisRequest(
     () =>
       generateObject({
-        model: TOPIC_ANALYSIS_MODEL,
+        ...getAiModel("topicAnalysis"),
         schema: topicExtractionSchema,
         prompt: `あなたは施策に対する市民の意見を分析する専門家です。
 

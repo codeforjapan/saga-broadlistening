@@ -1,9 +1,6 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateText } from "ai";
-import {
-  ASSIGN_BATCH_SIZE,
-  MAX_CONCURRENCY,
-  TOPIC_MODEL,
-} from "../shared/constants";
+import { ASSIGN_BATCH_SIZE, MAX_CONCURRENCY } from "../shared/constants";
 import type {
   FinalTopicWithId,
   InterviewConfigContext,
@@ -32,7 +29,7 @@ async function assignBatch(
     const { text } = await withRetry(
       () =>
         generateText({
-          model: TOPIC_MODEL,
+          ...getAiModel("topicAnalysis"),
           prompt: buildAssignPrompt(context, finalTopics, opinionsText),
           experimental_telemetry: {
             isEnabled: true,

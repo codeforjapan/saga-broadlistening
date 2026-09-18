@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "start": "NODE_OPTIONS=--conditions=react-server tsx src/main.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ai:smoke": "NODE_OPTIONS=--conditions=react-server tsx src/ai-smoke-test.ts"
   },
   "dependencies": {
+    "@mirai-gikai/shared": "workspace:*",
     "@mirai-gikai/topic-analysis-core": "workspace:*",
     "ai": "^6.0.3",
     "tsx": "^4.19.1"

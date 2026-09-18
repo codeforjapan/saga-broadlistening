@@ -30,14 +30,10 @@ const VPC_MAX_AZS = 2;
 // Batch専用のテンプレート済みターゲットが無いため、aws-sdk universal targetを使う。
 const BATCH_SUBMIT_JOB_TARGET_ARN = "arn:aws:scheduler:::aws-sdk:batch:submitJob";
 
-// worker(src/main.ts)が起動時に必須チェックする環境変数。SUPABASE_* に加え、
-// topic-analysis-coreがまだAI Gateway経由でモデル呼び出しをしているため
-// AI_GATEWAY_API_KEYも必要（Bedrock直呼び出しへの切替は別issueの対応事項で、
-// 完了後はここから外せる）。
+// workerのDB接続情報。Bedrockの認証はTask Roleを使うためAPIキーは不要。
 const WORKER_SECRETS = [
   { id: "SupabaseUrlSecret", envVar: "SUPABASE_URL" },
   { id: "SupabaseSecretKeySecret", envVar: "SUPABASE_SECRET_KEY" },
-  { id: "AiGatewayApiKeySecret", envVar: "AI_GATEWAY_API_KEY" },
 ] as const;
 type WorkerSecretEnvVar = (typeof WORKER_SECRETS)[number]["envVar"];
 
@@ -246,6 +242,10 @@ export class TopicAnalysisStack extends cdk.Stack {
         // SubmitJob呼び出し側(admin #49 / EventBridge Scheduler)のcontainerOverrides.commandで
         // 実際の--mode等を指定する前提（Cloud Run Jobの--argsと同じ構造）。
         command: DEFAULT_COMMAND,
+        environment: {
+          AWS_REGION: cdk.Stack.of(this).region,
+          AI_ALLOWED_PROVIDERS: "bedrock",
+        },
         jobRole: this.taskRole,
         executionRole: this.executionRole,
         // Compute Environment側がパブリックサブネットのみのため、ジョブにも公開IPを割り当てる。

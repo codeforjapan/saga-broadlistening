@@ -537,6 +537,9 @@ importers:
 
   worker:
     dependencies:
+      '@mirai-gikai/shared':
+        specifier: workspace:*
+        version: link:../packages/shared
       '@mirai-gikai/topic-analysis-core':
         specifier: workspace:*
         version: link:../packages/topic-analysis-core
