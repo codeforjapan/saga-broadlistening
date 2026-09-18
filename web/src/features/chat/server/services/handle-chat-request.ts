@@ -29,7 +29,8 @@ import { extractUiMessageText } from "@/features/chat/shared/utils/extract-ui-me
 import { isFirstChatTurn } from "@/features/chat/shared/utils/is-first-chat-turn";
 import { pickChatKnowledgeSource } from "@/features/chat/shared/utils/pick-chat-knowledge-source";
 import { findOpenInterviewConfigByPolicyId } from "@/features/interview-config/server/repositories/interview-config-repository";
-import { AI_MODELS } from "@/lib/ai/models";
+import { getMeteredAiModel } from "@/lib/ai/get-metered-ai-model";
+import { supportsWebSearch } from "../../shared/utils/supports-web-search";
 import { env } from "@/lib/env";
 import {
   type CompiledPrompt,
@@ -110,9 +111,11 @@ export async function handleChatRequest({
     ]);
 
   // Model configuration
-  const model = deps?.model ?? AI_MODELS.gpt4o;
-  const modelName =
-    typeof model === "string" ? model : (model.modelId ?? "unknown");
+  const {
+    model,
+    modelId: modelName,
+    providerOptions,
+  } = getMeteredAiModel("chat", deps?.model);
 
   // Build system prompt with interview suggestion instructions
   const pageType =
@@ -124,7 +127,10 @@ export async function handleChatRequest({
   );
 
   // Build tools configuration
-  const tools = buildTools(shouldSuggestInterview);
+  const tools = buildTools(
+    shouldSuggestInterview,
+    supportsWebSearch(modelName)
+  );
 
   // 対話ログを chat_sessions / chat_messages に残す。
   // ここで await すると初回トークンまでに DB 往復 2 回分の遅延が乗るため、
@@ -136,6 +142,7 @@ export async function handleChatRequest({
   try {
     const result = streamText({
       model,
+      providerOptions,
       system: systemPrompt,
       messages: await convertToModelMessages(messages),
       tools,
@@ -469,10 +476,10 @@ function buildSystemPromptWithInterviewInstructions(
 /**
  * チャットで使用するツール一覧を構築
  */
-function buildTools(shouldSuggestInterview: boolean) {
+function buildTools(shouldSuggestInterview: boolean, enableWebSearch: boolean) {
   // biome-ignore lint/suspicious/noExplicitAny: OpenAI web_search tool type incompatibility
   const tools: Record<string, any> = {
-    web_search: openai.tools.webSearch(),
+    ...(enableWebSearch ? { web_search: openai.tools.webSearch() } : {}),
   };
 
   if (shouldSuggestInterview) {

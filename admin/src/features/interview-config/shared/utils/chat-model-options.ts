@@ -1,9 +1,10 @@
 /**
  * インタビューチャットで選択可能なAIモデルの定義
- * Vercel AI Gateway（https://vercel.com/ai-gateway/models）で利用可能なモデル
+ * Bedrock の選択肢と既存の AI Gateway モデル
  */
 
-import { DEFAULT_INTERVIEW_CHAT_MODEL } from "@/lib/ai/models";
+import { AI_MODELS } from "@mirai-gikai/shared/ai/models";
+import { isValidModelId } from "@mirai-gikai/shared/ai/validate-model-id";
 import {
   estimateInterviewCostUsd,
   formatEstimatedCost,
@@ -19,6 +20,12 @@ export type ChatModelGroup = {
   provider: string;
   options: ChatModelOption[];
 };
+
+const BEDROCK_MODELS = [
+  { value: AI_MODELS.bedrock_sonnet_4_6, label: "Claude Sonnet 4.6" },
+  { value: AI_MODELS.bedrock_haiku_4_5, label: "Claude Haiku 4.5" },
+  { value: AI_MODELS.bedrock_gpt_oss_120b, label: "GPT OSS 120B" },
+] as const;
 
 const OPENAI_MODELS = [
   { value: "openai/gpt-4o-mini", label: "GPT-4o mini" },
@@ -49,8 +56,9 @@ const ANTHROPIC_MODELS = [
   { value: "anthropic/claude-opus-4.6", label: "Claude Opus 4.6" },
 ] as const;
 
-/** フラットなモデル一覧（バリデーション用） */
+/** フラットなモデル一覧（選択肢表示用） */
 export const CHAT_MODEL_OPTIONS = [
+  ...BEDROCK_MODELS,
   ...OPENAI_MODELS,
   ...GOOGLE_MODELS,
   ...ANTHROPIC_MODELS,
@@ -73,22 +81,16 @@ function buildGroupOptions(
 
 /** プロバイダー別にグループ化されたモデル一覧（UI表示用） */
 export const CHAT_MODEL_GROUPS: ChatModelGroup[] = [
+  { provider: "Amazon Bedrock", options: buildGroupOptions(BEDROCK_MODELS) },
   { provider: "OpenAI", options: buildGroupOptions(OPENAI_MODELS) },
   { provider: "Google", options: buildGroupOptions(GOOGLE_MODELS) },
   { provider: "Anthropic", options: buildGroupOptions(ANTHROPIC_MODELS) },
 ];
 
 /** 文字列が有効なチャットモデルIDかどうかを検証する */
-export function isValidChatModel(model: string): model is ChatModelValue {
-  return CHAT_MODEL_OPTIONS.some((opt) => opt.value === model);
+export function isValidChatModel(model: string): boolean {
+  return isValidModelId(model);
 }
 
-/** デフォルトモデルの表示ラベル（例: "GPT-5.2 ~29円/回"） */
-export const DEFAULT_MODEL_LABEL = (() => {
-  const model = CHAT_MODEL_OPTIONS.find(
-    (opt) => opt.value === DEFAULT_INTERVIEW_CHAT_MODEL
-  );
-  const cost = estimateInterviewCostUsd(DEFAULT_INTERVIEW_CHAT_MODEL);
-  const costStr = cost !== null ? ` ${formatEstimatedCost(cost)}/回` : "";
-  return `${model?.label ?? DEFAULT_INTERVIEW_CHAT_MODEL}${costStr}`;
-})();
+/** 実行環境で変わるため、特定モデル名・料金は表示しない。 */
+export const DEFAULT_MODEL_LABEL = "環境の既定モデル";

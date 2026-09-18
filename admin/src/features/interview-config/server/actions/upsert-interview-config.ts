@@ -1,8 +1,8 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
+import { parseAiConfig, resolveModelId } from "@mirai-gikai/shared/ai/config";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
-import { DEFAULT_INTERVIEW_CHAT_MODEL } from "@/lib/ai/models";
 import {
   invalidateWebCache,
   WEB_CACHE_TAGS,
@@ -13,6 +13,7 @@ import {
   interviewConfigSchema,
 } from "../../shared/types";
 import { prepareQuestionsForDuplication } from "../../shared/utils/prepare-questions-for-duplication";
+import { toConfigRecord } from "../../shared/utils/to-config-record";
 import {
   closeInterviewConfigRecord,
   closeOtherOpenConfigs,
@@ -36,19 +37,6 @@ export type DuplicateInterviewConfigResult =
   | { success: true; data: { id: string; billId: string } }
   | { success: false; error: string };
 
-/** 意見募集のレコードに書き込む値を、フォーム入力から組み立てる */
-function toConfigRecord(validatedData: InterviewConfigInput) {
-  return {
-    name: validatedData.name,
-    slug: validatedData.slug,
-    status: validatedData.status,
-    description: validatedData.description || null,
-    chat_model: validatedData.chat_model || DEFAULT_INTERVIEW_CHAT_MODEL,
-    estimated_duration: validatedData.estimated_duration ?? null,
-    thumbnail_url: validatedData.thumbnail_url || null,
-  };
-}
-
 /** interview_configs.slug は NOT NULL かつ一意なため、複製時に採番する */
 function buildDuplicatedSlug(originalSlug: string): string {
   return `${originalSlug}-copy-${randomBytes(4).toString("hex")}`;
@@ -68,6 +56,11 @@ export async function createInterviewConfig(
 
     // バリデーション
     const validatedData = interviewConfigSchema.parse(input);
+    resolveModelId(
+      parseAiConfig(process.env),
+      "interview",
+      validatedData.chat_model || undefined
+    );
     const policyIds = validatedData.policy_ids ?? [];
 
     // 募集中にする場合、同じ施策の他の募集中設定を終了する
@@ -116,6 +109,11 @@ export async function updateInterviewConfig(
 
     // バリデーション
     const validatedData = interviewConfigSchema.parse(input);
+    resolveModelId(
+      parseAiConfig(process.env),
+      "interview",
+      validatedData.chat_model || undefined
+    );
 
     // 紐づけの更新は、募集中の重複チェックより先に行う。
     // 新しく紐づけた施策側の募集中設定も終了対象に含めるため。
