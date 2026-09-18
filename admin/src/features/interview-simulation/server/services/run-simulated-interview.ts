@@ -1,5 +1,6 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { buildLoopModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/loop-mode";
 import { buildInitialTurnInstruction } from "@mirai-gikai/shared/interview-prompts/subject-section";
 import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
@@ -8,9 +9,13 @@ import type {
   InterviewConfig as PromptInterviewConfig,
   InterviewQuestion as PromptInterviewQuestion,
 } from "@mirai-gikai/shared/interview-prompts/types";
-import { generateObject, generateText, type ModelMessage } from "ai";
+import {
+  generateObject,
+  generateText,
+  type LanguageModel,
+  type ModelMessage,
+} from "ai";
 import { z } from "zod";
-import type { AiModel } from "@/lib/ai/models";
 import {
   LLM_MAX_ATTEMPTS,
   LLM_TIMEOUT_MS,
@@ -58,8 +63,8 @@ const simInterviewerOutputSchema = z
 
 interface RunSimulatedInterviewParams {
   persona: PersonaCharacterSheet;
-  interviewerModel: AiModel;
-  intervieweeModel: AiModel;
+  interviewerModel?: LanguageModel;
+  intervieweeModel?: LanguageModel;
   traceId: string;
   kind: PromptKind;
   /** 元インタビューから抽出した文体指標（省略可）。渡すとインタビュイー LLM の回答長を元会話レンジに寄せる */
@@ -75,8 +80,8 @@ interface RunSimulatedInterviewParams {
     interviewConfig: PromptInterviewConfig;
     questions: PromptInterviewQuestion[];
   };
-  /** Summary フェーズ用モデル。省略時は interviewerModel と同じ */
-  summaryModel?: AiModel;
+  /** Summary フェーズ用モデル。省略時は明示された interviewerModel、両方未指定なら要約用の環境設定を使用 */
+  summaryModel?: LanguageModel;
   /**
    * 初回ターン用の enhanced prompt 構築情報。
    * 本番の `generateInitialQuestion` と同等の挙動を再現するため、初回だけ
@@ -230,6 +235,8 @@ export async function runSimulatedInterview({
   onTurnComplete,
   signal,
 }: RunSimulatedInterviewParams): Promise<SimulationRun> {
+  const interviewerSelection = getAiModel("interview", interviewerModel);
+  const intervieweeSelection = getAiModel("simulation", intervieweeModel);
   const questionsCount = promptInputs.questions.length;
   const effectiveMaxTurns = deriveTargetMaxTurns(
     maxTurns,
@@ -285,7 +292,7 @@ export async function runSimulatedInterview({
         const { object } = await withTimeoutRetry(
           (attemptSignal) =>
             generateObject({
-              model: interviewerModel,
+              ...interviewerSelection,
               schema: simInterviewerOutputSchema,
               prompt: enhancedPrompt,
               abortSignal: attemptSignal,
@@ -308,7 +315,7 @@ export async function runSimulatedInterview({
         const { object } = await withTimeoutRetry(
           (attemptSignal) =>
             generateObject({
-              model: interviewerModel,
+              ...interviewerSelection,
               schema: simInterviewerOutputSchema,
               system: interviewerSystemPromptForThisTurn,
               messages,
@@ -398,7 +405,7 @@ export async function runSimulatedInterview({
       const { text } = await withTimeoutRetry(
         (attemptSignal) =>
           generateText({
-            model: intervieweeModel,
+            ...intervieweeSelection,
             system: intervieweeSystemPrompt,
             messages,
             abortSignal: attemptSignal,
@@ -461,7 +468,7 @@ export async function runSimulatedInterview({
       const { object } = await withTimeoutRetry(
         (attemptSignal) =>
           generateObject({
-            model: summaryModel ?? interviewerModel,
+            ...getAiModel("summary", summaryModel ?? interviewerModel),
             schema: simGeneratedReportSchema,
             system: summarySystemPrompt,
             prompt:
@@ -489,8 +496,8 @@ export async function runSimulatedInterview({
   return {
     promptKind: kind,
     interviewerSystemPrompt: firstTurnSystemPrompt,
-    interviewerModel,
-    intervieweeModel,
+    interviewerModel: interviewerSelection.modelId,
+    intervieweeModel: intervieweeSelection.modelId,
     transcript,
     metrics: computeMetrics(transcript, askedQuestionIds, questionsCount),
     stopReason,

@@ -1,5 +1,5 @@
-import type { AiModel } from "@/lib/ai/models";
 import type { PromptKind } from "../constants";
+
 import type {
   IntervieweeSatisfaction,
   OverallEvaluation,
@@ -62,9 +62,9 @@ export interface SimulationRun {
   /** 実行に用いたインタビュアー側 system prompt（A案: 全文をそのまま編集可能） */
   interviewerSystemPrompt: string;
   /** インタビュアーモデル */
-  interviewerModel: AiModel;
+  interviewerModel: string;
   /** インタビュイーモデル */
-  intervieweeModel: AiModel;
+  intervieweeModel: string;
   transcript: SimulatedTurn[];
   metrics: SimulationMetrics;
   stopReason:
@@ -151,9 +151,9 @@ export interface MultiSimulationRunRequest {
   personaSlots: PersonaSlotInput[];
   /** 改善版 = 編集中 config スナップショット（全スロット共通） */
   improvedConfig: TransientConfigSnapshot;
-  interviewerModel: AiModel;
-  intervieweeModel: AiModel;
-  personaModel: AiModel;
+  interviewerModel: string;
+  intervieweeModel: string;
+  personaModel: string;
 }
 
 /**
@@ -163,7 +163,7 @@ export interface PersonaSimulationResult {
   personaIndex: number;
   personaSource: PersonaSlotInput;
   persona: PersonaCharacterSheet;
-  personaModel: AiModel;
+  personaModel: string;
   /** report ソースのスロットのみ。bill ソースでは null */
   original: OriginalInterviewSnapshot | null;
   run: SimulationRun;

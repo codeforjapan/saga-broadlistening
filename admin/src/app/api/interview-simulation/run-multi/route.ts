@@ -3,15 +3,13 @@ import type {
   PromptBillInput,
   InterviewQuestion as PromptInterviewQuestion,
 } from "@mirai-gikai/shared/interview-prompts/types";
+import type { z } from "zod";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { findInterviewConfigById } from "@/features/interview-config/server/repositories/interview-config-repository";
 import { resolveSimulationScope } from "@/features/interview-simulation/server/loaders/resolve-simulation-scope";
 import { runMultiSimulationPipeline } from "@/features/interview-simulation/server/services/run-multi-simulation-pipeline";
 import { multiSimulationRunRequestSchema } from "@/features/interview-simulation/shared/schemas";
-import type {
-  MultiSimulationProgressEvent,
-  MultiSimulationRunRequest,
-} from "@/features/interview-simulation/shared/types";
+import type { MultiSimulationProgressEvent } from "@/features/interview-simulation/shared/types";
 import { validatePersonaSlots } from "@/features/interview-simulation/shared/utils/validate-persona-slots";
 import { fetchBillWithContents } from "@/features/topic-analysis/server/repositories/topic-analysis-repository";
 import { verifyInternalAuth } from "@/features/topic-analysis/server/utils/trigger-next-phase";
@@ -40,7 +38,9 @@ async function authenticate(request: Request): Promise<Response | null> {
 }
 
 /** MultiSimulationRunRequest → pipeline params */
-async function buildPipelineParams(params: MultiSimulationRunRequest) {
+async function buildPipelineParams(
+  params: z.output<typeof multiSimulationRunRequestSchema>
+) {
   const config = await findInterviewConfigById(params.interviewConfigId);
   if (!config) {
     return {

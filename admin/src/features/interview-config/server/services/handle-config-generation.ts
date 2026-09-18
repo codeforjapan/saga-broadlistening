@@ -1,9 +1,9 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { convertToModelMessages, Output, streamText } from "ai";
 import { getBillById } from "@/features/bills-edit/server/loaders/get-bill-by-id";
 import { getBillContents } from "@/features/bills-edit/server/loaders/get-bill-contents";
-import { AI_MODELS } from "@/lib/ai/models";
 import { injectJsonFields } from "@/lib/stream/inject-json-fields";
 import {
   type ConfigGenerationStage,
@@ -84,7 +84,7 @@ export async function handleConfigGeneration({
   const result =
     stage === "default_questions"
       ? streamText({
-          model: AI_MODELS.gpt5_2,
+          ...getAiModel("configGeneration"),
           system: systemPrompt,
           messages: modelMessages,
           output: Output.object({ schema: defaultQuestionsGenerationSchema }),
@@ -92,14 +92,14 @@ export async function handleConfigGeneration({
         })
       : stage === "theme_proposal"
         ? streamText({
-            model: AI_MODELS.gpt5_2,
+            ...getAiModel("configGeneration"),
             system: systemPrompt,
             messages: modelMessages,
             output: Output.object({ schema: themeProposalSchema }),
             onError,
           })
         : streamText({
-            model: AI_MODELS.gpt5_2,
+            ...getAiModel("configGeneration"),
             system: systemPrompt,
             messages: modelMessages,
             output: Output.object({ schema: questionProposalSchema }),
