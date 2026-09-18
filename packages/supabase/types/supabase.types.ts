@@ -1045,6 +1045,27 @@ export type Database = {
           },
         ]
       }
+      public_chat_settings: {
+        Row: {
+          allowed_domains: string[]
+          chat_model: string | null
+          id: boolean
+          web_search_enabled: boolean
+        }
+        Insert: {
+          allowed_domains?: string[]
+          chat_model?: string | null
+          id?: boolean
+          web_search_enabled?: boolean
+        }
+        Update: {
+          allowed_domains?: string[]
+          chat_model?: string | null
+          id?: boolean
+          web_search_enabled?: boolean
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           created_at: string

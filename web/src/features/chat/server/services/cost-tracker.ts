@@ -23,6 +23,7 @@ type RecordChatUsageParams = {
   occurredAt?: string;
   metadata?: ChatUsageInsert["metadata"];
   costUsd?: number | null;
+  webSearchCalls?: number;
 };
 
 export async function recordChatUsage({
@@ -34,13 +35,15 @@ export async function recordChatUsage({
   occurredAt,
   metadata,
   costUsd,
+  webSearchCalls,
 }: RecordChatUsageParams) {
   const sanitizedUsage = sanitizeUsage(usage ?? undefined);
   const costUsdNumber = resolveCostUsd(
     model,
     sanitizedUsage,
     costUsd,
-    parseModelPricingOverrides(process.env.AI_MODEL_PRICING)
+    parseModelPricingOverrides(process.env.AI_MODEL_PRICING),
+    webSearchCalls
   );
   const payload: ChatUsageInsert = {
     user_id: userId,
