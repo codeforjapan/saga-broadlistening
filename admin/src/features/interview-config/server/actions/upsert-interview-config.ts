@@ -2,6 +2,10 @@
 
 import { randomBytes } from "node:crypto";
 import { parseAiConfig, resolveModelId } from "@mirai-gikai/shared/ai/config";
+import {
+  getModelPricing,
+  parseModelPricingOverrides,
+} from "@mirai-gikai/shared/ai/pricing";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import {
   invalidateWebCache,
@@ -56,11 +60,21 @@ export async function createInterviewConfig(
 
     // バリデーション
     const validatedData = interviewConfigSchema.parse(input);
-    resolveModelId(
+    const modelId = resolveModelId(
       parseAiConfig(process.env),
       "interview",
       validatedData.chat_model || undefined
     );
+    if (
+      !getModelPricing(
+        modelId,
+        parseModelPricingOverrides(process.env.AI_MODEL_PRICING)
+      )
+    ) {
+      throw new Error(
+        "このモデルの料金が未設定です。AI_MODEL_PRICINGを設定してください。"
+      );
+    }
     const policyIds = validatedData.policy_ids ?? [];
 
     // 募集中にする場合、同じ施策の他の募集中設定を終了する
@@ -109,11 +123,21 @@ export async function updateInterviewConfig(
 
     // バリデーション
     const validatedData = interviewConfigSchema.parse(input);
-    resolveModelId(
+    const modelId = resolveModelId(
       parseAiConfig(process.env),
       "interview",
       validatedData.chat_model || undefined
     );
+    if (
+      !getModelPricing(
+        modelId,
+        parseModelPricingOverrides(process.env.AI_MODEL_PRICING)
+      )
+    ) {
+      throw new Error(
+        "このモデルの料金が未設定です。AI_MODEL_PRICINGを設定してください。"
+      );
+    }
 
     // 紐づけの更新は、募集中の重複チェックより先に行う。
     // 新しく紐づけた施策側の募集中設定も終了対象に含めるため。

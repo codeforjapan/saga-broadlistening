@@ -20,6 +20,7 @@ import {
   type InterviewQuestionInput,
   textToArray,
 } from "../../shared/types";
+import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
 import type { ThemeContext } from "../hooks/use-config-generation-chat";
 import { ConfigGenerationChat } from "./config-generation-chat";
 import {
@@ -30,6 +31,7 @@ import {
 import { InterviewQuestionList } from "./interview-question-list";
 
 interface InterviewConfigEditClientProps {
+  modelGroups: ChatModelGroup[];
   /**
    * 施策配下の画面から開いたときの施策ID。
    * テーマ単独の画面（抽象テーマ型を含む）では null。
@@ -56,6 +58,7 @@ interface InterviewConfigEditClientProps {
 
 export function InterviewConfigEditClient({
   billId,
+  modelGroups,
   config: initialConfig,
   questions,
   completedReports,
@@ -221,6 +224,7 @@ export function InterviewConfigEditClient({
           {/* 左カラム: フォーム */}
           <div className="space-y-6">
             <InterviewConfigForm
+              modelGroups={modelGroups}
               billId={billId}
               config={initialConfig}
               aiGeneratedThemes={aiGeneratedThemes}
@@ -276,6 +280,7 @@ export function InterviewConfigEditClient({
           className="mt-4 data-[state=inactive]:hidden"
         >
           <MultiSimulationView
+            modelGroups={modelGroups}
             configId={configId}
             hasPolicyScope={hasPolicyScope}
             getFormValues={() => getFormValuesRef.current?.() ?? null}

@@ -1,5 +1,3 @@
-import { AI_MODELS } from "@/lib/ai/models";
-
 /** シミュレーション 1 本あたりの最大ターン数（interviewer + interviewee の往復）。
  *  タイムマネジメントの動的更新で自然に要約遷移するのが理想で、これは安全弁。 */
 export const SIMULATION_MAX_TURNS = 20;
@@ -11,30 +9,6 @@ export const MAX_PERSONA_SLOTS = 10;
 export const RECOMMENDED_PERSONA_SLOTS = 6;
 
 export const ENV_DEFAULT_MODEL = "__default__";
-
-/** UI のモデル選択肢として提示するモデル一覧 */
-export const SIMULATION_MODEL_OPTIONS = [
-  { value: ENV_DEFAULT_MODEL, label: "デフォルト（環境設定）" },
-  {
-    value: AI_MODELS.bedrock_sonnet_4_6,
-    label: "Claude Sonnet 4.6 (Bedrock)",
-  },
-  {
-    value: AI_MODELS.bedrock_haiku_4_5,
-    label: "Claude Haiku 4.5 (Bedrock)",
-  },
-  { value: AI_MODELS.gpt5_2, label: "GPT-5.2" },
-  { value: AI_MODELS.gpt5_1_thinking, label: "GPT-5.1 Thinking" },
-  { value: AI_MODELS.gpt4_1, label: "GPT-4.1" },
-  { value: AI_MODELS.gpt4_1_mini, label: "GPT-4.1 mini" },
-  { value: AI_MODELS.gemini3_flash, label: "Gemini 3 Flash" },
-  { value: AI_MODELS.gemini3_1_pro_preview, label: "Gemini 3.1 Pro (preview)" },
-  {
-    value: AI_MODELS.gemini3_1_flash_lite,
-    label: "Gemini 3.1 Flash Lite",
-  },
-  { value: AI_MODELS.claude_sonnet_4_6, label: "Claude Sonnet 4.6" },
-] as const;
 
 /** インタビュアー側のデフォルトモデル（環境設定から解決） */
 export const DEFAULT_INTERVIEWER_MODEL = ENV_DEFAULT_MODEL;

@@ -43,7 +43,7 @@ import {
   type InterviewConfigInput,
   interviewConfigSchema,
 } from "../../shared/types";
-import { CHAT_MODEL_GROUPS } from "../../shared/utils/chat-model-options";
+import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
 import { generateDefaultConfigName } from "../../shared/utils/default-config-name";
 
 /** 紐づけ先として選べる施策 */
@@ -60,6 +60,7 @@ export type InterviewConfigFormValues = InterviewConfigInput & {
 };
 
 interface InterviewConfigFormProps {
+  modelGroups: ChatModelGroup[];
   /**
    * 施策配下のフォームから開いたときの施策ID。
    * テーマ単独のフォーム（抽象テーマ型）では null になる。
@@ -84,6 +85,7 @@ interface InterviewConfigFormProps {
 }
 
 export function InterviewConfigForm({
+  modelGroups,
   billId,
   config,
   aiGeneratedThemes,
@@ -329,7 +331,7 @@ export function InterviewConfigForm({
                       <AiModelSelect
                         value={field.value ?? null}
                         onValueChange={field.onChange}
-                        groups={CHAT_MODEL_GROUPS}
+                        groups={modelGroups}
                         showEstimatedCost
                       />
                     </FormControl>

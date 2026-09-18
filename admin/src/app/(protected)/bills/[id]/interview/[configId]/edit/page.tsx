@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getBillById } from "@/features/bills-edit/server/loaders/get-bill-by-id";
-import { InterviewConfigEditClient } from "@/features/interview-config/client/components/interview-config-edit-client";
+import { InterviewConfigEditor } from "@/features/interview-config/server/components/interview-config-editor";
 import { getInterviewConfigById } from "@/features/interview-config/server/loaders/get-interview-config";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
 import { getCompletedReportsForSimulation } from "@/features/interview-simulation/server/loaders/get-completed-reports-for-simulation";
@@ -60,7 +60,7 @@ export default async function InterviewEditPage({
         </p>
       </div>
 
-      <InterviewConfigEditClient
+      <InterviewConfigEditor
         billId={bill.id}
         config={config}
         questions={questions}
