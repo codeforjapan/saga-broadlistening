@@ -1,3 +1,7 @@
+import {
+  flushTelemetry,
+  registerNodeTelemetry,
+} from "@/lib/telemetry/register";
 import { after } from "next/server";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { createVersion } from "@/features/topic-analysis/server/repositories/topic-analysis-repository";
@@ -43,9 +47,12 @@ export async function POST(request: Request) {
 
     after(async () => {
       try {
+        await registerNodeTelemetry();
         await executeAnalysisPipeline(version.id, billId, configId);
       } catch (error) {
         console.error("[TopicAnalysis] Pipeline failed:", error);
+      } finally {
+        await flushTelemetry();
       }
     });
 
