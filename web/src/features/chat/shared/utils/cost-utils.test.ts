@@ -53,3 +53,48 @@ describe("resolveCostUsd", () => {
     expect(resolveCostUsd("any-model", zeroUsage)).toBe(0);
   });
 });
+
+describe("Web検索料金", () => {
+  const usage = { inputTokens: 100, outputTokens: 50, totalTokens: 150 };
+  const pricing = {
+    "openai:gpt-5-mini": {
+      inputTokensPerMillionUsd: 0.25,
+      outputTokensPerMillionUsd: 2,
+    },
+    "openai:gpt-4o-mini": {
+      inputTokensPerMillionUsd: 0.15,
+      outputTokensPerMillionUsd: 0.6,
+    },
+  };
+  it("直接接続では検索回数分をトークン料金に加算する", () => {
+    expect(
+      resolveCostUsd("openai:gpt-5-mini", usage, undefined, pricing, 2)
+    ).toBe(0.020125);
+  });
+  it("実費が取得できた場合は検索料金を重複加算しない", () => {
+    expect(
+      resolveCostUsd("gateway:openai/gpt-5-mini", usage, 0.034, undefined, 2)
+    ).toBe(0.034);
+  });
+  it("4o-miniの検索入力固定ブロックを概算に含める", () => {
+    expect(
+      resolveCostUsd("openai:gpt-4o-mini", usage, undefined, pricing, 1)
+    ).toBe(0.011245);
+  });
+  it("検索ONでも実際に検索しなければ追加料金はない", () => {
+    expect(
+      resolveCostUsd("openai:gpt-5-mini", usage, undefined, pricing, 0)
+    ).toBe(0.000125);
+  });
+  it("Gatewayの実費が欠落しても検索を無料扱いしない", () => {
+    expect(
+      resolveCostUsd(
+        "gateway:openai/gpt-5-mini",
+        usage,
+        undefined,
+        undefined,
+        1
+      )
+    ).toBe(0.010125);
+  });
+});

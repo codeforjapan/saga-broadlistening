@@ -45,6 +45,19 @@ export function SystemMessage({
               </Response>
             );
           }
+          if (part.type === "source-url" && /^https?:\/\//.test(part.url)) {
+            return (
+              <a
+                key={`${message.id}-${i}`}
+                href={part.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block break-all text-primary underline"
+              >
+                出典: {part.title || part.url}
+              </a>
+            );
+          }
           if (part.type === "reasoning") {
             return (
               <Reasoning

@@ -1,3 +1,4 @@
+import { getAllowedChatModelGroups } from "./chat-model-options";
 import { isKnownModel } from "@mirai-gikai/shared/ai/models";
 import { describe, expect, it } from "vitest";
 import {
@@ -90,4 +91,37 @@ it.each([
   "gateway:custom/new-model",
 ])("カタログ外でもプロバイダー指定が有効なら受け付ける: %s", (model) => {
   expect(isValidChatModel(model)).toBe(true);
+});
+
+describe("公開チャットのモデル選択肢", () => {
+  it("Bedrockのみ許可された環境ではGatewayを表示しない", () => {
+    const groups = getAllowedChatModelGroups(["bedrock"]);
+    expect(groups).toHaveLength(1);
+    expect(
+      groups[0].options.every((option) => option.value.startsWith("bedrock:"))
+    ).toBe(true);
+  });
+  it("直接接続のみ許可された環境では接続先を明示する", () => {
+    const groups = getAllowedChatModelGroups(["openai", "google"]);
+    expect(
+      groups.flatMap((group) => group.options).map((option) => option.value)
+    ).toContain("openai:gpt-5-mini");
+    expect(
+      groups
+        .flatMap((group) => group.options)
+        .every(
+          (option) =>
+            option.value.startsWith("openai:") ||
+            option.value.startsWith("google:")
+        )
+    ).toBe(true);
+  });
+  it("Gatewayも許可されていれば両方の接続先を選択できる", () => {
+    const values = getAllowedChatModelGroups(["openai", "gateway"])
+      .flatMap((group) => group.options)
+      .map((option) => option.value);
+    expect(values).toContain("openai:gpt-5-mini");
+    expect(values).toContain("openai/gpt-5-mini");
+    expect(new Set(values).size).toBe(values.length);
+  });
 });

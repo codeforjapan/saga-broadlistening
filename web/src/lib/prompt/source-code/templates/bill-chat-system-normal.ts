@@ -1,10 +1,6 @@
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { buildKnowledgeSourceSection } from "./knowledge-source-section";
-import {
-  COMMON_RULES,
-  SERVICE_OVERVIEW,
-  WEB_SEARCH_RULES,
-} from "./shared-sections";
+import { COMMON_RULES, SERVICE_OVERVIEW } from "./shared-sections";
 
 /**
  * 施策チャット（ふつう難易度）用システムプロンプトを生成する
@@ -37,8 +33,6 @@ ${buildKnowledgeSourceSection(knowledgeSource)}
 - 具体例を交えて説明してください
 
 ${COMMON_RULES}
-
-${WEB_SEARCH_RULES}
 
 ---
 

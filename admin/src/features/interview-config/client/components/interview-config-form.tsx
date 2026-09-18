@@ -8,6 +8,7 @@ import type { MutableRefObject } from "react";
 import { useEffect, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { AiModelSelect } from "@/components/ai-model-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,9 +25,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -44,10 +43,7 @@ import {
   type InterviewConfigInput,
   interviewConfigSchema,
 } from "../../shared/types";
-import {
-  CHAT_MODEL_GROUPS,
-  DEFAULT_MODEL_LABEL,
-} from "../../shared/utils/chat-model-options";
+import { CHAT_MODEL_GROUPS } from "../../shared/utils/chat-model-options";
 import { generateDefaultConfigName } from "../../shared/utils/default-config-name";
 
 /** 紐づけ先として選べる施策 */
@@ -329,41 +325,14 @@ export function InterviewConfigForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>AIモデル</FormLabel>
-                    <Select
-                      onValueChange={(value) =>
-                        field.onChange(value === "__default__" ? null : value)
-                      }
-                      value={field.value ?? "__default__"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="モデルを選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="__default__">
-                          デフォルト（{DEFAULT_MODEL_LABEL}）
-                        </SelectItem>
-                        {CHAT_MODEL_GROUPS.map((group) => (
-                          <SelectGroup key={group.provider}>
-                            <SelectLabel>{group.provider}</SelectLabel>
-                            {group.options.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                                {option.estimatedCost && (
-                                  <span className="ml-2 text-muted-foreground">
-                                    {option.estimatedCost}/回
-                                  </span>
-                                )}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <AiModelSelect
+                        value={field.value ?? null}
+                        onValueChange={field.onChange}
+                        groups={CHAT_MODEL_GROUPS}
+                        showEstimatedCost
+                      />
+                    </FormControl>
                     <FormDescription>
                       インタビュー対話に使用するAIモデルを選択します。コストは1インタビューあたりの推定値です。
                     </FormDescription>

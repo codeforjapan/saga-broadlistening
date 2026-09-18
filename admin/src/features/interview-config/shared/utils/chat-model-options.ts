@@ -1,3 +1,4 @@
+import { type AiProvider, parseModelId } from "@mirai-gikai/shared/ai/config";
 /**
  * インタビューチャットで選択可能なAIモデルの定義
  * Bedrock の選択肢と既存の AI Gateway モデル
@@ -94,3 +95,31 @@ export function isValidChatModel(model: string): boolean {
 
 /** 実行環境で変わるため、特定モデル名・料金は表示しない。 */
 export const DEFAULT_MODEL_LABEL = "環境の既定モデル";
+
+export function getAllowedChatModelGroups(
+  allowedProviders: AiProvider[]
+): ChatModelGroup[] {
+  return CHAT_MODEL_GROUPS.map((group) => ({
+    ...group,
+    options: group.options.flatMap((option) => {
+      const parsed = parseModelId(option.value);
+      const options: ChatModelOption[] = [];
+      if (allowedProviders.includes(parsed.provider)) options.push(option);
+      if (parsed.provider === "gateway") {
+        for (const provider of ["openai", "google"] as const) {
+          if (
+            allowedProviders.includes(provider) &&
+            parsed.modelId.startsWith(`${provider}/`)
+          ) {
+            options.push({
+              ...option,
+              value: `${provider}:${parsed.modelId.slice(provider.length + 1)}`,
+              label: `${option.label}（直接接続）`,
+            });
+          }
+        }
+      }
+      return options;
+    }),
+  })).filter((group) => group.options.length > 0);
+}

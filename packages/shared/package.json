@@ -123,12 +123,20 @@
     "./ai/validate-model-id": {
       "types": "./src/ai/utils/is-valid-model-id.ts",
       "default": "./src/ai/utils/is-valid-model-id.ts"
+    },
+    "./ai/public-chat-settings": {
+      "types": "./src/ai/utils/public-chat-settings.ts",
+      "default": "./src/ai/utils/public-chat-settings.ts"
+    },
+    "./ai/public-chat-settings-repository": {
+      "types": "./src/ai/public-chat-settings-repository.ts",
+      "default": "./src/ai/public-chat-settings-repository.ts"
     }
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^4.0.176",
     "@ai-sdk/google": "^3.0.122",
-    "@ai-sdk/openai": "^3.0.1",
+    "@ai-sdk/openai": "^3.0.9",
     "@aws-sdk/credential-providers": "^3.1121.0",
     "@mirai-gikai/supabase": "workspace:*",
     "@vercel/oidc-aws-credentials-provider": "^3.3.5",

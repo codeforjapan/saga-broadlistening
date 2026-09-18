@@ -1,9 +1,5 @@
 import { SITE_NAME } from "@mirai-gikai/branding/site";
-import {
-  COMMON_RULES,
-  SERVICE_OVERVIEW,
-  WEB_SEARCH_RULES,
-} from "./shared-sections";
+import { COMMON_RULES, SERVICE_OVERVIEW } from "./shared-sections";
 
 /**
  * ホームページチャット用システムプロンプトを生成する
@@ -30,8 +26,6 @@ ${billSummary}
 - 施策や施策の背景・メリット・デメリット、他の論点や反対意見も提示して、バランスを保つ
 
 ${COMMON_RULES}
-
-${WEB_SEARCH_RULES}
 
 以降、ユーザーから質問が来たら、この背景情報をもとに丁寧に応えるようにしてください。`;
 }
