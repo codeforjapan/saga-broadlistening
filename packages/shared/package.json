@@ -135,6 +135,10 @@
     "./ai/model-catalog": {
       "types": "./src/ai/utils/model-catalog.ts",
       "default": "./src/ai/utils/model-catalog.ts"
+    },
+    "./telemetry/register": {
+      "types": "./src/telemetry/register.ts",
+      "default": "./src/telemetry/register.ts"
     }
   },
   "dependencies": {
@@ -142,7 +146,9 @@
     "@ai-sdk/google": "^3.0.122",
     "@ai-sdk/openai": "^3.0.9",
     "@aws-sdk/credential-providers": "^3.1121.0",
+    "@langfuse/otel": "^5.11.1",
     "@mirai-gikai/supabase": "workspace:*",
+    "@opentelemetry/sdk-trace-node": "^2.1.0",
     "@vercel/oidc-aws-credentials-provider": "^3.3.5",
     "server-only": "^0.0.1"
   },
@@ -151,6 +157,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@opentelemetry/api": "^1.9.0",
     "ai": "^6.0.33",
     "typescript": "^5.6.2",
     "vitest": "^3.2.4",

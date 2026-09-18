@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import {
   checkSystemDailyCostLimit,
   checkSystemMonthlyCostLimit,
@@ -6,12 +7,16 @@ import { chatErrorToResponse } from "@/features/chat/server/utils/chat-error-res
 import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
 import { handleInterviewChatRequest } from "@/features/interview-session/server/services/handle-interview-chat-request";
 import { jsonResponse } from "@/lib/api/response";
-import { registerNodeTelemetry } from "@/lib/telemetry/register";
+import {
+  flushTelemetry,
+  registerNodeTelemetry,
+} from "@/lib/telemetry/register";
 
 export async function POST(req: Request) {
   // Vercel node環境でinstrumentationが自動で起動しない問題対応
   // 明示的にtelemetryを初期化
   await registerNodeTelemetry();
+  after(flushTelemetry);
 
   const body = await req.json();
   const {

@@ -1,9 +1,10 @@
-import { Langfuse } from "langfuse";
+import "server-only";
+import { LangfuseClient } from "@langfuse/client";
 import { env } from "@/lib/env";
 
-let langfuseClient: Langfuse | null = null;
+let langfuseClient: LangfuseClient | null = null;
 
-export function getLangfuseClient(): Langfuse {
+export function getLangfuseClient(): LangfuseClient {
   if (!langfuseClient) {
     const { publicKey, secretKey, baseUrl } = env.langfuse;
 
@@ -13,11 +14,10 @@ export function getLangfuseClient(): Langfuse {
       );
     }
 
-    langfuseClient = new Langfuse({
+    langfuseClient = new LangfuseClient({
       publicKey,
       secretKey,
       baseUrl,
-      release: process.env.VERCEL_ENV || "development",
     });
   }
 

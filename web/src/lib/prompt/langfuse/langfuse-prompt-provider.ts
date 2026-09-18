@@ -1,4 +1,4 @@
-import type { Langfuse } from "langfuse";
+import type { LangfuseClient } from "@langfuse/client";
 import type { PromptProvider } from "../interface/prompt-provider";
 import type { CompiledPrompt, PromptVariables } from "../interface/types";
 import { compilePrompt } from "../shared/compile-prompt";
@@ -7,7 +7,7 @@ import { env } from "@/lib/env";
 const FALLBACK_LABEL = "production";
 
 export class LangfusePromptProvider implements PromptProvider {
-  constructor(private client: Langfuse) {}
+  constructor(private client: LangfuseClient) {}
 
   async getPrompt(
     name: string,
@@ -21,7 +21,7 @@ export class LangfusePromptProvider implements PromptProvider {
     const primaryLabel = env.langfuse.promptLabel;
 
     try {
-      return await this.client.getPrompt(name, undefined, {
+      return await this.client.prompt.get(name, {
         label: primaryLabel,
       });
     } catch (error) {
@@ -32,7 +32,7 @@ export class LangfusePromptProvider implements PromptProvider {
       console.warn(
         `[Langfuse] Prompt "${name}" not found with label "${primaryLabel}", falling back to "${FALLBACK_LABEL}": ${error instanceof Error ? error.message : String(error)}`
       );
-      return await this.client.getPrompt(name, undefined, {
+      return await this.client.prompt.get(name, {
         label: FALLBACK_LABEL,
       });
     }
