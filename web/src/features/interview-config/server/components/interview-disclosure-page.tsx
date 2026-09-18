@@ -1,6 +1,7 @@
 import "server-only";
 
 import { parseAiConfig, resolveModelId } from "@mirai-gikai/shared/ai/config";
+import { getModelLabel } from "@mirai-gikai/shared/ai/model-catalog";
 import { DisclosureBreadcrumb } from "../../shared/components/disclosure-breadcrumb";
 import type { InterviewTarget } from "../../shared/types/interview-target";
 import type { InterviewConfig } from "../loaders/get-interview-config";
@@ -110,7 +111,7 @@ function ModelSection({
           対話エンジンには以下のモデルを採用しています。
         </p>
         <p className="text-sm leading-[1.83] text-black">
-          モデル名称： {chatModel}
+          モデル名称： {getModelLabel(chatModel)}
         </p>
       </div>
     </div>

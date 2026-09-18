@@ -3,21 +3,16 @@
 import { isValidModelId } from "@mirai-gikai/shared/ai/validate-model-id";
 import { Loader2, Play, Settings2, Square } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { AiModelSelect } from "@/components/ai-model-select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { InterviewQuestionInput } from "@/features/interview-config/shared/types";
+import type { ChatModelGroup } from "@/features/interview-config/shared/utils/chat-model-options";
 import {
   DEFAULT_INTERVIEWEE_MODEL,
   DEFAULT_INTERVIEWER_MODEL,
   DEFAULT_PERSONA_MODEL,
-  SIMULATION_MODEL_OPTIONS,
+  ENV_DEFAULT_MODEL,
 } from "../../shared/constants";
 import type {
   CompletedReportListItem,
@@ -33,6 +28,7 @@ import { PersonaResultCard } from "./persona-result-card";
 import { PersonaSelectorList } from "./persona-selector-list";
 
 interface MultiSimulationViewProps {
+  modelGroups: ChatModelGroup[];
   configId: string;
   /** 施策全体から候補を選べるか。抽象テーマ型では false */
   hasPolicyScope: boolean;
@@ -53,34 +49,31 @@ function ModelSelect({
   label,
   value,
   onChange,
+  groups,
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (v: string) => void;
+  groups: ChatModelGroup[];
 }) {
   return (
     <div className="space-y-1">
       <Label htmlFor={id} className="text-xs text-muted-foreground">
         {label}
       </Label>
-      <Select value={value} onValueChange={onChange}>
-        <SelectTrigger id={id} className="h-8 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {SIMULATION_MODEL_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <AiModelSelect
+        id={id}
+        value={value === ENV_DEFAULT_MODEL ? null : value}
+        onValueChange={(next) => onChange(next ?? ENV_DEFAULT_MODEL)}
+        groups={groups}
+      />
     </div>
   );
 }
 
 export function MultiSimulationView({
+  modelGroups,
   configId,
   hasPolicyScope,
   getFormValues,
@@ -222,12 +215,14 @@ export function MultiSimulationView({
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <ModelSelect
+                  groups={modelGroups}
                   id="multi-sim-interviewee-model"
                   label="インタビュイー"
                   value={intervieweeModel}
                   onChange={setIntervieweeModel}
                 />
                 <ModelSelect
+                  groups={modelGroups}
                   id="multi-sim-persona-model"
                   label="ペルソナ抽出"
                   value={personaModel}

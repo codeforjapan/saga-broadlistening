@@ -131,6 +131,10 @@
     "./ai/public-chat-settings-repository": {
       "types": "./src/ai/public-chat-settings-repository.ts",
       "default": "./src/ai/public-chat-settings-repository.ts"
+    },
+    "./ai/model-catalog": {
+      "types": "./src/ai/utils/model-catalog.ts",
+      "default": "./src/ai/utils/model-catalog.ts"
     }
   },
   "dependencies": {

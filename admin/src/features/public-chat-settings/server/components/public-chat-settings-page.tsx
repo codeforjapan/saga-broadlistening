@@ -1,11 +1,10 @@
 import "server-only";
 
-import { resolveDefaultPublicChatModel } from "@mirai-gikai/shared/ai/public-chat-settings";
-
 import { parseAiConfig } from "@mirai-gikai/shared/ai/config";
+import { resolveDefaultPublicChatModel } from "@mirai-gikai/shared/ai/public-chat-settings";
 import { getPublicChatSettings } from "@mirai-gikai/shared/ai/public-chat-settings-repository";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
-import { getAllowedChatModelGroups } from "@/features/interview-config/shared/utils/chat-model-options";
+import { getConfiguredModelGroups } from "@/lib/ai/model-options";
 import { PublicChatSettingsForm } from "../../client/components/public-chat-settings-form";
 
 export async function PublicChatSettingsPage() {
@@ -23,7 +22,7 @@ export async function PublicChatSettingsPage() {
       <PublicChatSettingsForm
         initialSettings={settings}
         defaultModel={resolveDefaultPublicChatModel(config)}
-        groups={getAllowedChatModelGroups(config.allowedProviders)}
+        groups={getConfiguredModelGroups()}
       />
     </div>
   );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getPolicyOptions } from "@/features/bills/server/loaders/get-bills";
-import { InterviewConfigEditClient } from "@/features/interview-config/client/components/interview-config-edit-client";
+import { InterviewConfigEditor } from "@/features/interview-config/server/components/interview-config-editor";
 import { getInterviewConfigById } from "@/features/interview-config/server/loaders/get-interview-config";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
 import { getLinkedPolicyIds } from "@/features/interview-config/server/loaders/get-linked-policy-ids";
@@ -66,7 +66,7 @@ export default async function InterviewEditPage({
         （/bills/[id]/interview/...）に任せて billId は渡さない。
         シミュレーションは施策の有無によらず使えるので simulationPolicyId で渡す。
       */}
-      <InterviewConfigEditClient
+      <InterviewConfigEditor
         billId={null}
         config={config}
         questions={questions}

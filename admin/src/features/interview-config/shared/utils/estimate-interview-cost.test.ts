@@ -105,3 +105,17 @@ it.each([
 ])("estimates Bedrock interview cost using regional rates: %s", (model, expected) => {
   expect(estimateInterviewCostUsd(model)).toBeCloseTo(expected, 5);
 });
+
+it("直接接続の単価が不明ならGateway料金で代用しない", () => {
+  expect(estimateInterviewCostUsd("openai:gpt-5.2")).toBeNull();
+});
+it("接続先ごとの環境設定を概算に反映する", () => {
+  expect(
+    estimateInterviewCostUsd("openai:gpt-5.2", {
+      "openai:gpt-5.2": {
+        inputTokensPerMillionUsd: 2,
+        outputTokensPerMillionUsd: 10,
+      },
+    })
+  ).toBeCloseTo(0.2);
+});

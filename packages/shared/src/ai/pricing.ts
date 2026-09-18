@@ -12,7 +12,7 @@ export type ModelPricing = {
  * 未確認の接続先やモデルには他の料金を代用しない。
  */
 export const modelPricing: Record<string, ModelPricing> = {
-  // --- Amazon Bedrock: ap-northeast-1 / Japan, verified 2026-09-15 ---
+  // --- Amazon Bedrock: ap-northeast-1 / Japan, verified 2026-09-18 ---
   // AWS Price List (2026-09-11): Sonnet regional CRIS, Haiku regional.
   // https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/ap-northeast-1/index.json
   // Sonnet input/output SKUs: VFYW9EGDPE5FR2S3 / DRJPH2YRDBQTJV8Q

@@ -6,7 +6,10 @@
  * - 1インタビューあたり出力トークン: 約3,000（AI応答の合計）
  */
 
-import { getModelPricing } from "@mirai-gikai/shared/ai/pricing";
+import {
+  getModelPricing,
+  type ModelPricingOverrides,
+} from "@mirai-gikai/shared/ai/pricing";
 
 /** 1インタビューあたりの推定トークン使用量 */
 const ESTIMATED_INPUT_TOKENS = 85_000;
@@ -16,8 +19,11 @@ const ESTIMATED_OUTPUT_TOKENS = 3_000;
  * モデルIDから1インタビューあたりの推定コスト（USD）を算出する
  * @returns 推定コスト（USD）。不明なモデルの場合は null
  */
-export function estimateInterviewCostUsd(modelId: string): number | null {
-  const pricing = getModelPricing(modelId);
+export function estimateInterviewCostUsd(
+  modelId: string,
+  overrides?: ModelPricingOverrides
+): number | null {
+  const pricing = getModelPricing(modelId, overrides);
   if (!pricing) return null;
 
   const inputCost =

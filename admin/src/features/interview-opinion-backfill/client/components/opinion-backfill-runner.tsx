@@ -2,21 +2,17 @@
 
 import { Loader2, Play, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AiModelSelect } from "@/components/ai-model-select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  CHAT_MODEL_GROUPS,
-  DEFAULT_MODEL_LABEL,
-} from "@/features/interview-config/shared/utils/chat-model-options";
+import type { ChatModelGroup } from "@/features/interview-config/shared/utils/chat-model-options";
 
 type InterviewConfigOption = { id: string; name: string };
 
@@ -36,7 +32,9 @@ const DEFAULT_MODEL = "__default__";
 
 export function OpinionBackfillRunner({
   interviewConfigs,
+  modelGroups,
 }: {
+  modelGroups: ChatModelGroup[];
   interviewConfigs: InterviewConfigOption[];
 }) {
   const [configValue, setConfigValue] = useState<string>(ALL_CONFIGS);
@@ -184,38 +182,15 @@ export function OpinionBackfillRunner({
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="backfill-model">再抽出モデル</Label>
-        <Select
-          value={modelValue}
-          onValueChange={setModelValue}
+        <AiModelSelect
+          id="backfill-model"
+          value={modelValue === DEFAULT_MODEL ? null : modelValue}
+          onValueChange={(next) => setModelValue(next ?? DEFAULT_MODEL)}
+          groups={modelGroups}
           disabled={isRunning}
-        >
-          <SelectTrigger id="backfill-model" className="sm:max-w-sm">
-            <SelectValue placeholder="モデルを選択" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={DEFAULT_MODEL}>
-              デフォルト（{DEFAULT_MODEL_LABEL}）
-            </SelectItem>
-            {CHAT_MODEL_GROUPS.map((group) => (
-              <SelectGroup key={group.provider}>
-                <SelectLabel>{group.provider}</SelectLabel>
-                {group.options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                    {option.estimatedCost && (
-                      <span className="ml-2 text-muted-foreground">
-                        {option.estimatedCost}/回
-                      </span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            ))}
-          </SelectContent>
-        </Select>
+        />
         <p className="text-xs text-muted-foreground">
-          再抽出に使用するモデル。「デフォルト」は上の選択肢に表示されたモデルを使います。
-          コスト表記はインタビュー1回あたりの目安で、再抽出1件の実コストとは異なります。
+          再抽出に使用するモデル。デフォルトは環境設定から解決します。
         </p>
       </div>
 

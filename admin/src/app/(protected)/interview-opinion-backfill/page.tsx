@@ -2,6 +2,7 @@ import { listAllInterviewConfigs } from "@mirai-gikai/topic-analysis-core/reposi
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/features/auth/server/lib/auth-server";
 import { OpinionBackfillRunner } from "@/features/interview-opinion-backfill/client/components/opinion-backfill-runner";
+import { getConfiguredModelGroups } from "@/lib/ai/model-options";
 import { routes } from "@/lib/routes";
 
 export default async function InterviewOpinionBackfillPage() {
@@ -26,7 +27,10 @@ export default async function InterviewOpinionBackfillPage() {
       </p>
 
       <section className="rounded-lg border bg-card p-6">
-        <OpinionBackfillRunner interviewConfigs={interviewConfigs} />
+        <OpinionBackfillRunner
+          interviewConfigs={interviewConfigs}
+          modelGroups={getConfiguredModelGroups()}
+        />
       </section>
     </div>
   );

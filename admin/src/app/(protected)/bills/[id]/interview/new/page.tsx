@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCurrentAdmin } from "@/features/auth/server/lib/auth-server";
 import { getBillById } from "@/features/bills-edit/server/loaders/get-bill-by-id";
-import { InterviewConfigEditClient } from "@/features/interview-config/client/components/interview-config-edit-client";
+import { InterviewConfigEditor } from "@/features/interview-config/server/components/interview-config-editor";
 import { generateDefaultConfigName } from "@/features/interview-config/shared/utils/default-config-name";
 import { routes } from "@/lib/routes";
 
@@ -50,7 +50,7 @@ export default async function InterviewNewPage({
         </p>
       </div>
 
-      <InterviewConfigEditClient
+      <InterviewConfigEditor
         billId={bill.id}
         config={null}
         questions={[]}
