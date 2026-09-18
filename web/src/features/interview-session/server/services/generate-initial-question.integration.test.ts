@@ -48,8 +48,21 @@ describe("generateInitialQuestion 統合テスト", () => {
     await cleanupTestUser(testUser.id);
   });
 
-  it("LLMが生成したテキストがassistantメッセージとしてDBに保存される", async () => {
-    const mockModel = createGenerateMock(llmResponse);
+  it.each([
+    { quickReplies: ["はい", "いいえ"] },
+    { quickReplies: [] },
+  ])("選択肢 $quickReplies を含む初回質問がDBに保存される", async ({
+    quickReplies,
+  }) => {
+    const response = JSON.stringify({
+      ...JSON.parse(llmResponse),
+      quick_replies: quickReplies,
+    });
+    const expected = JSON.stringify({
+      ...JSON.parse(expectedResponse),
+      quick_replies: quickReplies,
+    });
+    const mockModel = createGenerateMock(response);
 
     const result = await generateInitialQuestion({
       sessionId,
@@ -62,7 +75,7 @@ describe("generateInitialQuestion 統合テスト", () => {
     // 戻り値を検証
     expect(result).not.toBeNull();
     expect(result?.role).toBe("assistant");
-    expect(result?.content).toBe(expectedResponse);
+    expect(result?.content).toBe(expected);
 
     // DB 状態を検証: assistantメッセージが保存されていること
     const { data: messages } = await adminClient
@@ -73,12 +86,23 @@ describe("generateInitialQuestion 統合テスト", () => {
 
     expect(messages).toHaveLength(1);
     expect(messages?.[0].role).toBe("assistant");
-    expect(messages?.[0].content).toBe(expectedResponse);
+    expect(messages?.[0].content).toBe(expected);
     expect(messages?.[0].interview_session_id).toBe(sessionId);
   });
 
-  it("LLMが空テキストを返した場合はnullを返しDBに保存されない", async () => {
-    const mockModel = createGenerateMock("  "); // 空白のみ
+  it.each([
+    { name: "空テキスト", response: "  " },
+    {
+      name: "quick_replies欠落",
+      response: JSON.stringify({
+        text: "こんにちは。公園の改善についてご意見を教えてください。",
+        question_id: "question-1",
+        topic_title: "公園の改善",
+        next_stage: "chat",
+      }),
+    },
+  ])("$name は検証で拒否しDBに保存しない", async ({ response }) => {
+    const mockModel = createGenerateMock(response);
 
     const result = await generateInitialQuestion({
       sessionId,

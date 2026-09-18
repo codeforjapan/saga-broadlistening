@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildInterviewSubject } from "./subject-section";
+import {
+  buildInitialTurnInstruction,
+  buildInterviewSubject,
+} from "./subject-section";
 
 const bill = {
   name: "学校給食の無償化",
@@ -47,7 +50,9 @@ describe("buildInterviewSubject", () => {
       expect(subject.focusInstruction).toBe(
         "- 施策に関する質問のみに集中してください"
       );
-      expect(subject.clarificationGuidance).toContain("施策内容の誤認検知と補足");
+      expect(subject.clarificationGuidance).toContain(
+        "施策内容の誤認検知と補足"
+      );
     });
 
     it("要約プロンプトには施策情報を載せる", () => {
@@ -96,10 +101,26 @@ describe("buildInterviewSubject", () => {
     });
 
     it("テーマ名が空でも未設定と明示して組み立てる", () => {
-      const subject = buildInterviewSubject(null, { name: "  ", description: null });
+      const subject = buildInterviewSubject(null, {
+        name: "  ",
+        description: null,
+      });
 
       expect(subject.knowledgeSection).toContain("（テーマ名未設定）");
       expect(subject.summarySection).toContain("（テーマ未設定）");
     });
+  });
+});
+
+describe("buildInitialTurnInstruction", () => {
+  it("初回質問に選択肢がない場合の空配列指定を明示する", () => {
+    const instruction = buildInitialTurnInstruction({
+      subjectTitle: "公園の改善",
+      firstQuestionId: "question-1",
+    });
+    expect(instruction).toContain(
+      "設定されていない場合も quick_replies を省略せず空配列 []"
+    );
+    expect(instruction).toContain("question-1");
   });
 });
