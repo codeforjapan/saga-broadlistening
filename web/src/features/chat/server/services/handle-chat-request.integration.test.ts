@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { LanguageModelUsage, UIMessage } from "ai";
+import { MockLanguageModelV3, convertArrayToReadableStream } from "ai/test";
 import {
   adminClient,
   cleanupTestPolicy,
   createTestPolicy,
+  createTestPolicyWithConfig,
   createTestUser,
   cleanupTestUser,
   type TestUser,
@@ -67,6 +69,96 @@ describe("handleChatRequest 統合テスト", () => {
       .delete()
       .eq("user_id", testUser.id);
     await cleanupTestUser(testUser.id);
+  });
+
+  describe("利用可能なツール", () => {
+    it("インタビュー提案の対象外ならOpenAIにもツールを渡さず通常応答を返す", async () => {
+      const streamModel = createStreamMock(["施策について説明します。"]);
+      const model = new MockLanguageModelV3({
+        provider: "openai",
+        modelId: "gpt-4o",
+        doStream: (options) => streamModel.doStream(options),
+      });
+      const response = await handleChatRequest({
+        messages: createTestMessages(),
+        userId: testUser.id,
+        deps: { model, promptProvider: createMockPromptProvider() },
+      });
+      const content = await consumeResponseStream(response);
+
+      expect(response.status).toBe(200);
+      expect(content).toContain("施策について説明します。");
+      expect(model.doStreamCalls).toHaveLength(1);
+      expect(model.doStreamCalls[0].tools).toBeUndefined();
+    });
+
+    it("募集中の施策ではインタビュー提案だけを渡し、提案結果を応答に含める", async () => {
+      const fixture = await createTestPolicyWithConfig({
+        policy: {
+          publish_status: "published",
+          published_at: new Date().toISOString(),
+          enable_ai_chat: true,
+        },
+        config: { status: "open" },
+      });
+      try {
+        const model = new MockLanguageModelV3({
+          provider: "openai",
+          modelId: "gpt-4o",
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: "stream-start", warnings: [] },
+              { type: "text-start", id: "text-1" },
+              {
+                type: "text-delta",
+                id: "text-1",
+                delta: "ご意見をインタビューでお聞かせください。",
+              },
+              { type: "text-end", id: "text-1" },
+              {
+                type: "tool-call",
+                toolCallId: "suggest-1",
+                toolName: "suggest_interview",
+                input: "{}",
+              },
+              {
+                type: "finish",
+                finishReason: { unified: "tool-calls", raw: undefined },
+                usage: {
+                  inputTokens: {
+                    total: 100,
+                    noCache: 100,
+                    cacheRead: 0,
+                    cacheWrite: 0,
+                  },
+                  outputTokens: { total: 20, text: 20, reasoning: 0 },
+                },
+              },
+            ]),
+          },
+        });
+        const response = await handleChatRequest({
+          messages: createTestMessages({
+            billContext: { ...fixture.policy, tags: [] },
+            pageContext: { type: "bill" },
+          }),
+          userId: testUser.id,
+          deps: { model, promptProvider: createMockPromptProvider() },
+        });
+        const content = await consumeResponseStream(response);
+
+        expect(response.status).toBe(200);
+        expect(model.doStreamCalls).toHaveLength(1);
+        expect(
+          model.doStreamCalls[0].tools?.map((entry) => entry.name)
+        ).toEqual(["suggest_interview"]);
+        expect(content).toContain("ご意見をインタビューでお聞かせください。");
+        expect(content).toContain('"type":"tool-output-available"');
+        expect(content).toContain('"output":{"suggested":true}');
+      } finally {
+        await fixture.cleanup();
+      }
+    });
   });
 
   describe("ストリーミングレスポンス", () => {

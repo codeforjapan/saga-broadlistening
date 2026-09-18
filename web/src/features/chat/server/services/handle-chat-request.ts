@@ -1,4 +1,3 @@
-import { openai } from "@ai-sdk/openai";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Database } from "@mirai-gikai/supabase";
 import {
@@ -30,7 +29,6 @@ import { isFirstChatTurn } from "@/features/chat/shared/utils/is-first-chat-turn
 import { pickChatKnowledgeSource } from "@/features/chat/shared/utils/pick-chat-knowledge-source";
 import { findOpenInterviewConfigByPolicyId } from "@/features/interview-config/server/repositories/interview-config-repository";
 import { getMeteredAiModel } from "@/lib/ai/get-metered-ai-model";
-import { supportsWebSearch } from "../../shared/utils/supports-web-search";
 import { env } from "@/lib/env";
 import {
   type CompiledPrompt,
@@ -127,10 +125,7 @@ export async function handleChatRequest({
   );
 
   // Build tools configuration
-  const tools = buildTools(
-    shouldSuggestInterview,
-    supportsWebSearch(modelName)
-  );
+  const tools = buildTools(shouldSuggestInterview);
 
   // 対話ログを chat_sessions / chat_messages に残す。
   // ここで await すると初回トークンまでに DB 往復 2 回分の遅延が乗るため、
@@ -476,20 +471,15 @@ function buildSystemPromptWithInterviewInstructions(
 /**
  * チャットで使用するツール一覧を構築
  */
-function buildTools(shouldSuggestInterview: boolean, enableWebSearch: boolean) {
-  // biome-ignore lint/suspicious/noExplicitAny: OpenAI web_search tool type incompatibility
-  const tools: Record<string, any> = {
-    ...(enableWebSearch ? { web_search: openai.tools.webSearch() } : {}),
-  };
+function buildTools(shouldSuggestInterview: boolean) {
+  if (!shouldSuggestInterview) return undefined;
 
-  if (shouldSuggestInterview) {
-    tools[SUGGEST_INTERVIEW_TOOL_NAME] = tool({
+  return {
+    [SUGGEST_INTERVIEW_TOOL_NAME]: tool({
       description:
         "ユーザーが施策の当事者・有識者であると判断された場合、またはインタビューについて聞かれた場合に呼び出す。通常のテキスト応答と同時に呼び出すこと。",
       inputSchema: z.object({}),
       execute: async () => ({ suggested: true }),
-    });
-  }
-
-  return tools;
+    }),
+  };
 }
