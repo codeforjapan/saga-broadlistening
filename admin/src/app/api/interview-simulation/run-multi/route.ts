@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { flushTelemetry } from "@/lib/telemetry/register";
 import { resolveSubjectTitle } from "@mirai-gikai/shared/interview-prompts/subject-section";
 import type {
   PromptBillInput,
@@ -161,6 +163,7 @@ export async function POST(request: Request) {
     );
   }
 
+  after(flushTelemetry);
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {

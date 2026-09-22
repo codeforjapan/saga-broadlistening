@@ -1,10 +1,14 @@
+import { after } from "next/server";
 import { updateVersionStatus } from "@/features/topic-analysis/server/repositories/topic-analysis-repository";
 import { executePhase2 } from "@/features/topic-analysis/server/services/topic-analysis-orchestrator";
 import {
   triggerNextPhase,
   verifyInternalAuth,
 } from "@/features/topic-analysis/server/utils/trigger-next-phase";
-import { registerNodeTelemetry } from "@/lib/telemetry/register";
+import {
+  flushTelemetry,
+  registerNodeTelemetry,
+} from "@/lib/telemetry/register";
 
 export const maxDuration = 300;
 
@@ -35,6 +39,7 @@ export async function POST(request: Request) {
 
   try {
     await registerNodeTelemetry();
+    after(flushTelemetry);
     await executePhase2(versionId);
     await triggerNextPhase(3, versionId, billId, configId);
     return new Response(JSON.stringify({ success: true }), {
