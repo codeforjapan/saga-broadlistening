@@ -160,6 +160,24 @@ Repository レイヤーの詳細は [docs/repository-layer.md](docs/repository-l
      gh api graphql -f query='mutation { resolveReviewThread(input: {threadId: "<スレッドID>"}) { thread { isResolved } } }'
      ```
 
+### UI差分の確認と画像添付
+
+UI変更は Vercel の preview deployment で確認し、レビューに役立つ場合にスクリーンショットや GIF を添付します。撮影には利用可能なブラウザや Playwright を使い、撮影結果を確認してから添付してください。
+
+画像のアップロードと PR 本文への追加には GitHub CLI の `--attach` を使います。GitHub CLI 2.99.0 以降と対象リポジトリへの write 以上の権限が必要です。`gh pr edit --help` で `--attach` が使えることを確認してください。
+
+```bash
+# PR番号と撮影済み画像のパスを指定する。既存のPR本文は保持される
+gh pr edit <PR番号> --attach '/tmp/screenshot.png#変更後の画面'
+
+# 複数画像は --attach を繰り返して指定する
+gh pr edit <PR番号> --attach /tmp/before.png --attach /tmp/after.png
+```
+
+添付後は PR 本文で画像の表示を確認してください。コマンドが失敗しても一部の画像は添付済みの場合があるため、再実行前に本文を確認します。`--attach` が使えない環境では GitHub の Web UI から手動添付するか、preview deployment の URL と確認箇所を PR 本文に記載してください。
+
+参考: [GitHub CLI の添付オプション](https://cli.github.com/manual/gh_pr_edit)
+
 ## Supabase & Environment Notes
 - ローカル開発前に `npx supabase start` を実行し、`.env.example` を `.env` にコピーして値を整えます。
 - スキーマ変更時は `supabase/migrations` のマイグレーションと `packages/supabase/types/supabase.types.ts` の再生成ファイルをセットでコミットします。
