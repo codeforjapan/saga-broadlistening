@@ -5,6 +5,7 @@ import {
   validatePublicChatModel,
 } from "@mirai-gikai/shared/ai/public-chat-settings";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
+import { propagateAttributes } from "@langfuse/tracing";
 import type { Database } from "@mirai-gikai/supabase";
 import {
   convertToModelMessages,
@@ -47,6 +48,11 @@ import {
   checkSystemDailyCostLimit,
   checkSystemMonthlyCostLimit,
 } from "./system-cost-guard";
+
+/** streamText の onFinish が受け取るイベント。SDK の型から導出して重複定義を避ける */
+type ChatFinishEvent = Parameters<
+  NonNullable<Parameters<typeof streamText>[0]["onFinish"]>
+>[0];
 
 export type ChatMessageMetadata = {
   billContext?: BillWithContent;
@@ -144,51 +150,58 @@ export async function handleChatRequest({
   // 保存の失敗はストリームを止めない（ログのみ）。
   const chatSessionIdPromise = persistUserMessage(context, messages, userId);
 
+  // ストリーム完了後に assistant 発話の保存と利用量記録をまとめて行う。
+  const handleFinish = async (event: ChatFinishEvent) => {
+    const chatSessionId = await chatSessionIdPromise;
+    if (chatSessionId) {
+      await persistChatMessage(chatSessionId, "assistant", event.text);
+    }
+    try {
+      await recordChatUsage({
+        userId,
+        sessionId: context.sessionId || undefined,
+        promptName,
+        model: modelName,
+        usage: event.totalUsage,
+        costUsd: extractGatewayCost(event),
+        webSearchCalls: countWebSearchCalls(event),
+        metadata: buildUsageMetadata(context, event),
+      });
+    } catch (usageError) {
+      console.error("Failed to record chat usage:", usageError);
+    }
+  };
+
+  const modelMessages = await convertToModelMessages(messages);
+
   // Generate streaming response
   try {
-    const result = streamText({
-      model,
-      providerOptions,
-      system: systemPrompt,
-      messages: await convertToModelMessages(messages),
-      tools,
-      onFinish: async (event) => {
-        const chatSessionId = await chatSessionIdPromise;
-        if (chatSessionId) {
-          await persistChatMessage(chatSessionId, "assistant", event.text);
-        }
-        try {
-          const providerCost = extractGatewayCost(event);
-          await recordChatUsage({
-            userId,
-            sessionId: context.sessionId || undefined,
-            promptName,
-            model: modelName,
-            usage: event.totalUsage,
-            costUsd: providerCost,
-            webSearchCalls: new Set(
-              event.steps
-                .flatMap((step) => step.toolCalls)
-                .filter(
-                  (call) =>
-                    call.toolName === "web_search" && call.providerExecuted
-                )
-                .map((call) => call.toolCallId)
-            ).size,
-            metadata: buildUsageMetadata(context, event),
-          });
-        } catch (usageError) {
-          console.error("Failed to record chat usage:", usageError);
-        }
+    // sessionId / userId は propagateAttributes でトレース属性として伝播させる。
+    // experimental_telemetry.metadata に入れても観測側の会話・利用者の紐付けには使われない。
+    return await propagateAttributes(
+      {
+        traceName: promptName,
+        sessionId: context.sessionId || undefined,
+        userId,
       },
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: promptName,
-        metadata: buildTelemetryMetadata(context, promptResult, userId),
-      },
-    });
+      () => {
+        const result = streamText({
+          model,
+          providerOptions,
+          system: systemPrompt,
+          messages: modelMessages,
+          tools,
+          onFinish: handleFinish,
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: promptName,
+            metadata: buildTelemetryMetadata(context, promptResult),
+          },
+        });
 
-    return result.toUIMessageStreamResponse({ sendSources: true });
+        return result.toUIMessageStreamResponse({ sendSources: true });
+      }
+    );
   } catch (error) {
     console.error("LLM generation error:", error);
     throw new ChatError(
@@ -335,18 +348,25 @@ async function buildPrompt(
 /**
  * テレメトリメタデータを構築
  */
+/** 同一ストリーム内で重複しない web_search ツール呼び出しの数 */
+function countWebSearchCalls(event: ChatFinishEvent): number {
+  return new Set(
+    event.steps
+      .flatMap((step) => step.toolCalls)
+      .filter((call) => call.toolName === "web_search" && call.providerExecuted)
+      .map((call) => call.toolCallId)
+  ).size;
+}
+
 function buildTelemetryMetadata(
   context: ChatMessageMetadata,
-  promptResult: CompiledPrompt,
-  userId: string
+  promptResult: CompiledPrompt
 ) {
   return {
     langfusePrompt: promptResult.metadata,
     billId: context.billContext?.id || "",
     pageType: context.pageContext?.type || "bill",
     difficultyLevel: context.difficultyLevel,
-    userId,
-    sessionId: context.sessionId,
   };
 }
 
