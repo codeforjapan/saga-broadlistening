@@ -86,7 +86,7 @@ sequenceDiagram
 | `REVALIDATE_SECRET` | Web側オンデマンド再検証用シークレット | ランダムな長い文字列 |
 | `LANGFUSE_PUBLIC_KEY` | (オプション) Langfuse パブリックキー | `pk-lf-...` |
 | `LANGFUSE_SECRET_KEY` | (オプション) Langfuse シークレットキー | `sk-lf-...` |
-| `LANGFUSE_BASE_URL` | (オプション) Langfuse エンドポイント | `https://cloud.langfuse.com` |
+| `LANGFUSE_BASE_URL` | (オプション) Langfuse エンドポイント。未設定時は日本リージョンが既定 | `https://jp.cloud.langfuse.com` |
 
 ### 3.2. Admin アプリ (`admin`) 用の環境変数
 

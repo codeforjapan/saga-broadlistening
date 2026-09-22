@@ -1,5 +1,6 @@
 import "server-only";
 
+import { propagateAttributes } from "@langfuse/tracing";
 import {
   convertToModelMessages,
   type LanguageModel,
@@ -76,9 +77,6 @@ export async function handleInterviewChatRequest({
   userId: string;
   deps?: InterviewChatDeps;
 }) {
-  // リクエスト単位のトレースID（同一リクエスト内のLLM呼び出しをまとめる）
-  const traceId = crypto.randomUUID();
-
   // TTFB短縮のため、互いに依存しないDBアクセスは並列実行する。
   // 日次コスト制限チェック（fail-closed: エラー時もリクエストをブロック）と
   // 意見募集・施策の解決（テスト時はdeps経由でNext.js依存をバイパス）
@@ -192,12 +190,7 @@ export async function handleInterviewChatRequest({
     chatModel: deps?.chatModel,
     summaryModel: deps?.summaryModel,
     configChatModel: interviewConfig.chat_model,
-    telemetry: {
-      sessionId: session.id,
-      policyId,
-      traceId,
-      stage: currentStage,
-    },
+    stage: currentStage,
   });
 }
 
@@ -217,7 +210,7 @@ async function generateStreamingResponse({
   chatModel,
   summaryModel,
   configChatModel,
-  telemetry,
+  stage,
 }: {
   systemPrompt: string;
   messages: { role: string; content: string }[];
@@ -229,12 +222,8 @@ async function generateStreamingResponse({
   chatModel?: LanguageModel;
   summaryModel?: LanguageModel;
   configChatModel?: string | null;
-  telemetry?: {
-    sessionId: string;
-    policyId: string | null;
-    traceId: string;
-    stage: string;
-  };
+  /** 対話の現在フェーズ。トレースの metadata に載せる */
+  stage: string;
 }) {
   const {
     model,
@@ -316,42 +305,43 @@ async function generateStreamingResponse({
     messages: await convertToModelMessages(uiMessages),
     onError: handleError,
     onFinish: handleFinish,
-    experimental_telemetry: telemetry
-      ? {
-          isEnabled: true as const,
-          functionId,
-          // 計装のメタデータは文字列しか受け付けないため、施策なしは空文字で表す
-          metadata: {
-            langfuseTraceId: telemetry.traceId,
-            sessionId: telemetry.sessionId,
-            billId: telemetry.policyId ?? "",
-            stage: telemetry.stage,
-          },
-        }
-      : undefined,
+    experimental_telemetry: {
+      isEnabled: true as const,
+      functionId,
+      // 計装のメタデータは文字列しか受け付けないため、施策なしは空文字で表す
+      metadata: { billId: policyId ?? "", stage },
+    },
   } as const;
 
   try {
-    let textStream: ReadableStream<string>;
+    // 同一インタビューの複数ターンを1セッションとして束ね、利用者も紐付ける。
+    // OTel のスパンコンテキスト経由で伝播するため、ここより内側のLLM呼び出しは
+    // すべて同じトレース属性を引き継ぐ。
+    return await propagateAttributes(
+      { traceName: functionId, sessionId, userId },
+      () => {
+        let textStream: ReadableStream<string>;
 
-    if (isSummaryPhase) {
-      const result = streamText({
-        ...streamParams,
-        output: Output.object({ schema: interviewChatWithReportSchema }),
-      });
-      textStream = result.textStream;
-    } else {
-      const result = streamText({
-        ...streamParams,
-        output: Output.object({ schema: interviewChatTextSchema }),
-      });
-      textStream = result.textStream;
-    }
+        if (isSummaryPhase) {
+          const result = streamText({
+            ...streamParams,
+            output: Output.object({ schema: interviewChatWithReportSchema }),
+          });
+          textStream = result.textStream;
+        } else {
+          const result = streamText({
+            ...streamParams,
+            output: Output.object({ schema: interviewChatTextSchema }),
+          });
+          textStream = result.textStream;
+        }
 
-    // LLMがnext_stageを直接出力するため、ストリームをそのまま返す
-    return new Response(textStream.pipeThrough(new TextEncoderStream()), {
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+        // LLMがnext_stageを直接出力するため、ストリームをそのまま返す
+        return new Response(textStream.pipeThrough(new TextEncoderStream()), {
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+    );
   } catch (error) {
     handleError(error);
     throw error;

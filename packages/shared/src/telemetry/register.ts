@@ -1,6 +1,10 @@
 import "server-only";
 import { LangfuseSpanProcessor } from "@langfuse/otel";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+import {
+  buildLangfuseProcessorOptions,
+  type LangfuseConnectionConfig,
+} from "./langfuse-base-url";
 
 declare global {
   var __miraiGikaiLangfuseSpanProcessor: LangfuseSpanProcessor | undefined;
@@ -10,12 +14,7 @@ export function getLangfuseSpanProcessor() {
   return globalThis.__miraiGikaiLangfuseSpanProcessor;
 }
 
-export async function registerNodeTelemetry(config: {
-  publicKey?: string;
-  secretKey?: string;
-  baseUrl?: string;
-  environment?: string;
-}) {
+export async function registerNodeTelemetry(config: LangfuseConnectionConfig) {
   if (getLangfuseSpanProcessor()) return;
 
   if (!config.publicKey || !config.secretKey) {
@@ -26,10 +25,9 @@ export async function registerNodeTelemetry(config: {
   }
 
   try {
-    const processor = new LangfuseSpanProcessor({
-      ...config,
-      additionalHeaders: { "x-langfuse-ingestion-version": "4" },
-    });
+    const processor = new LangfuseSpanProcessor(
+      buildLangfuseProcessorOptions(config)
+    );
     const provider = new NodeTracerProvider({ spanProcessors: [processor] });
     provider.register();
     globalThis.__miraiGikaiLangfuseSpanProcessor = processor;

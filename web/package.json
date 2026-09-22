@@ -18,6 +18,7 @@
     "@ai-sdk/openai": "^3.0.9",
     "@ai-sdk/react": "^3.0.3",
     "@langfuse/client": "^5.11.1",
+    "@langfuse/tracing": "^5.11.1",
     "@mirai-gikai/branding": "workspace:*",
     "@mirai-gikai/shared": "workspace:*",
     "@mirai-gikai/supabase": "workspace:*",

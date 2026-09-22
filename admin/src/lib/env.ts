@@ -2,6 +2,7 @@
  * 環境変数の設定
  * アプリケーション全体で使用する環境変数を一元管理
  */
+import { resolveLangfuseBaseUrl } from "@mirai-gikai/shared/telemetry/langfuse-base-url";
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
   throw new Error("環境変数 NEXT_PUBLIC_SUPABASE_URL が設定されていません");
@@ -31,7 +32,7 @@ export const env = {
   langfuse: {
     publicKey: process.env.LANGFUSE_PUBLIC_KEY,
     secretKey: process.env.LANGFUSE_SECRET_KEY,
-    baseUrl: process.env.LANGFUSE_BASE_URL || "https://cloud.langfuse.com",
+    baseUrl: resolveLangfuseBaseUrl(process.env.LANGFUSE_BASE_URL),
   },
   // /api/tests/* を管理者ログイン無しでcurl等から叩くための共有シークレット。
   // @/lib/require-secret-header 参照。

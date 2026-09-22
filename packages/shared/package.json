@@ -139,6 +139,10 @@
     "./telemetry/register": {
       "types": "./src/telemetry/register.ts",
       "default": "./src/telemetry/register.ts"
+    },
+    "./telemetry/langfuse-base-url": {
+      "types": "./src/telemetry/langfuse-base-url.ts",
+      "default": "./src/telemetry/langfuse-base-url.ts"
     }
   },
   "dependencies": {
@@ -157,6 +161,7 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@langfuse/tracing": "^5.11.1",
     "@opentelemetry/api": "^1.9.0",
     "ai": "^6.0.33",
     "typescript": "^5.6.2",

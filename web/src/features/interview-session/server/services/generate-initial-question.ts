@@ -1,5 +1,6 @@
 import "server-only";
 
+import { propagateAttributes } from "@langfuse/tracing";
 import {
   buildInitialTurnInstruction,
   resolveSubjectTitle,
@@ -19,6 +20,8 @@ import type { InterviewMessage } from "../../shared/types";
 import { overrideInitialTopicTitle } from "../../shared/utils/override-initial-topic-title";
 import { createInterviewMessage } from "../repositories/interview-session-repository";
 import { buildInterviewSystemPrompt } from "../utils/build-interview-system-prompt";
+
+const INITIAL_QUESTION_FUNCTION_ID = "interview-initial-question";
 
 type GenerateInitialQuestionParams = {
   sessionId: string;
@@ -90,28 +93,36 @@ export async function generateInitialQuestion({
       "interview",
       deps?.model ?? (interviewConfig.chat_model || undefined)
     );
-    const result = await generateText({
-      model,
-      providerOptions,
-      prompt: enhancedSystemPrompt,
-      output: Output.object({ schema: interviewChatTextSchema }),
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: "interview-initial-question",
-        // 計装のメタデータは文字列しか受け付けないため、施策なしは空文字で表す
-        metadata: {
-          sessionId,
-          billId: bill?.id ?? "",
-        },
+    // 初回質問も以降のターンと同じセッションに束ねる
+    const result = await propagateAttributes(
+      {
+        traceName: INITIAL_QUESTION_FUNCTION_ID,
+        sessionId,
+        userId,
       },
-    });
+      () =>
+        generateText({
+          model,
+          providerOptions,
+          prompt: enhancedSystemPrompt,
+          output: Output.object({ schema: interviewChatTextSchema }),
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: INITIAL_QUESTION_FUNCTION_ID,
+            // 計装のメタデータは文字列しか受け付けないため、施策なしは空文字で表す
+            metadata: {
+              billId: bill?.id ?? "",
+            },
+          },
+        })
+    );
 
     // LLM利用コストを記録
     try {
       await recordChatUsage({
         userId,
         sessionId,
-        promptName: "interview-initial-question",
+        promptName: INITIAL_QUESTION_FUNCTION_ID,
         model: modelName,
         usage: result.usage,
         occurredAt,

@@ -3,6 +3,7 @@ import { gunzipSync } from "node:zlib";
 import { Output, streamText } from "ai";
 import { MockLanguageModelV3, convertArrayToReadableStream } from "ai/test";
 import { z } from "zod";
+import { propagateAttributes } from "@langfuse/tracing";
 import { trace } from "@opentelemetry/api";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import {
@@ -70,8 +71,6 @@ describe("Langfuse telemetry", () => {
       expect(routeTelemetry.getLangfuseSpanProcessor()).toBe(processor);
       const span = trace.getTracer("ai").startSpan("ai.streamText", {
         attributes: {
-          "ai.telemetry.metadata.sessionId": "session-41",
-          "ai.telemetry.metadata.userId": "user-41",
           "ai.telemetry.metadata.billId": "policy-41",
           "ai.telemetry.metadata.stage": "summary",
           "ai.telemetry.metadata.langfusePrompt":
@@ -90,8 +89,6 @@ describe("Langfuse telemetry", () => {
       });
       for (const value of [
         "preview",
-        "session-41",
-        "user-41",
         "policy-41",
         "summary",
         "greeting",
@@ -105,7 +102,16 @@ describe("Langfuse telemetry", () => {
           ? '{"text":"interview complete"}'
           : "chat complete";
         let finishedText: string | undefined;
-        const result = streamText({
+        // sessionId / userId は metadata ではなく propagateAttributes で伝播する。
+        // 本番コードと同じ経路なので、リンクが壊れればこのテストが落ちる。
+        const result = await propagateAttributes(
+          {
+            traceName: structured ? "interview-chat" : "chat",
+            sessionId: "session-41",
+            userId: "user-41",
+          },
+          () =>
+            streamText({
           model: new MockLanguageModelV3({
             doStream: {
               stream: convertArrayToReadableStream([
@@ -137,8 +143,6 @@ describe("Langfuse telemetry", () => {
             isEnabled: true,
             functionId: structured ? "interview-chat" : "chat",
             metadata: {
-              sessionId: "session-41",
-              userId: "user-41",
               billId: "policy-41",
               stage: "chat",
             },
@@ -146,7 +150,8 @@ describe("Langfuse telemetry", () => {
           onFinish: async ({ text }) => {
             finishedText = text;
           },
-        });
+            })
+        );
         const response = structured
           ? new Response(result.textStream.pipeThrough(new TextEncoderStream()))
           : result.toUIMessageStreamResponse();
@@ -161,7 +166,9 @@ describe("Langfuse telemetry", () => {
           structured ? "interview complete" : "chat complete"
         );
         expect(exported).toContain("ai.streamText.doStream");
+        // propagateAttributes がトレース属性として載せていることの確認
         expect(exported).toContain("session-41");
+        expect(exported).toContain("user-41");
       }
     } finally {
       await new Promise<void>((resolve, reject) =>
