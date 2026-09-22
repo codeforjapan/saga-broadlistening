@@ -13,7 +13,7 @@ export type ModelPricing = {
  */
 export const modelPricing: Record<string, ModelPricing> = {
   // --- Amazon Bedrock: ap-northeast-1 / Japan, verified 2026-09-18 ---
-  // AWS Price List (2026-09-11): Sonnet regional CRIS, Haiku regional.
+  // AWS Price List (2026-09-11): Sonnet regional CRIS, Haiku regional, Opus standard.
   // https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/ap-northeast-1/index.json
   // Sonnet input/output SKUs: VFYW9EGDPE5FR2S3 / DRJPH2YRDBQTJV8Q
   [AI_MODELS.bedrock_sonnet_4_6]: {
@@ -24,6 +24,13 @@ export const modelPricing: Record<string, ModelPricing> = {
   [AI_MODELS.bedrock_haiku_4_5]: {
     inputTokensPerMillionUsd: 1.1,
     outputTokensPerMillionUsd: 5.5,
+  },
+  // Opus 4.8 input/output SKUs: AXZUKKGVJJSK7BH4 / ZVVY3H5SKD5KNZT7（2026-09-22確認）
+  // jp. 経由は global ルーティングではないため *_global_standard（5.0/25.0）ではなく
+  // *_standard を採用する。
+  [AI_MODELS.bedrock_opus_4_8]: {
+    inputTokensPerMillionUsd: 5.5,
+    outputTokensPerMillionUsd: 27.5,
   },
   // https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrock/current/ap-northeast-1/index.json
   // Standard on-demand input/output SKUs: DFN5T4HYJPM5CGU9 / FCYZ5PQ2VKGXJ3DH
