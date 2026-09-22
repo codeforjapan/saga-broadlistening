@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AI_MODELS } from "./models";
 import { getModelPricing, parseModelPricingOverrides } from "./pricing";
 
 describe("getModelPricing", () => {
@@ -31,12 +32,23 @@ describe("getModelPricing", () => {
 it.each([
   ["bedrock:jp.anthropic.claude-sonnet-4-6", 3.3, 16.5],
   ["bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0", 1.1, 5.5],
+  ["bedrock:jp.anthropic.claude-opus-4-8", 5.5, 27.5],
   ["bedrock:openai.gpt-oss-120b-1:0", 0.18, 0.73],
 ])("uses verified Tokyo/Japan standard Bedrock rates for %s", (model, input, output) => {
   expect(getModelPricing(model)).toEqual({
     inputTokensPerMillionUsd: input,
     outputTokensPerMillionUsd: output,
   });
+});
+
+// modelPricing は Record<string, ModelPricing> で型による網羅が効かないため、
+// モデルだけ足して単価を忘れた状態をここで止める。単価が無いと公開チャットは
+// requireModelPricing で失敗し、管理画面は概算が空のまま保存も拒否される。
+it("AI_MODELS のすべてに単価が登録されている", () => {
+  const unpriced = Object.values(AI_MODELS).filter(
+    (model) => !getModelPricing(model)
+  );
+  expect(unpriced).toEqual([]);
 });
 
 describe("parseModelPricingOverrides", () => {
