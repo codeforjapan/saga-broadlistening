@@ -36,6 +36,11 @@ describe("1ターン1問の指示", () => {
     expect(prompt).toContain("質問を**1つだけ**してください");
   });
 
+  it("2つのことを並べて聞いたり、気持ちを名詞で聞いたりしないよう指示する", () => {
+    expect(prompt).toContain("2つのことを並べて一度に聞かない");
+    expect(prompt).toContain("「どう感じましたか？」");
+  });
+
   it("受け止めと質問1つの順で返答を組み立てさせる", () => {
     expect(prompt).toContain("## 返答（text）の組み立て方");
     expect(prompt).toContain("## 話題の移り方");

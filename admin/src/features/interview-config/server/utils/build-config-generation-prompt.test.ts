@@ -146,6 +146,20 @@ describe("buildConfigGenerationPrompt", () => {
       expect(result).toContain("質問提案のガイドライン");
     });
 
+    it("施策型ではフォローアップを1往復までに留める", () => {
+      const result = buildConfigGenerationPrompt(questionParams);
+      expect(result).toContain("1往復までの追加確認に留める");
+    });
+
+    it("テーマ型ではフォローアップを1往復に絞らない", () => {
+      const result = buildConfigGenerationPrompt({
+        ...questionParams,
+        subject: { kind: "theme", themeName: "佐賀での暮らし" },
+      });
+      expect(result).not.toContain("1往復までの追加確認に留める");
+      expect(result).toContain("2〜3往復まで深掘りしてよい");
+    });
+
     it("出力形式にquestionsを指定する", () => {
       const result = buildConfigGenerationPrompt(questionParams);
       expect(result).toContain("questions: 質問オブジェクトの配列");
