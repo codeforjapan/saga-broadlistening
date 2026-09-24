@@ -15,7 +15,7 @@ describe("編集した共通プロンプトの適用", () => {
       currentStage: "chat",
       askedQuestionIds: new Set(),
       remainingMinutes: 2,
-    }, "短く話してください。\n{{focusInstruction}}{{clarificationGuidance}}{{knowledgeSection}}{{themeDescription}}\n{{questionsText}}\n{{outputInstructions}}");
+    }, "短く話してください。\n{{focusInstruction}}{{clarificationGuidance}}{{knowledgeSection}}{{themeDescription}}\n{{questionsText}}\n{{replyExamples}}{{perspectiveTechniques}}{{stopCriteria}}\n{{outputInstructions}}");
     expect(content).toContain("短く話してください。");
     expect(content).not.toContain("あなたの責任");
     expect(content).toContain("[ID: question-1] 利用頻度は？");

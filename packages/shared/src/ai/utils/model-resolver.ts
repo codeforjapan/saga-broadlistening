@@ -1,4 +1,5 @@
 import { createProviderRegistry, type JSONValue, type LanguageModel } from "ai";
+import { buildBedrockProviderOptions } from "./bedrock-provider-options";
 import {
   type AiConfig,
   type AiEnvironment,
@@ -50,7 +51,7 @@ export function createAiModelResolver({
     const env = readEnv();
     const config = parseAiConfig(env);
     const modelId = resolveModelId(config, purpose, override);
-    const { provider } = parseModelId(modelId);
+    const { provider, modelId: providerModelId } = parseModelId(modelId);
     if (provider !== "bedrock" && !env[API_KEYS[provider]]?.trim()) {
       throw new Error(
         `${API_KEYS[provider]} is required for AI provider "${provider}"`
@@ -59,14 +60,14 @@ export function createAiModelResolver({
     const registry = createProviderRegistry({
       [provider]: createProvider(provider, config, env),
     });
+    const bedrockOptions =
+      provider === "bedrock"
+        ? buildBedrockProviderOptions(providerModelId, config.guardrail)
+        : undefined;
     return {
       model: registry.languageModel(modelId),
       modelId,
-      ...(provider === "bedrock" && config.guardrail
-        ? {
-            providerOptions: { bedrock: { guardrailConfig: config.guardrail } },
-          }
-        : {}),
+      ...(bedrockOptions ? { providerOptions: { bedrock: bedrockOptions } } : {}),
     };
   };
 }
