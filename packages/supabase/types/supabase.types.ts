@@ -34,6 +34,82 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_prompt_versions: {
+        Row: {
+          change_note: string
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          prompt_id: string
+          version: number
+        }
+        Insert: {
+          change_note: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          prompt_id: string
+          version: number
+        }
+        Update: {
+          change_note?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          prompt_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_prompt_versions_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "ai_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_prompts: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          name: string
+          published_version_id: string | null
+          revision: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          name: string
+          published_version_id?: string | null
+          revision?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          name?: string
+          published_version_id?: string | null
+          revision?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_prompts_published_version_fk"
+            columns: ["id", "published_version_id"]
+            isOneToOne: false
+            referencedRelation: "ai_prompt_versions"
+            referencedColumns: ["prompt_id", "id"]
+          },
+        ]
+      }
       api_rate_limits: {
         Row: {
           key: string
@@ -1586,9 +1662,29 @@ export type Database = {
         Args: { p_extracted_at: string; p_ids: string[] }
         Returns: undefined
       }
+      publish_ai_prompt_version: {
+        Args: {
+          p_actor_id: string
+          p_change_note: string
+          p_expected_revision: number
+          p_key: string
+          p_version_id: string
+        }
+        Returns: undefined
+      }
       publish_topic_analysis_version: {
         Args: { p_version_id: string }
         Returns: undefined
+      }
+      save_ai_prompt_version: {
+        Args: {
+          p_actor_id: string
+          p_change_note: string
+          p_content: string
+          p_expected_revision: number
+          p_key: string
+        }
+        Returns: string
       }
       sum_chat_usage_cost: {
         Args: { from_iso: string; to_iso: string }

@@ -1,10 +1,6 @@
-import { SITE_NAME } from "@mirai-gikai/branding/site";
-import { buildKnowledgeSourceSection } from "./knowledge-source-section";
-import { COMMON_RULES, SERVICE_OVERVIEW } from "./shared-sections";
+import { PUBLIC_PROMPT_CATALOG } from "@mirai-gikai/shared/prompts/catalog";
+import { renderPromptTemplate } from "@mirai-gikai/shared/prompts/template";
 
-/**
- * 施策チャット（ふつう難易度）用システムプロンプトを生成する
- */
 export function buildBillChatSystemNormalPrompt(
   billName: string,
   billTitle: string,
@@ -12,29 +8,9 @@ export function buildBillChatSystemNormalPrompt(
   billContent: string,
   knowledgeSource = ""
 ): string {
-  return `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
-行政・議会・施策・施策について、わかりやすく説明・対話を支援する役割を持ちます。
-
----
-${SERVICE_OVERVIEW}
-
----
-
-## 施策情報
-- 名称: ${billName}
-- タイトル: ${billTitle}
-- 要約: ${billSummary}
-- 詳細: ${billContent}
-${buildKnowledgeSourceSection(knowledgeSource)}
-## 回答の難易度：ふつう
-- 誰にとってもわかりやすい語彙と表現を使用してください
-- 専門用語は使用してもよいが、必ず説明を併記してください
-- 適度に詳しく、かつ分かりやすい説明を心がけてください
-- 具体例を交えて説明してください
-
-${COMMON_RULES}
-
----
-
-以降、ユーザーから質問が来たら、この背景情報をもとに丁寧に応えるようにしてください。`;
+  return renderPromptTemplate(
+    "bill-chat-system-normal",
+    PUBLIC_PROMPT_CATALOG["bill-chat-system-normal"].defaultContent,
+    { billName, billTitle, billSummary, billContent, knowledgeSource }
+  );
 }

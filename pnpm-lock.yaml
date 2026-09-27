@@ -116,6 +116,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      diff:
+        specifier: 9.0.0
+        version: 9.0.0
       google-auth-library:
         specifier: ^9.15.0
         version: 9.15.1
@@ -257,6 +260,9 @@ importers:
       '@langfuse/otel':
         specifier: ^5.11.1
         version: 5.11.1(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.1.0(@opentelemetry/api@1.9.0))(@opentelemetry/exporter-trace-otlp-http@0.206.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.1.0(@opentelemetry/api@1.9.0))
+      '@mirai-gikai/branding':
+        specifier: workspace:*
+        version: link:../branding
       '@mirai-gikai/supabase':
         specifier: workspace:*
         version: link:../supabase
@@ -3833,6 +3839,10 @@ packages:
 
   diff@4.0.4:
     resolution: {integrity: sha512-X07nttJQkwkfKfvTPG/KSnE2OMdcUCao6+eXF3wmnIQRn2aPAHH3VxDbDOdegkd6JbPsXqShpvEOHfAT+nCNwQ==}
+    engines: {node: '>=0.3.1'}
+
+  diff@9.0.0:
+    resolution: {integrity: sha512-svtcdpS8CgJyqAjEQIXdb3OjhFVVYjzGAPO8WGCmRbrml64SPw/jJD4GoE98aR7r25A0XcgrK3F02yw9R/vhQw==}
     engines: {node: '>=0.3.1'}
 
   dom-accessibility-api@0.5.16:
@@ -9439,6 +9449,8 @@ snapshots:
       dequal: 2.0.3
 
   diff@4.0.4: {}
+
+  diff@9.0.0: {}
 
   dom-accessibility-api@0.5.16: {}
 

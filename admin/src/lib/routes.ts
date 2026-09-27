@@ -13,6 +13,7 @@ export const routes = {
   billNew: () => "/bills/new" as const,
   admins: () => "/admins" as const,
   publicChatSettings: () => "/public-chat-settings" as const,
+  publicChatPrompts: () => "/public-chat-prompts" as const,
   tags: () => "/tags" as const,
   interviews: () => "/interviews" as const,
   interviewNew: () => "/interviews/new" as const,
