@@ -19,7 +19,7 @@ export async function BillUserTopicAnalysisPage({
 
   if (!interviewConfigId) {
     return (
-      <div className="container mx-auto py-8">
+      <div>
         <h1 className="mb-1 text-2xl font-bold">ユーザー向けトピック分析</h1>
         <p className="text-sm text-gray-600">
           この施策に紐づく意見募集がありません。

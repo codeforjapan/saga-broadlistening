@@ -1,3 +1,4 @@
+import { toHomeChatContext } from "@mirai-gikai/shared/prompts/home-chat-context";
 import { Container } from "@/components/layouts/container";
 import { About } from "@/components/top/about";
 import { Hero } from "@/components/top/hero";
@@ -23,12 +24,13 @@ export default async function Home() {
     ]);
 
   const toBillChatContext = (bill: BillWithContent) => {
-    return {
-      name: `${bill.bill_content?.title}（${bill.name}）`,
-      summary: bill.bill_content?.summary ?? undefined,
+    return toHomeChatContext({
+      policyName: bill.name,
+      title: bill.bill_content?.title,
+      summary: bill.bill_content?.summary,
       tags: bill.tags?.map((tag) => tag.label) || [],
       isFeatured: featuredBills.some((b) => b.id === bill.id),
-    };
+    });
   };
 
   return (

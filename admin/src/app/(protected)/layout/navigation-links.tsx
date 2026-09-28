@@ -22,7 +22,8 @@ export function NavigationLinks() {
     <nav className="overflow-x-auto">
       <div className="flex space-x-8">
         {navigationLinks.map((link) => {
-          const isActive = pathname.startsWith(link.href);
+          const isActive =
+            pathname === link.href || pathname.startsWith(`${link.href}/`);
 
           return (
             <Link

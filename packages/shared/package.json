@@ -143,6 +143,26 @@
     "./telemetry/langfuse-base-url": {
       "types": "./src/telemetry/langfuse-base-url.ts",
       "default": "./src/telemetry/langfuse-base-url.ts"
+    },
+    "./prompts/catalog": {
+      "types": "./src/prompts/catalog.ts",
+      "default": "./src/prompts/catalog.ts"
+    },
+    "./prompts/template": {
+      "types": "./src/prompts/template.ts",
+      "default": "./src/prompts/template.ts"
+    },
+    "./prompts/repository": {
+      "types": "./src/prompts/repository.ts",
+      "default": "./src/prompts/repository.ts"
+    },
+    "./prompts/provider": {
+      "types": "./src/prompts/provider.ts",
+      "default": "./src/prompts/provider.ts"
+    },
+    "./prompts/home-chat-context": {
+      "types": "./src/prompts/home-chat-context.ts",
+      "default": "./src/prompts/home-chat-context.ts"
     }
   },
   "dependencies": {
@@ -154,7 +174,8 @@
     "@mirai-gikai/supabase": "workspace:*",
     "@opentelemetry/sdk-trace-node": "^2.1.0",
     "@vercel/oidc-aws-credentials-provider": "^3.3.5",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "@mirai-gikai/branding": "workspace:*"
   },
   "peerDependencies": {
     "ai": "^6.0.33",

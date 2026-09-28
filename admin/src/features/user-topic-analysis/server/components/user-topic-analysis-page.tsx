@@ -55,7 +55,7 @@ export async function UserTopicAnalysisPage({
     : [];
 
   return (
-    <div className="container mx-auto py-8">
+    <div>
       <h1 className="mb-1 text-2xl font-bold">ユーザー向けトピック分析</h1>
       <p className="mb-1 text-sm text-gray-600">テーマ: {configName}</p>
       <p className="mb-6 text-sm text-gray-500">

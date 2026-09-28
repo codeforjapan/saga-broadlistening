@@ -24,7 +24,7 @@ export default async function InterviewsPage() {
   );
 
   return (
-    <div className="container mx-auto py-8">
+    <div>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold">インタビュー管理</h1>
         <Button asChild>
