@@ -1,7 +1,12 @@
 "use server";
 
 import "server-only";
-import { isPublicPromptKey } from "@mirai-gikai/shared/prompts/catalog";
+import { buildLoopModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/loop-mode";
+import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
+import {
+  isInterviewPromptKey,
+  isPromptKey,
+} from "@mirai-gikai/shared/prompts/catalog";
 import { toHomeChatContext } from "@mirai-gikai/shared/prompts/home-chat-context";
 import {
   createPromptVersion,
@@ -23,6 +28,7 @@ import {
   savePromptSchema,
 } from "../../shared/utils/prompt-input";
 import { savedPromptResult } from "../../shared/utils/save-result";
+import { findInterviewPreviewInput } from "../repositories/interview-preview-repository";
 import {
   findPublishedPreviewBill,
   listHomePreviewBills,
@@ -57,17 +63,17 @@ function mutationError(error: unknown): Result {
       conflict: true,
     };
   }
-  console.error("Public prompt mutation failed", error);
+  console.error("AI prompt mutation failed", error);
   return {
     success: false,
     error: "操作を完了できませんでした。時間をおいて再試行してください。",
   };
 }
 
-export async function savePublicPrompt(input: unknown): Promise<Result> {
+export async function saveAiPrompt(input: unknown): Promise<Result> {
   const actor = await requireAdmin();
   const parsed = savePromptSchema.safeParse(input);
-  if (!parsed.success || !isPublicPromptKey(parsed.data.key))
+  if (!parsed.success || !isPromptKey(parsed.data.key))
     return {
       success: false,
       error: !parsed.success
@@ -79,12 +85,16 @@ export async function savePublicPrompt(input: unknown): Promise<Result> {
       ...parsed.data,
       actorId: actor.id,
     });
-    revalidatePath(routes.publicChatPrompts());
+    revalidatePath(
+      isInterviewPromptKey(parsed.data.key)
+        ? routes.interviewPrompts()
+        : routes.publicChatPrompts()
+    );
     let state: Awaited<ReturnType<typeof findPromptState>>;
     try {
       state = await findPromptState(parsed.data.key);
     } catch (error) {
-      console.error("Saved public prompt could not be reloaded", error);
+      console.error("Saved AI prompt could not be reloaded", error);
       return {
         success: false,
         error:
@@ -110,9 +120,9 @@ export async function savePublicPrompt(input: unknown): Promise<Result> {
   }
 }
 
-export async function refreshPublicPrompt(input: unknown) {
+export async function refreshAiPrompt(input: unknown) {
   await requireAdmin();
-  if (typeof input !== "string" || !isPublicPromptKey(input)) {
+  if (typeof input !== "string" || !isPromptKey(input)) {
     return {
       success: false as const,
       error: "対象のプロンプトを選択してください。",
@@ -134,7 +144,7 @@ export async function refreshPublicPrompt(input: unknown) {
       })),
     };
   } catch (error) {
-    console.error("Public prompt refresh failed", error);
+    console.error("AI prompt refresh failed", error);
     return {
       success: false as const,
       error: "最新状態を取得できませんでした。",
@@ -142,10 +152,10 @@ export async function refreshPublicPrompt(input: unknown) {
   }
 }
 
-export async function publishPublicPrompt(input: unknown): Promise<Result> {
+export async function publishAiPrompt(input: unknown): Promise<Result> {
   const actor = await requireAdmin();
   const parsed = publishPromptSchema.safeParse(input);
-  if (!parsed.success || !isPublicPromptKey(parsed.data.key))
+  if (!parsed.success || !isPromptKey(parsed.data.key))
     return {
       success: false,
       error: !parsed.success
@@ -166,21 +176,25 @@ export async function publishPublicPrompt(input: unknown): Promise<Result> {
     if (templateErrors.length)
       return { success: false, error: templateErrors[0] };
     await publishPromptVersion({ ...parsed.data, actorId: actor.id });
-    revalidatePath(routes.publicChatPrompts());
+    revalidatePath(
+      isInterviewPromptKey(parsed.data.key)
+        ? routes.interviewPrompts()
+        : routes.publicChatPrompts()
+    );
     return { success: true, revision: parsed.data.expectedRevision + 1 };
   } catch (error) {
     return mutationError(error);
   }
 }
 
-export async function previewPublicPrompt(
+export async function previewAiPrompt(
   input: unknown
 ): Promise<
   { success: true; content: string } | { success: false; error: string }
 > {
   await requireAdmin();
   const parsed = previewPromptSchema.safeParse(input);
-  if (!parsed.success || !isPublicPromptKey(parsed.data.key))
+  if (!parsed.success || !isPromptKey(parsed.data.key))
     return {
       success: false,
       error: !parsed.success
@@ -188,6 +202,40 @@ export async function previewPublicPrompt(
         : "対象のプロンプトを選択してください。",
     };
   try {
+    if (isInterviewPromptKey(parsed.data.key)) {
+      const input = await findInterviewPreviewInput(
+        parsed.data.interviewConfigId ?? ""
+      );
+      if (!input)
+        return { success: false, error: "意見募集が見つかりません。" };
+      return {
+        success: true,
+        content:
+          parsed.data.key === "interview-chat-system"
+            ? buildLoopModeSystemPrompt(
+                {
+                  ...input,
+                  currentStage: "chat",
+                  askedQuestionIds: new Set(
+                    input.questions
+                      .slice(0, parsed.data.askedQuestionCount)
+                      .map((q) => q.id)
+                  ),
+                  remainingMinutes: parsed.data.remainingMinutes ?? null,
+                },
+                parsed.data.content
+              )
+            : buildSummarySystemPrompt(
+                {
+                  ...input,
+                  messages: parsed.data.conversation
+                    ? [{ role: "user", content: parsed.data.conversation }]
+                    : [],
+                },
+                parsed.data.content
+              ),
+      };
+    }
     if (parsed.data.key === "top-chat-system") {
       const bills = await listHomePreviewBills();
       return {
@@ -222,7 +270,7 @@ export async function previewPublicPrompt(
       ),
     };
   } catch (error) {
-    console.error("Public prompt preview failed", error);
+    console.error("AI prompt preview failed", error);
     return { success: false, error: "プレビューを作成できませんでした。" };
   }
 }

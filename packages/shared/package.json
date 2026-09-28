@@ -163,6 +163,10 @@
     "./prompts/home-chat-context": {
       "types": "./src/prompts/home-chat-context.ts",
       "default": "./src/prompts/home-chat-context.ts"
+    },
+    "./interview-prompts/published": {
+      "types": "./src/interview-prompts/published.ts",
+      "default": "./src/interview-prompts/published.ts"
     }
   },
   "dependencies": {

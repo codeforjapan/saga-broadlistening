@@ -64,3 +64,27 @@ describe("prompt inputs", () => {
     ).toBe(false);
   });
 });
+
+it("インタビュー本文を保存し、プレビューには募集の選択を要求する", () => {
+  const content =
+    "方針 {{summarySection}} {{themeDescription}} {{conversationLog}} {{reportInstructions}}";
+  expect(
+    savePromptSchema.safeParse({
+      key: "interview-summary-system",
+      content,
+      changeNote: "初版",
+      expectedRevision: 0,
+    }).success
+  ).toBe(true);
+  expect(
+    previewPromptSchema.safeParse({ key: "interview-summary-system", content })
+      .success
+  ).toBe(false);
+  expect(
+    previewPromptSchema.safeParse({
+      key: "interview-summary-system",
+      content,
+      interviewConfigId: "00000000-0000-4000-8000-000000000001",
+    }).success
+  ).toBe(true);
+});

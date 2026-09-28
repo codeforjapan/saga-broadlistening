@@ -1,3 +1,4 @@
+import { INTERVIEW_CHAT_TEMPLATE, INTERVIEW_SUMMARY_TEMPLATE } from "../interview-prompts/templates";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { COMMON_RULES, SERVICE_OVERVIEW } from "./shared-sections";
 
@@ -82,4 +83,27 @@ export const PUBLIC_PROMPT_CATALOG = {
 
 export function isPublicPromptKey(value: string): value is PublicPromptKey {
   return Object.hasOwn(PUBLIC_PROMPT_CATALOG, value);
+}
+
+export const INTERVIEW_PROMPT_CATALOG = {
+  "interview-chat-system": {
+    key: "interview-chat-system", name: "AIインタビュー・対話方針",
+    defaultContent: INTERVIEW_CHAT_TEMPLATE,
+    requiredVariables: ["focusInstruction", "clarificationGuidance", "knowledgeSection", "themeDescription", "questionsText", "outputInstructions"],
+  },
+  "interview-summary-system": {
+    key: "interview-summary-system", name: "AIインタビュー・要約方針",
+    defaultContent: INTERVIEW_SUMMARY_TEMPLATE,
+    requiredVariables: ["summarySection", "themeDescription", "conversationLog", "reportInstructions"],
+  },
+} as const;
+export type InterviewPromptKey = keyof typeof INTERVIEW_PROMPT_CATALOG;
+export const AI_PROMPT_CATALOG = { ...PUBLIC_PROMPT_CATALOG, ...INTERVIEW_PROMPT_CATALOG };
+export type PromptKey = keyof typeof AI_PROMPT_CATALOG;
+export type PromptGroup = "public-chat" | "interview";
+export function isInterviewPromptKey(value: string): value is InterviewPromptKey {
+  return Object.hasOwn(INTERVIEW_PROMPT_CATALOG, value);
+}
+export function isPromptKey(value: string): value is PromptKey {
+  return Object.hasOwn(AI_PROMPT_CATALOG, value);
 }

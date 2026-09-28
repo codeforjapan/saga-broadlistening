@@ -1,11 +1,11 @@
-import { PUBLIC_PROMPT_CATALOG, type PublicPromptKey } from "./catalog";
+import { AI_PROMPT_CATALOG, isInterviewPromptKey, type PromptKey } from "./catalog";
 import { buildKnowledgeSourceSection } from "./knowledge-source-section";
 
 const PLACEHOLDER = /\{\{([A-Za-z][A-Za-z0-9]*)\}\}/g;
 const BILL_VARIABLES = ["billName", "billTitle", "billSummary", "billContent"];
 
 export function validatePromptTemplate(
-  key: PublicPromptKey,
+  key: PromptKey,
   content: string
 ): string[] {
   const errors: string[] = [];
@@ -15,10 +15,17 @@ export function validatePromptTemplate(
   for (const match of content.matchAll(PLACEHOLDER)) {
     found.add(match[1]);
   }
-  for (const variable of PUBLIC_PROMPT_CATALOG[key].requiredVariables) {
+  for (const variable of AI_PROMPT_CATALOG[key].requiredVariables) {
     if (!found.has(variable)) errors.push(`必須変数 {{${variable}}} がありません。`);
   }
-  const allowed = new Set<string>(PUBLIC_PROMPT_CATALOG[key].requiredVariables);
+  if (isInterviewPromptKey(key)) {
+    for (const variable of AI_PROMPT_CATALOG[key].requiredVariables) {
+      if ([...content.matchAll(PLACEHOLDER)].filter((match) => match[1] === variable).length > 1) {
+        errors.push(`変数 {{${variable}}} は1回だけ使用してください。`);
+      }
+    }
+  }
+  const allowed = new Set<string>(AI_PROMPT_CATALOG[key].requiredVariables);
   for (const variable of found) {
     if (!allowed.has(variable)) errors.push(`未知の変数 {{${variable}}} があります。`);
   }
@@ -34,11 +41,11 @@ export function validatePromptTemplate(
 }
 
 export function renderPromptTemplate(
-  key: PublicPromptKey,
+  key: PromptKey,
   content: string,
   variables: Record<string, string>
 ): string {
-  const required = key === "top-chat-system" ? ["billSummary"] : BILL_VARIABLES;
+  const required = isInterviewPromptKey(key) ? AI_PROMPT_CATALOG[key].requiredVariables : key === "top-chat-system" ? ["billSummary"] : BILL_VARIABLES;
   const missing = required.filter((variable) =>
     key === "top-chat-system"
       ? !variables[variable]

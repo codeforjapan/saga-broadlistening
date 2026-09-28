@@ -1,3 +1,5 @@
+import { renderPromptTemplate } from "../prompts/template";
+import { INTERVIEW_SUMMARY_TEMPLATE } from "./templates";
 import { OPINION_TAG_CRITERIA } from "../interview-report/opinion-tags-schema";
 import { buildContentRichnessInstructions } from "../content-richness/content-richness-instructions";
 import { buildInterviewSubject } from "./subject-section";
@@ -14,7 +16,7 @@ export function buildSummarySystemPrompt({
   bill: PromptBillInput;
   interviewConfig: InterviewConfig;
   messages: Array<{ role: string; content: string; id?: string }>;
-}): string {
+}, template: string = INTERVIEW_SUMMARY_TEMPLATE): string {
   const themeDescription = interviewConfig?.description || "";
   const subject = buildInterviewSubject(bill, interviewConfig);
 
@@ -29,23 +31,7 @@ export function buildSummarySystemPrompt({
     })
     .join("\n");
 
-  return `あなたは半構造化デプスインタビューを実施する熟練のインタビュアーです。
-
-${subject.summarySection}
-
-## インタビューテーマ
-${themeDescription || "（テーマ未設定）"}
-
-## あなたの役割
-以下の会話履歴を読み、インタビュー内容を要約してレポート案を生成してください。
-
-## 会話履歴
-${conversationLog}
-
-## 留意点
-要約をすること、また要約の内容が問題ないかの確認に徹して、質問は一切しないでください。ただし、ユーザーがインタビューの再開を希望した場合（next_stage を "chat" にする場合）は例外として、次の質問を1つ提示してください。
-
-## レポート（reportフィールド）に含めるべき内容
+  const reportInstructions = `## レポート（reportフィールド）に含めるべき内容
 
 ### 1. summary（主張の要約）
 - ユーザーの主張を100文字程度でまとめる（SNSのタイムラインに流れるような読みやすい長さ）
@@ -94,10 +80,12 @@ ${OPINION_TAG_CRITERIA.reasoningTypes}
 - レポートを提示し、ユーザーの確認を待つ場合: next_stage を "summary" にし、reportフィールドにレポートを含めてください
 - ユーザーがレポート内容に同意し、完了すべきと判断した場合: next_stage を "summary_complete" にし、reportフィールドに最終版レポートを含めてください
 - ユーザーが明確にインタビューの再開や追加の質問への回答を希望した場合: next_stage を "chat" にし、**reportフィールドは省略してください**。テキストでは「承知いたしました。インタビューを続けましょう。」と簡潔に伝えた後、**必ず会話履歴とインタビューテーマを踏まえて次の質問を1つ提示してください**。質問なしで終わらないでください。レポートの内容には一切言及しないでください
+`;
 
-## 注意事項
-- インタビュイーが時間を割いてくれたことに感謝してください
-- ユーザーの意見を正確に反映してください
-- 偏見や先入観を持たず、中立な立場で要約してください
-- 対話ログにないことは絶対に記載しないでください`;
+  return renderPromptTemplate("interview-summary-system", template, {
+    summarySection: subject.summarySection,
+    themeDescription: themeDescription || "（テーマ未設定）",
+    conversationLog,
+    reportInstructions,
+  });
 }

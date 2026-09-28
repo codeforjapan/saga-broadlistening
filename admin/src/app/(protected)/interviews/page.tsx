@@ -27,12 +27,17 @@ export default async function InterviewsPage() {
     <div>
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-bold">インタビュー管理</h1>
-        <Button asChild>
-          <Link href={routes.interviewNew() as Route}>
-            <Plus className="h-4 w-4" />
-            意見募集を作成
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href={routes.interviewPrompts()}>共通プロンプト</Link>
+          </Button>
+          <Button asChild>
+            <Link href={routes.interviewNew() as Route}>
+              <Plus className="h-4 w-4" />
+              意見募集を作成
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <section className="rounded-lg border bg-white p-6">
