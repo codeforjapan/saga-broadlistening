@@ -4,6 +4,7 @@ import { AI_MODELS, type AiModel, isKnownModel } from "../models";
 const MODEL_LABELS = {
   [AI_MODELS.bedrock_sonnet_4_6]: "Claude Sonnet 4.6",
   [AI_MODELS.bedrock_haiku_4_5]: "Claude Haiku 4.5",
+  [AI_MODELS.bedrock_opus_4_8]: "Claude Opus 4.8",
   [AI_MODELS.bedrock_gpt_oss_120b]: "GPT OSS 120B",
   [AI_MODELS.gpt4o]: "GPT-4o",
   [AI_MODELS.gpt4o_mini]: "GPT-4o mini",

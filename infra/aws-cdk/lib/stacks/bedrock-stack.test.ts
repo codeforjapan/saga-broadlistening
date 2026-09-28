@@ -25,6 +25,8 @@ describe("BedrockStack", () => {
               "arn:aws:bedrock:ap-northeast-3::foundation-model/anthropic.claude-sonnet-4-6",
               "arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
               "arn:aws:bedrock:ap-northeast-3::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0",
+              "arn:aws:bedrock:ap-northeast-1::foundation-model/anthropic.claude-opus-4-8",
+              "arn:aws:bedrock:ap-northeast-3::foundation-model/anthropic.claude-opus-4-8",
               "arn:aws:bedrock:ap-northeast-1::foundation-model/openai.gpt-oss-120b-1:0",
             ],
           }),

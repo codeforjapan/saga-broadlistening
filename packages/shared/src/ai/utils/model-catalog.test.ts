@@ -25,10 +25,11 @@ describe("利用者向けモデル名", () => {
 });
 
 describe("許可された接続先の選択肢", () => {
-  it("Bedrockだけなら日本向けの3モデルを返す", () => {
+  it("Bedrockだけなら日本向けの4モデルを返す", () => {
     expect(getAllowedModelOptions(["bedrock"]).map((x) => x.value)).toEqual([
       AI_MODELS.bedrock_sonnet_4_6,
       AI_MODELS.bedrock_haiku_4_5,
+      AI_MODELS.bedrock_opus_4_8,
       AI_MODELS.bedrock_gpt_oss_120b,
     ]);
   });

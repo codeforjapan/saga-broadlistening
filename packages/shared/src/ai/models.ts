@@ -7,6 +7,7 @@ export const AI_MODELS = {
   // --- Amazon Bedrock ---
   bedrock_sonnet_4_6: "bedrock:jp.anthropic.claude-sonnet-4-6",
   bedrock_haiku_4_5: "bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0",
+  bedrock_opus_4_8: "bedrock:jp.anthropic.claude-opus-4-8",
   bedrock_gpt_oss_120b: "bedrock:openai.gpt-oss-120b-1:0",
   // --- OpenAI ---
   gpt4o: "openai/gpt-4o",
