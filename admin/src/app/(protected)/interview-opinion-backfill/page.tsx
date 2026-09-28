@@ -15,7 +15,7 @@ export default async function InterviewOpinionBackfillPage() {
   const interviewConfigs = await listAllInterviewConfigs();
 
   return (
-    <div className="container mx-auto py-8">
+    <div>
       <h1 className="text-2xl font-bold mb-2">意見再抽出バックフィル</h1>
       <p className="mb-2 text-sm text-muted-foreground">
         既存インタビューの意見を新プロンプトで再抽出し、論点単位の意見（opinion_segments）を更新します。summary

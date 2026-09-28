@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { routes } from "./src/lib/routes";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -7,6 +8,20 @@ const nextConfig: NextConfig = {
     serverSourceMaps: true,
   },
   typedRoutes: true,
+  async redirects() {
+    return [
+      {
+        source: "/public-chat-settings",
+        destination: routes.publicChatSettings(),
+        permanent: true,
+      },
+      {
+        source: "/public-chat-prompts",
+        destination: routes.publicChatPrompts(),
+        permanent: true,
+      },
+    ];
+  },
   turbopack: {
     root: "../",
   },
