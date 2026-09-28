@@ -11,7 +11,11 @@ const navigationLinks = [
   { href: routes.tags(), label: "タグ管理" },
   { href: routes.interviews(), label: "インタビュー" },
   // 全施策トピック分析(/user-topic-analysis)は隠し機能のためヘッダーに出さない（URL直アクセスのみ）。
-  { href: routes.publicChatSettings(), label: "公開チャット" },
+  {
+    href: routes.publicChatSettings(),
+    label: "公開チャット",
+    activePaths: [routes.publicChatSettings(), routes.publicChatPrompts()],
+  },
   { href: routes.admins(), label: "管理者" },
 ];
 
@@ -22,7 +26,9 @@ export function NavigationLinks() {
     <nav className="overflow-x-auto">
       <div className="flex space-x-8">
         {navigationLinks.map((link) => {
-          const isActive = pathname.startsWith(link.href);
+          const isActive = (link.activePaths ?? [link.href]).some(
+            (path) => pathname === path || pathname.startsWith(`${path}/`)
+          );
 
           return (
             <Link
