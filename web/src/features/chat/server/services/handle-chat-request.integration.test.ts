@@ -205,7 +205,7 @@ describe("handleChatRequest 統合テスト", () => {
     it("匿名クライアントから設定の取得・変更はできない", async () => {
       const client = getAnonClient();
       const { data, error: readError } = await client
-        .from("public_chat_settings")
+        .from("chat_configs")
         .select("*");
       if (readError) {
         expect(readError.code).toBe("42501");
@@ -214,7 +214,7 @@ describe("handleChatRequest 統合テスト", () => {
         expect(data).toEqual([]);
       }
       const { error } = await client
-        .from("public_chat_settings")
+        .from("chat_configs")
         .upsert({ id: true, chat_model: "openai:gpt-4o" });
       expect(error).not.toBeNull();
       expect((await getPublicChatSettings()).chat_model).toBeNull();
@@ -222,7 +222,7 @@ describe("handleChatRequest 統合テスト", () => {
 
     it("DBでも空のallowlistによる検索ONを拒否する", async () => {
       const { error } = await adminClient
-        .from("public_chat_settings")
+        .from("chat_configs")
         .update({ web_search_enabled: true, allowed_domains: [] })
         .eq("id", true);
       expect(error?.code).toBe("23514");

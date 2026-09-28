@@ -7,7 +7,7 @@ import {
 
 export async function getPublicChatSettings(): Promise<PublicChatSettings> {
   const { data, error } = await createAdminClient()
-    .from("public_chat_settings")
+    .from("chat_configs")
     .select("chat_model, web_search_enabled, allowed_domains")
     .eq("id", true)
     .maybeSingle();
@@ -20,7 +20,7 @@ export async function savePublicChatSettings(
   settings: PublicChatSettings
 ): Promise<void> {
   const { error } = await createAdminClient()
-    .from("public_chat_settings")
+    .from("chat_configs")
     .upsert({ id: true, ...settings });
   if (error) throw error;
 }
