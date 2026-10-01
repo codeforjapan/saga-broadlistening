@@ -1,9 +1,10 @@
-import { z } from "zod";
 import type { ContentRichnessResult } from "@mirai-gikai/shared/content-richness/schemas";
+import { INTERVIEW_CHAT_TEXT_DESCRIPTION } from "@mirai-gikai/shared/interview-prompts/chat-text-description";
 import {
   type InterviewReportData,
   interviewReportSchema,
 } from "@mirai-gikai/shared/interview-report/schema";
+import { z } from "zod";
 
 // 意見スキーマ・レポートスキーマは web/admin 共通のため @mirai-gikai/shared に集約。
 // 既存の web 内 import を壊さないよう re-export する。
@@ -28,13 +29,7 @@ export type InterviewStage = z.infer<typeof interviewStageSchema>;
 
 // 通常チャット用スキーマ（LLM出力用 - next_stageを含む）
 export const interviewChatTextSchema = z.object({
-  // gpt-oss は構造化出力をツール呼び出しで返すため、プロンプト本文より
-  // 書く直前に読むこの説明のほうが効く。1ターン1問をここでも念押しする
-  text: z
-    .string()
-    .describe(
-      "利用者に見せる返答。直前の回答があれば受け止めの1〜2文を先に書く。質問は1つだけにし、「？」は1回までにする"
-    ),
+  text: z.string().describe(INTERVIEW_CHAT_TEXT_DESCRIPTION),
   quick_replies: z.array(z.string()).nullable(),
   question_id: z.string().nullable(),
   topic_title: z.string().nullable(),

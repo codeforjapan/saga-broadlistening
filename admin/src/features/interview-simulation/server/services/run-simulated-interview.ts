@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getAiModel } from "@mirai-gikai/shared/ai/registry";
+import { INTERVIEW_CHAT_TEXT_DESCRIPTION } from "@mirai-gikai/shared/interview-prompts/chat-text-description";
 import {
   buildPublishedInterviewPrompt,
   buildPublishedSummaryPrompt,
@@ -42,7 +43,7 @@ import { withTimeoutRetry } from "../../shared/utils/with-timeout-retry";
  */
 const simInterviewerOutputSchema = z
   .object({
-    text: z.string().describe("インタビュアーの発話本文"),
+    text: z.string().describe(INTERVIEW_CHAT_TEXT_DESCRIPTION),
     topic_title: z
       .string()
       .nullable()

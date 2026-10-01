@@ -89,7 +89,7 @@ export const INTERVIEW_PROMPT_CATALOG = {
   "interview-chat-system": {
     key: "interview-chat-system", name: "AIインタビュー・対話方針",
     defaultContent: INTERVIEW_CHAT_TEMPLATE,
-    requiredVariables: ["focusInstruction", "clarificationGuidance", "knowledgeSection", "themeDescription", "questionsText", "replyExamples", "perspectiveTechniques", "stopCriteria", "outputInstructions"],
+    requiredVariables: ["focusInstruction", "clarificationGuidance", "knowledgeSection", "themeDescription", "questionsText", "replyExamples", "perspectiveTechniques", "stopPolicy", "stopSigns", "stopFollowUps", "outputInstructions"],
   },
   "interview-summary-system": {
     key: "interview-summary-system", name: "AIインタビュー・要約方針",
