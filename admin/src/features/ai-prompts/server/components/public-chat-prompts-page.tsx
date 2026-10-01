@@ -5,7 +5,7 @@ import { loadPromptEditor } from "../loaders/load-prompt-editor";
 
 export async function PublicChatPromptsPage() {
   await requireAdmin();
-  const data = await loadPromptEditor();
+  const data = await loadPromptEditor("public-chat");
   return (
     <div className="space-y-6">
       <div className="space-y-2">

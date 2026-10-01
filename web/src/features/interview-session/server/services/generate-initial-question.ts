@@ -51,7 +51,7 @@ export async function generateInitialQuestion({
     const questions = await getInterviewQuestions(interviewConfig.id);
 
     // プロンプトを構築（初期質問なので currentStage は chat、askedQuestionIds は空）
-    const systemPrompt = buildInterviewSystemPrompt({
+    const systemPrompt = await buildInterviewSystemPrompt({
       bill,
       interviewConfig,
       questions,

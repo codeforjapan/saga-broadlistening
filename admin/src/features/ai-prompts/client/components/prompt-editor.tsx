@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  previewPublicPrompt,
-  publishPublicPrompt,
-  refreshPublicPrompt,
-  savePublicPrompt,
+  previewAiPrompt,
+  publishAiPrompt,
+  refreshAiPrompt,
+  saveAiPrompt,
 } from "../../server/actions/prompt-actions";
 import type { loadPromptEditor } from "../../server/loaders/load-prompt-editor";
 import { PromptDiff } from "./prompt-diff";
@@ -20,8 +20,9 @@ type Prompt = EditorData["prompts"][number];
 
 export function PromptEditor({ initialData }: { initialData: EditorData }) {
   const [prompts, setPrompts] = useState(initialData.prompts);
-  const [selectedKey, setSelectedKey] =
-    useState<Prompt["key"]>("top-chat-system");
+  const [selectedKey, setSelectedKey] = useState<Prompt["key"]>(
+    initialData.prompts[0]?.key ?? "top-chat-system"
+  );
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(
     null
   );
@@ -30,6 +31,11 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
   );
   const [note, setNote] = useState("");
   const [preview, setPreview] = useState("");
+  const isInterview = initialData.group === "interview";
+  const [interviewConfigId, setInterviewConfigId] = useState("");
+  const [remainingMinutes, setRemainingMinutes] = useState("");
+  const [askedQuestionCount, setAskedQuestionCount] = useState("0");
+  const [conversation, setConversation] = useState("");
   const [billId, setBillId] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -95,7 +101,7 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
     setMessage("");
     startTransition(async () => {
       try {
-        const result = await savePublicPrompt({
+        const result = await saveAiPrompt({
           key: prompt.key,
           content,
           changeNote: note,
@@ -158,7 +164,7 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
     setMessage("");
     startTransition(async () => {
       try {
-        const result = await publishPublicPrompt({
+        const result = await publishAiPrompt({
           key: prompt.key,
           versionId: selectedVersion.id,
           changeNote: note,
@@ -195,10 +201,15 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
     setPreview("");
     startTransition(async () => {
       try {
-        const result = await previewPublicPrompt({
+        const result = await previewAiPrompt({
           key: prompt.key,
           content,
           billId: billId || undefined,
+          interviewConfigId: interviewConfigId || undefined,
+          remainingMinutes:
+            remainingMinutes === "" ? undefined : Number(remainingMinutes),
+          askedQuestionCount: Number(askedQuestionCount),
+          conversation,
         });
         if (result.success) setPreview(result.content);
         else setError(result.error);
@@ -213,7 +224,7 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
   function refresh() {
     startTransition(async () => {
       try {
-        const result = await refreshPublicPrompt(prompt.key);
+        const result = await refreshAiPrompt(prompt.key);
         if (!result.success) {
           setError(result.error);
           return;
@@ -300,9 +311,9 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
         />
         <p className="text-xs text-muted-foreground">
           必須変数:{" "}
-          {prompt.key === "top-chat-system"
-            ? "{{billSummary}}"
-            : "{{billName}}、{{billTitle}}、{{billSummary}}、{{billContent}}、{{knowledgeSourceSection}}"}
+          {prompt.requiredVariables
+            .map((variable) => `{{${variable}}}`)
+            .join("、")}
         </p>
       </div>
       <div className="space-y-2">
@@ -371,9 +382,11 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">プレビュー</h2>
         <p className="text-sm text-muted-foreground">
-          編集中の本文を公開データに当てはめます。AIへの送信は行いません。トップページは「ふつう」の施策一覧を使用します。
+          {isInterview
+            ? "選択した意見募集と会話状態で文面を組み立てます。AIへの送信は行いません。"
+            : "編集中の本文を公開データに当てはめます。AIへの送信は行いません。トップページは「ふつう」の施策一覧を使用します。"}
         </p>
-        {prompt.key !== "top-chat-system" && (
+        {!isInterview && prompt.key !== "top-chat-system" && (
           <div className="space-y-2">
             <Label htmlFor="preview-bill">公開済み施策</Label>
             <select
@@ -395,10 +408,94 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
             </select>
           </div>
         )}
+        {isInterview && (
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="preview-config">意見募集</Label>
+              <select
+                id="preview-config"
+                className="w-full rounded-md border border-input bg-background p-2"
+                value={interviewConfigId}
+                disabled={pending}
+                onChange={(event) => {
+                  setInterviewConfigId(event.target.value);
+                  setPreview("");
+                }}
+              >
+                <option value="">意見募集を選択</option>
+                {initialData.interviewConfigs.map((config) => (
+                  <option key={config.id} value={config.id}>
+                    {config.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {prompt.key === "interview-chat-system" ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="preview-remaining">
+                    残り目安時間（分・空欄は指定なし）
+                  </Label>
+                  <Input
+                    id="preview-remaining"
+                    type="number"
+                    min={0}
+                    max={240}
+                    value={remainingMinutes}
+                    disabled={pending}
+                    onChange={(event) => {
+                      setRemainingMinutes(event.target.value);
+                      setPreview("");
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="preview-asked">
+                    回答済みの質問数（先頭から）
+                  </Label>
+                  <Input
+                    id="preview-asked"
+                    type="number"
+                    min={0}
+                    max={1000}
+                    value={askedQuestionCount}
+                    disabled={pending}
+                    onChange={(event) => {
+                      setAskedQuestionCount(event.target.value);
+                      setPreview("");
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="preview-conversation">
+                  確認用のユーザー発言
+                </Label>
+                <Textarea
+                  id="preview-conversation"
+                  rows={4}
+                  maxLength={20000}
+                  value={conversation}
+                  disabled={pending}
+                  onChange={(event) => {
+                    setConversation(event.target.value);
+                    setPreview("");
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
         <Button
           type="button"
           variant="secondary"
-          disabled={pending || (prompt.key !== "top-chat-system" && !billId)}
+          disabled={
+            pending ||
+            (isInterview
+              ? !interviewConfigId
+              : prompt.key !== "top-chat-system" && !billId)
+          }
           onClick={runPreview}
         >
           本文をプレビュー

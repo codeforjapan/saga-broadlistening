@@ -20,6 +20,7 @@ function setup(env: Record<string, string | undefined>) {
           "gemini-2.5-flash": fakeModel,
           "openai/gpt-4o": fakeModel,
           "jp.anthropic.claude-sonnet-4-6": fakeModel,
+          "openai.gpt-oss-120b-1:0": fakeModel,
         },
       })
   );
@@ -93,6 +94,17 @@ describe("shared model resolution", () => {
       model: fakeModel,
       modelId: "gateway:openai/gpt-4o",
     });
+  });
+  it("passes reasoning effort only to Bedrock gpt-oss models", () => {
+    const { resolve } = setup({});
+    expect(
+      resolve("chat", "bedrock:openai.gpt-oss-120b-1:0").providerOptions
+    ).toEqual({
+      bedrock: { reasoningConfig: { maxReasoningEffort: "medium" } },
+    });
+    expect(
+      resolve("chat", "bedrock:jp.anthropic.claude-sonnet-4-6").providerOptions
+    ).toBeUndefined();
   });
   it("sends guardrails in the Bedrock Converse request using SDK 6", async () => {
     const requests: unknown[] = [];

@@ -64,6 +64,10 @@
       "types": "./src/interview-prompts/stage-transition-guidance.ts",
       "default": "./src/interview-prompts/stage-transition-guidance.ts"
     },
+    "./interview-prompts/chat-text-description": {
+      "types": "./src/interview-prompts/chat-text-description.ts",
+      "default": "./src/interview-prompts/chat-text-description.ts"
+    },
     "./interview-prompts/loop-mode": {
       "types": "./src/interview-prompts/loop-mode.ts",
       "default": "./src/interview-prompts/loop-mode.ts"
@@ -163,6 +167,10 @@
     "./prompts/home-chat-context": {
       "types": "./src/prompts/home-chat-context.ts",
       "default": "./src/prompts/home-chat-context.ts"
+    },
+    "./interview-prompts/published": {
+      "types": "./src/interview-prompts/published.ts",
+      "default": "./src/interview-prompts/published.ts"
     }
   },
   "dependencies": {

@@ -1,8 +1,10 @@
 import "server-only";
 
 import type { BillWithContent } from "@/features/bills/shared/types";
-import { buildInterviewSystemPrompt } from "@/features/interview-session/server/utils/build-interview-system-prompt";
-import { buildSummarySystemPrompt } from "@/features/interview-session/shared/utils/build-summary-system-prompt";
+import {
+  buildInterviewSystemPrompt,
+  buildSummarySystemPrompt,
+} from "@/features/interview-session/server/utils/build-interview-system-prompt";
 import type { InterviewConfig } from "./get-interview-config";
 import { getInterviewQuestions } from "./get-interview-questions";
 
@@ -25,7 +27,7 @@ export async function loadDisclosureData(
 ): Promise<DisclosureData> {
   const questions = await getInterviewQuestions(interviewConfig.id);
 
-  const systemPrompt = buildInterviewSystemPrompt({
+  const systemPrompt = await buildInterviewSystemPrompt({
     bill,
     interviewConfig,
     questions,
@@ -34,7 +36,7 @@ export async function loadDisclosureData(
     remainingMinutes: null,
   });
 
-  const summaryPrompt = buildSummarySystemPrompt({
+  const summaryPrompt = await buildSummarySystemPrompt({
     bill,
     interviewConfig,
     messages: [],

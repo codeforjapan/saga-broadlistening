@@ -1,6 +1,6 @@
 import "server-only";
 import {
-  PublicPromptProvider,
+  PromptProvider as DatabasePromptProvider,
   type PublishedPromptReader,
 } from "@mirai-gikai/shared/prompts/provider";
 import { findPublishedPrompt } from "@mirai-gikai/shared/prompts/repository";
@@ -20,7 +20,7 @@ import { SOURCE_CODE_PROMPT_NAMES } from "./source-code/source-code-prompt-provi
 export function createPromptProvider(
   reader: PublishedPromptReader = { findPublishedPrompt }
 ): PromptProvider {
-  const sourceCodeProvider = new PublicPromptProvider(reader, (key) =>
+  const sourceCodeProvider = new DatabasePromptProvider(reader, (key) =>
     console.warn(`[Prompts] Using code fallback for ${key}`)
   );
 

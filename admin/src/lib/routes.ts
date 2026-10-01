@@ -16,6 +16,7 @@ export const routes = {
   publicChatPrompts: () => "/chats/prompts" as const,
   tags: () => "/tags" as const,
   interviews: () => "/interviews" as const,
+  interviewPrompts: () => "/interviews/prompts" as const,
   interviewNew: () => "/interviews/new" as const,
   interviewOpinionBackfill: () => "/interview-opinion-backfill" as const,
   userTopicAnalysisAll: () => "/user-topic-analysis" as const,

@@ -1,9 +1,12 @@
 import "server-only";
 
 import { getAiModel } from "@mirai-gikai/shared/ai/registry";
-import { buildLoopModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/loop-mode";
+import { INTERVIEW_CHAT_TEXT_DESCRIPTION } from "@mirai-gikai/shared/interview-prompts/chat-text-description";
+import {
+  buildPublishedInterviewPrompt,
+  buildPublishedSummaryPrompt,
+} from "@mirai-gikai/shared/interview-prompts/published";
 import { buildInitialTurnInstruction } from "@mirai-gikai/shared/interview-prompts/subject-section";
-import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
 import type {
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
@@ -40,7 +43,7 @@ import { withTimeoutRetry } from "../../shared/utils/with-timeout-retry";
  */
 const simInterviewerOutputSchema = z
   .object({
-    text: z.string().describe("インタビュアーの発話本文"),
+    text: z.string().describe(INTERVIEW_CHAT_TEXT_DESCRIPTION),
     topic_title: z
       .string()
       .nullable()
@@ -109,12 +112,12 @@ interface RunSimulatedInterviewParams {
  * 本番と同じ builder を呼んで、現在のターンの system prompt を構築する。
  * 毎ターン fresh にビルドすることで、refresh によるセクション差し替え漏れを防ぐ。
  */
-function buildInterviewerSystemPromptForTurn(
+async function buildInterviewerSystemPromptForTurn(
   promptInputs: RunSimulatedInterviewParams["promptInputs"],
   askedQuestionIds: Set<string>,
   remainingMinutes: number | null | undefined
-): string {
-  return buildLoopModeSystemPrompt({
+): Promise<string> {
+  return buildPublishedInterviewPrompt({
     bill: promptInputs.bill,
     interviewConfig: promptInputs.interviewConfig,
     questions: promptInputs.questions,
@@ -271,7 +274,7 @@ export async function runSimulatedInterview({
         : undefined;
 
     const interviewerSystemPromptForThisTurn =
-      buildInterviewerSystemPromptForTurn(
+      await buildInterviewerSystemPromptForTurn(
         promptInputs,
         askedQuestionIds,
         simulatedRemainingMinutes
@@ -460,7 +463,7 @@ export async function runSimulatedInterview({
         role: t.role === "interviewer" ? "assistant" : "user",
         content: t.content,
       }));
-      const summarySystemPrompt = buildSummarySystemPrompt({
+      const summarySystemPrompt = await buildPublishedSummaryPrompt({
         bill: promptInputs.bill,
         interviewConfig: promptInputs.interviewConfig,
         messages: summaryMessages,

@@ -162,12 +162,12 @@ export async function handleInterviewChatRequest({
 
   // システムプロンプトを構築（ステージ遷移ガイダンスを含む）
   const systemPrompt = isSummaryPhase
-    ? buildSummarySystemPrompt({
+    ? await buildSummarySystemPrompt({
         bill,
         interviewConfig,
         messages: summaryMessages,
       })
-    : buildInterviewSystemPrompt({
+    : await buildInterviewSystemPrompt({
         bill,
         interviewConfig,
         questions,
