@@ -1,4 +1,5 @@
-import { ArrowRight, Clock, MessageSquare, User } from "lucide-react";
+import { SITE_NAME } from "@mirai-gikai/branding/site";
+import { ArrowRight, Clock, User } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -16,6 +17,12 @@ interface ThemeCardProps {
   /** ファーストビューに入るカード。バナーを優先して読み込む */
   priority?: boolean;
 }
+
+const KIKASETE_LABEL = `${SITE_NAME} きかせて`;
+
+/** 「きかせて」ロゴSVG（余白を切り詰めた版）の寸法。高さを決めて縮小して使う */
+const KIKASETE_LOGO_WIDTH = 590;
+const KIKASETE_LOGO_HEIGHT = 151;
 
 /** テーマページへのボタンの文言。案ごとにモックの言い回しが違う */
 function getPageButtonLabel(tag: string, design: TopDesign): string {
@@ -114,7 +121,7 @@ export function ThemeCard({
         </div>
 
         <section
-          aria-label="きかせて"
+          aria-label={KIKASETE_LABEL}
           className={cn(
             "flex flex-col gap-4 rounded-2xl border-2 border-kikasete bg-kikasete-surface p-4",
             !stacked &&
@@ -122,10 +129,14 @@ export function ThemeCard({
           )}
         >
           <div className="flex flex-col gap-2">
-            <p className="flex items-center gap-2 text-sm font-bold text-kikasete-accent">
-              <MessageSquare className="size-4" aria-hidden="true" />
-              きかせて
-            </p>
+            {/* 「CHIKAT きかせて」のロゴ。ワードマークを含むので文字は併記しない */}
+            <Image
+              src="/icons/chikat-kikasete.svg"
+              alt={KIKASETE_LABEL}
+              width={KIKASETE_LOGO_WIDTH}
+              height={KIKASETE_LOGO_HEIGHT}
+              className="h-6 w-auto self-start"
+            />
             <h3 className="text-base font-bold leading-normal md:text-lg">
               {interview.title}
             </h3>
