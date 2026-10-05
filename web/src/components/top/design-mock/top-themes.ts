@@ -20,7 +20,7 @@ const YOUTH_PAGE_FALLBACK_BILL_ID = "159bf03f-4138-4dc9-9c3e-0911eafc341f";
 
 export interface TopTheme {
   id: string;
-  /** テーマのタグ。ボタンの文言（「〜のページへ」等）にも使う */
+  /** テーマのタグ。ボタンの文言（「〜について知る」）にも使う */
   tag: string;
   title: string;
   description: string;

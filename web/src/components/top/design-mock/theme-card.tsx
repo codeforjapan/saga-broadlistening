@@ -7,12 +7,10 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { logoImageProps } from "@/lib/logo";
 import { cn } from "@/lib/utils";
-import type { TopDesign } from "./top-design";
 import type { TopTheme } from "./top-themes";
 
 interface ThemeCardProps {
   theme: TopTheme;
-  design: TopDesign;
   /** 2カラムのグリッドに並べるとき。カード幅が狭いのでPCでも縦積みにする */
   stacked: boolean;
   /** ファーストビューに入るカード。バナーを優先して読み込む */
@@ -21,14 +19,11 @@ interface ThemeCardProps {
 
 const KIKASETE_LABEL = `${SITE_NAME} きかせて`;
 
-/** テーマページへのボタンの文言。案ごとにモックの言い回しが違う */
-function getPageButtonLabel(tag: string, design: TopDesign): string {
-  return design === "a" ? `${tag}のページへ` : `${tag}について知る`;
-}
-
 /**
  * リンク先があればリンク、なければ押せないボタンとして出す。
  * スマホでは横幅いっぱい・高さ48px。
+ * リンクのときは疑似要素を最寄りの relative な祖先いっぱいに広げ、
+ * ボタンの周りのテキストごと押せるようにする。
  */
 function ThemeLinkButton({
   href,
@@ -56,7 +51,10 @@ function ThemeLinkButton({
   }
 
   return (
-    <Button asChild className={buttonClassName}>
+    <Button
+      asChild
+      className={cn(buttonClassName, "after:absolute after:inset-0")}
+    >
       <Link href={href as Route}>{content}</Link>
     </Button>
   );
@@ -65,7 +63,6 @@ function ThemeLinkButton({
 /** テーマカード。バナー・概要・テーマページへの導線と「きかせて」枠をひとまとめにする */
 export function ThemeCard({
   theme,
-  design,
   stacked,
   priority = false,
 }: ThemeCardProps) {
@@ -88,7 +85,7 @@ export function ThemeCard({
       <div className="flex flex-col gap-5 p-4 md:p-7">
         <div
           className={cn(
-            "flex flex-col gap-4",
+            "relative flex flex-col gap-4",
             !stacked &&
               "md:grid md:grid-cols-[1fr_auto] md:items-end md:gap-x-6"
           )}
@@ -113,14 +110,14 @@ export function ThemeCard({
             href={theme.pageHref}
             className={cn(!stacked && "md:w-auto")}
           >
-            {getPageButtonLabel(theme.tag, design)}
+            {theme.tag}について知る
           </ThemeLinkButton>
         </div>
 
         <section
           aria-label={KIKASETE_LABEL}
           className={cn(
-            "flex flex-col gap-4 rounded-2xl border-2 border-kikasete bg-kikasete-surface p-4",
+            "relative flex flex-col gap-4 rounded-2xl border-2 border-kikasete bg-kikasete-surface p-4",
             !stacked &&
               "md:flex-row md:items-center md:justify-between md:gap-6 md:px-5"
           )}

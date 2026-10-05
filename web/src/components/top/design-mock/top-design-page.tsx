@@ -68,7 +68,7 @@ export function TopDesignPage({
 
         <div className="bg-linear-to-b from-secondary to-background">
           <Container className="py-10">
-            <ThemeCardList design="b" />
+            <ThemeCardList />
           </Container>
         </div>
 
@@ -90,7 +90,7 @@ export function TopDesignPage({
             （チカット）は、佐賀市の今の取組を気軽に知ったり、AIと話しながら日ごろ感じていることや考えを伝えたりできる、新しい広聴のしくみです。見るだけでも、話すだけでも大丈夫です。
           </p>
         </div>
-        <ThemeCardList design="a" />
+        <ThemeCardList />
       </Container>
 
       <Container>

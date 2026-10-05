@@ -1,14 +1,9 @@
 import { cn } from "@/lib/utils";
 import { ThemeCard } from "./theme-card";
-import type { TopDesign } from "./top-design";
 import { TOP_THEMES, usesThemeGrid } from "./top-themes";
 
-interface ThemeCardListProps {
-  design: TopDesign;
-}
-
 /** テーマカードの一覧。末尾に「準備中」の枠を置く */
-export function ThemeCardList({ design }: ThemeCardListProps) {
+export function ThemeCardList() {
   const isGrid = usesThemeGrid(TOP_THEMES.length);
 
   return (
@@ -17,7 +12,6 @@ export function ThemeCardList({ design }: ThemeCardListProps) {
         <ThemeCard
           key={theme.id}
           theme={theme}
-          design={design}
           stacked={isGrid}
           priority={index === 0}
         />
