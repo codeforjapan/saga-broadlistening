@@ -24,6 +24,7 @@ import type { BillWithContent } from "@/features/bills/shared/types";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useViewportHeight } from "@/hooks/use-viewport-height";
+import { cn } from "@/lib/utils";
 import {
   CHAT_PANEL_PC_WIDTH_CLASS,
   CHAT_PANEL_RESPONSIVE_CLASSES,
@@ -51,6 +52,12 @@ interface ChatWindowProps {
   disableAutoFocus?: boolean;
   returnFocusRef: RefObject<HTMLElement | null>;
   sessionId: string;
+  /** パネル上部に出す見出し（例: 総合アシスタント）。省略時は出さない */
+  title?: string;
+  /** "dialog" を指定すると、PC幅でも常設パネルにせずダイアログで開く */
+  presentation?: "auto" | "dialog";
+  /** スマホ幅で全画面のチャットとして開く */
+  fullScreenOnMobile?: boolean;
 }
 
 /**
@@ -171,6 +178,9 @@ export function ChatWindow({
   disableAutoFocus = false,
   returnFocusRef,
   sessionId,
+  title,
+  presentation = "auto",
+  fullScreenOnMobile = false,
 }: ChatWindowProps) {
   const [input, setInput] = useState("");
   const [isMounted, setIsMounted] = useState(false);
@@ -222,6 +232,17 @@ export function ChatWindow({
 
   const chatPanelContent = (
     <>
+      {title && (
+        <h2
+          // 常設パネルには閉じるボタンがないので、PC幅では上余白を見出し側で取る
+          className={cn(
+            "px-6 text-base font-bold",
+            presentation === "auto" && "pc:pt-5"
+          )}
+        >
+          {title}
+        </h2>
+      )}
       {/* メッセージエリア（スクロール可能） */}
       <Conversation className="flex-1 min-h-0">
         <ConversationContent className="p-0 flex flex-col gap-3 pc:pt-6 pb-2 px-6">
@@ -285,10 +306,10 @@ export function ChatWindow({
   }
 
   // PCでは常設の補助領域、モバイルでは背景を操作不能にするモーダルとして扱う
-  if (isPc) {
+  if (isPc && presentation === "auto") {
     return createPortal(
       <section
-        aria-label="佐賀市の施策についてAIに質問する"
+        aria-label={title ?? "佐賀市の施策についてAIに質問する"}
         className={`fixed inset-x-0 bottom-0 z-50 bg-white shadow-md rounded-t-2xl flex flex-col pc:h-[70vh] xl:right-[calc(calc(100%-1180px)/2)] ${CHAT_PANEL_RESPONSIVE_CLASSES} ${CHAT_PANEL_PC_WIDTH_CLASS}`}
       >
         {chatPanelContent}
@@ -300,6 +321,7 @@ export function ChatWindow({
   return (
     <MobileChatDialog
       disableAutoFocus={disableAutoFocus}
+      fullScreenOnMobile={fullScreenOnMobile}
       initialFocusRef={textareaRef}
       isOpen={isOpen}
       onClose={onClose}

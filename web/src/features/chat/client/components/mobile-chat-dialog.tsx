@@ -19,6 +19,8 @@ export const CHAT_PANEL_PC_WIDTH_CLASS = "pc:w-[300px]";
 interface MobileChatDialogProps {
   children: ReactNode;
   disableAutoFocus?: boolean;
+  /** スマホ幅で下からのシートではなく全画面で開く */
+  fullScreenOnMobile?: boolean;
   initialFocusRef: RefObject<HTMLElement | null>;
   isOpen: boolean;
   onClose: () => void;
@@ -32,6 +34,7 @@ interface MobileChatDialogProps {
 export function MobileChatDialog({
   children,
   disableAutoFocus = false,
+  fullScreenOnMobile = false,
   initialFocusRef,
   isOpen,
   onClose,
@@ -54,7 +57,9 @@ export function MobileChatDialog({
         <DialogPrimitive.Content
           aria-describedby={undefined}
           aria-modal="true"
-          className={`fixed inset-x-0 bottom-0 z-50 h-[80vh] bg-white shadow-md rounded-t-2xl flex flex-col outline-none ${CHAT_PANEL_RESPONSIVE_CLASSES}`}
+          className={`fixed inset-x-0 bottom-0 z-50 h-[80vh] bg-white shadow-md rounded-t-2xl flex flex-col outline-none ${
+            fullScreenOnMobile ? "max-md:h-dvh max-md:rounded-none" : ""
+          } ${CHAT_PANEL_RESPONSIVE_CLASSES}`}
           style={style}
           onOpenAutoFocus={(event) => {
             event.preventDefault();

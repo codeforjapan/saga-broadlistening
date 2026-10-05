@@ -1,6 +1,8 @@
 import { toHomeChatContext } from "@mirai-gikai/shared/prompts/home-chat-context";
 import { Container } from "@/components/layouts/container";
 import { About } from "@/components/top/about";
+import { parseTopDesign } from "@/components/top/design-mock/top-design";
+import { TopDesignPage } from "@/components/top/design-mock/top-design-page";
 import { Hero } from "@/components/top/hero";
 import { TOP_SECTIONS } from "@/components/top/top-sections";
 import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
@@ -15,11 +17,19 @@ import { getInterviewThemes } from "@/features/interview-config/server/loaders/g
 /** トップページに出すAIインタビューのテーマ件数。残りは一覧ページで見せる */
 const TOP_INTERVIEW_THEME_LIMIT = 3;
 
-export default async function Home() {
+interface HomeProps {
+  searchParams: Promise<{ design?: string | string[] }>;
+}
+
+export default async function Home({ searchParams }: HomeProps) {
+  // デザイン比較モック（/?design=a, /?design=b）。指定がなければ現行TOPのまま
+  const design = parseTopDesign((await searchParams).design);
+
   const [{ billsByTag, featuredBills }, interviewThemes, currentDifficulty] =
     await Promise.all([
       loadHomeData(),
-      getInterviewThemes(),
+      // モックはテーマを固定データで持つので、募集中テーマは読み込まない
+      design ? [] : getInterviewThemes(),
       getDifficultyLevel(),
     ]);
 
@@ -32,6 +42,21 @@ export default async function Home() {
       isFeatured: featuredBills.some((b) => b.id === bill.id),
     });
   };
+
+  const chatBills = billsByTag
+    .flatMap((x) => x.bills)
+    .concat(featuredBills)
+    .map(toBillChatContext);
+
+  if (design) {
+    return (
+      <TopDesignPage
+        design={design}
+        currentDifficulty={currentDifficulty}
+        bills={chatBills}
+      />
+    );
+  }
 
   return (
     <>
@@ -65,13 +90,7 @@ export default async function Home() {
       </Container>
 
       {/* チャット機能 */}
-      <HomeChatClient
-        currentDifficulty={currentDifficulty}
-        bills={billsByTag
-          .flatMap((x) => x.bills)
-          .concat(featuredBills)
-          .map(toBillChatContext)}
-      />
+      <HomeChatClient currentDifficulty={currentDifficulty} bills={chatBills} />
     </>
   );
 }

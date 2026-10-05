@@ -21,6 +21,13 @@
 
   /* --- Mirai Design System Color Tokens --- */
 
+  /* TOPデザイン比較モック（案A/B）の「きかせて」枠と総合アシスタントの緑。
+     モックPDFの色をそのまま置いた仮トークン。採用が決まったら branding の
+     パレットへ移す（白文字とのコントラストは AA 未満なので要再検討）。 */
+  --color-kikasete: #00b98d;
+  --color-kikasete-accent: #166f59;
+  --color-kikasete-surface: #f0fbf7;
+
   /* 引用文の明朝体（Noto Serif JP） */
 }
 
