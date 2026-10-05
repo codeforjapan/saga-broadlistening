@@ -137,7 +137,7 @@ export function TopAssistantPrompt(props: TopAssistantProps) {
       {/* 日本語入力の変換確定で送信されないよう、既存チャットと同じ入力部品を使う */}
       <PromptInput
         onSubmit={handleSubmit}
-        className="flex w-full items-center gap-2 divide-y-0 rounded-full bg-white py-2 pl-6 pr-2 shadow-raised ring-1 ring-border"
+        className="flex w-full max-w-[500px] items-center gap-2 divide-y-0 rounded-full bg-white py-4 pl-6 pr-2 shadow-raised ring-1 ring-border"
       >
         <PromptInputBody className="flex-1">
           <PromptInputTextarea
@@ -148,7 +148,7 @@ export function TopAssistantPrompt(props: TopAssistantProps) {
             aria-label={`${ASSISTANT_LABEL}に質問する`}
             rows={1}
             submitOnEnter
-            className="!min-h-0 min-w-0 resize-none border-none bg-transparent !px-0 !py-2 text-base shadow-none placeholder:text-muted-foreground focus:ring-0"
+            className="!min-h-0 min-w-0 resize-none border-none bg-transparent !px-0 !py-2 text-base shadow-none md:text-lg placeholder:text-muted-foreground focus:ring-0"
           />
         </PromptInputBody>
         <Button
