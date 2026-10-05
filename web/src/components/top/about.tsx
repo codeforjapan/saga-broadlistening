@@ -1,19 +1,28 @@
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 /** 「みてみて」「きかせて」ロゴSVGの寸法。文中に置くので高さを行に合わせて縮小する */
 const LOGO_WIDTH = 590;
 const LOGO_HEIGHT = 151;
 
 /** 説明文の中に置くロゴ。文字列の代わりに読み上げられるよう alt にロゴ名を入れる */
-function InlineLogo({ src, alt }: { src: string; alt: string }) {
+function InlineLogo({
+  src,
+  alt,
+  className,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
   return (
     <Image
       src={src}
       alt={alt}
       width={LOGO_WIDTH}
       height={LOGO_HEIGHT}
-      className="mb-1 inline-block h-12 w-auto align-middle"
+      className={cn("mb-1 inline-block h-12 w-auto align-middle", className)}
     />
   );
 }
@@ -49,6 +58,7 @@ export function About() {
             <InlineLogo
               src="/icons/chikat-kikasete.svg"
               alt={`${SITE_NAME}きかせて`}
+              className="mb-[11px]"
             />
             では、AIが聞き役となって、あなたの経験や考えを少しずつ整理します。
           </p>
