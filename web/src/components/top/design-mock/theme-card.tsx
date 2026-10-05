@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { logoImageProps } from "@/lib/logo";
 import { cn } from "@/lib/utils";
 import type { TopDesign } from "./top-design";
 import type { TopTheme } from "./top-themes";
@@ -19,10 +20,6 @@ interface ThemeCardProps {
 }
 
 const KIKASETE_LABEL = `${SITE_NAME} きかせて`;
-
-/** 「きかせて」ロゴSVG（余白を切り詰めた版）の寸法。高さを決めて縮小して使う */
-const KIKASETE_LOGO_WIDTH = 590;
-const KIKASETE_LOGO_HEIGHT = 151;
 
 /** テーマページへのボタンの文言。案ごとにモックの言い回しが違う */
 function getPageButtonLabel(tag: string, design: TopDesign): string {
@@ -129,14 +126,11 @@ export function ThemeCard({
           )}
         >
           <div className="flex flex-col gap-2">
-            {/* 「CHIKAT きかせて」のロゴ。ワードマークを含むので文字は併記しない */}
-            <Image
-              src="/icons/chikat-kikasete.svg"
-              alt={KIKASETE_LABEL}
-              width={KIKASETE_LOGO_WIDTH}
-              height={KIKASETE_LOGO_HEIGHT}
-              className="h-6 w-auto self-start"
-            />
+            {/* CHIKATのロゴ＋「きかせて」の文字。ロゴがワードマークを含むので alt はサービス名だけ */}
+            <p className="flex items-center gap-2 text-sm font-bold text-kikasete-accent">
+              <Image alt={SITE_NAME} {...logoImageProps("compact", 24)} />
+              きかせて
+            </p>
             <h3 className="text-base font-bold leading-normal md:text-lg">
               {interview.title}
             </h3>
