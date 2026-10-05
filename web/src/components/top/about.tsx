@@ -13,7 +13,7 @@ function InlineLogo({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       width={LOGO_WIDTH}
       height={LOGO_HEIGHT}
-      className="-mb-[2px] inline-block h-12 w-auto align-middle"
+      className="mb-1 inline-block h-12 w-auto align-middle"
     />
   );
 }
