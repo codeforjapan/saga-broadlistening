@@ -89,7 +89,6 @@ function useTopAssistant(
       pageContext,
       returnFocusRef,
       sessionId,
-      title: ASSISTANT_LABEL,
       fullScreenOnMobile: true,
     },
   };
