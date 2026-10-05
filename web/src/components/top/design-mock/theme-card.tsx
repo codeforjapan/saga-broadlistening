@@ -100,7 +100,7 @@ export function ThemeCard({
           </div>
           <p
             className={cn(
-              "text-sm leading-[1.9] text-muted-foreground",
+              "leading-[1.9] text-muted-foreground",
               !stacked && "md:order-last md:col-span-2"
             )}
           >
