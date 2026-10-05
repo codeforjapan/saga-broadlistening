@@ -78,7 +78,7 @@ export function ThemeCard({
           fill
           priority={priority}
           className="object-cover"
-          sizes="(min-width: 1000px) 850px, 100vw"
+          sizes="(min-width: 1000px) 850px, (min-width: 700px) 700px, 100vw"
         />
       </div>
 
