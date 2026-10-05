@@ -36,7 +36,7 @@ export function About() {
         <div className="flex flex-col gap-4 text-base leading-[28px] text-black">
           <p>
             {SITE_NAME}
-            は、佐賀市の取組をできるだけわかりやすく伝え、みなさんの日ごろの実感や考えを気軽に聞かせてもらうための、新しい広聴のしくみです。
+            （チカット）は、佐賀市の取組をできるだけわかりやすく伝え、みなさんの日ごろの実感や考えを気軽に聞かせてもらうための、新しい広聴のしくみです。
           </p>
           <p>
             <InlineLogo
