@@ -127,7 +127,7 @@ export function ThemeCard({
         >
           <div className="flex flex-col gap-2">
             {/* CHIKATのロゴ＋「きかせて」の文字。ロゴがワードマークを含むので alt はサービス名だけ */}
-            <p className="flex items-center gap-2 text-sm font-bold text-kikasete-accent">
+            <p className="flex items-center gap-2 text-xs font-bold text-foreground">
               <Image alt={SITE_NAME} {...logoImageProps("compact", 24)} />
               きかせて
             </p>
