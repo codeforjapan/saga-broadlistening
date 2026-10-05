@@ -60,7 +60,11 @@ function ThemeLinkButton({
   );
 }
 
-/** テーマカード。バナー・概要・テーマページへの導線と「きかせて」枠をひとまとめにする */
+/**
+ * テーマカード。バナー・概要・テーマページへの導線と「きかせて」枠をひとまとめにする。
+ * カード全体がテーマページへのリンクで、「きかせて」枠の中だけはインタビューへのリンクになる
+ * （枠は relative なので、DOM順でテーマページのリンクの疑似要素より手前に重なる）。
+ */
 export function ThemeCard({
   theme,
   stacked,
@@ -69,7 +73,7 @@ export function ThemeCard({
   const { interview } = theme;
 
   return (
-    <article className="flex flex-col overflow-hidden rounded-3xl bg-card shadow-raised">
+    <article className="relative flex flex-col overflow-hidden rounded-3xl bg-card shadow-raised">
       {/* 装飾のバナーなので alt は空にする */}
       <div className="relative aspect-[3/1] w-full">
         <Image
@@ -85,7 +89,7 @@ export function ThemeCard({
       <div className="flex flex-col gap-5 p-4 md:p-7">
         <div
           className={cn(
-            "relative flex flex-col gap-4",
+            "flex flex-col gap-4",
             !stacked &&
               "md:grid md:grid-cols-[1fr_auto] md:items-end md:gap-x-6"
           )}
