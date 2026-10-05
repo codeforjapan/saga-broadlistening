@@ -5,10 +5,7 @@ import Image from "next/image";
 const LOGO_WIDTH = 590;
 const LOGO_HEIGHT = 151;
 
-/**
- * 説明文の中に置くロゴ。文字列の代わりに読み上げられるよう alt にロゴ名を入れる。
- * 行の高さ（28px）より大きいので、上下の負のマージンで行間を広げずに文字の中央へ揃える。
- */
+/** 説明文の中に置くロゴ。文字列の代わりに読み上げられるよう alt にロゴ名を入れる */
 function InlineLogo({ src, alt }: { src: string; alt: string }) {
   return (
     <Image
@@ -16,7 +13,7 @@ function InlineLogo({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       width={LOGO_WIDTH}
       height={LOGO_HEIGHT}
-      className="-my-1.5 inline-block h-10 w-auto align-middle"
+      className="-mb-[2px] inline-block h-12 w-auto align-middle"
     />
   );
 }
@@ -47,13 +44,15 @@ export function About() {
               alt={`${SITE_NAME}みてみて`}
             />
             では、市の今の取組を短くわかりやすく紹介。
-            <br />
+          </p>
+          <p>
             <InlineLogo
               src="/icons/chikat-kikasete.svg"
               alt={`${SITE_NAME}きかせて`}
             />
-            では、AIが聞き役となって、あなたの経験や考えを少しずつ整理します。見るだけでも、話すだけでもかまいません。
+            では、AIが聞き役となって、あなたの経験や考えを少しずつ整理します。
           </p>
+          <p>見るだけでも、話すだけでもかまいません。</p>
           <p>
             寄せられた声は、単に数を比べるのではなく、その背景にある理由や期待、困りごと、アイデアなどを論点として整理し、市政を考える材料にします。整理した結果は、みなさんにもわかりやすくお返ししていきます。
           </p>
