@@ -5,7 +5,10 @@ import Image from "next/image";
 const LOGO_WIDTH = 590;
 const LOGO_HEIGHT = 151;
 
-/** 説明文の中に置くロゴ。文字列の代わりに読み上げられるよう alt にロゴ名を入れる */
+/**
+ * 説明文の中に置くロゴ。文字列の代わりに読み上げられるよう alt にロゴ名を入れる。
+ * 行の高さ（28px）より大きいので、上下の負のマージンで行間を広げずに文字の中央へ揃える。
+ */
 function InlineLogo({ src, alt }: { src: string; alt: string }) {
   return (
     <Image
@@ -13,7 +16,7 @@ function InlineLogo({ src, alt }: { src: string; alt: string }) {
       alt={alt}
       width={LOGO_WIDTH}
       height={LOGO_HEIGHT}
-      className="inline-block h-6 w-auto align-text-bottom"
+      className="-my-1.5 inline-block h-10 w-auto align-middle"
     />
   );
 }
