@@ -146,7 +146,7 @@ export function ThemeCard({
             href={interview.href}
             className={cn("bg-kikasete text-white", !stacked && "md:w-auto")}
           >
-            はじめる
+            インタビューに答える
           </ThemeLinkButton>
         </section>
       </div>

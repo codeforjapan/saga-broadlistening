@@ -32,7 +32,7 @@ export interface TopTheme {
     duration: string;
     /** 「〜人が参加」の人数部分。実数が決まるまでモックどおり [N] を出す */
     participantCount: string;
-    /** 「はじめる」のリンク先。null ならボタンを押せない状態で出す */
+    /** 「インタビューに答える」のリンク先。null ならボタンを押せない状態で出す */
     href: string | null;
   };
 }
