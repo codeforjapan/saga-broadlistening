@@ -3,7 +3,6 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TopDesign } from "./top-design";
@@ -115,7 +114,7 @@ export function ThemeCard({
         </div>
 
         <section
-          aria-label={`${SITE_NAME} きかせて`}
+          aria-label="きかせて"
           className={cn(
             "flex flex-col gap-4 rounded-2xl border-2 border-kikasete bg-kikasete-surface p-4",
             !stacked &&
@@ -125,7 +124,7 @@ export function ThemeCard({
           <div className="flex flex-col gap-2">
             <p className="flex items-center gap-2 text-sm font-bold text-kikasete-accent">
               <MessageSquare className="size-4" aria-hidden="true" />
-              {SITE_NAME} きかせて
+              きかせて
             </p>
             <h3 className="text-base font-bold leading-normal md:text-lg">
               {interview.title}
