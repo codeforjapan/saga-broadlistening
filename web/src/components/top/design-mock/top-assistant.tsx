@@ -163,7 +163,7 @@ export function TopAssistantPrompt(props: TopAssistantProps) {
       {/* 日本語入力の変換確定で送信されないよう、既存チャットと同じ入力部品を使う */}
       <PromptInput
         onSubmit={handleSubmit}
-        className="flex w-full max-w-[500px] items-center gap-2 divide-y-0 rounded-full bg-white py-4 pl-6 pr-2 shadow-raised ring-1 ring-border"
+        className="flex w-full max-w-[650px] items-center gap-2 divide-y-0 rounded-full bg-white py-4 pl-6 pr-2 shadow-raised ring-1 ring-border"
       >
         <PromptInputBody className="flex-1">
           <PromptInputTextarea
