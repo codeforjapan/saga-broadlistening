@@ -24,7 +24,7 @@ export function About() {
       <div className="flex flex-col gap-4">
         {/* ヘッダー */}
         <div className="flex flex-col gap-4">
-          <h2 className="text-2xl font-bold leading-normal">
+          <h2 className="text-3xl font-bold leading-normal">
             {SITE_NAME}について
           </h2>
           <p className="font-bold text-primary-accent">
