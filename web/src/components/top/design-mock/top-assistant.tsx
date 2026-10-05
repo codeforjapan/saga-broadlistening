@@ -3,7 +3,13 @@
 import { useChat } from "@ai-sdk/react";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { ArrowRight, Bot } from "lucide-react";
-import { type RefObject, useMemo, useRef, useState } from "react";
+import {
+  type ComponentProps,
+  type RefObject,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   PromptInput,
   PromptInputBody,
@@ -13,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
 import { ChatWindow } from "@/features/chat/client/components/chat-window";
+import { cn } from "@/lib/utils";
 
 /** 総合アシスタントに文脈として渡す施策の情報 */
 export interface TopAssistantBill {
@@ -88,6 +95,28 @@ function useTopAssistant(
   };
 }
 
+/** 右下に追従する、チャットを開くボタン */
+function FloatingAssistantButton({
+  className,
+  children,
+  ...props
+}: ComponentProps<typeof Button>) {
+  return (
+    <Button
+      type="button"
+      className={cn(
+        "fixed bottom-6 right-4 z-30 h-12 gap-2 bg-kikasete px-5 text-white has-[>svg]:px-5 shadow-lg",
+        className
+      )}
+      aria-haspopup="dialog"
+      {...props}
+    >
+      <Bot className="size-5" aria-hidden="true" />
+      {children}
+    </Button>
+  );
+}
+
 /**
  * 案A：PCは右ペインに常設のチャット、スマホは右下に追従する「AIに質問」ボタンから
  * 全画面のチャットを開く。
@@ -98,17 +127,14 @@ export function TopAssistantPane(props: TopAssistantProps) {
 
   return (
     <>
-      <Button
+      <FloatingAssistantButton
         ref={triggerRef}
-        type="button"
         onClick={open}
-        className="fixed bottom-6 right-4 z-30 h-12 gap-2 bg-kikasete px-5 text-white has-[>svg]:px-5 shadow-lg pc:hidden"
-        aria-haspopup="dialog"
+        className="pc:hidden"
         aria-expanded={isOpen}
       >
-        <Bot className="size-5" aria-hidden="true" />
         AIに質問
-      </Button>
+      </FloatingAssistantButton>
 
       <ChatWindow {...chatWindowProps} />
     </>
@@ -118,12 +144,12 @@ export function TopAssistantPane(props: TopAssistantProps) {
 /**
  * 案B：タイトル直下に置く入力欄とサジェストチップ。
  * 質問を送ると、チャットをダイアログ（スマホは全画面）で開いて会話を続ける。
- * 右ペインや追従ボタンは持たない。
+ * 右ペインは持たない。会話を始めたあとは、右下の追従ボタンから会話に戻れる。
  */
 export function TopAssistantPrompt(props: TopAssistantProps) {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { isResponding, hasConversation, open, ask, chatWindowProps } =
+  const { isOpen, isResponding, hasConversation, open, ask, chatWindowProps } =
     useTopAssistant(props, inputRef);
 
   const handleSubmit = (message: PromptInputMessage) => {
@@ -180,9 +206,9 @@ export function TopAssistantPrompt(props: TopAssistantProps) {
 
       {/* 閉じたあとも、質問し直さずに会話へ戻れるようにする */}
       {hasConversation && (
-        <Button type="button" variant="link" onClick={open}>
-          会話のつづきを見る
-        </Button>
+        <FloatingAssistantButton onClick={open} aria-expanded={isOpen}>
+          会話を続ける
+        </FloatingAssistantButton>
       )}
 
       <ChatWindow
