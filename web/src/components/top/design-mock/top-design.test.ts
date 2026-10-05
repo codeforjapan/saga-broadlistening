@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { parseTopDesign } from "./top-design";
 
 describe("parseTopDesign", () => {
-  it("a / b をそのまま案として返す", () => {
+  it("a / b / c をそのまま案として返す", () => {
     expect(parseTopDesign("a")).toBe("a");
     expect(parseTopDesign("b")).toBe("b");
+    expect(parseTopDesign("c")).toBe("c");
   });
 
   it("大文字でも受け付ける", () => {
@@ -18,7 +19,7 @@ describe("parseTopDesign", () => {
   it("未指定・不正値は null（現行TOPのまま）", () => {
     expect(parseTopDesign(undefined)).toBeNull();
     expect(parseTopDesign("")).toBeNull();
-    expect(parseTopDesign("c")).toBeNull();
+    expect(parseTopDesign("d")).toBeNull();
     expect(parseTopDesign([])).toBeNull();
   });
 });

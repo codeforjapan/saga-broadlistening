@@ -22,7 +22,7 @@ interface HomeProps {
 }
 
 export default async function Home({ searchParams }: HomeProps) {
-  // デザイン比較モック（/?design=a, /?design=b）。指定がなければ現行TOPのまま
+  // デザイン比較モック（/?design=a, /?design=b, /?design=c）。指定がなければ現行TOPのまま
   const design = parseTopDesign((await searchParams).design);
 
   const [{ billsByTag, featuredBills }, interviewThemes, currentDifficulty] =

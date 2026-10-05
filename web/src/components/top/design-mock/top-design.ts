@@ -1,10 +1,10 @@
 /**
- * TOPページのデザイン比較モック（案A・案B）の出し分け。
+ * TOPページのデザイン比較モック（案A・案B・案C）の出し分け。
  *
- * `/?design=a` で案A、`/?design=b` で案B を表示する。
+ * `/?design=a` で案A、`/?design=b` で案B、`/?design=c` で案C を表示する。
  * パラメータなし・不正値は現行TOPのまま。
  */
-export const TOP_DESIGNS = ["a", "b"] as const;
+export const TOP_DESIGNS = ["a", "b", "c"] as const;
 
 export type TopDesign = (typeof TOP_DESIGNS)[number];
 

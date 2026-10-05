@@ -26,6 +26,8 @@ const TOP_TITLE_PHRASES = [
   "ちかっと話す。",
 ];
 
+const TOP_INTRO = `${SITE_NAME}（チカット）は、佐賀市の今の取組を気軽に知ったり、AIと話しながら日ごろ感じていることや考えを伝えたりできる、新しい広聴のしくみです。見るだけでも、話すだけでも大丈夫です。`;
+
 function TopTitle({ className }: { className?: string }) {
   return (
     <h1 className={cn("font-bold leading-normal", className)}>
@@ -39,31 +41,40 @@ function TopTitle({ className }: { className?: string }) {
 }
 
 /**
- * TOPページのデザイン比較モック（`/?design=a` / `/?design=b`）。
+ * TOPページのデザイン比較モック（`/?design=a` / `/?design=b` / `/?design=c`）。
  *
  * ルートの `data-top-design` は、ヘッダーとレイアウト枠（MainLayout）が
  * 案ごとの見た目に切り替えるための目印として CSS の `:has()` から参照する。
+ * `data-top-full-bleed` は、帯状の背景を画面幅いっぱいに敷く案（B・C）の目印。
  */
 export function TopDesignPage({
   design,
   currentDifficulty,
   bills,
 }: TopDesignPageProps) {
-  if (design === "b") {
+  if (design === "b" || design === "c") {
     return (
-      <div data-top-design="b" className="bg-background">
-        {/* 案B：タイトル直下に総合アシスタントの入力欄を置く */}
+      <div
+        data-top-design={design}
+        data-top-full-bleed
+        className="bg-background"
+      >
+        {/* 案B：タイトル直下に総合アシスタントの入力欄を置く。案C：入力欄の代わりに紹介文だけを置く */}
         <Container className="flex flex-col items-center gap-8 pb-10 pt-28 text-center md:pt-12">
           <div className="flex flex-col gap-3">
             <TopTitle className="text-2xl md:text-4xl" />
             <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
-              いまは『若者支援』について、知る・話すことができます
+              {design === "b"
+                ? "いまは『若者支援』について、知る・話すことができます"
+                : TOP_INTRO}
             </p>
           </div>
-          <TopAssistantPrompt
-            currentDifficulty={currentDifficulty}
-            bills={bills}
-          />
+          {design === "b" && (
+            <TopAssistantPrompt
+              currentDifficulty={currentDifficulty}
+              bills={bills}
+            />
+          )}
         </Container>
 
         <div className="bg-linear-to-b from-secondary to-background">
@@ -86,8 +97,7 @@ export function TopDesignPage({
         <div className="flex flex-col gap-3">
           <TopTitle className="text-2xl md:text-3xl" />
           <p className="text-sm leading-relaxed text-muted-foreground">
-            {SITE_NAME}
-            （チカット）は、佐賀市の今の取組を気軽に知ったり、AIと話しながら日ごろ感じていることや考えを伝えたりできる、新しい広聴のしくみです。見るだけでも、話すだけでも大丈夫です。
+            {TOP_INTRO}
           </p>
         </div>
         <ThemeCardList />
