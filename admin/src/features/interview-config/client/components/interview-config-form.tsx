@@ -1,6 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  EXTERNAL_IDENTITY_PROVIDERS,
+  isExternalIdentityProviderKey,
+} from "@mirai-gikai/shared/external-identity/providers";
+import {
+  DEFAULT_PARTICIPATION_MODE,
+  PARTICIPATION_MODE_DESCRIPTIONS,
+  PARTICIPATION_MODE_LABELS,
+  VALID_PARTICIPATION_MODES,
+} from "@mirai-gikai/shared/interview-participation/participation-mode";
 import { Eye } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
@@ -112,6 +122,12 @@ export function InterviewConfigForm({
       chat_model: config?.chat_model || null,
       estimated_duration: isNew ? 10 : (config?.estimated_duration ?? null),
       thumbnail_url: config?.thumbnail_url ?? null,
+      participation_mode:
+        config?.participation_mode ?? DEFAULT_PARTICIPATION_MODE,
+      // DB は text[] なので、レジストリにあるキーだけをフォームに載せる
+      allowed_provider_keys: (config?.allowed_provider_keys ?? []).filter(
+        isExternalIdentityProviderKey
+      ),
       // 紐づけ欄を出さないフォームでは undefined のままにして、保存時に紐づけへ触れない
       policy_ids: canEditPolicyLinks ? (linkedPolicyIds ?? []) : undefined,
     },
@@ -192,6 +208,7 @@ export function InterviewConfigForm({
   };
 
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const participationMode = form.watch("participation_mode");
   const handlePreview = async () => {
     if (!config || !billId) {
       toast.error("プレビューは施策に紐づく設定を保存した後に利用できます");
@@ -320,6 +337,54 @@ export function InterviewConfigForm({
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="participation_mode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>回答できる人</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="回答できる人を選択" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {VALID_PARTICIPATION_MODES.map((mode) => (
+                          <SelectItem key={mode} value={mode}>
+                            {PARTICIPATION_MODE_LABELS[mode]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      {PARTICIPATION_MODE_DESCRIPTIONS[field.value]}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {participationMode === "external_identity" && (
+                <FormField
+                  control={form.control}
+                  name="allowed_provider_keys"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>回答を受け付ける連携元</FormLabel>
+                      <FormDescription>
+                        ここで選んだアプリから開いた利用者だけが回答できます。
+                      </FormDescription>
+                      <ProviderCheckboxes
+                        value={field.value ?? []}
+                        onChange={field.onChange}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -488,6 +553,43 @@ function PolicyLinkCheckboxes({
               onCheckedChange={(checked) => toggle(option.id, checked === true)}
             />
             <span>{option.name}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+/** 回答を受け付ける連携元を選ぶチェックボックス群（登録済みレジストリから作る） */
+function ProviderCheckboxes({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const toggle = (key: string, checked: boolean) => {
+    onChange(checked ? [...value, key] : value.filter((k) => k !== key));
+  };
+
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      {EXTERNAL_IDENTITY_PROVIDERS.map((provider) => {
+        const checkboxId = `provider-${provider.key}`;
+        return (
+          <label
+            key={provider.key}
+            htmlFor={checkboxId}
+            className="flex cursor-pointer items-center gap-2 text-sm"
+          >
+            <Checkbox
+              id={checkboxId}
+              checked={value.includes(provider.key)}
+              onCheckedChange={(checked) =>
+                toggle(provider.key, checked === true)
+              }
+            />
+            <span>{provider.displayName}</span>
           </label>
         );
       })}

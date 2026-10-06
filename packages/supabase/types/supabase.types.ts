@@ -581,6 +581,7 @@ export type Database = {
       }
       interview_configs: {
         Row: {
+          allowed_provider_keys: string[]
           chat_model: string
           created_at: string
           deliberation_enabled: boolean
@@ -589,6 +590,7 @@ export type Database = {
           estimated_duration: number | null
           id: string
           name: string
+          participation_mode: Database["public"]["Enums"]["interview_participation_mode_enum"]
           slug: string
           starts_at: string | null
           status: Database["public"]["Enums"]["interview_config_status_enum"]
@@ -596,6 +598,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allowed_provider_keys?: string[]
           chat_model: string
           created_at?: string
           deliberation_enabled?: boolean
@@ -604,6 +607,7 @@ export type Database = {
           estimated_duration?: number | null
           id?: string
           name: string
+          participation_mode?: Database["public"]["Enums"]["interview_participation_mode_enum"]
           slug: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["interview_config_status_enum"]
@@ -611,6 +615,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allowed_provider_keys?: string[]
           chat_model?: string
           created_at?: string
           deliberation_enabled?: boolean
@@ -619,6 +624,7 @@ export type Database = {
           estimated_duration?: number | null
           id?: string
           name?: string
+          participation_mode?: Database["public"]["Enums"]["interview_participation_mode_enum"]
           slug?: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["interview_config_status_enum"]
@@ -1784,6 +1790,7 @@ export type Database = {
         | "too_many_questions"
         | "other"
       interview_mode_enum: "loop" | "bulk" | "targeted"
+      interview_participation_mode_enum: "public" | "external_identity"
       interview_report_role_enum:
         | "subject_expert"
         | "work_related"
@@ -1957,6 +1964,7 @@ export const Constants = {
         "other",
       ],
       interview_mode_enum: ["loop", "bulk", "targeted"],
+      interview_participation_mode_enum: ["public", "external_identity"],
       interview_report_role_enum: [
         "subject_expert",
         "work_related",

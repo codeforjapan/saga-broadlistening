@@ -3,22 +3,33 @@ import "server-only";
 import type { LanguageModel } from "ai";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
-import { resolveCurrentExternalIdentities } from "@/features/external-identity/server/services/resolve-current-external-identities";
 import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { generateInitialQuestion } from "@/features/interview-session/server/services/generate-initial-question";
 import type { InterviewMessage, InterviewSession } from "../../shared/types";
 import {
+  createInterviewSessionRecord,
   findActiveInterviewSession,
   findInterviewMessagesBySessionId,
   updateInterviewSessionExternalIdentity,
 } from "../repositories/interview-session-repository";
 import {
-  type CreateInterviewSessionDeps,
-  createInterviewSessionForUser,
-} from "../services/create-interview-session-core";
+  type ParticipationDeps,
+  requireInterviewParticipation,
+  resolveInterviewParticipation,
+} from "../services/resolve-interview-participation";
+import type { LoaderDeps } from "../utils/verify-session-ownership";
 
-type InitializeInterviewChatDeps = CreateInterviewSessionDeps & {
-  model?: LanguageModel;
+type InitializeInterviewChatDeps = LoaderDeps &
+  ParticipationDeps & {
+    model?: LanguageModel;
+  };
+
+type InitializeInterviewChatOptions = {
+  /**
+   * 職員のプレビュー（トークン検証済み）では参加条件を問わない。
+   * 通常ブラウザから外部ID必須のテーマを確認できるようにするため
+   */
+  skipParticipationCheck?: boolean;
 };
 
 type InitializeInterviewChatResult = {
@@ -28,12 +39,15 @@ type InitializeInterviewChatResult = {
 
 /**
  * インタビューチャットの初期化処理
- * セッション取得/作成、メッセージ履歴取得、最初の質問生成を行う
+ * 参加条件の判定、セッション取得/作成、メッセージ履歴取得、最初の質問生成を行う。
+ * 参加条件を満たさない場合は InterviewParticipationDeniedError を投げる
+ * （呼び出し側のページは LP へ戻す）。
  */
 export async function initializeInterviewChat(
   interviewConfig: NonNullable<InterviewConfig>,
   bill: BillWithContent | null,
-  deps?: InitializeInterviewChatDeps
+  deps?: InitializeInterviewChatDeps,
+  options?: InitializeInterviewChatOptions
 ): Promise<InitializeInterviewChatResult> {
   // 認証
   const getUser = deps?.getUser ?? getChatSupabaseUser;
@@ -48,18 +62,29 @@ export async function initializeInterviewChat(
     );
   }
 
-  // セッション取得または作成
+  // 参加条件の判定（回答開始前）。外部IDの解決はここで1回だけ行う
+  const participationParams = { rule: interviewConfig, userId: user.id, deps };
+  const { externalIdentityId } = options?.skipParticipationCheck
+    ? await resolveInterviewParticipation(participationParams)
+    : await requireInterviewParticipation(participationParams);
+
+  // セッション取得または作成。
+  // 紐付いている外部IDがあれば、参加条件に関係なく記録する
   let session = await findActiveInterviewSession(interviewConfig.id, user.id);
   if (!session) {
-    session = await createInterviewSessionForUser({
+    session = await createInterviewSessionRecord({
       interviewConfigId: interviewConfig.id,
       userId: user.id,
-      deps,
+      externalIdentityId,
     });
-  } else if (session.external_identity_id === null) {
+  } else if (session.external_identity_id === null && externalIdentityId) {
     // チャットページを開いた後に UID を受け取った（#uid= の送信が初回描画より遅れた）場合、
     // 進行中のセッションにも外部IDを後から記録する
-    session = await attachExternalIdentity(session, user.id, deps);
+    await updateInterviewSessionExternalIdentity(
+      session.id,
+      externalIdentityId
+    );
+    session = { ...session, external_identity_id: externalIdentityId };
   }
 
   // メッセージ履歴を取得
@@ -84,19 +109,4 @@ export async function initializeInterviewChat(
     session,
     messages,
   };
-}
-
-/** 進行中セッションに、いま紐付いている外部IDがあれば記録して返す */
-async function attachExternalIdentity(
-  session: InterviewSession,
-  userId: string,
-  deps?: InitializeInterviewChatDeps
-): Promise<InterviewSession> {
-  const getExternalIdentities =
-    deps?.getExternalIdentities ?? resolveCurrentExternalIdentities;
-  const [externalIdentity] = await getExternalIdentities(userId);
-  if (!externalIdentity) return session;
-
-  await updateInterviewSessionExternalIdentity(session.id, externalIdentity.id);
-  return { ...session, external_identity_id: externalIdentity.id };
 }

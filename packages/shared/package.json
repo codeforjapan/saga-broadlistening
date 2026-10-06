@@ -175,6 +175,10 @@
     "./external-identity/providers": {
       "types": "./src/external-identity/providers.ts",
       "default": "./src/external-identity/providers.ts"
+    },
+    "./interview-participation/participation-mode": {
+      "types": "./src/interview-participation/participation-mode.ts",
+      "default": "./src/interview-participation/participation-mode.ts"
     }
   },
   "dependencies": {

@@ -14,6 +14,8 @@ export type InterviewChatContext = {
   bill: BillWithContent | null;
   /** テレメトリと利用コスト記録に残す施策ID */
   policyId: string | null;
+  /** 職員のプレビュー（トークン検証済み）。参加条件を問わない */
+  isPreview: boolean;
 };
 
 type ResolveParams = {
@@ -69,5 +71,10 @@ export async function resolveInterviewChatContext({
         ? await getBillById(access.policyId)
         : null;
 
-  return { interviewConfig, bill, policyId: access.policyId };
+  return {
+    interviewConfig,
+    bill,
+    policyId: access.policyId,
+    isPreview: access.mode === "preview",
+  };
 }

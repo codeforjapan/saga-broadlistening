@@ -19,6 +19,11 @@ export function chatErrorToResponse(error: unknown): Response {
           "今月の利用上限に達しました。来月1日以降に再度お試しください。",
           429
         );
+      case ChatErrorCode.INTERVIEW_PARTICIPATION_DENIED:
+        return textResponse(
+          "このテーマに回答するための条件を満たしていません。",
+          403
+        );
       default:
         return textResponse(
           "エラーが発生しました。しばらく待ってから再度お試しください。",

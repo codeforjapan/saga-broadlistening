@@ -224,6 +224,8 @@ export async function duplicateInterviewConfig(
         chat_model: originalConfig.chat_model,
         estimated_duration: originalConfig.estimated_duration,
         thumbnail_url: originalConfig.thumbnail_url,
+        participation_mode: originalConfig.participation_mode,
+        allowed_provider_keys: originalConfig.allowed_provider_keys,
       });
       await linkPolicyToInterviewConfig(targetBillId, newConfig.id);
     } catch (error) {

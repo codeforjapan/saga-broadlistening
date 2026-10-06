@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { InterviewParticipationRule } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import { createAdminClient } from "@mirai-gikai/supabase";
 import type { InterviewConfig, InterviewQuestion } from "../../shared/types";
 
@@ -213,15 +214,17 @@ async function findInterviewConfigIdsByPolicyIds(
   return [...new Set(data.map((row) => row.interview_config_id))];
 }
 
-export async function createInterviewConfigRecord(params: {
-  name: string;
-  slug: string;
-  status: "draft" | "open" | "closed";
-  description: string | null;
-  chat_model: string;
-  estimated_duration: number | null;
-  thumbnail_url?: string | null;
-}): Promise<{ id: string }> {
+export async function createInterviewConfigRecord(
+  params: InterviewParticipationRule & {
+    name: string;
+    slug: string;
+    status: "draft" | "open" | "closed";
+    description: string | null;
+    chat_model: string;
+    estimated_duration: number | null;
+    thumbnail_url?: string | null;
+  }
+): Promise<{ id: string }> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_configs")
@@ -238,7 +241,7 @@ export async function createInterviewConfigRecord(params: {
 
 export async function updateInterviewConfigRecord(
   configId: string,
-  params: {
+  params: InterviewParticipationRule & {
     name: string;
     slug: string;
     status: "draft" | "open" | "closed";

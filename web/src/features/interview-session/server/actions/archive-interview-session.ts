@@ -1,7 +1,7 @@
 "use server";
 
 import { updateInterviewSessionArchived } from "../repositories/interview-session-repository";
-import { verifySessionOwnership } from "../utils/verify-session-ownership";
+import { verifySessionAccess } from "../utils/verify-session-ownership";
 
 interface ArchiveInterviewSessionResult {
   success: boolean;
@@ -15,7 +15,7 @@ interface ArchiveInterviewSessionResult {
 export async function archiveInterviewSession(
   sessionId: string
 ): Promise<ArchiveInterviewSessionResult> {
-  const ownershipResult = await verifySessionOwnership(sessionId);
+  const ownershipResult = await verifySessionAccess(sessionId);
 
   if (!ownershipResult.authorized) {
     return { success: false, error: ownershipResult.error };

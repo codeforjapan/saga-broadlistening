@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +9,8 @@ import { policyInterviewTarget } from "@/features/interview-config/shared/types/
 import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
+import { InterviewParticipationDeniedError } from "@/features/interview-session/server/services/resolve-interview-participation";
+import { routes } from "@/lib/routes";
 
 interface InterviewChatPageProps {
   params: Promise<{
@@ -55,6 +57,10 @@ export default async function InterviewChatPage({
       />
     );
   } catch (error) {
+    // 参加条件を満たさない場合は回答を始めずに LP へ戻す（LP 側で回答方法を案内する）
+    if (error instanceof InterviewParticipationDeniedError) {
+      redirect(routes.interviewLP(billId));
+    }
     console.error("Failed to initialize interview session:", error);
     return <InterviewSessionErrorView target={policyInterviewTarget(billId)} />;
   }

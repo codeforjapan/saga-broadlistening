@@ -1,5 +1,7 @@
 "use client";
 
+import { isExternalIdentityProviderKey } from "@mirai-gikai/shared/external-identity/providers";
+import { DEFAULT_PARTICIPATION_MODE } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -110,6 +112,9 @@ export function InterviewConfigEditClient({
             slug: formValues?.slug || `config-${Date.now()}`,
             status: "draft",
             description,
+            participation_mode:
+              formValues?.participation_mode ?? DEFAULT_PARTICIPATION_MODE,
+            allowed_provider_keys: formValues?.allowed_provider_keys ?? [],
             // 施策配下の画面では、開いている施策との紐づけを必ず作る
             policy_ids: billId
               ? [billId]
@@ -193,6 +198,15 @@ export function InterviewConfigEditClient({
         slug: formValues?.slug || initialConfig?.slug || `config-${Date.now()}`,
         status: formValues?.status ?? initialConfig?.status ?? "draft",
         description,
+        participation_mode:
+          formValues?.participation_mode ??
+          initialConfig?.participation_mode ??
+          DEFAULT_PARTICIPATION_MODE,
+        allowed_provider_keys:
+          formValues?.allowed_provider_keys ??
+          (initialConfig?.allowed_provider_keys ?? []).filter(
+            isExternalIdentityProviderKey
+          ),
       });
       if (result.success) {
         setAiGeneratedThemes(themes);

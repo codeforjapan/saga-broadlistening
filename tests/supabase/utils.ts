@@ -113,6 +113,8 @@ export type TestInterviewConfigOverrides = Partial<{
   deliberation_enabled: boolean;
   estimated_duration: number;
   thumbnail_url: string;
+  participation_mode: "public" | "external_identity";
+  allowed_provider_keys: string[];
 }>;
 
 export type TestInterviewSessionOverrides = Partial<{

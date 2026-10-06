@@ -74,9 +74,12 @@ export default async function InterviewPreviewChatPage({
 
   // インタビューチャットの初期化処理
   try {
+    // プレビューは職員の確認用なので、テーマの参加条件は問わない
     const { session, messages } = await initializeInterviewChat(
       interviewConfig,
-      bill
+      bill,
+      undefined,
+      { skipParticipationCheck: true }
     );
 
     return (

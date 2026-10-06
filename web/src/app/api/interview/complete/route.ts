@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { completeInterviewSession } from "@/features/interview-session/server/services/complete-interview-session";
-import { verifySessionOwnership } from "@/features/interview-session/server/utils/verify-session-ownership";
+import { verifySessionAccess } from "@/features/interview-session/server/utils/verify-session-ownership";
 import {
   isInvalidOptionalBooleanInput,
   parseOptionalBoolean,
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const ownershipResult = await verifySessionOwnership(sessionId);
+  const ownershipResult = await verifySessionAccess(sessionId);
   if (!ownershipResult.authorized) {
     return NextResponse.json({ error: ownershipResult.error }, { status: 403 });
   }

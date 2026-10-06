@@ -102,13 +102,15 @@ export async function findLatestNonArchivedSession(
 }
 
 /**
- * セッションの所有者情報（user_id）を取得
+ * セッションの所有者情報（user_id）と、属するテーマの参加条件を取得
  */
 export async function findSessionOwnerById(sessionId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .select("user_id")
+    .select(
+      "user_id, interview_configs!inner(participation_mode, allowed_provider_keys)"
+    )
     .eq("id", sessionId)
     .single();
 

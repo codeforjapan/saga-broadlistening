@@ -2,9 +2,10 @@ import "server-only";
 
 import { updateInterviewSessionArchived } from "../repositories/interview-session-repository";
 import {
-  verifySessionOwnership,
   type LoaderDeps,
+  verifySessionAccess,
 } from "../utils/verify-session-ownership";
+import type { ParticipationDeps } from "./resolve-interview-participation";
 
 export interface ArchiveInterviewSessionResult {
   success: boolean;
@@ -17,9 +18,9 @@ export interface ArchiveInterviewSessionResult {
  */
 export async function archiveInterviewSessionCore(
   sessionId: string,
-  deps?: LoaderDeps
+  deps?: LoaderDeps & ParticipationDeps
 ): Promise<ArchiveInterviewSessionResult> {
-  const ownershipResult = await verifySessionOwnership(sessionId, deps);
+  const ownershipResult = await verifySessionAccess(sessionId, deps);
 
   if (!ownershipResult.authorized) {
     return { success: false, error: ownershipResult.error };

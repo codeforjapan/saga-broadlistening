@@ -14,7 +14,6 @@ import {
 } from "@/features/chat/server/services/cost-tracker";
 import { ChatError, ChatErrorCode } from "@/features/chat/shared/types/errors";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { createInterviewSession } from "@/features/interview-session/server/actions/create-interview-session";
 import { getInterviewMessages } from "@/features/interview-session/server/loaders/get-interview-messages";
 import { getInterviewSession } from "@/features/interview-session/server/loaders/get-interview-session";
 import {
@@ -37,15 +36,20 @@ import { buildSummaryModelMessages } from "../../shared/utils/build-summary-mode
 import { ensureTrailingUserMessage } from "../../shared/utils/ensure-trailing-user-message";
 import { calculateLoopModeNextQuestionId } from "../../shared/utils/interview-logic/loop-mode";
 import { mergeMessagesWithIds } from "../../shared/utils/merge-messages-with-ids";
+import { createInterviewSessionRecord } from "../repositories/interview-session-repository";
 import {
   buildInterviewSystemPrompt,
   buildSummarySystemPrompt,
 } from "../utils/build-interview-system-prompt";
 import { collectAskedQuestionIds } from "../utils/interview-logic";
+import {
+  type ParticipationDeps,
+  resolveInterviewParticipation,
+} from "./resolve-interview-participation";
 import { saveInterviewMessage } from "./save-interview-message";
 
 /** テスト時にモック注入するための外部依存 */
-export type InterviewChatDeps = {
+export type InterviewChatDeps = ParticipationDeps & {
   chatModel?: LanguageModel;
   summaryModel?: LanguageModel;
   /** テスト時に認証をバイパスするためのセッション取得関数 */
@@ -98,7 +102,18 @@ export async function handleInterviewChatRequest({
     throw new Error("Interview config not found");
   }
 
-  const { interviewConfig, bill, policyId } = context;
+  const { interviewConfig, bill, policyId, isPreview } = context;
+
+  // 参加条件の判定（プレビューは職員の確認用なので問わない）。
+  // 外部IDの解決はここで1回だけ行い、セッション作成時の記録にも使う
+  const participation = await resolveInterviewParticipation({
+    rule: interviewConfig,
+    userId,
+    deps,
+  });
+  if (!isPreview && !participation.allowed) {
+    throw new ChatError(ChatErrorCode.INTERVIEW_PARTICIPATION_DENIED);
+  }
 
   // 最新のメッセージを取得
   const lastMessage = messages[messages.length - 1];
@@ -110,7 +125,11 @@ export async function handleInterviewChatRequest({
     const getMessagesFn = deps?.getMessages ?? getInterviewMessages;
     const session =
       (await getSessionFn(interviewConfig.id)) ??
-      (await createInterviewSession({ interviewConfigId: interviewConfig.id }));
+      (await createInterviewSessionRecord({
+        interviewConfigId: interviewConfig.id,
+        userId,
+        externalIdentityId: participation.externalIdentityId,
+      }));
 
     // ユーザーメッセージを保存（保存後に取得することで dbMessages に最新を含める）
     if (lastMessage?.role === "user" && lastMessage.content.trim()) {
