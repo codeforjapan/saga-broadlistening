@@ -3,7 +3,10 @@
 import { useState } from "react";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
-import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import {
+  type InterviewTarget,
+  previewCredentialOf,
+} from "@/features/interview-config/shared/types/interview-target";
 import { InterviewPublicConsentModal } from "@/features/interview-report/client/components/interview-public-consent-modal";
 import { useEndInterview } from "../hooks/use-end-interview";
 import { useInterviewCompletion } from "../hooks/use-interview-completion";
@@ -37,6 +40,7 @@ export function InterviewSummaryInput({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { isCompleting, completeError, handleSubmit } = useInterviewCompletion({
     sessionId,
+    preview: previewCredentialOf(target),
   });
   const { endInterview, isEnding } = useEndInterview(sessionId, target);
 

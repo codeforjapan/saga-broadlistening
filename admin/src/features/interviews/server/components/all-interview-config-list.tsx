@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { InterviewConfigWithBill } from "@/features/interview-config/server/repositories/interview-config-repository";
+import { PARTICIPATION_MODE_FIELD_LABEL } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import { ParticipationModeBadge } from "@/features/interview-config/client/components/participation-mode-badge";
 import { getStatusLabel } from "@/features/interview-config/shared/utils/get-status-label";
 import { routes } from "@/lib/routes";
@@ -43,7 +44,7 @@ export function AllInterviewConfigList({
                 <TableHead>設定名</TableHead>
                 <TableHead>施策</TableHead>
                 <TableHead>ステータス</TableHead>
-                <TableHead>回答できる人</TableHead>
+                <TableHead>{PARTICIPATION_MODE_FIELD_LABEL}</TableHead>
                 <TableHead>セッション数</TableHead>
                 <TableHead>作成日</TableHead>
                 <TableHead>リンク</TableHead>

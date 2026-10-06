@@ -31,10 +31,23 @@ export const PARTICIPATION_MODE_DESCRIPTIONS: Record<
 };
 
 /** テーマの参加条件（interview_configs の該当列） */
-export type InterviewParticipationRule = {
-  participation_mode: InterviewParticipationMode;
-  allowed_provider_keys: string[];
+export type InterviewParticipationRule = Pick<
+  Database["public"]["Tables"]["interview_configs"]["Row"],
+  "participation_mode" | "allowed_provider_keys"
+>;
+
+/** 誰でも回答できる条件。職員プレビューなど参加条件を問わない経路で使う */
+export const PUBLIC_PARTICIPATION_RULE: InterviewParticipationRule = {
+  participation_mode: "public",
+  allowed_provider_keys: [],
 };
+
+/** admin のフォーム・一覧で使う項目名 */
+export const PARTICIPATION_MODE_FIELD_LABEL = "回答できる人";
+
+/** 参加条件を満たさないときに利用者へ返す文言 */
+export const INTERVIEW_PARTICIPATION_DENIED_MESSAGE =
+  "このテーマに回答するための条件を満たしていません";
 
 /**
  * 利用者がテーマに回答できるかを判定する。

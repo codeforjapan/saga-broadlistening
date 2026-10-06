@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { completeInterviewSession } from "@/features/interview-session/server/services/complete-interview-session";
-import { verifySessionAccess } from "@/features/interview-session/server/utils/verify-session-ownership";
+import { verifySessionAccess } from "@/features/interview-session/server/services/verify-session-access";
 import {
   isInvalidOptionalBooleanInput,
   parseOptionalBoolean,
 } from "@/features/interview-session/shared/utils/optional-boolean";
 
 export async function POST(req: Request) {
-  const { sessionId, isPublic, isDataReuseConsented } = await req.json();
+  const { sessionId, isPublic, isDataReuseConsented, preview } =
+    await req.json();
   const isPublicByUser = parseOptionalBoolean(isPublic);
   const dataReuseConsented = parseOptionalBoolean(isDataReuseConsented);
 
@@ -29,7 +30,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const ownershipResult = await verifySessionAccess(sessionId);
+  // プレビュー（職員確認）からの完了は、トークンが有効なら参加条件を問わない
+  const previewCredential =
+    typeof preview?.policyId === "string" && typeof preview?.token === "string"
+      ? { policyId: preview.policyId, token: preview.token }
+      : undefined;
+  const ownershipResult = await verifySessionAccess(sessionId, {
+    preview: previewCredential,
+  });
   if (!ownershipResult.authorized) {
     return NextResponse.json({ error: ownershipResult.error }, { status: 403 });
   }

@@ -49,6 +49,7 @@ import {
 } from "../../server/actions/upsert-interview-config";
 import type { InterviewConfig } from "../../shared/types";
 import { getStatusLabel } from "../../shared/utils/get-status-label";
+import { PARTICIPATION_MODE_FIELD_LABEL } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import { ParticipationModeBadge } from "./participation-mode-badge";
 import {
   type BillOption,
@@ -158,7 +159,7 @@ export function InterviewConfigList({
                 <TableRow>
                   <TableHead>設定名</TableHead>
                   <TableHead>ステータス</TableHead>
-                  <TableHead>回答できる人</TableHead>
+                  <TableHead>{PARTICIPATION_MODE_FIELD_LABEL}</TableHead>
                   <TableHead>セッション数</TableHead>
                   <TableHead>作成日</TableHead>
                   <TableHead>リンク</TableHead>

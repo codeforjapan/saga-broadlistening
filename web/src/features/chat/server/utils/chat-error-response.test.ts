@@ -1,8 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+import { InterviewParticipationDeniedError } from "@/features/interview-session/shared/types/errors";
 import { ChatError, ChatErrorCode } from "../../shared/types/errors";
 import { chatErrorToResponse } from "./chat-error-response";
 
 describe("chatErrorToResponse", () => {
+  it("InterviewParticipationDeniedError で 403 を返す", async () => {
+    const res = chatErrorToResponse(new InterviewParticipationDeniedError());
+    expect(res.status).toBe(403);
+    expect(await res.text()).toContain("条件を満たしていません");
+  });
+
   it("DAILY_COST_LIMIT_REACHED で 429 を返す", async () => {
     const res = chatErrorToResponse(
       new ChatError(ChatErrorCode.DAILY_COST_LIMIT_REACHED)

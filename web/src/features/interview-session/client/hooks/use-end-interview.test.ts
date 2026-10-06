@@ -38,7 +38,7 @@ describe("useEndInterview", () => {
       await result.current.endInterview();
     });
 
-    expect(mockArchive).toHaveBeenCalledWith("session-1");
+    expect(mockArchive).toHaveBeenCalledWith("session-1", undefined);
     expect(mockPush).toHaveBeenCalledWith("/bills/bill-1");
     // archive → push の順序を固定（順序逆転の回帰を検出）
     expect(mockArchive.mock.invocationCallOrder[0]).toBeLessThan(
@@ -55,6 +55,11 @@ describe("useEndInterview", () => {
 
     await act(async () => {
       await result.current.endInterview();
+    });
+
+    expect(mockArchive).toHaveBeenCalledWith("session-1", {
+      policyId: "bill-1",
+      token: "token-1",
     });
 
     expect(mockPush).toHaveBeenCalledWith(
@@ -92,7 +97,7 @@ describe("useEndInterview", () => {
       await result.current.endInterview();
     });
 
-    expect(mockArchive).toHaveBeenCalledWith("session-1");
+    expect(mockArchive).toHaveBeenCalledWith("session-1", undefined);
     expect(mockPush).toHaveBeenCalledWith("/bills/bill-1");
   });
 

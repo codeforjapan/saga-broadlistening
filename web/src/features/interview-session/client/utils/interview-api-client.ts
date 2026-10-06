@@ -2,6 +2,8 @@ interface CompleteInterviewParams {
   sessionId: string;
   isPublic: boolean;
   isDataReuseConsented: boolean;
+  /** 職員プレビューからの完了。トークンが有効なら参加条件を問わない */
+  preview?: { policyId: string; token: string };
 }
 
 interface CompleteInterviewResult {

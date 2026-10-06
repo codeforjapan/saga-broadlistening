@@ -1,3 +1,4 @@
+import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -6,12 +7,12 @@ import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { getInterviewConfigBySlug } from "@/features/interview-config/server/loaders/get-interview-config-by-slug";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
 import { themeInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
 import { selectPrimaryPolicyId } from "@/features/interview-config/shared/utils/interview-visibility";
 import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 import { InterviewParticipationDeniedError } from "@/features/interview-session/server/services/resolve-interview-participation";
-import { routes } from "@/lib/routes";
 
 interface ThemeChatPageProps {
   params: Promise<{
@@ -59,9 +60,10 @@ export default async function ThemeChatPage({ params }: ThemeChatPageProps) {
       />
     );
   } catch (error) {
-    // 参加条件を満たさない場合は回答を始めずに LP へ戻す（LP 側で回答方法を案内する）
+    // 参加条件を満たさない場合は回答を始めずに LP へ戻す。
+    // LP 側の案内（回答ボタンの差し替え）は #145 で対応する
     if (error instanceof InterviewParticipationDeniedError) {
-      redirect(routes.interviewThemeLP(slug));
+      redirect(getInterviewLPLink(target) as Route);
     }
     console.error("Failed to initialize interview session (theme):", error);
     return <InterviewSessionErrorView target={target} />;

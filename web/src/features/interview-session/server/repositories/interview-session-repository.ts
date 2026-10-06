@@ -102,20 +102,39 @@ export async function findLatestNonArchivedSession(
 }
 
 /**
- * セッションの所有者情報（user_id）と、属するテーマの参加条件を取得
+ * セッションの所有者情報（user_id）を取得
  */
 export async function findSessionOwnerById(sessionId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .select(
-      "user_id, interview_configs!inner(participation_mode, allowed_provider_keys)"
-    )
+    .select("user_id")
     .eq("id", sessionId)
     .single();
 
   if (error) {
     throw new Error(`Failed to fetch session owner: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * 会話を進める操作の認可に必要な情報（所有者・テーマの参加条件・紐づく施策）を取得。
+ * 参加条件を見ない所有者確認（findSessionOwnerById）とは分け、結合のコストを限定する
+ */
+export async function findSessionAccessInfoById(sessionId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select(
+      "user_id, interview_configs!inner(participation_mode, allowed_provider_keys, policies_interview_configs(policy_id))"
+    )
+    .eq("id", sessionId)
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to fetch session access info: ${error.message}`);
   }
 
   return data;

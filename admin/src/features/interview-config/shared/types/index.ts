@@ -1,5 +1,8 @@
 import { EXTERNAL_IDENTITY_PROVIDER_KEYS } from "@mirai-gikai/shared/external-identity/providers";
-import { VALID_PARTICIPATION_MODES } from "@mirai-gikai/shared/interview-participation/participation-mode";
+import {
+  PARTICIPATION_MODE_LABELS,
+  VALID_PARTICIPATION_MODES,
+} from "@mirai-gikai/shared/interview-participation/participation-mode";
 import type { Database } from "@mirai-gikai/supabase";
 import { z } from "zod";
 import { isValidChatModel } from "../utils/chat-model-options";
@@ -69,8 +72,7 @@ export const interviewConfigSchema = z
       config.participation_mode !== "external_identity" ||
       config.allowed_provider_keys.length > 0,
     {
-      message:
-        "外部アプリの利用者のみにする場合は、連携元を1つ以上選んでください",
+      message: `「${PARTICIPATION_MODE_LABELS.external_identity}」にする場合は、連携元を1つ以上選んでください`,
       path: ["allowed_provider_keys"],
     }
   );

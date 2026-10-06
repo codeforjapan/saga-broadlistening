@@ -2,10 +2,10 @@ import "server-only";
 
 import { updateInterviewSessionArchived } from "../repositories/interview-session-repository";
 import {
-  type LoaderDeps,
+  type PreviewCredential,
+  type SessionAccessDeps,
   verifySessionAccess,
-} from "../utils/verify-session-ownership";
-import type { ParticipationDeps } from "./resolve-interview-participation";
+} from "./verify-session-access";
 
 export interface ArchiveInterviewSessionResult {
   success: boolean;
@@ -14,13 +14,17 @@ export interface ArchiveInterviewSessionResult {
 
 /**
  * インタビューセッションをアーカイブするコアロジック
- * テストからはDIで認証を差し替え可能
+ * テストからはDIで認証・外部IDの解決を差し替え可能
  */
 export async function archiveInterviewSessionCore(
   sessionId: string,
-  deps?: LoaderDeps & ParticipationDeps
+  options: { preview?: PreviewCredential; deps?: SessionAccessDeps } = {}
 ): Promise<ArchiveInterviewSessionResult> {
-  const ownershipResult = await verifySessionAccess(sessionId, deps);
+  const ownershipResult = await verifySessionAccess(
+    sessionId,
+    { preview: options.preview },
+    options.deps
+  );
 
   if (!ownershipResult.authorized) {
     return { success: false, error: ownershipResult.error };

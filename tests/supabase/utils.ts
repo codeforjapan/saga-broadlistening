@@ -113,7 +113,7 @@ export type TestInterviewConfigOverrides = Partial<{
   deliberation_enabled: boolean;
   estimated_duration: number;
   thumbnail_url: string;
-  participation_mode: "public" | "external_identity";
+  participation_mode: Database["public"]["Enums"]["interview_participation_mode_enum"];
   allowed_provider_keys: string[];
 }>;
 

@@ -12,24 +12,16 @@ import {
   findInterviewMessagesBySessionId,
   updateInterviewSessionExternalIdentity,
 } from "../repositories/interview-session-repository";
-import {
-  type ParticipationDeps,
-  requireInterviewParticipation,
-  resolveInterviewParticipation,
-} from "../services/resolve-interview-participation";
-import type { LoaderDeps } from "../utils/verify-session-ownership";
+import { requireInterviewParticipation } from "../services/resolve-interview-participation";
+import type { SessionAccessDeps } from "../services/verify-session-access";
 
-type InitializeInterviewChatDeps = LoaderDeps &
-  ParticipationDeps & {
-    model?: LanguageModel;
-  };
+type InitializeInterviewChatDeps = SessionAccessDeps & {
+  model?: LanguageModel;
+};
 
 type InitializeInterviewChatOptions = {
-  /**
-   * 職員のプレビュー（トークン検証済み）では参加条件を問わない。
-   * 通常ブラウザから外部ID必須のテーマを確認できるようにするため
-   */
-  skipParticipationCheck?: boolean;
+  /** 職員のプレビュー（トークン検証済み）。参加条件を問わない */
+  isPreview?: boolean;
 };
 
 type InitializeInterviewChatResult = {
@@ -46,9 +38,12 @@ type InitializeInterviewChatResult = {
 export async function initializeInterviewChat(
   interviewConfig: NonNullable<InterviewConfig>,
   bill: BillWithContent | null,
-  deps?: InitializeInterviewChatDeps,
-  options?: InitializeInterviewChatOptions
+  options: InitializeInterviewChatOptions & {
+    deps?: InitializeInterviewChatDeps;
+  } = {}
 ): Promise<InitializeInterviewChatResult> {
+  const { deps, isPreview } = options;
+
   // 認証
   const getUser = deps?.getUser ?? getChatSupabaseUser;
   const {
@@ -62,15 +57,21 @@ export async function initializeInterviewChat(
     );
   }
 
-  // 参加条件の判定（回答開始前）。外部IDの解決はここで1回だけ行う
-  const participationParams = { rule: interviewConfig, userId: user.id, deps };
-  const { externalIdentityId } = options?.skipParticipationCheck
-    ? await resolveInterviewParticipation(participationParams)
-    : await requireInterviewParticipation(participationParams);
+  // 参加条件の判定（回答開始前。外部IDの解決はここで1回だけ）と
+  // 進行中セッションの取得は互いに依存しないので並列に走らせる。
+  // 拒否はセッションを書き込む前に throw される
+  const [{ externalIdentityId }, activeSession] = await Promise.all([
+    requireInterviewParticipation({
+      rule: interviewConfig,
+      userId: user.id,
+      isPreview,
+      deps,
+    }),
+    findActiveInterviewSession(interviewConfig.id, user.id),
+  ]);
 
-  // セッション取得または作成。
-  // 紐付いている外部IDがあれば、参加条件に関係なく記録する
-  let session = await findActiveInterviewSession(interviewConfig.id, user.id);
+  // セッション取得または作成。紐付いている外部IDがあれば、参加条件に関係なく記録する
+  let session = activeSession;
   if (!session) {
     session = await createInterviewSessionRecord({
       interviewConfigId: interviewConfig.id,

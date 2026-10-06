@@ -1,13 +1,10 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { EXTERNAL_IDENTITY_PROVIDERS } from "@mirai-gikai/shared/external-identity/providers";
 import {
-  EXTERNAL_IDENTITY_PROVIDERS,
-  isExternalIdentityProviderKey,
-} from "@mirai-gikai/shared/external-identity/providers";
-import {
-  DEFAULT_PARTICIPATION_MODE,
   PARTICIPATION_MODE_DESCRIPTIONS,
+  PARTICIPATION_MODE_FIELD_LABEL,
   PARTICIPATION_MODE_LABELS,
   VALID_PARTICIPATION_MODES,
 } from "@mirai-gikai/shared/interview-participation/participation-mode";
@@ -21,7 +18,7 @@ import { toast } from "sonner";
 import { AiModelSelect } from "@/components/ai-model-select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { CheckboxGroup } from "@/components/checkbox-group";
 import {
   Form,
   FormControl,
@@ -55,6 +52,7 @@ import {
 } from "../../shared/types";
 import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
 import { generateDefaultConfigName } from "../../shared/utils/default-config-name";
+import { toParticipationFormValues } from "../../shared/utils/participation-form-values";
 
 /** 紐づけ先として選べる施策 */
 export type PolicyOption = { id: string; name: string };
@@ -122,12 +120,7 @@ export function InterviewConfigForm({
       chat_model: config?.chat_model || null,
       estimated_duration: isNew ? 10 : (config?.estimated_duration ?? null),
       thumbnail_url: config?.thumbnail_url ?? null,
-      participation_mode:
-        config?.participation_mode ?? DEFAULT_PARTICIPATION_MODE,
-      // DB は text[] なので、レジストリにあるキーだけをフォームに載せる
-      allowed_provider_keys: (config?.allowed_provider_keys ?? []).filter(
-        isExternalIdentityProviderKey
-      ),
+      ...toParticipationFormValues(config),
       // 紐づけ欄を出さないフォームでは undefined のままにして、保存時に紐づけへ触れない
       policy_ids: canEditPolicyLinks ? (linkedPolicyIds ?? []) : undefined,
     },
@@ -343,11 +336,13 @@ export function InterviewConfigForm({
                 name="participation_mode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>回答できる人</FormLabel>
+                    <FormLabel>{PARTICIPATION_MODE_FIELD_LABEL}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="回答できる人を選択" />
+                          <SelectValue
+                            placeholder={`${PARTICIPATION_MODE_FIELD_LABEL}を選択`}
+                          />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -376,8 +371,13 @@ export function InterviewConfigForm({
                       <FormDescription>
                         ここで選んだアプリから開いた利用者だけが回答できます。
                       </FormDescription>
-                      <ProviderCheckboxes
-                        value={field.value ?? []}
+                      <CheckboxGroup
+                        idPrefix="provider"
+                        options={EXTERNAL_IDENTITY_PROVIDERS.map((p) => ({
+                          id: p.key,
+                          label: p.displayName,
+                        }))}
+                        value={field.value}
                         onChange={field.onChange}
                       />
                       <FormMessage />
@@ -469,11 +469,22 @@ export function InterviewConfigForm({
                       <FormDescription>
                         この意見募集を紐づける施策を選びます。1件も選ばない場合は、特定の施策に紐づかないテーマ（抽象テーマ）になります。
                       </FormDescription>
-                      <PolicyLinkCheckboxes
-                        options={policyOptions}
-                        value={field.value ?? []}
-                        onChange={field.onChange}
-                      />
+                      {policyOptions.length === 0 ? (
+                        <p className="text-sm text-gray-500">
+                          紐づけられる施策がありません。
+                        </p>
+                      ) : (
+                        <CheckboxGroup
+                          idPrefix="policy-link"
+                          options={policyOptions.map((o) => ({
+                            id: o.id,
+                            label: o.name,
+                          }))}
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                          className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3"
+                        />
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -511,88 +522,6 @@ export function InterviewConfigForm({
           </Form>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-/** 紐づける施策を複数選ぶチェックボックス群 */
-function PolicyLinkCheckboxes({
-  options,
-  value,
-  onChange,
-}: {
-  options: PolicyOption[];
-  value: string[];
-  onChange: (next: string[]) => void;
-}) {
-  if (options.length === 0) {
-    return (
-      <p className="text-sm text-gray-500">紐づけられる施策がありません。</p>
-    );
-  }
-
-  const toggle = (policyId: string, checked: boolean) => {
-    onChange(
-      checked ? [...value, policyId] : value.filter((id) => id !== policyId)
-    );
-  };
-
-  return (
-    <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3">
-      {options.map((option) => {
-        const checkboxId = `policy-link-${option.id}`;
-        return (
-          <label
-            key={option.id}
-            htmlFor={checkboxId}
-            className="flex cursor-pointer items-center gap-2 text-sm"
-          >
-            <Checkbox
-              id={checkboxId}
-              checked={value.includes(option.id)}
-              onCheckedChange={(checked) => toggle(option.id, checked === true)}
-            />
-            <span>{option.name}</span>
-          </label>
-        );
-      })}
-    </div>
-  );
-}
-
-/** 回答を受け付ける連携元を選ぶチェックボックス群（登録済みレジストリから作る） */
-function ProviderCheckboxes({
-  value,
-  onChange,
-}: {
-  value: string[];
-  onChange: (next: string[]) => void;
-}) {
-  const toggle = (key: string, checked: boolean) => {
-    onChange(checked ? [...value, key] : value.filter((k) => k !== key));
-  };
-
-  return (
-    <div className="space-y-2 rounded-md border p-3">
-      {EXTERNAL_IDENTITY_PROVIDERS.map((provider) => {
-        const checkboxId = `provider-${provider.key}`;
-        return (
-          <label
-            key={provider.key}
-            htmlFor={checkboxId}
-            className="flex cursor-pointer items-center gap-2 text-sm"
-          >
-            <Checkbox
-              id={checkboxId}
-              checked={value.includes(provider.key)}
-              onCheckedChange={(checked) =>
-                toggle(provider.key, checked === true)
-              }
-            />
-            <span>{provider.displayName}</span>
-          </label>
-        );
-      })}
     </div>
   );
 }

@@ -3,7 +3,10 @@
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import {
+  type InterviewTarget,
+  previewCredentialOf,
+} from "@/features/interview-config/shared/types/interview-target";
 import { getInterviewChatLink } from "@/features/interview-config/shared/utils/interview-links";
 import { archiveInterviewSession } from "../../server/actions/archive-interview-session";
 
@@ -17,7 +20,10 @@ export function useArchiveAndNavigate(
   const execute = async () => {
     setIsLoading(true);
     try {
-      const result = await archiveInterviewSession(sessionId);
+      const result = await archiveInterviewSession(
+        sessionId,
+        previewCredentialOf(target)
+      );
       if (result.success) {
         const chatLink = getInterviewChatLink(target);
         router.push(chatLink as Route);

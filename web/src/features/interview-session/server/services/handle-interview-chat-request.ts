@@ -42,9 +42,11 @@ import {
   buildSummarySystemPrompt,
 } from "../utils/build-interview-system-prompt";
 import { collectAskedQuestionIds } from "../utils/interview-logic";
+import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
 import {
+  InterviewParticipationDeniedError,
+  loadExternalIdentities,
   type ParticipationDeps,
-  resolveInterviewParticipation,
 } from "./resolve-interview-participation";
 import { saveInterviewMessage } from "./save-interview-message";
 
@@ -84,7 +86,8 @@ export async function handleInterviewChatRequest({
   // TTFB短縮のため、互いに依存しないDBアクセスは並列実行する。
   // 日次コスト制限チェック（fail-closed: エラー時もリクエストをブロック）と
   // 意見募集・施策の解決（テスト時はdeps経由でNext.js依存をバイパス）
-  const [isWithinLimit, context] = await Promise.all([
+  // 外部IDの解決（参加判定とセッション記録に使う）も userId だけで始められる
+  const [isWithinLimit, context, identities] = await Promise.all([
     isWithinDailyCostLimit(userId, env.chat.dailyUserCostLimitUsd),
     deps?.resolveContext
       ? deps.resolveContext(interviewConfigId)
@@ -93,6 +96,7 @@ export async function handleInterviewChatRequest({
           previewPolicyId,
           previewToken,
         }),
+    loadExternalIdentities(userId, deps),
   ]);
   if (!isWithinLimit) {
     throw new ChatError(ChatErrorCode.DAILY_COST_LIMIT_REACHED);
@@ -104,15 +108,14 @@ export async function handleInterviewChatRequest({
 
   const { interviewConfig, bill, policyId, isPreview } = context;
 
-  // 参加条件の判定（プレビューは職員の確認用なので問わない）。
-  // 外部IDの解決はここで1回だけ行い、セッション作成時の記録にも使う
-  const participation = await resolveInterviewParticipation({
+  // 参加条件の判定（プレビューは職員の確認用なので問わない）
+  const participation = evaluateInterviewParticipation({
     rule: interviewConfig,
-    userId,
-    deps,
+    identities,
+    isPreview,
   });
-  if (!isPreview && !participation.allowed) {
-    throw new ChatError(ChatErrorCode.INTERVIEW_PARTICIPATION_DENIED);
+  if (!participation.allowed) {
+    throw new InterviewParticipationDeniedError();
   }
 
   // 最新のメッセージを取得

@@ -24,3 +24,15 @@ export function policyInterviewTarget(
 export function themeInterviewTarget(slug: string): InterviewTarget {
   return { kind: "theme", slug };
 }
+
+/**
+ * 職員プレビューからの操作に添える資格情報。
+ * 施策経由でプレビュートークンを持つときだけ返す（それ以外は undefined）
+ */
+export function previewCredentialOf(
+  target: InterviewTarget
+): { policyId: string; token: string } | undefined {
+  return target.kind === "policy" && target.previewToken
+    ? { policyId: target.policyId, token: target.previewToken }
+    : undefined;
+}

@@ -67,7 +67,9 @@ describe("initializeInterviewChat 統合テスト", () => {
     await createTestInterviewMessages(sessionId, 2);
 
     const result = await initializeInterviewChat(config, bill, {
-      getUser: createGetUser(testUser.id),
+      deps: {
+        getUser: createGetUser(testUser.id),
+      },
     });
 
     expect(result.session.id).toBe(sessionId);
@@ -86,8 +88,10 @@ describe("initializeInterviewChat 統合テスト", () => {
       .eq("id", sessionId);
 
     const result = await initializeInterviewChat(config, bill, {
-      getUser: createGetUser(testUser.id),
-      model: mockModel,
+      deps: {
+        getUser: createGetUser(testUser.id),
+        model: mockModel,
+      },
     });
 
     // 新しいセッションが作成されていること
@@ -110,8 +114,10 @@ describe("initializeInterviewChat 統合テスト", () => {
       });
 
       const result = await initializeInterviewChat(config, bill, {
-        getUser: createGetUser(testUser.id),
-        getExternalIdentities: async () => identities,
+        deps: {
+          getUser: createGetUser(testUser.id),
+          getExternalIdentities: async () => identities,
+        },
       });
 
       expect(result.session.id).toBe(sessionId);

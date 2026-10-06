@@ -40,7 +40,7 @@ describe("archiveInterviewSession 統合テスト", () => {
 
   it("セッションオーナーがアーカイブに成功する", async () => {
     const result = await archiveInterviewSessionCore(sessionId, {
-      getUser: createGetUser(testUser.id),
+      deps: { getUser: createGetUser(testUser.id) },
     });
 
     expect(result.success).toBe(true);
@@ -58,7 +58,7 @@ describe("archiveInterviewSession 統合テスト", () => {
 
   it("未認証ユーザーはアーカイブできない", async () => {
     const result = await archiveInterviewSessionCore(sessionId, {
-      getUser: getUnauthenticatedUser,
+      deps: { getUser: getUnauthenticatedUser },
     });
 
     expect(result.success).toBe(false);
@@ -78,7 +78,7 @@ describe("archiveInterviewSession 統合テスト", () => {
     const anotherUser = await createTestUser();
     try {
       const result = await archiveInterviewSessionCore(sessionId, {
-        getUser: createGetUser(anotherUser.id),
+        deps: { getUser: createGetUser(anotherUser.id) },
       });
 
       expect(result.success).toBe(false);
@@ -101,7 +101,7 @@ describe("archiveInterviewSession 統合テスト", () => {
     const nonExistentId = "00000000-0000-0000-0000-000000000000";
 
     const result = await archiveInterviewSessionCore(nonExistentId, {
-      getUser: createGetUser(testUser.id),
+      deps: { getUser: createGetUser(testUser.id) },
     });
 
     expect(result.success).toBe(false);

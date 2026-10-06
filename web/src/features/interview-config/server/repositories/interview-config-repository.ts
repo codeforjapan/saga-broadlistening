@@ -1,6 +1,5 @@
 import "server-only";
 
-import type { InterviewParticipationRule } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import { createAdminClient, type Database } from "@mirai-gikai/supabase";
 
 // Epic #54 で interview_configs.bill_id が廃止され、施策との紐づけは
@@ -217,29 +216,6 @@ export async function findClosedInterviewConfigsWithPublishedAnalysis() {
   if (error) {
     throw new Error(
       `Failed to fetch closed interview configs: ${error.message}`
-    );
-  }
-
-  return data;
-}
-
-/**
- * 意見募集の参加条件（participation_mode・許可する連携元）だけを引く。
- * セッション作成の Server Action のように、意見募集IDしか持たない経路で使う。
- */
-export async function findInterviewParticipationRuleById(
-  configId: string
-): Promise<InterviewParticipationRule | null> {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("interview_configs")
-    .select("participation_mode, allowed_provider_keys")
-    .eq("id", configId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(
-      `Failed to fetch interview participation rule: ${error.message}`
     );
   }
 

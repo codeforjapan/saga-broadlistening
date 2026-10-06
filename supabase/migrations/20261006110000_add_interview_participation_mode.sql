@@ -15,9 +15,8 @@ alter table interview_configs
   add column participation_mode interview_participation_mode_enum not null default 'public',
   add column allowed_provider_keys text[] not null default '{}';
 
--- 既存テーマは公開募集・イベント・デモとして運用中のため、移行値は明示的に public にする
--- （2026-10-06 決定。default と同じ値だが、意図を残すため明示する）
-update interview_configs set participation_mode = 'public';
+-- 既存テーマは公開募集・イベント・デモとして運用中のため、移行値は public にする
+-- （2026-10-06 決定。上の default で既存行も public で埋まる）
 
 -- 外部IDを要求するテーマは、許可する連携元を少なくとも1件持つ
 alter table interview_configs

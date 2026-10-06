@@ -1,3 +1,4 @@
+import { InterviewParticipationDeniedError } from "@/features/interview-session/shared/types/errors";
 import { textResponse } from "@/lib/api/response";
 import { ChatError, ChatErrorCode } from "../../shared/types/errors";
 
@@ -6,6 +7,10 @@ import { ChatError, ChatErrorCode } from "../../shared/types/errors";
  * ChatError でない場合は汎用の500レスポンスを返す。
  */
 export function chatErrorToResponse(error: unknown): Response {
+  if (error instanceof InterviewParticipationDeniedError) {
+    return textResponse(error.message, 403);
+  }
+
   if (error instanceof ChatError) {
     switch (error.code) {
       case ChatErrorCode.DAILY_COST_LIMIT_REACHED:
@@ -18,11 +23,6 @@ export function chatErrorToResponse(error: unknown): Response {
         return textResponse(
           "今月の利用上限に達しました。来月1日以降に再度お試しください。",
           429
-        );
-      case ChatErrorCode.INTERVIEW_PARTICIPATION_DENIED:
-        return textResponse(
-          "このテーマに回答するための条件を満たしていません。",
-          403
         );
       default:
         return textResponse(

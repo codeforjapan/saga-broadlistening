@@ -78,8 +78,7 @@ export default async function InterviewPreviewChatPage({
     const { session, messages } = await initializeInterviewChat(
       interviewConfig,
       bill,
-      undefined,
-      { skipParticipationCheck: true }
+      { isPreview: true }
     );
 
     return (
