@@ -66,9 +66,14 @@ export function TopDesignPage({
         {/*
           案B：タイトル直下に総合アシスタントの入力欄を置く。
           案C：入力欄の代わりに紹介文だけを置く。
-          案D：案Cの紹介文の下に、About と同じ「みてみて」「きかせて」の説明を置く。
+          案D：案Cの紹介文の下に、About と同じ「みてみて」「きかせて」の説明を置き、左揃えにする。
         */}
-        <Container className="flex flex-col items-center gap-8 pb-10 pt-28 text-center md:pt-12">
+        <Container
+          className={cn(
+            "flex flex-col gap-8 pb-10 pt-28 md:pt-12",
+            design === "d" ? "items-start" : "items-center text-center"
+          )}
+        >
           <div className="flex flex-col gap-3">
             <TopTitle className="text-2xl md:text-4xl" />
             <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
