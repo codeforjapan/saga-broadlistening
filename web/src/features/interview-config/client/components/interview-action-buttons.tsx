@@ -10,21 +10,29 @@ import { getInterviewChatLink } from "@/features/interview-config/shared/utils/i
 import { NewInterviewButton } from "@/features/interview-session/client/components/new-interview-button";
 import { RestartInterviewButton } from "@/features/interview-session/client/components/restart-interview-button";
 import type { LatestInterviewSession } from "@/features/interview-session/server/loaders/get-latest-interview-session";
+import type { InterviewParticipationView } from "../../shared/types/interview-participation-view";
 import type { InterviewTarget } from "../../shared/types/interview-target";
+import { ExternalIdentityGuideNotice } from "./external-identity-guide-notice";
 import { InterviewConsentModal } from "./interview-consent-modal";
 
 interface InterviewActionButtonsProps {
   target: InterviewTarget;
   sessionInfo: LatestInterviewSession | null;
+  participation: InterviewParticipationView;
 }
 
 export function InterviewActionButtons({
   target,
   sessionInfo,
+  participation,
 }: InterviewActionButtonsProps) {
   const [showConsentModal, setShowConsentModal] = useState(false);
   const isActive = sessionInfo?.status === "active";
   const isCompleted = sessionInfo?.status === "completed";
+
+  if (participation.kind === "guide") {
+    return <ExternalIdentityGuideNotice participation={participation} />;
+  }
 
   // 完了済みの場合：「もう一度新たに回答する」ボタン（確認ダイアログなし）
   if (isCompleted && sessionInfo?.reportId) {

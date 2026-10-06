@@ -211,6 +211,23 @@ describe("formatParticipantCount", () => {
 });
 
 describe("buildInterviewThemeCardAction", () => {
+  it("参加できない外部ID必須テーマはLPの案内へ誘導する", () => {
+    expect(
+      buildInterviewThemeCardAction("kosodate", "participate", false)
+    ).toEqual({
+      href: "/interviews/kosodate",
+      ctaLabel: "アプリから回答する方法",
+    });
+  });
+
+  it("参加できなくても募集終了テーマの結果は閲覧できる", () => {
+    expect(buildInterviewThemeCardAction("kosodate", "results", false)).toEqual(
+      {
+        href: "/interviews/kosodate/topics",
+        ctaLabel: "結果を見る",
+      }
+    );
+  });
   it("募集中のテーマは参加導線（テーマのLP）へ送る", () => {
     expect(buildInterviewThemeCardAction("kosodate", "participate")).toEqual({
       href: "/interviews/kosodate",

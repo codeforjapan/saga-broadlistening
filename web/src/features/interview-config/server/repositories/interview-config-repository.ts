@@ -241,3 +241,17 @@ export async function findInterviewQuestionsByConfigId(
 
   return data;
 }
+
+/** 一覧の参加条件を一括取得。利用者別の判定結果は共有キャッシュに保存しない。 */
+export async function findInterviewParticipationRulesByIds(
+  configIds: string[]
+) {
+  if (configIds.length === 0) return [];
+  const { data, error } = await createAdminClient()
+    .from("interview_configs")
+    .select("id, name, participation_mode, allowed_provider_keys")
+    .in("id", configIds);
+  if (error)
+    throw new Error(`Failed to fetch participation rules: ${error.message}`);
+  return data;
+}

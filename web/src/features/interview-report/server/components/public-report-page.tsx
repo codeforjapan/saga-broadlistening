@@ -6,7 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layouts/container";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
-import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
+import { InterviewLandingSection } from "@/features/interview-config/server/components/interview-landing-section";
 import { themeInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { ShareArticleButton } from "@/features/interview-report/client/components/share-article-button";
 import { routes } from "@/lib/routes";

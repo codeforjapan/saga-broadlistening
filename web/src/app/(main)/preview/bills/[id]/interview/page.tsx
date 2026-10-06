@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
-import { InterviewLPPage } from "@/features/interview-config/client/components/interview-lp-page";
+import { InterviewLPPage } from "@/features/interview-config/server/components/interview-lp-page";
 import { getInterviewConfigAdmin } from "@/features/interview-config/server/loaders/get-interview-config-admin";
 import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getUserReportsByInterviewConfig } from "@/features/interview-report/server/loaders/get-user-reports-by-interview-config";

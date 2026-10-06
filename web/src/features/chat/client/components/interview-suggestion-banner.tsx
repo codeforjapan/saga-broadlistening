@@ -2,18 +2,31 @@ import { ArrowRight, BotMessageSquare, Check } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { ExternalIdentityGuideNotice } from "@/features/interview-config/client/components/external-identity-guide-notice";
+import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
+import {
+  type InterviewTarget,
+  policyInterviewTarget,
+} from "@/features/interview-config/shared/types/interview-target";
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
 
 interface InterviewSuggestionBannerProps {
   billId: string;
   billName: string;
+  participation?: InterviewParticipationView;
+  target?: InterviewTarget;
 }
 
 export function InterviewSuggestionBanner({
   billId,
   billName,
+  participation,
+  target,
 }: InterviewSuggestionBannerProps) {
+  if (!participation) return null;
+  if (participation.kind === "guide") {
+    return <ExternalIdentityGuideNotice participation={participation} />;
+  }
   return (
     <div className="flex gap-3 rounded-2xl bg-muted p-4">
       <div className="flex-shrink-0 size-10 rounded-lg bg-primary flex items-center justify-center">
@@ -57,7 +70,11 @@ export function InterviewSuggestionBanner({
           className="bg-primary text-primary-foreground rounded-3xl h-9 px-4 font-medium text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2.5"
         >
           <Link
-            href={getInterviewLPLink(policyInterviewTarget(billId)) as Route}
+            href={
+              getInterviewLPLink(
+                target ?? policyInterviewTarget(billId)
+              ) as Route
+            }
           >
             <span>AIインタビューを受ける</span>
             <ArrowRight className="size-3" />

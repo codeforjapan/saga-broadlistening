@@ -147,12 +147,16 @@ export type InterviewThemeCardAction = {
  */
 export function buildInterviewThemeCardAction(
   slug: string,
-  purpose: InterviewThemeCardPurpose
+  purpose: InterviewThemeCardPurpose,
+  canParticipate = true
 ): InterviewThemeCardAction {
   const isOpen = purpose === "participate";
+  const participateLabel = canParticipate
+    ? "はじめる"
+    : "アプリから回答する方法";
   return {
     href: getThemeCardLink({ slug, isOpen }),
-    ctaLabel: isOpen ? "はじめる" : "結果を見る",
+    ctaLabel: isOpen ? participateLabel : "結果を見る",
   };
 }
 

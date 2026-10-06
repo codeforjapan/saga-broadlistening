@@ -56,6 +56,9 @@ if (
 }
 
 export const env = {
+  externalIdentityGuideUrls: {
+    saga_super_app: process.env.SAGA_SUPER_APP_GUIDE_URL,
+  },
   webUrl: process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000",
   adminUrl: process.env.ADMIN_URL || "http://localhost:3001",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,

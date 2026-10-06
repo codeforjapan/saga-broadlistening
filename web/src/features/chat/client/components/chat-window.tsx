@@ -21,6 +21,8 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
 import type { BillWithContent } from "@/features/bills/shared/types";
+import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useViewportHeight } from "@/hooks/use-viewport-height";
@@ -35,6 +37,8 @@ import { UserMessage } from "./user-message";
 interface ChatWindowProps {
   billContext?: BillWithContent;
   hasInterviewConfig?: boolean;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
   difficultyLevel: string;
   chatState: ReturnType<typeof import("@ai-sdk/react").useChat>;
   isOpen: boolean;
@@ -60,6 +64,8 @@ interface ChatWindowProps {
 function ChatMessages({
   billContext,
   hasInterviewConfig,
+  interviewParticipation,
+  interviewTarget,
   difficultyLevel,
   messages,
   sendMessage,
@@ -69,6 +75,8 @@ function ChatMessages({
 }: {
   billContext?: BillWithContent;
   hasInterviewConfig?: boolean;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
   difficultyLevel: string;
   messages: ChatWindowProps["chatState"]["messages"];
   sendMessage: ChatWindowProps["chatState"]["sendMessage"];
@@ -150,6 +158,8 @@ function ChatMessages({
             isStreaming={isStreaming}
             billId={billContext?.id}
             billName={billContext?.bill_content?.title ?? billContext?.name}
+            interviewParticipation={interviewParticipation}
+            interviewTarget={interviewTarget}
           />
         );
       })}
@@ -163,6 +173,8 @@ function ChatMessages({
 export function ChatWindow({
   billContext,
   hasInterviewConfig,
+  interviewParticipation,
+  interviewTarget,
   difficultyLevel,
   chatState,
   isOpen,
@@ -228,6 +240,8 @@ export function ChatWindow({
           <ChatMessages
             billContext={billContext}
             hasInterviewConfig={hasInterviewConfig}
+            interviewParticipation={interviewParticipation}
+            interviewTarget={interviewTarget}
             difficultyLevel={difficultyLevel}
             messages={messages}
             sendMessage={sendMessage}

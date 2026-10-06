@@ -7,10 +7,10 @@ import { countPublicOpinionsByInterviewConfigId } from "@/features/interview-rep
 import { getLatestInterviewSession } from "@/features/interview-session/server/loaders/get-latest-interview-session";
 import { TopicsPreviewSection } from "@/features/user-topic-analysis/server/components/topics-preview-section";
 import { getPublicTopicAnalysisByInterviewConfigId } from "@/features/user-topic-analysis/server/loaders/get-public-topic-analysis";
-import { InterviewLPPage } from "../../client/components/interview-lp-page";
 import { themeInterviewTarget } from "../../shared/types/interview-target";
 import { selectPrimaryPolicyId } from "../../shared/utils/interview-visibility";
 import { getInterviewConfigBySlug } from "../loaders/get-interview-config-by-slug";
+import { InterviewLPPage } from "./interview-lp-page";
 
 interface InterviewThemePageProps {
   slug: string;

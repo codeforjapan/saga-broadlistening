@@ -14,9 +14,9 @@ import {
 import { PastReportsSection } from "@/features/interview-report/client/components/past-reports-section";
 import type { UserReportsResult } from "@/features/interview-report/server/loaders/get-user-reports-by-interview-config";
 import { InterviewStatusBadge } from "@/features/interview-session/client/components/interview-status-badge";
-import { NewInterviewButton } from "@/features/interview-session/client/components/new-interview-button";
 import type { LatestInterviewSession } from "@/features/interview-session/server/loaders/get-latest-interview-session";
 import type { InterviewConfig } from "../../server/loaders/get-interview-config";
+import type { InterviewParticipationView } from "../../shared/types/interview-participation-view";
 import type { InterviewTarget } from "../../shared/types/interview-target";
 import { resolveInterviewThumbnail } from "../../shared/utils/interview-theme";
 import { InterviewActionButtons } from "./interview-action-buttons";
@@ -28,6 +28,7 @@ interface InterviewLPPageProps {
   bill: BillWithContent | null;
   interviewConfig: InterviewConfig;
   sessionInfo: LatestInterviewSession | null;
+  participation: InterviewParticipationView;
   userReports?: UserReportsResult | null;
   /**
    * これまでに寄せられた意見のトピック分析。
@@ -103,11 +104,13 @@ function _InterviewLPHero({
   bill,
   interviewConfig,
   sessionInfo,
+  participation,
 }: {
   target: InterviewTarget;
   bill: BillWithContent | null;
   interviewConfig: InterviewConfig;
   sessionInfo: LatestInterviewSession | null;
+  participation: InterviewParticipationView;
 }) {
   return (
     <div className="flex flex-col items-center gap-6 px-4">
@@ -153,7 +156,11 @@ function _InterviewLPHero({
 
       {sessionInfo?.status !== "completed" && (
         <div className="w-full max-w-[560px] mt-2 flex flex-col gap-3">
-          <InterviewActionButtons target={target} sessionInfo={sessionInfo} />
+          <InterviewActionButtons
+            target={target}
+            sessionInfo={sessionInfo}
+            participation={participation}
+          />
         </div>
       )}
     </div>
@@ -323,9 +330,11 @@ function _InterviewDisclosureLink({ target }: { target: InterviewTarget }) {
 function _InterviewFooterActions({
   target,
   sessionInfo,
+  participation,
 }: {
   target: InterviewTarget;
   sessionInfo: LatestInterviewSession | null;
+  participation: InterviewParticipationView;
 }) {
   // ラベルは戻り先（getInterviewExitLink）と揃える。施策の有無ではなく
   // どの導線から入ったかで決まる
@@ -334,7 +343,11 @@ function _InterviewFooterActions({
 
   return (
     <div className="flex flex-col w-full max-w-[370px] mx-auto space-y-4">
-      <InterviewActionButtons target={target} sessionInfo={sessionInfo} />
+      <InterviewActionButtons
+        target={target}
+        sessionInfo={sessionInfo}
+        participation={participation}
+      />
       <Link href={getInterviewExitLink(target) as Route}>
         <Button variant="outline" className="w-full">
           <Undo2 className="size-5" />
@@ -350,6 +363,7 @@ export function InterviewLPPage({
   bill,
   interviewConfig,
   sessionInfo,
+  participation,
   userReports,
   topicsSection,
 }: InterviewLPPageProps) {
@@ -362,13 +376,18 @@ export function InterviewLPPage({
           bill={bill}
           interviewConfig={interviewConfig}
           sessionInfo={sessionInfo}
+          participation={participation}
         />
         {userReports && userReports.reports.length > 0 && (
           <PastReportsSection reports={userReports.reports} />
         )}
         {sessionInfo?.status === "completed" && sessionInfo?.reportId && (
           <div className="w-full max-w-[560px]">
-            <NewInterviewButton target={target} />
+            <InterviewActionButtons
+              target={target}
+              sessionInfo={sessionInfo}
+              participation={participation}
+            />
           </div>
         )}
         <_InterviewOverviewSection
@@ -385,7 +404,11 @@ export function InterviewLPPage({
         )}
         <_InterviewNoticeSection />
         <_InterviewDisclosureLink target={target} />
-        <_InterviewFooterActions target={target} sessionInfo={sessionInfo} />
+        <_InterviewFooterActions
+          target={target}
+          sessionInfo={sessionInfo}
+          participation={participation}
+        />
       </div>
     </div>
   );

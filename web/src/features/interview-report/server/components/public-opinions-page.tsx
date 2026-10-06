@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layouts/container";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
-import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
+import { InterviewLandingSection } from "@/features/interview-config/server/components/interview-landing-section";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getReportReactionsBatch } from "@/features/report-reaction/server/loaders/get-report-reactions";
