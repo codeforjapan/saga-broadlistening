@@ -46,6 +46,8 @@ const tables = [
   "guard_events",
   "api_rate_limits",
   "chat_usage_events",
+  "external_identities",
+  "external_identity_users",
   // Issue #59 で削除予定の旧テーブル
   "bills",
   "bill_contents",

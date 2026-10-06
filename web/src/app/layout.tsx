@@ -8,6 +8,8 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Zen_Maru_Gothic } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import type { ReactNode } from "react";
+import { ExternalUidCapture } from "@/features/external-identity/client/components/external-uid-capture";
+import { EARLY_CAPTURE_SCRIPT } from "@/features/external-identity/shared/utils/early-capture-script";
 import { env } from "@/lib/env";
 
 // 本文。D-7 により基準ウェイトは 500（強調 700）
@@ -102,10 +104,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
+      <head>
+        {/*
+          外部アプリが #uid= 付きで開いたとき、GA 等が URL を記録する前に
+          フラグメントを退避・除去する（検証と送信は ExternalUidCapture が行う）
+        */}
+        <script dangerouslySetInnerHTML={{ __html: EARLY_CAPTURE_SCRIPT }} />
+      </head>
       <body
         className={`${notoSansJP.variable} ${zenMaruGothic.variable} ${notoSerifJP.variable} font-sans antialiased bg-background text-foreground`}
       >
         <NextTopLoader showSpinner={false} color={PROGRESS_BAR_COLOR} />
+        <ExternalUidCapture />
         {children}
       </body>
     </html>

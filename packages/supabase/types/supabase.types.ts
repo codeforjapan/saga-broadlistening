@@ -472,6 +472,62 @@ export type Database = {
           },
         ]
       }
+      external_identities: {
+        Row: {
+          created_at: string
+          external_uid: string
+          first_seen_at: string
+          id: string
+          last_seen_at: string
+          provider_key: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_uid: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          provider_key: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_uid?: string
+          first_seen_at?: string
+          id?: string
+          last_seen_at?: string
+          provider_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      external_identity_users: {
+        Row: {
+          external_identity_id: string
+          linked_at: string
+          user_id: string
+        }
+        Insert: {
+          external_identity_id: string
+          linked_at?: string
+          user_id: string
+        }
+        Update: {
+          external_identity_id?: string
+          linked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_identity_users_external_identity_id_fkey"
+            columns: ["external_identity_id"]
+            isOneToOne: false
+            referencedRelation: "external_identities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guard_events: {
         Row: {
           action: Database["public"]["Enums"]["guard_action"]
@@ -684,6 +740,7 @@ export type Database = {
           archived_at: string | null
           completed_at: string | null
           created_at: string
+          external_identity_id: string | null
           id: string
           interview_config_id: string
           rating: number | null
@@ -695,6 +752,7 @@ export type Database = {
           archived_at?: string | null
           completed_at?: string | null
           created_at?: string
+          external_identity_id?: string | null
           id?: string
           interview_config_id: string
           rating?: number | null
@@ -706,6 +764,7 @@ export type Database = {
           archived_at?: string | null
           completed_at?: string | null
           created_at?: string
+          external_identity_id?: string | null
           id?: string
           interview_config_id?: string
           rating?: number | null
@@ -714,6 +773,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "interview_sessions_external_identity_id_fkey"
+            columns: ["external_identity_id"]
+            isOneToOne: false
+            referencedRelation: "external_identities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "interview_sessions_interview_config_id_fkey"
             columns: ["interview_config_id"]
@@ -1915,3 +1981,4 @@ export const Constants = {
     },
   },
 } as const
+

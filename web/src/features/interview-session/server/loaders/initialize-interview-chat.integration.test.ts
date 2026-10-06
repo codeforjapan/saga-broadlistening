@@ -1,12 +1,15 @@
 import {
   adminClient,
+  cleanupTestExternalIdentityByUid,
   cleanupTestUser,
   createTestInterviewData,
   createTestInterviewMessages,
   createTestUser,
   type TestUser,
+  uniqueSuffix,
 } from "@test-utils/utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { resolveExternalIdentities } from "@/features/external-identity/server/services/resolve-external-identities";
 import { createGenerateMock } from "@/test-utils/mock-language-model";
 import type { GetUserFn } from "../utils/verify-session-ownership";
 import { initializeInterviewChat } from "./initialize-interview-chat";
@@ -95,5 +98,33 @@ describe("initializeInterviewChat 統合テスト", () => {
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe("assistant");
     expect(result.messages[0].content).toBe(expectedResponse);
+  });
+
+  it("外部IDが未記録の進行中セッションに、紐付いた外部IDを後から記録する", async () => {
+    await createTestInterviewMessages(sessionId, 2);
+    const uid = `uid-${uniqueSuffix()}`;
+    try {
+      const identities = await resolveExternalIdentities({
+        userId: testUser.id,
+        claims: [{ providerKey: "saga_super_app", externalUid: uid }],
+      });
+
+      const result = await initializeInterviewChat(config, bill, {
+        getUser: createGetUser(testUser.id),
+        getExternalIdentities: async () => identities,
+      });
+
+      expect(result.session.id).toBe(sessionId);
+      expect(result.session.external_identity_id).toBe(identities[0].id);
+
+      const { data } = await adminClient
+        .from("interview_sessions")
+        .select("external_identity_id")
+        .eq("id", sessionId)
+        .single();
+      expect(data?.external_identity_id).toBe(identities[0].id);
+    } finally {
+      await cleanupTestExternalIdentityByUid("saga_super_app", uid);
+    }
   });
 });

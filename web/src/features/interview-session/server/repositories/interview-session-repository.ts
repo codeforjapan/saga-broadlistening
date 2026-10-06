@@ -125,6 +125,8 @@ export async function findSessionOwnerById(sessionId: string) {
 export async function createInterviewSessionRecord(params: {
   interviewConfigId: string;
   userId: string;
+  /** 回答時に紐付いていた外部ID。参加条件に関係なく、あれば記録する */
+  externalIdentityId: string | null;
 }): Promise<InterviewSession> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -132,6 +134,7 @@ export async function createInterviewSessionRecord(params: {
     .insert({
       interview_config_id: params.interviewConfigId,
       user_id: params.userId,
+      external_identity_id: params.externalIdentityId,
       started_at: new Date().toISOString(),
     })
     .select()
@@ -142,6 +145,28 @@ export async function createInterviewSessionRecord(params: {
   }
 
   return data;
+}
+
+/**
+ * 外部IDが未記録のセッションに外部IDを後から記録する。
+ * 既に記録済みのセッションは上書きしない（回答時点の紐付きを保つ）。
+ */
+export async function updateInterviewSessionExternalIdentity(
+  sessionId: string,
+  externalIdentityId: string
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("interview_sessions")
+    .update({ external_identity_id: externalIdentityId })
+    .eq("id", sessionId)
+    .is("external_identity_id", null);
+
+  if (error) {
+    throw new Error(
+      `Failed to attach external identity to session: ${error.message}`
+    );
+  }
 }
 
 /**

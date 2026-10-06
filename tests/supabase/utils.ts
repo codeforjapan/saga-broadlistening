@@ -20,7 +20,7 @@ function requireEnv(name: string): string {
 }
 
 /** 同一テスト実行内で衝突しない一意な接尾辞 */
-function uniqueSuffix(): string {
+export function uniqueSuffix(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -568,4 +568,17 @@ export async function createTestPublicOpinions(options: {
   }
 
   return { sessions, opinions };
+}
+
+// ── 外部ID（Epic #147） ──
+/** 連携元と UID の組で external_identities を削除する（upsert 系テストの後片付け用） */
+export async function cleanupTestExternalIdentityByUid(
+  providerKey: string,
+  externalUid: string
+): Promise<void> {
+  await adminClient
+    .from("external_identities")
+    .delete()
+    .eq("provider_key", providerKey)
+    .eq("external_uid", externalUid);
 }
