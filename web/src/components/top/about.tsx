@@ -27,6 +27,32 @@ function InlineLogo({
   );
 }
 
+/** 本文の文字組み。About の外で同じ見た目に揃えるときにも使う */
+export const ABOUT_BODY_TEXT_CLASS = "text-base leading-[28px] text-black";
+
+/** 「みてみて」「きかせて」それぞれを1段落ずつ、ロゴ入りで紹介する */
+export function ChikatServiceLines() {
+  return (
+    <>
+      <p>
+        <InlineLogo
+          src="/icons/chikat-mitemite.svg"
+          alt={`${SITE_NAME}みてみて`}
+        />
+        では、市の今の取組を短くわかりやすく紹介。
+      </p>
+      <p>
+        <InlineLogo
+          src="/icons/chikat-kikasete.svg"
+          alt={`${SITE_NAME}きかせて`}
+          className="mb-[11px]"
+        />
+        では、AIが聞き役となって、あなたの経験や考えを少しずつ整理します。
+      </p>
+    </>
+  );
+}
+
 export function About() {
   return (
     <div className="py-10">
@@ -42,26 +68,12 @@ export function About() {
         </div>
 
         {/* コンテンツ */}
-        <div className="flex flex-col gap-4 text-base leading-[28px] text-black">
+        <div className={cn("flex flex-col gap-4", ABOUT_BODY_TEXT_CLASS)}>
           <p>
             {SITE_NAME}
             （チカット）は、佐賀市の取組をできるだけわかりやすく伝え、みなさんの日ごろの実感や考えを気軽に聞かせてもらうための、新しい広聴のしくみです。
           </p>
-          <p>
-            <InlineLogo
-              src="/icons/chikat-mitemite.svg"
-              alt={`${SITE_NAME}みてみて`}
-            />
-            では、市の今の取組を短くわかりやすく紹介。
-          </p>
-          <p>
-            <InlineLogo
-              src="/icons/chikat-kikasete.svg"
-              alt={`${SITE_NAME}きかせて`}
-              className="mb-[11px]"
-            />
-            では、AIが聞き役となって、あなたの経験や考えを少しずつ整理します。
-          </p>
+          <ChikatServiceLines />
           <p>見るだけでも、話すだけでもかまいません。</p>
           <p>
             寄せられた声は、単に数を比べるのではなく、その背景にある理由や期待、困りごと、アイデアなどを論点として整理し、市政を考える材料にします。整理した結果は、みなさんにもわかりやすくお返ししていきます。

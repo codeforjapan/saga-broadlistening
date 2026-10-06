@@ -1,6 +1,10 @@
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { Container } from "@/components/layouts/container";
-import { About } from "@/components/top/about";
+import {
+  ABOUT_BODY_TEXT_CLASS,
+  About,
+  ChikatServiceLines,
+} from "@/components/top/about";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
 import { BillDisclaimer } from "@/features/bills/client/components/bill-detail/bill-disclaimer";
 import { cn } from "@/lib/utils";
@@ -41,25 +45,29 @@ function TopTitle({ className }: { className?: string }) {
 }
 
 /**
- * TOPページのデザイン比較モック（`/?design=a` / `/?design=b` / `/?design=c`）。
+ * TOPページのデザイン比較モック（`/?design=a` / `/?design=b` / `/?design=c` / `/?design=d`）。
  *
  * ルートの `data-top-design` は、ヘッダーとレイアウト枠（MainLayout）が
  * 案ごとの見た目に切り替えるための目印として CSS の `:has()` から参照する。
- * `data-top-full-bleed` は、帯状の背景を画面幅いっぱいに敷く案（B・C）の目印。
+ * `data-top-full-bleed` は、帯状の背景を画面幅いっぱいに敷く案（B・C・D）の目印。
  */
 export function TopDesignPage({
   design,
   currentDifficulty,
   bills,
 }: TopDesignPageProps) {
-  if (design === "b" || design === "c") {
+  if (design !== "a") {
     return (
       <div
         data-top-design={design}
         data-top-full-bleed
         className="bg-background"
       >
-        {/* 案B：タイトル直下に総合アシスタントの入力欄を置く。案C：入力欄の代わりに紹介文だけを置く */}
+        {/*
+          案B：タイトル直下に総合アシスタントの入力欄を置く。
+          案C：入力欄の代わりに紹介文だけを置く。
+          案D：案Cの紹介文の下に、About と同じ「みてみて」「きかせて」の説明を置く。
+        */}
         <Container className="flex flex-col items-center gap-8 pb-10 pt-28 text-center md:pt-12">
           <div className="flex flex-col gap-3">
             <TopTitle className="text-2xl md:text-4xl" />
@@ -68,6 +76,11 @@ export function TopDesignPage({
                 ? "いまは『若者支援』について、知る・話すことができます"
                 : TOP_INTRO}
             </p>
+            {design === "d" && (
+              <div className={cn("flex flex-col gap-4", ABOUT_BODY_TEXT_CLASS)}>
+                <ChikatServiceLines />
+              </div>
+            )}
           </div>
           {design === "b" && (
             <TopAssistantPrompt

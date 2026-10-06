@@ -28,7 +28,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         // 350pxを右に確保しつつ、メインパネルを850pxへ拡大（850+350=1180で中央寄せ計算と一致）
         useSidebarLayout &&
           "pc:max-w-[850px] pc:mr-[350px] xl:ml-[calc(calc(100vw-1180px)/2)]",
-        // TOPデザイン比較モックの案B・C（/?design=b, /?design=c）は右ペインを持たず、
+        // TOPデザイン比較モックの案B〜D（/?design=b 〜 d）は右ペインを持たず、
         // 帯状の背景を画面幅いっぱいに敷くため、幅の上限・影・チャット用オフセットを外す。
         // 目印（data-top-full-bleed）はページ側が出すので :has() で拾う。
         "has-[[data-top-full-bleed]]:max-w-none has-[[data-top-full-bleed]]:shadow-none has-[[data-top-full-bleed]]:mx-0"
