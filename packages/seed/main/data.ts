@@ -37,6 +37,8 @@ export const CLOSED_CONFIG_SLUG = "kyushoku-2025";
 export const KOSODATE_CONFIG_SLUG = "kosodate-shien";
 /** 同上（テーマ自身の画像なし＝施策の画像にフォールバックする例） */
 export const SEIJI_SANKA_CONFIG_SLUG = "seiji-sanka";
+/** 外部アプリ（スーパーアプリ）の利用者だけが回答できるテーマの確認用 */
+export const SUPER_APP_ONLY_CONFIG_SLUG = "super-app-only";
 
 // タグデータ
 export const tags: TagInsert[] = [
@@ -242,6 +244,9 @@ export function createInterviewConfig(): InterviewConfigInsert {
 /** NOT NULL かつ DEFAULT を持つカラムの既定値（withDefaults の説明を参照） */
 export const INTERVIEW_CONFIG_DEFAULTS = {
   deliberation_enabled: false,
+  // 開発用 seed は通常ブラウザで回答できるように public にする（Epic #147）
+  participation_mode: "public",
+  allowed_provider_keys: [],
 } satisfies Partial<InterviewConfigInsert>;
 
 export const additionalInterviewConfigs: InterviewConfigInsert[] = [
@@ -277,6 +282,18 @@ export const additionalInterviewConfigs: InterviewConfigInsert[] = [
     estimated_duration: 3,
     starts_at: "2025-09-10T00:00:00+09:00",
     // thumbnail_url なし＝紐づく施策の画像にフォールバックする例
+  },
+  {
+    name: "スーパーアプリ利用者向けアンケート",
+    slug: SUPER_APP_ONLY_CONFIG_SLUG,
+    description:
+      "佐賀市スーパーアプリから開いた人だけが回答できるテーマ（通常ブラウザでは回答方法の案内を表示する確認用）",
+    status: "open",
+    chat_model: DEFAULT_CHAT_MODEL,
+    estimated_duration: 5,
+    starts_at: "2025-10-01T00:00:00+09:00",
+    participation_mode: "external_identity",
+    allowed_provider_keys: ["saga_super_app"],
   },
   {
     name: "学校給食の無償化について",

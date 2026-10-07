@@ -6,6 +6,8 @@ import { callCompleteApi } from "../utils/interview-api-client";
 
 interface UseInterviewCompletionProps {
   sessionId: string;
+  /** 職員プレビューからの完了に添える資格情報 */
+  preview?: { policyId: string; token: string };
 }
 
 /**
@@ -13,6 +15,7 @@ interface UseInterviewCompletionProps {
  */
 export function useInterviewCompletion({
   sessionId,
+  preview,
 }: UseInterviewCompletionProps) {
   const [isCompleting, setIsCompleting] = useState(false);
   const [completeError, setCompleteError] = useState<string | null>(null);
@@ -27,6 +30,7 @@ export function useInterviewCompletion({
         sessionId,
         isPublic,
         isDataReuseConsented: isPublic,
+        preview,
       });
       const reportId = result.report?.id;
       if (reportId) {

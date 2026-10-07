@@ -82,4 +82,22 @@ describe("callCompleteApi", () => {
       }),
     });
   });
+
+  it("職員プレビューの完了時は施策IDとトークンも送信する", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue(
+      new Response(JSON.stringify({ report: { id: "r-1" } }), { status: 200 })
+    );
+    const params = {
+      sessionId: "session-42",
+      isPublic: false,
+      isDataReuseConsented: false,
+      preview: { policyId: "policy-1", token: "token-1" },
+    };
+    await callCompleteApi(params);
+    expect(globalThis.fetch).toHaveBeenCalledWith("/api/interview/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+  });
 });

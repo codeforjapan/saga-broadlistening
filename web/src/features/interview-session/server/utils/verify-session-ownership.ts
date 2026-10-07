@@ -46,14 +46,11 @@ export async function verifySessionOwnership(
   sessionId: string,
   deps?: LoaderDeps
 ) {
-  const authResult = await getAuthenticatedUser(deps);
-
-  let session: { user_id: string | null } | null = null;
-  try {
-    session = await findSessionOwnerById(sessionId);
-  } catch {
-    // session remains null
-  }
+  // 認証とセッションの取得は互いに依存しないので並列に走らせる
+  const [authResult, session] = await Promise.all([
+    getAuthenticatedUser(deps),
+    findSessionOwnerById(sessionId).catch(() => null),
+  ]);
 
   return resolveOwnership(authResult, session);
 }

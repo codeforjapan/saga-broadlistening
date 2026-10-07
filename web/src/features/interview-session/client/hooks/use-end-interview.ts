@@ -3,7 +3,10 @@
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import {
+  type InterviewTarget,
+  previewCredentialOf,
+} from "@/features/interview-config/shared/types/interview-target";
 import { getInterviewExitLink } from "@/features/interview-config/shared/utils/interview-links";
 import { archiveInterviewSession } from "../../server/actions/archive-interview-session";
 
@@ -29,7 +32,10 @@ export function useEndInterview(sessionId: string, target: InterviewTarget) {
     isEndingRef.current = true;
     setIsEnding(true);
     try {
-      const result = await archiveInterviewSession(sessionId);
+      const result = await archiveInterviewSession(
+        sessionId,
+        previewCredentialOf(target)
+      );
       if (!result.success) {
         console.error("Failed to archive session on end:", result.error);
       }

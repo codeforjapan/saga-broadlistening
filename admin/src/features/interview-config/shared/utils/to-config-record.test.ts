@@ -13,6 +13,8 @@ describe("toConfigRecord", () => {
         slug: "citizen-voices",
         status: "draft",
         chat_model: chatModel,
+        participation_mode: "public",
+        allowed_provider_keys: [],
       })
     ).toEqual({
       name: "市民意見",
@@ -22,7 +24,33 @@ describe("toConfigRecord", () => {
       chat_model: "",
       estimated_duration: null,
       thumbnail_url: null,
+      participation_mode: "public",
+      allowed_provider_keys: [],
     });
+  });
+
+  it("public では連携元の指定を保存しない", () => {
+    expect(
+      toConfigRecord({
+        name: "市民意見",
+        slug: "citizen-voices",
+        status: "draft",
+        participation_mode: "public",
+        allowed_provider_keys: ["saga_super_app"],
+      }).allowed_provider_keys
+    ).toEqual([]);
+  });
+
+  it("external_identity では選んだ連携元をそのまま保存する", () => {
+    expect(
+      toConfigRecord({
+        name: "市民意見",
+        slug: "citizen-voices",
+        status: "draft",
+        participation_mode: "external_identity",
+        allowed_provider_keys: ["saga_super_app"],
+      }).allowed_provider_keys
+    ).toEqual(["saga_super_app"]);
   });
 
   it("明示された既存モデルを別プロバイダーへ書き換えない", () => {
@@ -32,6 +60,8 @@ describe("toConfigRecord", () => {
         slug: "citizen-voices",
         status: "draft",
         chat_model: "openai/gpt-5.2",
+        participation_mode: "public",
+        allowed_provider_keys: [],
       }).chat_model
     ).toBe("openai/gpt-5.2");
   });

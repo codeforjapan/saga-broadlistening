@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
+import { toParticipationFormValues } from "../../shared/utils/participation-form-values";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MultiSimulationView } from "@/features/interview-simulation/client/components/multi-simulation-view";
@@ -110,6 +111,7 @@ export function InterviewConfigEditClient({
             slug: formValues?.slug || `config-${Date.now()}`,
             status: "draft",
             description,
+            ...toParticipationFormValues(formValues),
             // 施策配下の画面では、開いている施策との紐づけを必ず作る
             policy_ids: billId
               ? [billId]
@@ -193,6 +195,7 @@ export function InterviewConfigEditClient({
         slug: formValues?.slug || initialConfig?.slug || `config-${Date.now()}`,
         status: formValues?.status ?? initialConfig?.status ?? "draft",
         description,
+        ...toParticipationFormValues(formValues ?? initialConfig),
       });
       if (result.success) {
         setAiGeneratedThemes(themes);

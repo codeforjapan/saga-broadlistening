@@ -1,32 +1,19 @@
 "use server";
 
-import { updateInterviewSessionArchived } from "../repositories/interview-session-repository";
-import { verifySessionOwnership } from "../utils/verify-session-ownership";
-
-interface ArchiveInterviewSessionResult {
-  success: boolean;
-  error?: string;
-}
+import {
+  type ArchiveInterviewSessionResult,
+  archiveInterviewSessionCore,
+} from "../services/archive-interview-session-core";
+import type { PreviewCredential } from "../services/verify-session-access";
 
 /**
  * インタビューセッションをアーカイブする
- * アーカイブされたセッションは「やり直し」として扱われ、新しいセッションを開始できる
+ * アーカイブされたセッションは「やり直し」として扱われ、新しいセッションを開始できる。
+ * プレビュー（職員確認）からの操作は、トークンが有効なら参加条件を問わない
  */
 export async function archiveInterviewSession(
-  sessionId: string
+  sessionId: string,
+  preview?: PreviewCredential
 ): Promise<ArchiveInterviewSessionResult> {
-  const ownershipResult = await verifySessionOwnership(sessionId);
-
-  if (!ownershipResult.authorized) {
-    return { success: false, error: ownershipResult.error };
-  }
-
-  try {
-    await updateInterviewSessionArchived(sessionId);
-  } catch (error) {
-    console.error("Failed to archive interview session:", error);
-    return { success: false, error: "アーカイブに失敗しました" };
-  }
-
-  return { success: true };
+  return archiveInterviewSessionCore(sessionId, { preview });
 }
