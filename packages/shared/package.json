@@ -171,6 +171,10 @@
     "./interview-prompts/published": {
       "types": "./src/interview-prompts/published.ts",
       "default": "./src/interview-prompts/published.ts"
+    },
+    "./external-identity/providers": {
+      "types": "./src/external-identity/providers.ts",
+      "default": "./src/external-identity/providers.ts"
     }
   },
   "dependencies": {

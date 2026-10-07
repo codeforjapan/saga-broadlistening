@@ -3,18 +3,21 @@ import "server-only";
 import type { LanguageModel } from "ai";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
+import { resolveCurrentExternalIdentities } from "@/features/external-identity/server/services/resolve-current-external-identities";
 import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { generateInitialQuestion } from "@/features/interview-session/server/services/generate-initial-question";
 import type { InterviewMessage, InterviewSession } from "../../shared/types";
 import {
-  createInterviewSessionRecord,
   findActiveInterviewSession,
   findInterviewMessagesBySessionId,
+  updateInterviewSessionExternalIdentity,
 } from "../repositories/interview-session-repository";
-import type { GetUserFn } from "../utils/verify-session-ownership";
+import {
+  type CreateInterviewSessionDeps,
+  createInterviewSessionForUser,
+} from "../services/create-interview-session-core";
 
-type InitializeInterviewChatDeps = {
-  getUser?: GetUserFn;
+type InitializeInterviewChatDeps = CreateInterviewSessionDeps & {
   model?: LanguageModel;
 };
 
@@ -48,10 +51,15 @@ export async function initializeInterviewChat(
   // セッション取得または作成
   let session = await findActiveInterviewSession(interviewConfig.id, user.id);
   if (!session) {
-    session = await createInterviewSessionRecord({
+    session = await createInterviewSessionForUser({
       interviewConfigId: interviewConfig.id,
       userId: user.id,
+      deps,
     });
+  } else if (session.external_identity_id === null) {
+    // チャットページを開いた後に UID を受け取った（#uid= の送信が初回描画より遅れた）場合、
+    // 進行中のセッションにも外部IDを後から記録する
+    session = await attachExternalIdentity(session, user.id, deps);
   }
 
   // メッセージ履歴を取得
@@ -76,4 +84,19 @@ export async function initializeInterviewChat(
     session,
     messages,
   };
+}
+
+/** 進行中セッションに、いま紐付いている外部IDがあれば記録して返す */
+async function attachExternalIdentity(
+  session: InterviewSession,
+  userId: string,
+  deps?: InitializeInterviewChatDeps
+): Promise<InterviewSession> {
+  const getExternalIdentities =
+    deps?.getExternalIdentities ?? resolveCurrentExternalIdentities;
+  const [externalIdentity] = await getExternalIdentities(userId);
+  if (!externalIdentity) return session;
+
+  await updateInterviewSessionExternalIdentity(session.id, externalIdentity.id);
+  return { ...session, external_identity_id: externalIdentity.id };
 }
