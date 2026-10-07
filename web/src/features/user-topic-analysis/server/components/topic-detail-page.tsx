@@ -5,7 +5,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/layouts/container";
-import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
+import { InterviewLandingSection } from "@/features/interview-config/server/components/interview-landing-section";
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { TopicOpinionList } from "../../client/components/topic-opinion-list";
 import { splitSummaryLines } from "../../shared/utils/split-summary-lines";

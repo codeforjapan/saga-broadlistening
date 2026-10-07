@@ -4,7 +4,7 @@ import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { Container } from "@/components/layouts/container";
 import type { BreadcrumbItem } from "@/components/ui/breadcrumb";
-import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
+import { InterviewLandingSection } from "@/features/interview-config/server/components/interview-landing-section";
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import type { TopicAnalysisSubject } from "../../shared/utils/topic-analysis-subject";
 import { TopicSubjectHeader } from "./topic-subject-header";

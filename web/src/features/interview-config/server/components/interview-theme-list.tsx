@@ -1,8 +1,11 @@
 import "server-only";
 
 import { InterviewThemeCard } from "../../client/components/interview-theme-card";
+import type { InterviewParticipationView } from "../../shared/types/interview-participation-view";
 import type { InterviewTheme } from "../../shared/types/interview-theme";
 import type { InterviewThemeCardPurpose } from "../../shared/utils/interview-theme";
+import { getInterviewParticipationView } from "../loaders/get-interview-participation-view";
+import { findInterviewParticipationRulesByIds } from "../repositories/interview-config-repository";
 
 interface InterviewThemeListProps {
   themes: InterviewTheme[];
@@ -13,7 +16,7 @@ interface InterviewThemeListProps {
 }
 
 /** AIインタビューのテーマカードの一覧。トップページと一覧ページで共有する */
-export function InterviewThemeList({
+export async function InterviewThemeList({
   themes,
   headingLevel,
   purpose = "participate",
@@ -28,14 +31,34 @@ export function InterviewThemeList({
     );
   }
 
+  const rules =
+    purpose === "participate"
+      ? await findInterviewParticipationRulesByIds(
+          themes.map((theme) => theme.id)
+        )
+      : [];
+  const cards = await Promise.all(
+    themes.map(async (theme) => {
+      const rule = rules.find((rule) => rule.id === theme.id);
+      let participation: InterviewParticipationView = { kind: "allowed" };
+      if (purpose === "participate") {
+        participation = rule
+          ? await getInterviewParticipationView(rule)
+          : { kind: "guide", themeName: theme.name, providers: [] };
+      }
+      return { theme, participation };
+    })
+  );
+
   return (
     <div className="flex flex-col gap-4">
-      {themes.map((theme) => (
+      {cards.map(({ theme, participation }) => (
         <InterviewThemeCard
           key={theme.id}
           theme={theme}
           headingLevel={headingLevel}
           purpose={purpose}
+          participation={participation}
         />
       ))}
     </div>

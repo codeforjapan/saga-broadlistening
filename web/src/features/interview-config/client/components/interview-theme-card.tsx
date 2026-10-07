@@ -5,6 +5,7 @@ import Link from "next/link";
 import { RubySafeLineClamp } from "@/components/ruby-safe-line-clamp";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import type { InterviewParticipationView } from "../../shared/types/interview-participation-view";
 import type { InterviewTheme } from "../../shared/types/interview-theme";
 import { formatEstimatedDuration } from "../../shared/utils/format-estimated-duration";
 import {
@@ -15,6 +16,7 @@ import {
 
 interface InterviewThemeCardProps {
   theme: InterviewTheme;
+  participation: InterviewParticipationView;
   /** 置かれるセクションの見出し階層に合わせる */
   headingLevel?: "h2" | "h3";
   /** 参加導線（既定）か、募集終了テーマの結果導線か */
@@ -29,6 +31,7 @@ export function InterviewThemeCard({
   theme,
   headingLevel: Heading = "h3",
   purpose = "participate",
+  participation,
 }: InterviewThemeCardProps) {
   // 所要時間は参加する人向けの情報なので、結果を読ませるカードでは出さない。
   const estimatedDuration =
@@ -36,7 +39,11 @@ export function InterviewThemeCard({
       ? formatEstimatedDuration(theme.estimatedDuration)
       : null;
   const participantCount = formatParticipantCount(theme.participantCount);
-  const { href, ctaLabel } = buildInterviewThemeCardAction(theme.slug, purpose);
+  const { href, ctaLabel } = buildInterviewThemeCardAction(
+    theme.slug,
+    purpose,
+    participation.kind === "allowed"
+  );
 
   return (
     <Link href={href as Route} className="block">

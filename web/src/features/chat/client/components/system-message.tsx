@@ -8,6 +8,8 @@ import {
 } from "@/components/ai-elements/reasoning";
 import { Response } from "@/components/ai-elements/response";
 import { SUGGEST_INTERVIEW_TOOL_TYPE } from "@/features/chat/shared/constants";
+import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { InterviewSuggestionBanner } from "./interview-suggestion-banner";
 
 type RehypePlugins = ComponentProps<typeof Response>["rehypePlugins"];
@@ -17,6 +19,8 @@ interface SystemMessageProps {
   isStreaming: boolean;
   billId?: string;
   billName?: string;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
   rehypePlugins?: RehypePlugins;
 }
 
@@ -25,6 +29,8 @@ export function SystemMessage({
   isStreaming,
   billId,
   billName,
+  interviewParticipation,
+  interviewTarget,
   rehypePlugins,
 }: SystemMessageProps) {
   return (
@@ -76,6 +82,8 @@ export function SystemMessage({
                 key={`${message.id}-${i}`}
                 billId={billId}
                 billName={billName}
+                participation={interviewParticipation}
+                target={interviewTarget}
               />
             );
           }

@@ -13,6 +13,8 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import type { BillWithContent } from "@/features/bills/shared/types";
+import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { ChatWindow } from "./chat-window";
 
 // アニメーション定数
@@ -25,6 +27,8 @@ const ANIMATION_DURATION = {
 interface ChatButtonProps {
   billContext?: BillWithContent;
   hasInterviewConfig?: boolean;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
   difficultyLevel: string;
   pageContext?: {
     type: "home" | "bill";
@@ -42,7 +46,17 @@ export interface ChatButtonRef {
 }
 
 export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
-  ({ billContext, hasInterviewConfig, difficultyLevel, pageContext }, ref) => {
+  (
+    {
+      billContext,
+      hasInterviewConfig,
+      interviewParticipation,
+      interviewTarget,
+      difficultyLevel,
+      pageContext,
+    },
+    ref
+  ) => {
     const [isOpen, setIsOpen] = useState(false);
     const [isCompact, setIsCompact] = useState(false);
     const [showText, setShowText] = useState(true);
@@ -174,6 +188,8 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
         <ChatWindow
           billContext={billContext}
           hasInterviewConfig={hasInterviewConfig}
+          interviewParticipation={interviewParticipation}
+          interviewTarget={interviewTarget}
           difficultyLevel={difficultyLevel}
           chatState={chatState}
           isOpen={isOpen}

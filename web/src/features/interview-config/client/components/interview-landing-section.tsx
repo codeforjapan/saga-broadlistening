@@ -3,11 +3,14 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import type { InterviewParticipationView } from "../../shared/types/interview-participation-view";
 import type { InterviewTarget } from "../../shared/types/interview-target";
 import { getInterviewLPLink } from "../../shared/utils/interview-links";
+import { ExternalIdentityGuideNotice } from "./external-identity-guide-notice";
 
 interface InterviewLandingSectionProps {
   target: InterviewTarget;
+  participation: InterviewParticipationView;
 }
 
 function getCheckPoints(): string[] {
@@ -80,7 +83,11 @@ function _InterviewIllustration() {
 
 export function InterviewLandingSection({
   target,
+  participation,
 }: InterviewLandingSectionProps) {
+  if (participation.kind === "guide") {
+    return <ExternalIdentityGuideNotice participation={participation} />;
+  }
   return (
     <div className="relative w-full overflow-hidden rounded-xl bg-white p-6">
       <_InterviewIllustration />

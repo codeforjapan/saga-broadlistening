@@ -8,12 +8,16 @@ import {
   ChatButton,
   type ChatButtonRef,
 } from "@/features/chat/client/components/chat-button";
+import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import type { BillWithContent } from "../../../shared/types";
 
 interface BillDetailClientProps {
   bill: BillWithContent;
   currentDifficulty: DifficultyLevelEnum;
   hasInterviewConfig: boolean;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
   children: ReactNode;
 }
 
@@ -29,6 +33,8 @@ export function BillDetailClient({
   bill,
   currentDifficulty,
   hasInterviewConfig,
+  interviewParticipation,
+  interviewTarget,
   children,
 }: BillDetailClientProps) {
   const chatButtonRef = useRef<ChatButtonRef>(null);
@@ -48,6 +54,8 @@ export function BillDetailClient({
         ref={chatButtonRef}
         billContext={bill}
         hasInterviewConfig={hasInterviewConfig}
+        interviewParticipation={interviewParticipation}
+        interviewTarget={interviewTarget}
         difficultyLevel={currentDifficulty}
       />
     </>
