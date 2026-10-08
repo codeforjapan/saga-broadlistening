@@ -55,6 +55,10 @@ interface ChatWindowProps {
   disableAutoFocus?: boolean;
   returnFocusRef: RefObject<HTMLElement | null>;
   sessionId: string;
+  /** "dialog" を指定すると、PC幅でも常設パネルにせずダイアログで開く */
+  presentation?: "auto" | "dialog";
+  /** スマホ幅で全画面のチャットとして開く */
+  fullScreenOnMobile?: boolean;
 }
 
 /**
@@ -183,6 +187,8 @@ export function ChatWindow({
   disableAutoFocus = false,
   returnFocusRef,
   sessionId,
+  presentation = "auto",
+  fullScreenOnMobile = false,
 }: ChatWindowProps) {
   const [input, setInput] = useState("");
   const [isMounted, setIsMounted] = useState(false);
@@ -299,7 +305,7 @@ export function ChatWindow({
   }
 
   // PCでは常設の補助領域、モバイルでは背景を操作不能にするモーダルとして扱う
-  if (isPc) {
+  if (isPc && presentation === "auto") {
     return createPortal(
       <section
         aria-label="佐賀市の施策についてAIに質問する"
@@ -314,6 +320,7 @@ export function ChatWindow({
   return (
     <MobileChatDialog
       disableAutoFocus={disableAutoFocus}
+      fullScreenOnMobile={fullScreenOnMobile}
       initialFocusRef={textareaRef}
       isOpen={isOpen}
       onClose={onClose}

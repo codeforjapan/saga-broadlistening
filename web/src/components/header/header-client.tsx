@@ -44,10 +44,18 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
             aria-label="補助ナビゲーション"
           >
             {showDifficultySelector && (
-              <DifficultySelector currentLevel={difficultyLevel} />
+              // TOPデザイン比較モック（data-top-design）のスマホ幅では
+              // メニュー内へ移すので、ここでは隠す
+              <div className="max-md:[body:has([data-top-design])_&]:hidden">
+                <DifficultySelector currentLevel={difficultyLevel} />
+              </div>
             )}
             {showInterviewActions && <InterviewHeaderActions />}
-            <HamburgerMenu />
+            <HamburgerMenu
+              difficultyLevel={
+                showDifficultySelector ? difficultyLevel : undefined
+              }
+            />
           </nav>
         </div>
       </div>
