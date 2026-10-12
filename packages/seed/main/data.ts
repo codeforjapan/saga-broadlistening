@@ -324,6 +324,14 @@ export const additionalInterviewConfigs: InterviewConfigInsert[] = [
   },
 ];
 
+/** interview_questions の NOT NULL かつ DEFAULT を持つカラムの既定値（withDefaults 用） */
+export const INTERVIEW_QUESTION_DEFAULTS = {
+  step_key: null,
+  step_kind: "episode",
+  turn_budget: 3,
+  required: true,
+} satisfies Partial<InterviewQuestionInsert>;
+
 /**
  * 目的別テンプレート（第6章）からインタビュー質問を作成する。
  * 文言・観点・選択肢・発話予算はテンプレートの下書きをそのまま使う。

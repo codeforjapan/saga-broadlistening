@@ -33,6 +33,7 @@ import {
   createDemoSession,
   createInterviewConfig,
   INTERVIEW_CONFIG_DEFAULTS,
+  INTERVIEW_QUESTION_DEFAULTS,
   createInterviewMessages,
   createInterviewQuestions,
   createInterviewSessions,
@@ -236,11 +237,14 @@ async function seedDatabase() {
       label: "interview questions",
       query: supabase
         .from("interview_questions")
-        .insert([
-          ...createInterviewQuestions(defaultConfigId, "verify", "bill"),
-          ...createInterviewQuestions(abstractConfigId, "envision", "theme"),
-          ...createBulkOpinionQuestions(bulkConfigId),
-        ])
+        .insert(
+          // 一括 insert では行ごとにキーが欠けると NULL が入るため、既定値をそろえる
+          withDefaults(INTERVIEW_QUESTION_DEFAULTS, [
+            ...createInterviewQuestions(defaultConfigId, "verify", "bill"),
+            ...createInterviewQuestions(abstractConfigId, "envision", "theme"),
+            ...createBulkOpinionQuestions(bulkConfigId),
+          ])
+        )
         .select("id"),
     });
 

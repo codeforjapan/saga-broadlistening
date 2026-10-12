@@ -48,7 +48,7 @@ describe("prepareQuestionsForInsert", () => {
     expect(result[2].quick_replies).toBeNull();
   });
 
-  it("テンプレートの値を引き継ぎ、未指定なら DB の既定値に任せる", () => {
+  it("テンプレートの値を引き継ぎ、未指定なら既定値を明示する（一括 insert で NULL にしない）", () => {
     const result = prepareQuestionsForInsert(
       [
         {
@@ -69,9 +69,12 @@ describe("prepareQuestionsForInsert", () => {
       required: true,
     });
     expect(result[1].step_key).toBeNull();
-    expect(result[1]).not.toHaveProperty("step_kind");
-    expect(result[1]).not.toHaveProperty("turn_budget");
-    expect(result[1]).not.toHaveProperty("required");
+    expect(result[1]).toMatchObject({
+      step_key: null,
+      step_kind: "episode",
+      turn_budget: 3,
+      required: true,
+    });
   });
 
   it("空配列を渡すと空配列を返す", () => {

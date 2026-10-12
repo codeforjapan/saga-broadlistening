@@ -181,6 +181,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             interview_config_id: config.id,
             question: "関わりはありますか？",
             question_order: 1,
+            quick_replies: null,
             step_kind: "fact",
             turn_budget: 1,
           },
@@ -189,6 +190,8 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             question: "ふだんの場面を教えてください",
             question_order: 2,
             quick_replies: ["思い出せない"],
+            step_kind: "episode",
+            turn_budget: 3,
           },
         ])
         .select("id, question_order");
