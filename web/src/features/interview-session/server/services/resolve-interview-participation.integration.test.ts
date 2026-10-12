@@ -150,13 +150,12 @@ describe("参加制御（external_identity テーマ）統合テスト", () => {
         deps: {
           ...buildDeps(true, noIdentities),
           getSession: async () => session,
-          chatModel: createStreamMock([
+          // 質問の無い設定なので、最初のターンから要約に入る
+          summaryModel: createStreamMock([
             JSON.stringify({
-              text: "こんにちは",
-              quick_replies: [],
-              question_id: null,
-              topic_title: null,
-              next_stage: "chat",
+              text: "ここまでのお話をまとめます。",
+              summary_response: "none",
+              report: null,
             }),
           ]),
         },

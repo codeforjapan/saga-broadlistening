@@ -27,7 +27,7 @@ export function collectAssistantTurnMetas(
 
 /** システムが自動で伏せた個人情報（[電話番号] など） */
 const MASKED_PII_PATTERN =
-  /\[(電話番号|氏名|名前|住所|メールアドレス|メール|生年月日|個人情報)[^\]]*\]/;
+  /\[(電話番号|氏名|名前|住所|メールアドレス|メール|生年月日|個人情報)[^\]\[]{0,20}\]/;
 
 export function containsMaskedPii(text: string): boolean {
   return MASKED_PII_PATTERN.test(text);

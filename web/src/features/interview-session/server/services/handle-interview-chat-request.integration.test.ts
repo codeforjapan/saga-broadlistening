@@ -191,10 +191,11 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             quick_replies: ["思い出せない"],
           },
         ])
-        .select("id")
-        .order("question_order");
+        .select("id, question_order");
       if (error) throw error;
-      questionIds = data.map((q) => q.id);
+      questionIds = data
+        .sort((a, b) => a.question_order - b.question_order)
+        .map((q) => q.id);
     });
 
     it("ユーザーメッセージとassistantメッセージがDBに保存される", async () => {

@@ -21,21 +21,11 @@ function createGetUser(userId: string): GetUserFn {
   });
 }
 
-// interviewChatTextSchema に準拠したモックレスポンス
-// LLMのレスポンスはtopic_title: nullだが、overrideInitialTopicTitleにより「はじめに」に上書きされる
+// interviewInitialSchema に準拠したモックレスポンス
 const llmResponse = JSON.stringify({
+  question_id: "Q1",
+  topic_title: "関わり",
   text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
-  quick_replies: ["はい", "いいえ"],
-  question_id: null,
-  topic_title: null,
-  next_stage: "chat",
-});
-const expectedResponse = JSON.stringify({
-  text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
-  quick_replies: ["はい", "いいえ"],
-  question_id: null,
-  topic_title: "はじめに",
-  next_stage: "chat",
 });
 
 describe("initializeInterviewChat 統合テスト", () => {
@@ -101,7 +91,11 @@ describe("initializeInterviewChat 統合テスト", () => {
     // MockModelが生成した初期質問メッセージが含まれること
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe("assistant");
-    expect(result.messages[0].content).toBe(expectedResponse);
+    expect(JSON.parse(result.messages[0].content)).toMatchObject({
+      text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
+      topic_title: "はじめに",
+      stage: "chat",
+    });
   });
 
   it("外部IDが未記録の進行中セッションに、紐付いた外部IDを後から記録する", async () => {
