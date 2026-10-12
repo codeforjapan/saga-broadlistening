@@ -1,10 +1,8 @@
-import { after } from "next/server";
-import { flushTelemetry } from "@/lib/telemetry/register";
-import { resolveSubjectTitle } from "@mirai-gikai/shared/interview-prompts/subject-section";
 import type {
   PromptBillInput,
   InterviewQuestion as PromptInterviewQuestion,
 } from "@mirai-gikai/shared/interview-prompts/types";
+import { after } from "next/server";
 import type { z } from "zod";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { findInterviewConfigById } from "@/features/interview-config/server/repositories/interview-config-repository";
@@ -15,6 +13,7 @@ import type { MultiSimulationProgressEvent } from "@/features/interview-simulati
 import { validatePersonaSlots } from "@/features/interview-simulation/shared/utils/validate-persona-slots";
 import { fetchBillWithContents } from "@/features/topic-analysis/server/repositories/topic-analysis-repository";
 import { verifyInternalAuth } from "@/features/topic-analysis/server/utils/trigger-next-phase";
+import { flushTelemetry } from "@/lib/telemetry/register";
 
 export const maxDuration = 300;
 
@@ -86,12 +85,23 @@ async function buildPipelineParams(
       id: q.id,
       question: q.question,
       quick_replies: q.quick_replies ?? null,
-      follow_up_guide: q.follow_up_guide ?? null,
+      hint: q.hint ?? null,
+      step_key: q.step_key ?? null,
+      step_kind: q.step_kind ?? null,
+      turn_budget: q.turn_budget ?? null,
+      required: q.required ?? null,
     }));
 
+  // 説明文は改善版を、目的・結果のお知らせなどは保存済みの設定を使う
   const promptInterviewConfig = {
     name: config.name,
     description: params.improvedConfig.description,
+    purpose_type: config.purpose_type,
+    opinion_focus: config.opinion_focus,
+    decided_matters: config.decided_matters,
+    publication_mode: config.publication_mode,
+    publication_timing: config.publication_timing,
+    publication_place: config.publication_place,
   };
 
   return {
@@ -106,8 +116,6 @@ async function buildPipelineParams(
         estimatedDurationMinutes:
           params.improvedConfig.estimatedDurationMinutes ?? null,
       },
-      // 名乗る対象名。本番の初回質問生成と同じ解決規則を使う
-      subjectTitle: resolveSubjectTitle(bill, promptInterviewConfig),
       interviewerModel: params.interviewerModel,
       intervieweeModel: params.intervieweeModel,
       personaModel: params.personaModel,

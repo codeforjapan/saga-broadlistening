@@ -1,5 +1,6 @@
 "use client";
 
+import { PARTICIPATION_MODE_FIELD_LABEL } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import {
   BarChart3,
   Copy,
@@ -14,7 +15,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,12 +49,11 @@ import {
 } from "../../server/actions/upsert-interview-config";
 import type { InterviewConfig } from "../../shared/types";
 import { getStatusLabel } from "../../shared/utils/get-status-label";
-import { PARTICIPATION_MODE_FIELD_LABEL } from "@mirai-gikai/shared/interview-participation/participation-mode";
-import { ParticipationModeBadge } from "./participation-mode-badge";
 import {
   type BillOption,
   CopyConfigToBillDialog,
 } from "./copy-config-to-bill-dialog";
+import { ParticipationModeBadge } from "./participation-mode-badge";
 
 interface InterviewConfigListProps {
   billId: string;

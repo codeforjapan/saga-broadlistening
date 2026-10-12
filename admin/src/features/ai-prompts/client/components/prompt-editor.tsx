@@ -33,7 +33,6 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
   const [preview, setPreview] = useState("");
   const isInterview = initialData.group === "interview";
   const [interviewConfigId, setInterviewConfigId] = useState("");
-  const [remainingMinutes, setRemainingMinutes] = useState("");
   const [askedQuestionCount, setAskedQuestionCount] = useState("0");
   const [conversation, setConversation] = useState("");
   const [billId, setBillId] = useState("");
@@ -206,8 +205,6 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
           content,
           billId: billId || undefined,
           interviewConfigId: interviewConfigId || undefined,
-          remainingMinutes:
-            remainingMinutes === "" ? undefined : Number(remainingMinutes),
           askedQuestionCount: Number(askedQuestionCount),
           conversation,
         });
@@ -296,7 +293,21 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
         </p>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="prompt-content">プロンプト本文</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label htmlFor="prompt-content">プロンプト本文</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={pending || content === prompt.defaultContent}
+            onClick={() => {
+              setContent(prompt.defaultContent);
+              setPreview("");
+            }}
+          >
+            初期文面に戻す
+          </Button>
+        </div>
         <Textarea
           id="prompt-content"
           value={content}
@@ -430,28 +441,13 @@ export function PromptEditor({ initialData }: { initialData: EditorData }) {
                 ))}
               </select>
             </div>
-            {prompt.key === "interview-chat-system" ? (
+            {prompt.key === "interview-persona" ||
+            prompt.key === "interview-initial-system" ? null : prompt.key ===
+              "interview-chat-system" ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="preview-remaining">
-                    残り目安時間（分・空欄は指定なし）
-                  </Label>
-                  <Input
-                    id="preview-remaining"
-                    type="number"
-                    min={0}
-                    max={240}
-                    value={remainingMinutes}
-                    disabled={pending}
-                    onChange={(event) => {
-                      setRemainingMinutes(event.target.value);
-                      setPreview("");
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="preview-asked">
-                    回答済みの質問数（先頭から）
+                    聞き終えた話題の数（先頭から）
                   </Label>
                   <Input
                     id="preview-asked"

@@ -1,38 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { BillWithContent } from "@/features/bills/shared/types";
-import { buildSummarySystemPrompt } from "./build-summary-system-prompt";
+import { buildSummarySystemPrompt } from "./summary";
+import type { PromptBillInput } from "./types";
 
-const makeBill = (
-  overrides: Partial<BillWithContent> = {}
-): BillWithContent => ({
-  id: "bill-1",
+const makeBill = (): PromptBillInput => ({
   name: "テスト施策",
-  slug: "test-policy",
-  department: null,
-  contact: null,
-  is_featured: false,
-  approved_by: null,
-  approved_at: null,
-  publish_status: "published",
-  published_at: null,
-  share_thumbnail_url: null,
-  thumbnail_url: null,
   knowledge_source: "厚生労働省の報告書",
-  enable_ai_chat: false,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
   bill_content: {
-    id: "bc-1",
-    policy_id: "bill-1",
     title: "テスト施策タイトル",
     summary: "テスト施策の要約です",
     content: "テスト施策の内容",
-    difficulty_level: "normal",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
   },
-  tags: [],
-  ...overrides,
 });
 
 describe("buildSummarySystemPrompt", () => {
@@ -62,7 +39,7 @@ describe("buildSummarySystemPrompt", () => {
       messages: [{ role: "user", content: "テスト" }],
     });
 
-    expect(result).toContain("## インタビューの対象");
+    expect(result).toContain("# インタビューの対象");
     expect(result).toContain("テーマ名: 佐賀市のみらい");
     expect(result).not.toContain("- 施策名:");
   });
@@ -96,7 +73,7 @@ describe("buildSummarySystemPrompt", () => {
       messages: [],
     });
 
-    expect(result).toContain("## 会話履歴\n\n");
+    expect(result).toContain("# 会話履歴\n\n");
   });
 
   it("会話履歴が 'role: content' フォーマットで含まれる", () => {

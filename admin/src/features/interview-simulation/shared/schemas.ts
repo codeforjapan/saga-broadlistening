@@ -1,4 +1,9 @@
 import { isValidModelId } from "@mirai-gikai/shared/ai/validate-model-id";
+import {
+  MAX_TURN_BUDGET,
+  MIN_TURN_BUDGET,
+} from "@mirai-gikai/shared/interview-prompts/constants";
+import { STEP_KINDS } from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
 import { z } from "zod";
 import { ENV_DEFAULT_MODEL, MAX_PERSONA_SLOTS } from "./constants";
 
@@ -327,7 +332,18 @@ export const multiSimulationRunRequestSchema = z
                   .array(z.string().max(SHORT_TEXT_MAX))
                   .max(SMALL_ARRAY_MAX)
                   .nullable(),
-                follow_up_guide: z.string().max(MEDIUM_TEXT_MAX).nullable(),
+                hint: z.string().max(MEDIUM_TEXT_MAX).nullable(),
+                // 目的別テンプレートの話題の設定（未指定なら既定の予算・必須で動かす）
+                step_key: z.string().max(SHORT_TEXT_MAX).nullable().optional(),
+                step_kind: z.enum(STEP_KINDS).nullable().optional(),
+                turn_budget: z
+                  .number()
+                  .int()
+                  .min(MIN_TURN_BUDGET)
+                  .max(MAX_TURN_BUDGET)
+                  .nullable()
+                  .optional(),
+                required: z.boolean().nullable().optional(),
               })
               .strict()
           )

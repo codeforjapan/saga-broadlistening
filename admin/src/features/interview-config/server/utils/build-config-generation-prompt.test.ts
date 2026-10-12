@@ -85,7 +85,7 @@ describe("buildConfigGenerationPrompt", () => {
         confirmedQuestions: [
           {
             question: "質問A",
-            follow_up_guide: "フォローアップ指針A",
+            hint: "観点A",
             quick_replies: ["選択肢1", "選択肢2"],
           },
           { question: "質問B" },
@@ -93,7 +93,7 @@ describe("buildConfigGenerationPrompt", () => {
       });
       expect(result).toContain("## 確定済みの質問");
       expect(result).toContain("1. 質問A");
-      expect(result).toContain("フォローアップ指針: フォローアップ指針A");
+      expect(result).toContain("観点: 観点A");
       expect(result).toContain("選択肢: 選択肢1, 選択肢2");
       expect(result).toContain("2. 質問B");
     });
@@ -146,18 +146,25 @@ describe("buildConfigGenerationPrompt", () => {
       expect(result).toContain("質問提案のガイドライン");
     });
 
-    it("施策型ではフォローアップを1往復までに留める", () => {
-      const result = buildConfigGenerationPrompt(questionParams);
-      expect(result).toContain("1往復までの追加確認に留める");
-    });
-
-    it("テーマ型ではフォローアップを1往復に絞らない", () => {
+    it.each([
+      { kind: "bill" as const },
+      { kind: "theme" as const },
+    ])("$kind 型でも書き直しのルールを含み、回数を書かせない", ({ kind }) => {
       const result = buildConfigGenerationPrompt({
         ...questionParams,
-        subject: { kind: "theme", themeName: "佐賀での暮らし" },
+        ...(kind === "theme"
+          ? { subject: { kind: "theme" as const, themeName: "佐賀での暮らし" } }
+          : {}),
       });
+      expect(result).toContain("質問の順番を変えないこと");
+      expect(result).toContain("質問文に答えの候補を書かない");
+      expect(result).toContain("「決まっていること」の賛否を聞かない");
+      expect(result).toContain("**2つまで**");
+      expect(result).toContain(
+        "回数（「1往復まで」「2〜3回深掘り」など）を書かない"
+      );
       expect(result).not.toContain("1往復までの追加確認に留める");
-      expect(result).toContain("2〜3往復まで深掘りしてよい");
+      expect(result).not.toContain("2〜3往復まで深掘りしてよい");
     });
 
     it("出力形式にquestionsを指定する", () => {
@@ -171,14 +178,14 @@ describe("buildConfigGenerationPrompt", () => {
         existingQuestions: [
           {
             question: "既存質問1",
-            follow_up_guide: "既存フォローアップ",
+            hint: "既存フォローアップ",
             quick_replies: ["選択肢1"],
           },
         ],
       });
       expect(result).toContain("## 現在設定されている質問");
       expect(result).toContain("1. 既存質問1");
-      expect(result).toContain("フォローアップ指針: 既存フォローアップ");
+      expect(result).toContain("観点: 既存フォローアップ");
       expect(result).toContain("選択肢: 選択肢1");
       expect(result).toContain("ブラッシュアップ");
     });
@@ -186,7 +193,7 @@ describe("buildConfigGenerationPrompt", () => {
     it("各質問フィールドの説明を含む", () => {
       const result = buildConfigGenerationPrompt(questionParams);
       expect(result).toContain("question: 質問文");
-      expect(result).toContain("follow_up_guide: フォローアップ指針");
+      expect(result).toContain("hint: 観点");
       expect(result).toContain("quick_replies: クイックリプライの選択肢");
     });
 

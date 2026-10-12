@@ -60,17 +60,9 @@
       "types": "./src/interview-prompts/types.ts",
       "default": "./src/interview-prompts/types.ts"
     },
-    "./interview-prompts/stage-transition-guidance": {
-      "types": "./src/interview-prompts/stage-transition-guidance.ts",
-      "default": "./src/interview-prompts/stage-transition-guidance.ts"
-    },
     "./interview-prompts/chat-text-description": {
       "types": "./src/interview-prompts/chat-text-description.ts",
       "default": "./src/interview-prompts/chat-text-description.ts"
-    },
-    "./interview-prompts/loop-mode": {
-      "types": "./src/interview-prompts/loop-mode.ts",
-      "default": "./src/interview-prompts/loop-mode.ts"
     },
     "./interview-prompts/subject-section": {
       "types": "./src/interview-prompts/subject-section.ts",
@@ -179,6 +171,54 @@
     "./interview-participation/participation-mode": {
       "types": "./src/interview-participation/participation-mode.ts",
       "default": "./src/interview-participation/participation-mode.ts"
+    },
+    "./interview-prompts/constants": {
+      "types": "./src/interview-prompts/constants.ts",
+      "default": "./src/interview-prompts/constants.ts"
+    },
+    "./interview-prompts/turn-control": {
+      "types": "./src/interview-prompts/turn-control.ts",
+      "default": "./src/interview-prompts/turn-control.ts"
+    },
+    "./interview-prompts/read-signals": {
+      "types": "./src/interview-prompts/read-signals.ts",
+      "default": "./src/interview-prompts/read-signals.ts"
+    },
+    "./interview-prompts/assistant-message": {
+      "types": "./src/interview-prompts/assistant-message.ts",
+      "default": "./src/interview-prompts/assistant-message.ts"
+    },
+    "./interview-prompts/turn-state": {
+      "types": "./src/interview-prompts/turn-state.ts",
+      "default": "./src/interview-prompts/turn-state.ts"
+    },
+    "./interview-prompts/chat-prompt": {
+      "types": "./src/interview-prompts/chat-prompt.ts",
+      "default": "./src/interview-prompts/chat-prompt.ts"
+    },
+    "./interview-prompts/initial-prompt": {
+      "types": "./src/interview-prompts/initial-prompt.ts",
+      "default": "./src/interview-prompts/initial-prompt.ts"
+    },
+    "./interview-prompts/output-schemas": {
+      "types": "./src/interview-prompts/output-schemas.ts",
+      "default": "./src/interview-prompts/output-schemas.ts"
+    },
+    "./interview-prompts/purpose-types/registry": {
+      "types": "./src/interview-prompts/purpose-types/registry.ts",
+      "default": "./src/interview-prompts/purpose-types/registry.ts"
+    },
+    "./interview-prompts/purpose-types/types": {
+      "types": "./src/interview-prompts/purpose-types/types.ts",
+      "default": "./src/interview-prompts/purpose-types/types.ts"
+    },
+    "./interview-prompts/bill-clarification-guidance": {
+      "types": "./src/interview-prompts/bill-clarification-guidance.ts",
+      "default": "./src/interview-prompts/bill-clarification-guidance.ts"
+    },
+    "./interview-prompts/turn-records": {
+      "types": "./src/interview-prompts/turn-records.ts",
+      "default": "./src/interview-prompts/turn-records.ts"
     }
   },
   "dependencies": {

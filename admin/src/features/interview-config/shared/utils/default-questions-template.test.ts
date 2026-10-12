@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPurposeTemplateQuestions,
   buildQuestionsFromTemplate,
   DEFAULT_QUESTIONS_TEMPLATE,
   FOLLOW_UP_DEPTH_LIMIT_RULE,
@@ -28,10 +29,10 @@ describe("DEFAULT_QUESTIONS_TEMPLATE", () => {
     expect(slots).toEqual(["topics", "stance"]);
   });
 
-  it("Q4/Q5/Q7 のフォローアップ指針に3往復ルールが含まれる", () => {
+  it("Q4/Q5/Q7 の観点に3往復ルールが含まれる", () => {
     // index 3=Q4(評価), 4=Q5(具体化), 6=Q7(設計者へ)
     for (const i of [3, 4, 6]) {
-      expect(DEFAULT_QUESTIONS_TEMPLATE[i].follow_up_guide).toContain(
+      expect(DEFAULT_QUESTIONS_TEMPLATE[i].hint).toContain(
         FOLLOW_UP_DEPTH_LIMIT_RULE
       );
     }
@@ -43,7 +44,7 @@ describe("DEFAULT_QUESTIONS_TEMPLATE", () => {
     expect(q6.question).toContain("施策");
     expect(q6.question).toContain("ハードル");
     expect(q6.question).toContain("個人・事業者・組織");
-    expect(q6.follow_up_guide).toContain("最大5往復");
+    expect(q6.hint).toContain("最大5往復");
     if (q6.kind === "fixed") {
       expect(q6.quick_replies).toEqual([
         "はい（十分考慮されている／ハードルは小さい）",
@@ -149,7 +150,7 @@ describe("buildQuestionsFromTemplate", () => {
     expect(result2[2].quick_replies).not.toContain("mutated");
   });
 
-  it("Q1/Q2 の question と follow_up_guide は固定の文言を返す", () => {
+  it("Q1/Q2 の question と hint は固定の文言を返す", () => {
     const result = buildQuestionsFromTemplate({
       topics: ["x", "y"],
       stance: ["a", "b"],
@@ -161,8 +162,36 @@ describe("buildQuestionsFromTemplate", () => {
     expect(result[1].question).toBe(
       "この施策について、あなたはどんな立場・関わり方に近いですか？"
     );
-    // 固定フォローアップ指針の特徴文言
-    expect(result[0].follow_up_guide).toContain("Q2に進む");
-    expect(result[1].follow_up_guide).toContain("専門知識レベル");
+    // 固定観点の特徴文言
+    expect(result[0].hint).toContain("Q2に進む");
+    expect(result[1].hint).toContain("専門知識レベル");
+  });
+});
+
+describe("buildPurposeTemplateQuestions", () => {
+  it("目的×対象のテンプレートを、種類・予算・必須つきで返す", () => {
+    const questions = buildPurposeTemplateQuestions("verify", "bill");
+    expect(questions).toHaveLength(5);
+    expect(questions[0]).toMatchObject({
+      step_key: "involvement",
+      step_kind: "fact",
+      turn_budget: 1,
+      required: true,
+    });
+    expect(questions[3].quick_replies).toContain("まだ決められない");
+    expect(questions.at(-1)?.step_kind).toBe("add_more");
+  });
+
+  it("観点・選択肢が無い話題は未指定にする", () => {
+    const questions = buildPurposeTemplateQuestions("verify", "bill");
+    const change = questions.find((q) => q.step_key === "change");
+    expect(change?.quick_replies).toBeUndefined();
+    const addMore = questions.find((q) => q.step_key === "add_more");
+    expect(addMore?.hint).toBeUndefined();
+  });
+
+  it("任意の話題を持つテンプレートでは required=false が入る", () => {
+    const questions = buildPurposeTemplateQuestions("envision", "theme");
+    expect(questions.filter((q) => q.required === false)).toHaveLength(1);
   });
 });

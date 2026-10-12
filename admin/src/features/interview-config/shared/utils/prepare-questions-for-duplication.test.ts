@@ -7,9 +7,13 @@ const baseQuestions: InterviewQuestion[] = [
     id: "q-001",
     interview_config_id: "config-001",
     question: "質問1",
-    follow_up_guide: "指示1",
+    hint: "指示1",
     quick_replies: ["はい", "いいえ"],
     question_order: 1,
+    step_key: "involvement",
+    step_kind: "fact",
+    turn_budget: 1,
+    required: true,
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
   },
@@ -17,9 +21,13 @@ const baseQuestions: InterviewQuestion[] = [
     id: "q-002",
     interview_config_id: "config-001",
     question: "質問2",
-    follow_up_guide: null,
+    hint: null,
     quick_replies: null,
     question_order: 2,
+    step_key: null,
+    step_kind: "episode",
+    turn_budget: 3,
+    required: false,
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
   },
@@ -55,13 +63,27 @@ describe("prepareQuestionsForDuplication", () => {
     );
     expect(result).toHaveLength(2);
     expect(result[0].question).toBe("質問1");
-    expect(result[0].follow_up_guide).toBe("指示1");
+    expect(result[0].hint).toBe("指示1");
     expect(result[0].quick_replies).toEqual(["はい", "いいえ"]);
     expect(result[0].question_order).toBe(1);
     expect(result[1].question).toBe("質問2");
-    expect(result[1].follow_up_guide).toBeNull();
+    expect(result[1].hint).toBeNull();
     expect(result[1].quick_replies).toBeNull();
     expect(result[1].question_order).toBe(2);
+  });
+
+  it("テンプレートの値（種類・予算・必須）を引き継ぐ", () => {
+    const result = prepareQuestionsForDuplication(
+      baseQuestions,
+      "new-config-id"
+    );
+    expect(result[0]).toMatchObject({
+      step_key: "involvement",
+      step_kind: "fact",
+      turn_budget: 1,
+      required: true,
+    });
+    expect(result[1].required).toBe(false);
   });
 
   it("空配列を渡すと空配列を返す", () => {

@@ -11,8 +11,12 @@ export function prepareQuestionsForDuplication(
   return questions.map((q) => ({
     interview_config_id: newConfigId,
     question: q.question,
-    follow_up_guide: q.follow_up_guide,
+    hint: q.hint,
     quick_replies: q.quick_replies,
     question_order: q.question_order,
+    step_key: q.step_key,
+    step_kind: q.step_kind,
+    turn_budget: q.turn_budget,
+    required: q.required,
   }));
 }

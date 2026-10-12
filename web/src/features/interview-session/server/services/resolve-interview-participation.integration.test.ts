@@ -132,7 +132,6 @@ describe("参加制御（external_identity テーマ）統合テスト", () => {
         handleInterviewChatRequest({
           messages: [{ role: "user", content: "こんにちは" }],
           interviewConfigId: config.id,
-          currentStage: "chat",
           userId: user.id,
           deps: {
             ...buildDeps(false, noIdentities),
@@ -147,7 +146,6 @@ describe("参加制御（external_identity テーマ）統合テスト", () => {
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "こんにちは" }],
         interviewConfigId: config.id,
-        currentStage: "chat",
         userId: user.id,
         deps: {
           ...buildDeps(true, noIdentities),

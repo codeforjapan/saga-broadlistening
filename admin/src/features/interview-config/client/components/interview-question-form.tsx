@@ -23,12 +23,10 @@ export function InterviewQuestionForm({
   submitLabel = "追加",
 }: InterviewQuestionFormProps) {
   const questionId = useId();
-  const followUpGuideId = useId();
+  const hintId = useId();
   const quickRepliesId = useId();
   const [question, setQuestion] = useState(initialData?.question || "");
-  const [followUpGuide, setFollowUpGuide] = useState(
-    initialData?.follow_up_guide || ""
-  );
+  const [hint, setHint] = useState(initialData?.hint || "");
   const [quickRepliesText, setQuickRepliesText] = useState(
     arrayToText(initialData?.quick_replies)
   );
@@ -41,8 +39,13 @@ export function InterviewQuestionForm({
     }
 
     onSubmit({
+      // テンプレートの値（種類・予算・必須）は職員に見せず、そのまま引き継ぐ
+      step_key: initialData?.step_key,
+      step_kind: initialData?.step_kind,
+      turn_budget: initialData?.turn_budget,
+      required: initialData?.required,
       question: question.trim(),
-      follow_up_guide: followUpGuide.trim() || undefined,
+      hint: hint.trim() || undefined,
       quick_replies:
         quickRepliesText.trim() !== ""
           ? textToArray(quickRepliesText)
@@ -51,7 +54,7 @@ export function InterviewQuestionForm({
 
     // フォームをリセット
     setQuestion("");
-    setFollowUpGuide("");
+    setHint("");
     setQuickRepliesText("");
   };
 
@@ -61,7 +64,7 @@ export function InterviewQuestionForm({
     } else {
       // フォームをリセット
       setQuestion("");
-      setFollowUpGuide("");
+      setHint("");
       setQuickRepliesText("");
     }
   };
@@ -86,12 +89,12 @@ export function InterviewQuestionForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={followUpGuideId}>フォローアップ指針（任意）</Label>
+        <Label htmlFor={hintId}>観点（任意）</Label>
         <Textarea
-          id={followUpGuideId}
-          value={followUpGuide}
-          onChange={(e) => setFollowUpGuide(e.target.value)}
-          placeholder="回答後の深掘り方法などの指針を入力"
+          id={hintId}
+          value={hint}
+          onChange={(e) => setHint(e.target.value)}
+          placeholder="聞けたら話が豊かになる観点（例：いつ・どこで・誰と）。2つまでが目安です"
           className="min-h-[80px] resize-y"
         />
       </div>

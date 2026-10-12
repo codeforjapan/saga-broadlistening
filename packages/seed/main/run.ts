@@ -41,6 +41,7 @@ import {
   createPoliciesInterviewConfigs,
   createPoliciesTags,
   createThemeDemoSessions,
+  ABSTRACT_CONFIG_SLUG,
   DEFAULT_CONFIG_SLUG,
   DEMO_OPINION_ID,
   DEMO_OPINION_ID_CITIZEN,
@@ -212,7 +213,8 @@ async function seedDatabase() {
     );
     const defaultConfigId = configIdBySlug.get(DEFAULT_CONFIG_SLUG);
     const bulkConfigId = configIdBySlug.get(BULK_OPINION_CONFIG_SLUG);
-    if (!defaultConfigId || !bulkConfigId) {
+    const abstractConfigId = configIdBySlug.get(ABSTRACT_CONFIG_SLUG);
+    if (!defaultConfigId || !bulkConfigId || !abstractConfigId) {
       throw new Error("Interview configs were not inserted as expected");
     }
 
@@ -235,7 +237,8 @@ async function seedDatabase() {
       query: supabase
         .from("interview_questions")
         .insert([
-          ...createInterviewQuestions(defaultConfigId),
+          ...createInterviewQuestions(defaultConfigId, "verify", "bill"),
+          ...createInterviewQuestions(abstractConfigId, "envision", "theme"),
           ...createBulkOpinionQuestions(bulkConfigId),
         ])
         .select("id"),

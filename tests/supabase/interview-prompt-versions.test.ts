@@ -1,7 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
-import { buildLoopModeSystemPrompt } from "../../packages/shared/src/interview-prompts/loop-mode";
+import { buildChatSystemPrompt } from "../../packages/shared/src/interview-prompts/chat-prompt";
 import { buildSummarySystemPrompt } from "../../packages/shared/src/interview-prompts/summary";
+import {
+  buildTurnTopics,
+  computeTurnState,
+} from "../../packages/shared/src/interview-prompts/turn-control";
 import { INTERVIEW_PROMPT_CATALOG } from "../../packages/shared/src/prompts/catalog";
 import { PromptProvider } from "../../packages/shared/src/prompts/provider";
 import {
@@ -15,10 +19,11 @@ import { adminClient, createTestAdminUser } from "./utils";
 const input = {
   bill: null,
   interviewConfig: { name: "交通", description: "交通の改善" },
-  questions: [{ id: "q1", question: "困りごとは？" }],
-  currentStage: "chat" as const,
-  askedQuestionIds: new Set<string>(),
 };
+const topics = buildTurnTopics([{ id: "q1", question: "困りごとは？" }], {
+  purposeType: null,
+  subject: "theme",
+});
 
 describe("AIインタビューの共通プロンプト版管理", () => {
   let actorId: string;
@@ -36,6 +41,8 @@ describe("AIインタビューの共通プロンプト版管理", () => {
     if (error) throw error;
     expect(data?.map((p) => p.key).sort()).toEqual([
       "interview-chat-system",
+      "interview-initial-system",
+      "interview-persona",
       "interview-summary-system",
     ]);
   });
@@ -55,7 +62,18 @@ describe("AIインタビューの共通プロンプト版管理", () => {
     const render = async () => {
       const template = await provider.getTemplate(promptKey);
       return promptKey === "interview-chat-system"
-        ? buildLoopModeSystemPrompt(input, template.content)
+        ? buildChatSystemPrompt(
+            {
+              ...input,
+              topics,
+              turnState: computeTurnState({
+                topics,
+                metas: [{ questionId: "q1", budgetExempt: false }],
+              }),
+              piiNotice: null,
+            },
+            template.content
+          )
         : buildSummarySystemPrompt(
             {
               ...input,
@@ -109,10 +127,9 @@ describe("AIインタビューの共通プロンプト版管理", () => {
     const restored = await render();
     expect(restored).toContain("初版の方針");
     expect(restored).not.toContain("新版の方針");
-    expect(restored).toContain("next_stage");
     expect(restored).toContain(
       promptKey === "interview-chat-system"
-        ? "[ID: q1]"
+        ? "[Q1｜質問1｜場面｜発話3回まで｜必須] 困りごとは？"
         : "user [msg_id:message-1]"
     );
     expect((await findPromptState(key)).versions).toHaveLength(2);

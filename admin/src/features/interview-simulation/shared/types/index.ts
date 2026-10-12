@@ -1,3 +1,4 @@
+import type { StepKind } from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
 import type { PromptKind } from "../constants";
 
 import type {
@@ -110,14 +111,19 @@ export interface SimulationMetrics {
 export interface TransientConfigSnapshot {
   /** 職員が設定したテーマの説明文（interview_configs.description） */
   description: string | null;
-  /** インタビュー目安時間（分）。本番の「## タイムマネジメント」セクションに反映される */
+  /** インタビュー目安時間（分） */
   estimatedDurationMinutes: number | null;
   questions: Array<{
     /** 既存質問ならその id、未保存の新規質問ならクライアント側の一時 UUID */
     id: string;
     question: string;
     quick_replies: string[] | null;
-    follow_up_guide: string | null;
+    hint: string | null;
+    /** 目的別テンプレートの話題の設定（未指定なら既定の予算・必須で動かす） */
+    step_key?: string | null;
+    step_kind?: StepKind | null;
+    turn_budget?: number | null;
+    required?: boolean | null;
   }>;
 }
 

@@ -12,6 +12,7 @@ import { InterviewChatClient } from "@/features/interview-session/client/compone
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 import { InterviewParticipationDeniedError } from "@/features/interview-session/server/services/resolve-interview-participation";
+import { buildInterviewBriefing } from "@/features/interview-session/shared/utils/build-interview-briefing";
 
 interface InterviewChatPageProps {
   params: Promise<{
@@ -56,6 +57,12 @@ export default async function InterviewChatPage({
         estimatedDuration={interviewConfig.estimated_duration}
         sessionStartedAt={session.started_at}
         hasRated={session.rating != null}
+        initialStage={session.stage}
+        briefing={buildInterviewBriefing({
+          interviewConfig: interviewConfig,
+          billName: bill ? (bill.bill_content?.title ?? bill.name) : null,
+          questions,
+        })}
       />
     );
   } catch (error) {

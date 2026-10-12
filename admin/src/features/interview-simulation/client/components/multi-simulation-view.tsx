@@ -124,7 +124,11 @@ export function MultiSimulationView({
           q.quick_replies && q.quick_replies.length > 0
             ? q.quick_replies
             : null,
-        follow_up_guide: q.follow_up_guide ?? null,
+        hint: q.hint ?? null,
+        step_key: q.step_key ?? null,
+        step_kind: q.step_kind ?? null,
+        turn_budget: q.turn_budget ?? null,
+        required: q.required ?? null,
       })),
     };
 

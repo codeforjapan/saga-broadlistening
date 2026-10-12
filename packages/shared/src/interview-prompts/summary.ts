@@ -1,9 +1,25 @@
 import { renderPromptTemplate } from "../prompts/template";
-import { INTERVIEW_SUMMARY_TEMPLATE } from "./templates";
+import {
+  INTERVIEW_PERSONA_TEMPLATE,
+  INTERVIEW_SUMMARY_TEMPLATE,
+} from "./templates";
 import { OPINION_TAG_CRITERIA } from "../interview-report/opinion-tags-schema";
 import { buildContentRichnessInstructions } from "../content-richness/content-richness-instructions";
-import { buildInterviewSubject } from "./subject-section";
+import {
+  buildInterviewSubject,
+  buildPublicationText,
+} from "./subject-section";
+import type { SummaryState } from "./turn-control";
+import { renderSummaryState } from "./turn-state";
 import type { InterviewConfig, PromptBillInput } from "./types";
+
+/** 要約の状況を渡さないとき（初回の要約として扱う） */
+const DEFAULT_SUMMARY_STATE: SummaryState = {
+  phase: "first",
+  remainingTurns: 3,
+  canResume: false,
+  isLast: false,
+};
 
 /**
  * 要約用システムプロンプトを構築（summaryフェーズ用）
@@ -12,10 +28,16 @@ export function buildSummarySystemPrompt({
   bill,
   interviewConfig,
   messages,
+  summaryState = DEFAULT_SUMMARY_STATE,
+  persona = INTERVIEW_PERSONA_TEMPLATE,
 }: {
   bill: PromptBillInput;
   interviewConfig: InterviewConfig;
   messages: Array<{ role: string; content: string; id?: string }>;
+  /** 要約の状況。レポートだけを作り直す用途（再抽出など）では省略する */
+  summaryState?: SummaryState;
+  /** 聞き手の人物像（interview-persona の公開版） */
+  persona?: string;
 }, template: string = INTERVIEW_SUMMARY_TEMPLATE): string {
   const themeDescription = interviewConfig?.description || "";
   const subject = buildInterviewSubject(bill, interviewConfig);
@@ -31,7 +53,7 @@ export function buildSummarySystemPrompt({
     })
     .join("\n");
 
-  const reportInstructions = `## レポート（reportフィールド）に含めるべき内容
+  const reportInstructions = `# レポート（reportフィールド）に含めるべき内容
 
 ### 1. summary（主張の要約）
 - ユーザーの主張を100文字程度でまとめる（SNSのタイムラインに流れるような読みやすい長さ）
@@ -75,17 +97,32 @@ ${OPINION_TAG_CRITERIA.reasoningTypes}
 
 ### 6. ${buildContentRichnessInstructions()}
 
-## ステージ遷移判定（next_stageフィールド）
-レスポンスの \`next_stage\` フィールドで、ステージ遷移を判定してください。
-- レポートを提示し、ユーザーの確認を待つ場合: next_stage を "summary" にし、reportフィールドにレポートを含めてください
-- ユーザーがレポート内容に同意し、完了すべきと判断した場合: next_stage を "summary_complete" にし、reportフィールドに最終版レポートを含めてください
-- ユーザーが明確にインタビューの再開や追加の質問への回答を希望した場合: next_stage を "chat" にし、**reportフィールドは省略してください**。テキストでは「承知いたしました。インタビューを続けましょう。」と簡潔に伝えた後、**必ず会話履歴とインタビューテーマを踏まえて次の質問を1つ提示してください**。質問なしで終わらないでください。レポートの内容には一切言及しないでください
+### 7. topic_depth（話題ごとの聞けた深さ。会話の制御には使わない）
+- 話題ごとに、状況・出来事の具体さ（none／vague／concrete）、暮らしへの影響の有無、理由の深さ（none／A：行動の理由／C：それで得られること／V：その人にとって大事なこと）、望む状態（あれば本人の言葉で）を記録する
+- 満たしていないことを欠陥として扱わない
+
+### 8. dk（「わからない」の種類）
+- 回答者が「わからない」と答えた話題ごとに、次のどれかを記録する: not_aware（知らない）／cannot_articulate（言葉にできない）／ambivalent（迷っている）／unclear_question（問いが分かりにくい）／no_experience（経験がない）／declined（答えたくない）
+
+### 9. emergent_topics（事前の話題の外で出てきた話）
+- 予定していた話題の外で出てきた話を、本人の言葉で記録する
+
+### 10. side_requests（個別の要望・テーマ外の話）
+- 特定の場所や本人の案件への対応を求めた発言、テーマ外の市政の話を、意見とは別に記録する
+
+### 意見（opinions）の追加ルール
+- 受け止めの選択は、理由・条件と一緒に1件にまとめる
+- 「わからない」だけの話題から意見を作らない
+- 提案は原文のまま残す。繊細な情報は一般化する
 `;
 
   return renderPromptTemplate("interview-summary-system", template, {
+    persona,
     summarySection: subject.summarySection,
     themeDescription: themeDescription || "（テーマ未設定）",
     conversationLog,
+    summaryState: renderSummaryState(summaryState),
+    publicationText: buildPublicationText(interviewConfig),
     reportInstructions,
   });
 }

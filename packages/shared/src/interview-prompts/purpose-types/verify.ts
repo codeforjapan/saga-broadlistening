@@ -1,0 +1,143 @@
+import type { PurposeTypeDefinition } from "./types";
+
+/**
+ * 確かめる: 市の案（テーマ型では市の仮説）が暮らしの場面でどう受け取られるかを聞く。
+ * テーマ型の仮説は観点（hint）にだけ書き、回答者に見せない。テーマ型では受け止めを聞かない。
+ */
+export const VERIFY: PurposeTypeDefinition = {
+  type: "verify",
+  label: "確かめる",
+  focusInstruction:
+    "市の案（テーマ型では市の仮説）が、この人の暮らしの場面でどう受け取られるかを聞きます。案の説明を繰り返さず、賛否を変えさせようとしません。受け止めは最後に聞き、理由と条件が聞けたら終えます。",
+  bill: {
+    perspectiveTechniques:
+      "案の部分ごとに、暮らしの場面がどう変わるかを聞く。案の良し悪しを先に聞かない。",
+    replyExamples: `回答：「通院の帰りに本数が少なくて1時間待った。本当に困る」
+良い例：「1時間待って、困ったんですね。この案で、その通院の日はどう変わりそうですか？」
+回答：「税金の無駄だと思う」
+良い例：「税金の使い方に疑問があるんですね。案のどの部分が特に気になりますか？」`,
+    steps: [
+      {
+        step_key: "involvement",
+        title: "関わり",
+        step_kind: "fact",
+        turn_budget: 1,
+        required: true,
+        hint: "案を知らなければ補足して次へ",
+        question: "この案は、あなたの暮らしや仕事に関わりがありますか？",
+        quick_replies: [
+          "利用者・家族として関わる",
+          "仕事で関わる",
+          "関わりは薄い",
+          "案をよく知らない",
+        ],
+      },
+      {
+        step_key: "scene",
+        title: "ふだんの場面",
+        step_kind: "episode",
+        turn_budget: 3,
+        required: true,
+        hint: "いつ・どこで・誰と。一般論なら最近の1回",
+        question:
+          "この案に関わる、ふだんの場面を1つ思い浮かべると、どんなときですか？",
+        quick_replies: ["思い出せない"],
+      },
+      {
+        step_key: "change",
+        title: "案による変化",
+        step_kind: "reason",
+        turn_budget: 4,
+        required: true,
+        hint: "案のどの部分が関わるか、それで何が困る・良くなるか、どうなっているとよいか",
+        question: "この案で、その場面はどう変わりそうですか？",
+        quick_replies: [],
+      },
+      {
+        step_key: "evaluation",
+        title: "全体の受け止め",
+        step_kind: "evaluation",
+        turn_budget: 3,
+        required: true,
+        hint: "選んだ理由、受け入れやすい条件",
+        question: "ここまでを踏まえて、この案を全体としてどう受け止めていますか？",
+        quick_replies: [
+          "賛成",
+          "どちらかといえば賛成",
+          "どちらかといえば反対",
+          "反対",
+          "まだ決められない",
+        ],
+      },
+      {
+        step_key: "add_more",
+        title: "言い足し",
+        step_kind: "add_more",
+        turn_budget: 1,
+        required: true,
+        hint: null,
+        question: "この案について、ほかに伝えておきたいことはありますか？",
+        quick_replies: ["特にない"],
+      },
+    ],
+  },
+  theme: {
+    perspectiveTechniques:
+      "暮らしの場面がどうなっているかを聞く。良し悪しを先に聞かない。市の仮説の言葉を質問に使わない。",
+    replyExamples: `回答：「福岡の方が遊ぶところが多い」
+良い例：「福岡の方が遊ぶところが多いと感じるんですね。最近出かけた日は、どこで何をしましたか？」`,
+    steps: [
+      {
+        step_key: "involvement",
+        title: "関わり",
+        step_kind: "fact",
+        turn_budget: 1,
+        required: true,
+        hint: null,
+        question: "このテーマに関わることは、ふだんありますか？",
+        quick_replies: ["よくある", "たまに", "ほとんどない"],
+      },
+      {
+        step_key: "scene",
+        title: "最近の場面",
+        step_kind: "episode",
+        turn_budget: 3,
+        required: true,
+        hint: "いつ・どこで・誰と。一般論なら最近の1回",
+        question:
+          "最近、このテーマに関わる場面があった日は、どこで何をしていましたか？",
+        quick_replies: ["思い出せない"],
+      },
+      {
+        step_key: "reason",
+        title: "そうした理由",
+        step_kind: "reason",
+        turn_budget: 4,
+        required: true,
+        hint: "市が確かめたい見立て（市がこれから決めること）に関わる話が出るか。見立ての言葉は質問に使わない",
+        question: "そのとき、そうしたのは、どんなことからでしたか？",
+        quick_replies: [],
+      },
+      {
+        step_key: "imagine",
+        title: "変わったときの一日",
+        step_kind: "episode",
+        turn_budget: 2,
+        required: false,
+        hint: null,
+        question: "それが身近で叶うとしたら、どんな日になりそうですか？",
+        quick_replies: ["思い浮かばない"],
+      },
+      {
+        step_key: "add_more",
+        title: "言い足し",
+        step_kind: "add_more",
+        turn_budget: 1,
+        required: true,
+        hint: null,
+        question: "ほかに知っておいてほしいことはありますか？",
+        quick_replies: ["特にない"],
+      },
+    ],
+  },
+};

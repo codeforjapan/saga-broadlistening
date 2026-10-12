@@ -11,6 +11,7 @@ import { policyInterviewTarget } from "@/features/interview-config/shared/types/
 import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
+import { buildInterviewBriefing } from "@/features/interview-session/shared/utils/build-interview-briefing";
 import { env } from "@/lib/env";
 
 interface InterviewPreviewChatPageProps {
@@ -94,6 +95,12 @@ export default async function InterviewPreviewChatPage({
           estimatedDuration={interviewConfig.estimated_duration}
           sessionStartedAt={session.started_at}
           hasRated={session.rating != null}
+          initialStage={session.stage}
+          briefing={buildInterviewBriefing({
+            interviewConfig: interviewConfig,
+            billName: bill ? (bill.bill_content?.title ?? bill.name) : null,
+            questions,
+          })}
         />
       </>
     );

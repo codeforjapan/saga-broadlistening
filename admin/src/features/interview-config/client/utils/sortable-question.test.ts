@@ -6,7 +6,7 @@ describe("withUid", () => {
   it("元のフィールドを保持したまま _uid を付与する", () => {
     const input: InterviewQuestionInput = {
       question: "好きな色は？",
-      follow_up_guide: "理由も聞く",
+      hint: "理由も聞く",
       quick_replies: ["赤", "青"],
     };
 
@@ -27,15 +27,12 @@ describe("toInputs", () => {
   it("_uid を取り除いて InterviewQuestionInput[] に戻す", () => {
     const items: SortableQuestion[] = [
       { _uid: "a", question: "Q1" },
-      { _uid: "b", question: "Q2", follow_up_guide: "g" },
+      { _uid: "b", question: "Q2", hint: "g" },
     ];
 
     const result = toInputs(items);
 
-    expect(result).toEqual([
-      { question: "Q1" },
-      { question: "Q2", follow_up_guide: "g" },
-    ]);
+    expect(result).toEqual([{ question: "Q1" }, { question: "Q2", hint: "g" }]);
     expect(result.every((q) => !("_uid" in q))).toBe(true);
   });
 

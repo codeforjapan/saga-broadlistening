@@ -3,6 +3,14 @@ import {
   PARTICIPATION_MODE_LABELS,
   VALID_PARTICIPATION_MODES,
 } from "@mirai-gikai/shared/interview-participation/participation-mode";
+import {
+  MAX_TURN_BUDGET,
+  MIN_TURN_BUDGET,
+} from "@mirai-gikai/shared/interview-prompts/constants";
+import {
+  PURPOSE_TYPES,
+  STEP_KINDS,
+} from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
 import type { Database } from "@mirai-gikai/supabase";
 import { z } from "zod";
 import { isValidChatModel } from "../utils/chat-model-options";
@@ -21,6 +29,25 @@ export type InterviewQuestionInsert =
   Database["public"]["Tables"]["interview_questions"]["Insert"];
 export type InterviewQuestionUpdate =
   Database["public"]["Tables"]["interview_questions"]["Update"];
+
+export const PUBLICATION_MODES = ["scheduled", "when_ready"] as const;
+export const PUBLICATION_MODE_LABELS: Record<
+  (typeof PUBLICATION_MODES)[number],
+  string
+> = {
+  scheduled: "時期と場所を決めて知らせる",
+  when_ready: "まとまり次第お知らせ（CHIKAT の結果ページ）",
+};
+
+export const PUBLICATION_PLACES = ["chikat", "city_web", "koho"] as const;
+export const PUBLICATION_PLACE_LABELS: Record<
+  (typeof PUBLICATION_PLACES)[number],
+  string
+> = {
+  chikat: "CHIKAT",
+  city_web: "市ホームページ",
+  koho: "広報紙",
+};
 
 // バリデーションスキーマ
 export const interviewConfigSchema = z
@@ -66,6 +93,25 @@ export const interviewConfigSchema = z
      */
     participation_mode: z.enum(VALID_PARTICIPATION_MODES),
     allowed_provider_keys: z.array(z.enum(EXTERNAL_IDENTITY_PROVIDER_KEYS)),
+    /** インタビューの目的（内部の5型）。null は目的未設定（汎用の聞き方） */
+    purpose_type: z.enum(PURPOSE_TYPES).nullable().optional(),
+    opinion_focus: z
+      .string()
+      .max(60, "意見がほしい点は60文字以内で入力してください")
+      .nullable()
+      .optional(),
+    decided_matters: z
+      .string()
+      .max(40, "決まっていることは40文字以内で入力してください")
+      .nullable()
+      .optional(),
+    publication_mode: z.enum(PUBLICATION_MODES).optional(),
+    publication_timing: z
+      .string()
+      .max(40, "お知らせの時期は40文字以内で入力してください")
+      .nullable()
+      .optional(),
+    publication_place: z.enum(PUBLICATION_PLACES).nullable().optional(),
   })
   .refine(
     (config) =>
@@ -75,6 +121,23 @@ export const interviewConfigSchema = z
       message: `「${PARTICIPATION_MODE_LABELS.external_identity}」にする場合は、連携元を1つ以上選んでください`,
       path: ["allowed_provider_keys"],
     }
+  )
+  .refine(
+    (config) =>
+      config.publication_mode !== "scheduled" ||
+      !!config.publication_timing?.trim(),
+    {
+      message: "結果を知らせる時期を入力してください",
+      path: ["publication_timing"],
+    }
+  )
+  .refine(
+    (config) =>
+      config.publication_mode !== "scheduled" || !!config.publication_place,
+    {
+      message: "結果を知らせる場所を選んでください",
+      path: ["publication_place"],
+    }
   );
 
 export const interviewQuestionSchema = z.object({
@@ -82,11 +145,18 @@ export const interviewQuestionSchema = z.object({
     .string()
     .min(1, "質問文は必須です")
     .max(1000, "質問文は1000文字以内で入力してください"),
-  follow_up_guide: z
-    .string()
-    .max(2000, "フォローアップ指針は2000文字以内で入力してください")
-    .optional(),
+  hint: z.string().max(2000, "観点は2000文字以内で入力してください").optional(),
   quick_replies: z.array(z.string().min(1)).optional(),
+  // 以下はテンプレートの値。職員には編集させず、文言の修正時もそのまま引き継ぐ
+  step_key: z.string().nullable().optional(),
+  step_kind: z.enum(STEP_KINDS).optional(),
+  turn_budget: z
+    .number()
+    .int()
+    .min(MIN_TURN_BUDGET)
+    .max(MAX_TURN_BUDGET)
+    .optional(),
+  required: z.boolean().optional(),
 });
 
 export const interviewQuestionsInputSchema = z.array(interviewQuestionSchema);

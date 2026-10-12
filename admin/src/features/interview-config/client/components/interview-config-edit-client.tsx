@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import { toParticipationFormValues } from "../../shared/utils/participation-form-values";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MultiSimulationView } from "@/features/interview-simulation/client/components/multi-simulation-view";
@@ -22,6 +21,9 @@ import {
   textToArray,
 } from "../../shared/types";
 import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
+import { buildPurposeTemplateQuestions } from "../../shared/utils/default-questions-template";
+import { toParticipationFormValues } from "../../shared/utils/participation-form-values";
+import { toQuestionInput } from "../../shared/utils/to-question-input";
 import type { ThemeContext } from "../hooks/use-config-generation-chat";
 import { ConfigGenerationChat } from "./config-generation-chat";
 import {
@@ -71,6 +73,13 @@ export function InterviewConfigEditClient({
   hasPolicyScope = false,
 }: InterviewConfigEditClientProps) {
   const router = useRouter();
+  // テンプレートは保存済みの目的と、施策への紐づきの有無で決まる
+  const purposeTemplate = initialConfig?.purpose_type
+    ? buildPurposeTemplateQuestions(
+        initialConfig.purpose_type,
+        billId || (linkedPolicyIds?.length ?? 0) > 0 ? "bill" : "theme"
+      )
+    : null;
   const [configId, setConfigId] = useState<string | undefined>(
     initialConfig?.id
   );
@@ -244,6 +253,7 @@ export function InterviewConfigEditClient({
                 aiGeneratedQuestions={aiGeneratedQuestions}
                 onAiQuestionsApplied={() => setAiGeneratedQuestions(null)}
                 getQuestionsRef={getQuestionsRef}
+                purposeTemplate={purposeTemplate}
               />
             ) : (
               aiGeneratedQuestions &&
@@ -264,11 +274,7 @@ export function InterviewConfigEditClient({
                   ? textToArray(initialConfig.description)
                   : undefined
               }
-              existingQuestions={questions.map((q) => ({
-                question: q.question,
-                follow_up_guide: q.follow_up_guide ?? undefined,
-                quick_replies: q.quick_replies ?? undefined,
-              }))}
+              existingQuestions={questions.map(toQuestionInput)}
               onQuestionsConfirmed={handleQuestionsConfirmed}
               onThemesConfirmed={handleThemesConfirmed}
             />
@@ -331,10 +337,10 @@ function AiQuestionsPreview({
                         {question.question}
                       </div>
                     </div>
-                    {question.follow_up_guide && (
+                    {question.hint && (
                       <div className="text-sm text-gray-600">
-                        <span className="font-medium">フォローアップ指針:</span>{" "}
-                        {question.follow_up_guide}
+                        <span className="font-medium">観点:</span>{" "}
+                        {question.hint}
                       </div>
                     )}
                     {question.quick_replies &&

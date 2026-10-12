@@ -30,9 +30,12 @@ export interface InterviewChatRequestParams {
    * クライアントは施策を指定できない。
    */
   interviewConfigId: string;
-  currentStage: "chat" | "summary" | "summary_complete";
+  /**
+   * 「終える」ボタンが押された。発言は保存せず、chat なら要約へ、要約中なら締めへ進む。
+   * ステージそのものはサーバーがセッションから決めるため、クライアントは送らない。
+   */
+  action?: "end";
   isRetry?: boolean;
-  nextQuestionId?: string;
   /**
    * プレビュートークンの発行元施策ID。プレビュー画面からのリクエストのみが送る。
    */

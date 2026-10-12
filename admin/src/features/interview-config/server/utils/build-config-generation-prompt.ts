@@ -5,7 +5,7 @@ import { DEFAULT_QUESTIONS_TEMPLATE } from "../../shared/utils/default-questions
 
 interface ExistingQuestion {
   question: string;
-  follow_up_guide?: string | null;
+  hint?: string | null;
   quick_replies?: string[] | null;
 }
 
@@ -38,16 +38,16 @@ export function getSubjectLabel(subject: PromptSubject): string {
 }
 
 /**
- * フォローアップ指針の深掘り量のルール。
- * 施策型は意見形成に要る分だけ聞けばよいが、テーマ型は日常のエピソードそのものを集めたい。
- * テーマ型にも「1往復まで」を入れると、回答者が話し始めたところで次の質問に移ってしまう。
+ * 質問の書き直しで守るルール。
+ * 深掘りの回数や続け方は AI インタビューの実行時に話題ごとの発話予算で決まるため、
+ * 質問や観点には回数（「1往復まで」など）を書かせない。
  */
-function buildFollowUpGuideRule(subject: PromptSubject): string {
-  if (subject.kind === "theme") {
-    return "- フォローアップ指針では深掘りを1往復に絞らない: テーマ型では日常の具体的なエピソードや気持ちそのものが集めたい情報のため、「2〜3往復まで深掘りしてよい」方針にし、何を聞き出すか（きっかけ・具体的な出来事・そのときの気持ち・暮らしへの影響など）を書くこと。観点を並べる場合は「1往復につき1つずつ聞く」と明記すること。「分からない」「特にない」が続いたら次の質問に進む旨も含めること。";
-  }
-  return "- フォローアップ指針は深掘り過剰を避ける: 連鎖的な深掘りを指示せず、「1往復までの追加確認に留める」「回答を受け止めたら次の質問に進む」方針を含めること。";
-}
+const QUESTION_REWRITE_RULES = `- **質問の順番を変えないこと**。関わり → 場面 → 理由 → 受け止め → 言い足し の流れを崩さない
+- **1つの質問には必ず1つの問いだけを含めること**（1問1論点）。複数の論点を1つの質問文に詰め込まない
+- **質問文に答えの候補を書かない**（「交通や子育てなど」のような例示は書かない）。範囲の指定（「この1か月で」「1つ」）はよい
+- **「決まっていること」の賛否を聞かない**
+- 観点（hint）は「聞けたら話が豊かになる観点」を**2つまで**。満たすべき条件や手順として書かない
+- **質問・観点に回数（「1往復まで」「2〜3回深掘り」など）を書かない**。深掘りの量は実行時に決まる`;
 
 /** 題材の説明セクション（施策情報 or テーマ情報） */
 function buildSubjectSection(subject: PromptSubject): string {
@@ -113,7 +113,7 @@ ${subjectSection}
 ${knowledgeSection}
 ## あなたの役割
 この${subjectLabel}に合わせた **2種類のクイックリプライ選択肢** を生成してください。
-質問文・フォローアップ指針は固定テンプレートを使うため、あなたは選択肢配列だけ出力します。
+質問文・観点は固定テンプレートを使うため、あなたは選択肢配列だけ出力します。
 
 ## 出力する2種類
 1. \`topics\`（Q1 で使う「関心のあるテーマ／論点」の選択肢）
@@ -148,7 +148,7 @@ ${knowledgeSection}
   if (stage === "question_proposal") {
     const existingQuestionsSection =
       existingQuestions && existingQuestions.length > 0
-        ? `\n## 現在設定されている質問\n${existingQuestions.map((q, i) => `${i + 1}. ${q.question}${q.follow_up_guide ? `\n   フォローアップ指針: ${q.follow_up_guide}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n\n管理者は既存の質問のブラッシュアップを希望しています。既存質問を踏まえて改善提案をしてください。`
+        ? `\n## 現在設定されている質問\n${existingQuestions.map((q, i) => `${i + 1}. ${q.question}${q.hint ? `\n   観点: ${q.hint}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n\n管理者は既存の質問のブラッシュアップを希望しています。既存質問を踏まえて改善提案をしてください。`
         : "";
 
     return `${baseRole}
@@ -160,16 +160,15 @@ ${knowledgeSection}${existingQuestionsSection}
 管理者の要望に沿って、インタビュー質問をブラッシュアップしてください。
 
 ## 質問提案のガイドライン
-- **1つの質問には必ず1つの問いだけを含めること**。複数の論点を1つの質問文に詰め込まない。
+${QUESTION_REWRITE_RULES}
 - 自由回答を促す開かれた質問にする
-- 各質問にクイックリプライ（3〜5個）を用意するのが望ましい
-- **クイックリプライに括弧書きの補足（例: 「データ消失（障害・ランサム等）」）は使わない**。選択肢は単一の短い語句（20文字以内目安）のみ。補足が必要ならフォローアップ指針側に記載する。
-${buildFollowUpGuideRule(subject)}
+- 事実を聞く質問・受け止めの質問にはクイックリプライ（3〜5個）を用意する
+- **クイックリプライに括弧書きの補足（例: 「データ消失（障害・ランサム等）」）は使わない**。選択肢は単一の短い語句（20文字以内目安）のみ。補足が必要なら観点側に記載する。
 - ナレッジソースがある場合は、その情報も踏まえた質問にする
 
 ## 各質問に含めるフィールド
 - question: 質問文（1つの問いに絞り、分かりやすく端的に）
-- follow_up_guide: フォローアップ指針（任意、回答後の深掘り方法や注意点など）
+- hint: 観点（任意、聞けたら話が豊かになる観点を2つまで）
 - quick_replies: クイックリプライの選択肢（任意、3〜5個）
 
 ## 出力形式
@@ -180,7 +179,7 @@ ${buildFollowUpGuideRule(subject)}
   if (stage === "theme_proposal") {
     const confirmedQuestionsSection =
       confirmedQuestions && confirmedQuestions.length > 0
-        ? `\n## 確定済みの質問\n${confirmedQuestions.map((q, i) => `${i + 1}. ${q.question}${q.follow_up_guide ? `\n   フォローアップ指針: ${q.follow_up_guide}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n`
+        ? `\n## 確定済みの質問\n${confirmedQuestions.map((q, i) => `${i + 1}. ${q.question}${q.hint ? `\n   観点: ${q.hint}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n`
         : "";
 
     const existingThemesSection =

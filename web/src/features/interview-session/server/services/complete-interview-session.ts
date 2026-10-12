@@ -12,8 +12,8 @@ import {
 import { extractReportFromMessage } from "../../shared/utils/report-extraction";
 import {
   findInterviewMessagesBySessionIdDesc,
-  updateInterviewSessionCompleted,
   findOpinionPublicationStateBySessionId,
+  updateInterviewSessionCompleted,
   upsertInterviewReport,
 } from "../repositories/interview-session-repository";
 import { evaluateModerationScore } from "./evaluate-moderation-score";

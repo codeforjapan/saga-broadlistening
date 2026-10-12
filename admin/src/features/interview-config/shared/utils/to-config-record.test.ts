@@ -26,6 +26,42 @@ describe("toConfigRecord", () => {
       thumbnail_url: null,
       participation_mode: "public",
       allowed_provider_keys: [],
+      purpose_type: null,
+      opinion_focus: null,
+      decided_matters: null,
+      publication_mode: "when_ready",
+      publication_timing: null,
+      publication_place: null,
+    });
+  });
+
+  it("時期と場所を決めて知らせるときだけ、時期と場所を保存する", () => {
+    const base = {
+      name: "市民意見",
+      slug: "citizen-voices",
+      status: "draft" as const,
+      participation_mode: "public" as const,
+      allowed_provider_keys: [],
+      purpose_type: "verify" as const,
+      opinion_focus: " どの路線をどう変えるか ",
+      publication_timing: "2027年3月ごろ",
+      publication_place: "chikat" as const,
+    };
+    expect(
+      toConfigRecord({ ...base, publication_mode: "scheduled" })
+    ).toMatchObject({
+      purpose_type: "verify",
+      opinion_focus: "どの路線をどう変えるか",
+      publication_mode: "scheduled",
+      publication_timing: "2027年3月ごろ",
+      publication_place: "chikat",
+    });
+    expect(
+      toConfigRecord({ ...base, publication_mode: "when_ready" })
+    ).toMatchObject({
+      publication_mode: "when_ready",
+      publication_timing: null,
+      publication_place: null,
     });
   });
 

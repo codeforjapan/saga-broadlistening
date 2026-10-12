@@ -1,17 +1,22 @@
 "use client";
 
+import { Info } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
   Conversation,
   ConversationContent,
 } from "@/components/ai-elements/conversation";
+import { Button } from "@/components/ui/button";
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
+import type { InterviewStage } from "../../shared/schemas";
+import type { InterviewBriefing } from "../../shared/utils/build-interview-briefing";
 import { useInterviewChat } from "../hooks/use-interview-chat";
 import { useInterviewRating } from "../hooks/use-interview-rating";
 import { useInterviewTimer } from "../hooks/use-interview-timer";
 import { calcInterviewProgress } from "../utils/calc-interview-progress";
 import { embedBillLink } from "../utils/embed-bill-link";
+import { InterviewBriefingCard } from "./interview-briefing-card";
 import { InterviewChatInput } from "./interview-chat-input";
 import { InterviewErrorDisplay } from "./interview-error-display";
 import { InterviewMessage } from "./interview-message";
@@ -40,6 +45,10 @@ interface InterviewChatClientProps {
   estimatedDuration?: number | null;
   sessionStartedAt?: string;
   hasRated?: boolean;
+  /** サーバーが持つセッションのステージ */
+  initialStage?: InterviewStage;
+  /** チャットの前に出す固定カード */
+  briefing?: InterviewBriefing;
 }
 
 export function InterviewChatClient({
@@ -52,6 +61,8 @@ export function InterviewChatClient({
   estimatedDuration,
   sessionStartedAt,
   hasRated,
+  initialStage,
+  briefing,
 }: InterviewChatClientProps) {
   // プレビュートークンは target が持っているので、別 prop では受け取らない
   const previewToken =
@@ -66,18 +77,24 @@ export function InterviewChatClient({
     object,
     streamingReportData,
     currentQuickReplies,
-    streamingQuickReplies,
     canRetry,
     handleSubmit,
     handleQuickReply,
     handleRetry,
     handleResumeInterview,
+    handleEnd,
   } = useInterviewChat({
     interviewConfigId,
     initialMessages,
     previewPolicyId: target.kind === "policy" ? target.policyId : undefined,
     previewToken,
+    initialStage,
   });
+
+  // 固定カードは、まだ一度も答えていないときに開いておく
+  const [isBriefingOpen, setIsBriefingOpen] = useState(
+    () => !!briefing && !initialMessages.some((m) => m.role === "user")
+  );
 
   const { remainingMinutes, isTimeUp } = useInterviewTimer({
     estimatedDuration,
@@ -137,9 +154,7 @@ export function InterviewChatClient({
 
   const handleEndInterviewTimeUp = () => {
     setTimeUpDismissed(true);
-    handleSubmit({
-      text: "目安時間になりました。レポート作成に進みたいです。",
-    });
+    handleEnd();
   };
 
   const handleContinueInterview = () => {
@@ -259,21 +274,16 @@ export function InterviewChatClient({
             />
 
             {/* クイックリプライボタン */}
+            {/* 選択肢ボタン（本文のストリーミングが終わってから出す） */}
             {stage === "chat" &&
-              (() => {
-                const replies = isLoading
-                  ? streamingQuickReplies
-                  : currentQuickReplies;
-                return (
-                  replies.length > 0 && (
-                    <QuickReplyButtons
-                      replies={replies}
-                      onSelect={handleChatQuickReply}
-                      disabled={isLoading}
-                    />
-                  )
-                );
-              })()}
+              !isLoading &&
+              currentQuickReplies.length > 0 && (
+                <QuickReplyButtons
+                  replies={currentQuickReplies}
+                  onSelect={handleChatQuickReply}
+                  disabled={isLoading}
+                />
+              )}
           </ConversationContent>
         </Conversation>
 
@@ -298,11 +308,36 @@ export function InterviewChatClient({
 
         {/* 入力エリア */}
         <div className="px-6 pt-2">
+          {stage !== "summary_complete" && (
+            <div className="mb-2 flex items-center justify-between">
+              {briefing ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsBriefingOpen(true)}
+                >
+                  <Info className="size-4" />
+                  このインタビューについて
+                </Button>
+              ) : (
+                <span />
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEnd}
+                disabled={isLoading}
+              >
+                終える
+              </Button>
+            </div>
+          )}
           {(stage === "summary" || stage === "summary_complete") && (
             <InterviewSummaryInput
               sessionId={sessionId}
               target={target}
               hasReport={hasReport}
+              isComplete={stage === "summary_complete"}
               input={input}
               onInputChange={setInput}
               onSubmit={handleSubmit}
@@ -323,6 +358,13 @@ export function InterviewChatClient({
           )}
         </div>
       </div>
+      {briefing && (
+        <InterviewBriefingCard
+          briefing={briefing}
+          open={isBriefingOpen}
+          onOpenChange={setIsBriefingOpen}
+        />
+      )}
     </div>
   );
 }
