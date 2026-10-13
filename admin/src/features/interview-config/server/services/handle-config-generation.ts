@@ -11,11 +11,13 @@ import {
   questionProposalSchema,
   themeProposalSchema,
 } from "../../shared/schemas";
+import type { InterviewDesignInput } from "../../shared/types";
 import {
   buildConfigGenerationPrompt,
   getSubjectLabel,
   type PromptSubject,
 } from "../utils/build-config-generation-prompt";
+import { resolveSubjectPolicyId } from "../utils/resolve-subject-policy-id";
 
 interface ExistingQuestion {
   question: string;
@@ -29,8 +31,12 @@ interface HandleConfigGenerationParams {
   billId: string | null;
   /** 施策がないときに題材にするテーマ名 */
   themeName?: string | null;
-  /** 施策がないときに題材にするテーマの説明 */
+  /** 職員が書いたテーマの説明。施策があってもなくても題材に添える */
   themeDescription?: string | null;
+  /** フォームで紐づけ中の施策。施策配下でなければ先頭の施策を題材にする */
+  policyIds?: string[];
+  /** フォームで入力済みの設計 */
+  design?: InterviewDesignInput;
   stage: ConfigGenerationStage;
   existingThemes?: string[];
   existingQuestions?: ExistingQuestion[];
@@ -42,15 +48,22 @@ export async function handleConfigGeneration({
   billId,
   themeName,
   themeDescription,
+  policyIds,
+  design,
   stage,
   existingThemes,
   existingQuestions,
   confirmedQuestions,
 }: HandleConfigGenerationParams) {
-  const subject = await loadPromptSubject(billId, themeName, themeDescription);
+  const subject = await loadPromptSubject(
+    resolveSubjectPolicyId(billId, policyIds),
+    themeName,
+    themeDescription
+  );
 
   const systemPrompt = buildConfigGenerationPrompt({
     subject,
+    design,
     stage,
     existingThemes,
     existingQuestions,
@@ -119,14 +132,15 @@ export async function handleConfigGeneration({
 /**
  * 生成の題材を読み込む。
  *
- * 施策IDがあれば施策とその「ふつう」難易度のコンテンツを、なければテーマ名を使う。
+ * 施策があれば施策とその「ふつう」難易度のコンテンツを、なければテーマ名を使う。
+ * テーマの説明はどちらの場合も添える。
  */
 async function loadPromptSubject(
-  billId: string | null,
+  policyId: string | null,
   themeName: string | null | undefined,
   themeDescription: string | null | undefined
 ): Promise<PromptSubject> {
-  if (!billId) {
+  if (!policyId) {
     const trimmed = themeName?.trim();
     if (!trimmed) {
       throw new Error("Neither bill nor theme name is available");
@@ -139,8 +153,8 @@ async function loadPromptSubject(
   }
 
   const [bill, billContents] = await Promise.all([
-    getBillById(billId),
-    getBillContents(billId),
+    getBillById(policyId),
+    getBillContents(policyId),
   ]);
 
   if (!bill) {
@@ -154,6 +168,7 @@ async function loadPromptSubject(
 
   return {
     kind: "bill",
+    description: themeDescription?.trim() || undefined,
     billName: bill.name,
     billTitle: normalContent?.title || "",
     billSummary: normalContent?.summary || "",

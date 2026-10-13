@@ -66,7 +66,7 @@ export type PolicyOption = { id: string; name: string };
 
 /**
  * フォームの現在値。保存時に渡す形と同じで、任意項目は null に揃えてある。
- * 読み手（AI生成からの自動作成・シミュレーション）が undefined を都度潰さずに済む。
+ * 読み手（AI生成への送信・シミュレーション）が undefined を都度潰さずに済む。
  */
 export type InterviewConfigFormValues = InterviewConfigInput & {
   description: string | null;
@@ -137,7 +137,7 @@ export function InterviewConfigForm({
   });
 
   // 親コンポーネントからフォーム値を読み取れるようにする。
-  // AI生成からの自動作成もこの値をそのまま保存するため、一部だけ返さないこと
+  // AI生成への送信やシミュレーションもこの値を読むため、一部だけ返さないこと
   useEffect(() => {
     if (getFormValuesRef) {
       getFormValuesRef.current = () => {
@@ -159,7 +159,9 @@ export function InterviewConfigForm({
         shouldDirty: true,
       });
       onAiThemesApplied?.();
-      toast.success(`AIが${aiGeneratedThemes.length}件のテーマを設定しました`);
+      toast.success(
+        `AIが${aiGeneratedThemes.length}件のテーマを説明欄に反映しました（保存すると確定します）`
+      );
     }
   }, [aiGeneratedThemes, form, onAiThemesApplied]);
 

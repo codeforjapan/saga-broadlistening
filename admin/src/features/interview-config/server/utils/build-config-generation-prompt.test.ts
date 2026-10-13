@@ -1,5 +1,9 @@
+import { purposeDisplayName } from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
 import { describe, expect, it } from "vitest";
-import { buildConfigGenerationPrompt } from "./build-config-generation-prompt";
+import {
+  buildConfigGenerationPrompt,
+  buildDesignSection,
+} from "./build-config-generation-prompt";
 
 const billSubject = {
   kind: "bill" as const,
@@ -253,5 +257,85 @@ describe("buildConfigGenerationPrompt", () => {
         "## ナレッジソース（チームの仮説や補足情報）"
       );
     });
+  });
+});
+
+describe("buildDesignSection", () => {
+  const themeSubject = { kind: "theme" as const, themeName: "佐賀市のみらい" };
+
+  it("入力済みの目的・決めること・決まっていることを並べる", () => {
+    const result = buildDesignSection(
+      {
+        purposeType: "discover",
+        opinionFocus: "路線の優先順位",
+        decidedMatters: "来年度から運行開始",
+      },
+      billSubject
+    );
+
+    expect(result).toContain("## 意見募集の設計（管理者が入力済み）");
+    expect(result).toContain(
+      `- 目的: ${purposeDisplayName("discover", "bill")}`
+    );
+    expect(result).toContain("- 市がこれから決めること: 路線の優先順位");
+    expect(result).toContain(
+      "- 決まっていること（賛否を聞かない）: 来年度から運行開始"
+    );
+  });
+
+  it("施策がないときは、決まっていることを載せない", () => {
+    const result = buildDesignSection(
+      {
+        purposeType: "discover",
+        opinionFocus: null,
+        decidedMatters: "来年度から運行開始",
+      },
+      themeSubject
+    );
+
+    expect(result).toContain(
+      `- 目的: ${purposeDisplayName("discover", "theme")}`
+    );
+    expect(result).not.toContain("決まっていること");
+  });
+
+  it("何も入力されていなければセクションを出さない", () => {
+    expect(
+      buildDesignSection(
+        { purposeType: null, opinionFocus: "  ", decidedMatters: null },
+        billSubject
+      )
+    ).toBe("");
+    expect(buildDesignSection(undefined, billSubject)).toBe("");
+  });
+});
+
+describe("buildConfigGenerationPrompt（職員が入力済みの設計と説明）", () => {
+  it("生成プロンプトの題材セクションの直後に入る", () => {
+    const result = buildConfigGenerationPrompt({
+      ...baseParams,
+      design: {
+        purposeType: null,
+        opinionFocus: "路線の優先順位",
+        decidedMatters: null,
+      },
+    });
+
+    expect(result.indexOf("## 施策情報")).toBeLessThan(
+      result.indexOf("## 意見募集の設計")
+    );
+    expect(result).toContain("- 市がこれから決めること: 路線の優先順位");
+  });
+
+  it("施策があるときも、テーマの説明は施策情報のセクションに添える", () => {
+    const result = buildConfigGenerationPrompt({
+      ...baseParams,
+      subject: {
+        ...billSubject,
+        description: "通勤・通学の足について聞きます",
+      },
+    });
+
+    expect(result).toContain("- テーマの説明:\n通勤・通学の足について聞きます");
   });
 });

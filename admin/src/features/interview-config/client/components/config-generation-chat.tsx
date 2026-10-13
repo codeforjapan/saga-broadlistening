@@ -18,16 +18,15 @@ import { Input } from "@/components/ui/input";
 import type { InterviewQuestionInput } from "../../shared/types";
 import { buildQuestionsFromTemplate } from "../../shared/utils/default-questions-template";
 import {
-  type ThemeContext,
+  type ConfigFormContext,
   useConfigGenerationChat,
 } from "../hooks/use-config-generation-chat";
 
 interface ConfigGenerationChatProps {
   /** 施策配下から開いたときの施策ID。テーマ単独では null */
   billId: string | null;
-  /** 施策がないときにAIへ渡すテーマ情報を、送信時点のフォーム値から読み取る */
-  getThemeContext?: () => ThemeContext;
-  configId?: string;
+  /** AIへ渡すフォームの値を、送信時点で読み取る */
+  getFormContext?: () => ConfigFormContext;
   existingThemes?: string[];
   existingQuestions?: InterviewQuestionInput[];
   onThemesConfirmed: (themes: string[]) => void;
@@ -36,8 +35,7 @@ interface ConfigGenerationChatProps {
 
 export function ConfigGenerationChat({
   billId,
-  getThemeContext,
-  configId,
+  getFormContext,
   existingThemes,
   existingQuestions,
   onThemesConfirmed,
@@ -62,8 +60,7 @@ export function ConfigGenerationChat({
     skipToThemes,
   } = useConfigGenerationChat({
     billId,
-    getThemeContext,
-    configId,
+    getFormContext,
     existingThemes,
     existingQuestions,
     onThemesConfirmed,
@@ -88,7 +85,7 @@ export function ConfigGenerationChat({
   // テーマ名の有無はボタンの disabled ではなく押した時点で判定する
   const [startError, setStartError] = useState<string | null>(null);
   const handleManualStart = () => {
-    if (!getThemeContext?.().themeName?.trim()) {
+    if (!getFormContext?.().themeName?.trim()) {
       setStartError("テーマ名（設定名）を入力してから生成をはじめてください。");
       return;
     }

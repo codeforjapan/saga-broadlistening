@@ -1,6 +1,8 @@
 import "server-only";
 
+import { purposeDisplayName } from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
 import type { ConfigGenerationStage } from "../../shared/schemas";
+import type { InterviewDesignInput } from "../../shared/types";
 import { DEFAULT_QUESTIONS_TEMPLATE } from "../../shared/utils/default-questions-template";
 
 interface ExistingQuestion {
@@ -21,11 +23,14 @@ export type PromptSubject =
       billSummary: string;
       billContent: string;
       knowledgeSource?: string;
+      /** 職員が書いたテーマの説明（施策があっても添える） */
+      description?: string;
     }
   | { kind: "theme"; themeName: string; themeDescription?: string };
 
 interface BuildPromptParams {
   subject: PromptSubject;
+  design?: InterviewDesignInput;
   stage: ConfigGenerationStage;
   existingThemes?: string[];
   existingQuestions?: ExistingQuestion[];
@@ -62,24 +67,58 @@ ${description ? `- テーマの説明:\n${description}` : "- テーマの説明:
 質問は作らないでください。`;
   }
 
+  const description = subject.description?.trim();
   return `## 施策情報
 - 施策名: ${subject.billName}
 - タイトル: ${subject.billTitle}
 - 要約: ${subject.billSummary}
 - 詳細内容:
-${subject.billContent}`;
+${subject.billContent}${description ? `\n- テーマの説明:\n${description}` : ""}`;
+}
+
+/**
+ * 職員が入力済みの設計を並べるセクション。何も入力されていなければ出さない。
+ * テーマの説明は題材のセクションに載せるので、ここには含めない。
+ * 「決まっていること」は施策がある意見募集でだけ使う（インタビュー本番と同じ扱い）。
+ */
+export function buildDesignSection(
+  design: InterviewDesignInput | undefined,
+  subject: PromptSubject
+): string {
+  if (!design) return "";
+
+  const opinionFocus = design.opinionFocus?.trim();
+  const decidedMatters =
+    subject.kind === "bill" ? design.decidedMatters?.trim() : undefined;
+
+  const lines = [
+    design.purposeType &&
+      `- 目的: ${purposeDisplayName(design.purposeType, subject.kind)}`,
+    opinionFocus && `- 市がこれから決めること: ${opinionFocus}`,
+    decidedMatters && `- 決まっていること（賛否を聞かない）: ${decidedMatters}`,
+  ].filter(Boolean);
+
+  if (lines.length === 0) return "";
+
+  return `
+
+## 意見募集の設計（管理者が入力済み）
+${lines.join("\n")}
+
+この設計を前提に提案してください。設計と食い違う論点や質問は作らないでください。`;
 }
 
 export function buildConfigGenerationPrompt(params: BuildPromptParams): string {
   const {
     subject,
+    design,
     stage,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   } = params;
 
-  const subjectSection = buildSubjectSection(subject);
+  const subjectSection = `${buildSubjectSection(subject)}${buildDesignSection(design, subject)}`;
 
   const knowledgeSource =
     subject.kind === "bill" ? subject.knowledgeSource : undefined;
