@@ -7,6 +7,8 @@ describe("利用者向けモデル名", () => {
   it.each([
     [AI_MODELS.bedrock_sonnet_4_6, "Claude Sonnet 4.6"],
     [AI_MODELS.bedrock_haiku_4_5, "Claude Haiku 4.5"],
+    [AI_MODELS.bedrock_opus_5_5, "Claude Opus 5.5"],
+    [AI_MODELS.bedrock_haiku_5_5, "Claude Haiku 5.5"],
     [AI_MODELS.bedrock_gpt_oss_120b, "GPT OSS 120B"],
     ["openai/gpt-5.2", "GPT-5.2"],
     ["gateway:openai/gpt-5.2", "GPT-5.2"],
@@ -25,10 +27,12 @@ describe("利用者向けモデル名", () => {
 });
 
 describe("許可された接続先の選択肢", () => {
-  it("Bedrockだけなら日本向けの3モデルを返す", () => {
+  it("Bedrockだけなら日本向けの5モデルを返す", () => {
     expect(getAllowedModelOptions(["bedrock"]).map((x) => x.value)).toEqual([
       AI_MODELS.bedrock_sonnet_4_6,
       AI_MODELS.bedrock_haiku_4_5,
+      AI_MODELS.bedrock_opus_5_5,
+      AI_MODELS.bedrock_haiku_5_5,
       AI_MODELS.bedrock_gpt_oss_120b,
     ]);
   });

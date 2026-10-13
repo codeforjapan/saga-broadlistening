@@ -31,6 +31,8 @@ describe("getModelPricing", () => {
 it.each([
   ["bedrock:jp.anthropic.claude-sonnet-4-6", 3.3, 16.5],
   ["bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0", 1.1, 5.5],
+  ["bedrock:jp.anthropic.claude-opus-5-5", 4.4, 22],
+  ["bedrock:jp.anthropic.claude-haiku-5-5", 0.11, 0.55],
   ["bedrock:openai.gpt-oss-120b-1:0", 0.18, 0.73],
 ])("uses verified Tokyo/Japan standard Bedrock rates for %s", (model, input, output) => {
   expect(getModelPricing(model)).toEqual({
