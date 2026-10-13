@@ -5,7 +5,10 @@ import {
   getLeafTopicsWithOpinions,
   listVersionsByInterviewConfig,
 } from "@mirai-gikai/topic-analysis-core/repository";
+import type { Route } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { routes } from "@/lib/routes";
 import { DeleteTopicButton } from "../../client/components/delete-topic-button";
 import { PublishToggleButton } from "../../client/components/publish-toggle-button";
 import { RunAnalysisButton } from "../../client/components/run-analysis-button";
@@ -60,6 +63,12 @@ export async function UserTopicAnalysisPage({
       <p className="mb-1 text-sm text-gray-600">テーマ: {configName}</p>
       <p className="mb-6 text-sm text-gray-500">
         公開に同意された意見（モデレーションOK）のみを対象に、論点（トピック）を抽出・分類します。
+        <Link
+          href={routes.interviewVoiceSummary(interviewConfigId) as Route}
+          className="ml-2 underline"
+        >
+          みんなの声のまとめへ
+        </Link>
       </p>
 
       <section className="mb-8 rounded-lg border bg-white p-6">

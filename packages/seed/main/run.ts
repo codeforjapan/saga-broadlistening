@@ -54,6 +54,7 @@ import {
 import { createPolicyContents } from "./policy-contents-data";
 import type { OpinionSeed, OpinionSegmentSeed } from "./seed-types";
 import { YOUTH_CONFIG_SLUG } from "./theme-policy-data";
+import { YOUTH_VOICE_SUMMARY_MD } from "./voice-summary-data";
 
 /** 投入済みメッセージを (セッションID, 本文) から引くためのキー */
 function messageKey(sessionId: string, content: string): string {
@@ -217,6 +218,24 @@ async function seedDatabase() {
     if (!defaultConfigId || !bulkConfigId || !youthConfigId) {
       throw new Error("Interview configs were not inserted as expected");
     }
+
+    // === theme_voice_summaries（若者支援の公開済みまとめ） ===
+    await reporter.insert({
+      emoji: "📝",
+      label: "voice summaries",
+      query: supabase
+        .from("theme_voice_summaries")
+        .insert({
+          interview_config_id: youthConfigId,
+          content_md: YOUTH_VOICE_SUMMARY_MD,
+          status: "published",
+          source_topic_count: 12,
+          source_opinion_count: 86,
+          generated_at: new Date().toISOString(),
+          published_at: new Date().toISOString(),
+        })
+        .select("id"),
+    });
 
     // === policies_interview_configs ===
     await reporter.insert({

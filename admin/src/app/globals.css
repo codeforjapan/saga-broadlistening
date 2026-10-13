@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@mirai-gikai/branding/tokens.css";
+/* みんなの声のまとめ（Markdown）の表示。web の公開画面と admin のプレビューで共通 */
+@import "@mirai-gikai/shared/voice-summary/voice-summary.css";
 @plugin "@tailwindcss/typography";
 
 @theme inline {

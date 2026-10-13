@@ -52,6 +52,10 @@
     "./types": {
       "types": "./src/shared/types.ts",
       "default": "./src/shared/types.ts"
+    },
+    "./voice-summary": {
+      "types": "./src/services/generate-voice-summary.ts",
+      "default": "./src/services/generate-voice-summary.ts"
     }
   },
   "dependencies": {

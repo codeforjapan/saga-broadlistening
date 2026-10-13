@@ -17,6 +17,9 @@ import {
   renderPromptTemplate,
   validatePromptTemplate,
 } from "@mirai-gikai/shared/prompts/template";
+import { getPublicTopicAnalysis } from "@mirai-gikai/topic-analysis-core/public-server";
+import { findInterviewConfigNameById } from "@mirai-gikai/topic-analysis-core/repository";
+import { buildVoiceSummaryTopicsText } from "@mirai-gikai/topic-analysis-core/voice-summary";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { routes } from "@/lib/routes";
@@ -202,6 +205,15 @@ export async function previewAiPrompt(
         : "対象のプロンプトを選択してください。",
     };
   try {
+    if (parsed.data.key === "voice-summary-system") {
+      return {
+        success: true,
+        content: await previewVoiceSummaryPrompt(
+          parsed.data.interviewConfigId ?? "",
+          parsed.data.content
+        ),
+      };
+    }
     if (isInterviewPromptKey(parsed.data.key)) {
       const input = await findInterviewPreviewInput(
         parsed.data.interviewConfigId ?? ""
@@ -273,4 +285,22 @@ export async function previewAiPrompt(
     console.error("AI prompt preview failed", error);
     return { success: false, error: "プレビューを作成できませんでした。" };
   }
+}
+
+/** みんなの声のまとめの生成プロンプトを、選んだテーマの公開中のトピック分析で埋めて見せる */
+async function previewVoiceSummaryPrompt(
+  interviewConfigId: string,
+  content: string
+): Promise<string> {
+  const [themeName, analysis] = await Promise.all([
+    findInterviewConfigNameById(interviewConfigId),
+    getPublicTopicAnalysis(interviewConfigId),
+  ]);
+  return renderPromptTemplate("voice-summary-system", content, {
+    themeName: themeName ?? "",
+    topicsText:
+      analysis && analysis.topics.length > 0
+        ? buildVoiceSummaryTopicsText(analysis.topics)
+        : "（このテーマには公開中のトピック分析がありません）",
+  });
 }

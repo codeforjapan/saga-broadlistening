@@ -1,5 +1,6 @@
 import { INTERVIEW_CHAT_TEMPLATE, INTERVIEW_SUMMARY_TEMPLATE } from "../interview-prompts/templates";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
+import { VOICE_SUMMARY_TEMPLATE } from "../voice-summary/prompt-template";
 import { COMMON_RULES, SERVICE_OVERVIEW } from "./shared-sections";
 
 export type PublicPromptKey = "top-chat-system" | "bill-chat-system-normal" | "bill-chat-system-hard";
@@ -95,6 +96,11 @@ export const INTERVIEW_PROMPT_CATALOG = {
     key: "interview-summary-system", name: "AIインタビュー・要約方針",
     defaultContent: INTERVIEW_SUMMARY_TEMPLATE,
     requiredVariables: ["summarySection", "themeDescription", "conversationLog", "reportInstructions"],
+  },
+  "voice-summary-system": {
+    key: "voice-summary-system", name: "みんなの声のまとめ・生成方針",
+    defaultContent: VOICE_SUMMARY_TEMPLATE,
+    requiredVariables: ["themeName", "topicsText"],
   },
 } as const;
 export type InterviewPromptKey = keyof typeof INTERVIEW_PROMPT_CATALOG;

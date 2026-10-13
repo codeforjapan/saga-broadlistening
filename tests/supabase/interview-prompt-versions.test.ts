@@ -28,7 +28,7 @@ describe("AIインタビューの共通プロンプト版管理", () => {
     ).id;
   });
 
-  it("migrationで対話用と要約用の管理対象を登録する", async () => {
+  it("migrationで対話用・要約用・みんなの声のまとめ用の管理対象を登録する", async () => {
     const { data, error } = await adminClient
       .from("ai_prompts")
       .select("key")
@@ -37,6 +37,7 @@ describe("AIインタビューの共通プロンプト版管理", () => {
     expect(data?.map((p) => p.key).sort()).toEqual([
       "interview-chat-system",
       "interview-summary-system",
+      "voice-summary-system",
     ]);
   });
 

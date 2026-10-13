@@ -44,7 +44,7 @@ import { PromptProvider } from "../prompts/provider";
 import { validatePromptTemplate } from "../prompts/template";
 
 describe("共通プロンプトの出力契約と取得失敗", () => {
-  it.each(["interview-chat-system", "interview-summary-system"] as const)("%s の必須変数の削除・重複を拒否する", (key) => {
+  it.each(["interview-chat-system", "interview-summary-system", "voice-summary-system"] as const)("%s の必須変数の削除・重複を拒否する", (key) => {
     const definition = INTERVIEW_PROMPT_CATALOG[key];
     expect(validatePromptTemplate(key, definition.defaultContent)).toEqual([]);
     for (const variable of definition.requiredVariables) {

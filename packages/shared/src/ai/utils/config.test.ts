@@ -122,6 +122,7 @@ describe("AI configuration", () => {
     ["topicWriting", "AI_TOPIC_WRITING_MODEL"],
     ["opinionBackfill", "AI_OPINION_BACKFILL_MODEL"],
     ["opinionTags", "AI_OPINION_TAGS_MODEL"],
+    ["voiceSummary", "AI_VOICE_SUMMARY_MODEL"],
   ] as const)("reads the %s purpose environment setting", (purpose, key) => {
     const config = parseAiConfig({ [key]: "bedrock:custom-model" });
     expect(resolveModelId(config, purpose)).toBe("bedrock:custom-model");
