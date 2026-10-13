@@ -49,7 +49,7 @@ export function renderTurnState(state: TurnState): string {
   }
   if (left >= 1) {
     lines.push(
-      "- 答えが十分でなければ続ける。十分なら次の話題に移ってよい"
+      "- 答えが十分でなければ続けて聞く。十分なら次の話題に移ってよい"
     );
   } else if (candidates.length > 0) {
     lines.push("- 今回は次の話題に移る");
