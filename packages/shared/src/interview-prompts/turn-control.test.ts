@@ -34,7 +34,7 @@ function verifyBillTopics(): TurnTopic[] {
 
 /** Q2 を聞いている途中で、全体の残りが残りの話題（Q3〜Q5）の数まで減った発話の記録 */
 function exhaustedQ2(): AssistantTurnMeta[] {
-  return metas("q1", "q2", ...Array<null>(20).fill(null), "q2");
+  return metas("q1", "q2", ...Array<null>(45).fill(null), "q2");
 }
 
 /** chat ステージの発話（先頭は最初の発話） */
@@ -86,8 +86,8 @@ describe("topicTurnTarget", () => {
 });
 
 describe("computeQuestionTurnLimit", () => {
-  it("質問の発話の上限は、設定した質問の数 × 5", () => {
-    expect(computeQuestionTurnLimit(verifyBillTopics())).toBe(25);
+  it("質問の発話の上限は、設定した質問の数 × 10", () => {
+    expect(computeQuestionTurnLimit(verifyBillTopics())).toBe(50);
     expect(
       computeQuestionTurnLimit(
         buildTurnTopics([
@@ -96,12 +96,12 @@ describe("computeQuestionTurnLimit", () => {
           { id: "c", question: "c" },
         ])
       )
-    ).toBe(15);
+    ).toBe(30);
   });
 
   it("再開の話題は質問の数に含めない", () => {
     const topics = buildTurnTopics([{ id: "a", question: "a" }]);
-    expect(computeQuestionTurnLimit([...topics, RESUME_TOPIC])).toBe(5);
+    expect(computeQuestionTurnLimit([...topics, RESUME_TOPIC])).toBe(10);
   });
 
   it("質問がなければ上限は0（すぐに要約へ入る）", () => {
@@ -175,14 +175,14 @@ describe("computeTurnState", () => {
       metas: metas("q1", "q2", "q3", "q3"),
     });
     expect(state.questionTurn).toBe(3);
-    expect(state.questionTurnLimit).toBe(25);
-    expect(state.remainingQuestionTurns).toBe(22);
+    expect(state.questionTurnLimit).toBe(50);
+    expect(state.remainingQuestionTurns).toBe(47);
     expect(state.current?.id).toBe("q3");
     expect(state.topicTurns).toBe(2);
     expect(state.topicTurnTarget).toBe(5);
     expect(state.topicTurnSoft).toBe(true);
-    // 残り22から、Q4・Q5 に1回ずつ残す
-    expect(state.left).toBe(20);
+    // 残り47から、Q4・Q5 に1回ずつ残す
+    expect(state.left).toBe(45);
     expect(state.next?.id).toBe("q4");
     expect(state.remainingTopics.map((t) => t.id)).toEqual(["q4", "q5"]);
   });
@@ -244,7 +244,7 @@ describe("computeTurnState", () => {
     });
     expect(state.topicTurns).toBe(6);
     expect(state.topicTurnSoft).toBe(true);
-    expect(state.left).toBe(16);
+    expect(state.left).toBe(41);
     expect(state.next?.id).toBe("q3");
   });
 
@@ -258,10 +258,10 @@ describe("computeTurnState", () => {
   });
 
   it("残りの質問の発話が残りの話題の数を超えていれば、いまの話題を続けられる", () => {
-    // 質問の発話は22回（上限25）。残り3（今回を含む）で、残りの話題は Q4・Q5 の2つ
+    // 質問の発話は47回（上限50）。残り3（今回を含む）で、残りの話題は Q4・Q5 の2つ
     const state = computeTurnState({
       topics: verifyBillTopics(),
-      metas: metas("q1", "q2", ...Array<null>(20).fill(null), "q3"),
+      metas: metas("q1", "q2", ...Array<null>(45).fill(null), "q3"),
     });
     expect(state.remainingQuestionTurns).toBe(3);
     expect(state.current?.id).toBe("q3");
@@ -269,10 +269,10 @@ describe("computeTurnState", () => {
   });
 
   it("残りの質問の発話が残りの話題の数以下なら、いまの話題を打ち切る", () => {
-    // 質問の発話は23回（上限25）。残り2で、残りの話題 Q4・Q5 に1回ずつ回す
+    // 質問の発話は48回（上限50）。残り2で、残りの話題 Q4・Q5 に1回ずつ回す
     const state = computeTurnState({
       topics: verifyBillTopics(),
-      metas: metas("q1", "q2", ...Array<null>(21).fill(null), "q3"),
+      metas: metas("q1", "q2", ...Array<null>(46).fill(null), "q3"),
     });
     expect(state.remainingQuestionTurns).toBe(2);
     expect(state.left).toBe(0);
@@ -289,7 +289,7 @@ describe("computeTurnState", () => {
       ],
     });
     expect(state.questionTurn).toBe(1);
-    expect(state.remainingQuestionTurns).toBe(24);
+    expect(state.remainingQuestionTurns).toBe(49);
   });
 
   it("終了を求めて飛ばした話題は、再開後の発話の上限の計算に数えない", () => {
@@ -330,17 +330,17 @@ describe("decideSummaryEntry", () => {
     expect(decideSummaryEntry({ state, endButton: true })).toBe(true);
   });
 
-  it("質問の発話が上限（質問5つ × 5 = 25回）に達したら要約に入る（最初の発話は数えない）", () => {
+  it("質問の発話が上限（質問5つ × 10 = 50回）に達したら要約に入る（最初の発話は数えない）", () => {
     const at24 = computeTurnState({
       topics,
-      metas: afterQuestionTurns(24, "q3"),
+      metas: afterQuestionTurns(49, "q3"),
     });
-    expect(at24.questionTurn).toBe(24);
+    expect(at24.questionTurn).toBe(49);
     expect(decideSummaryEntry({ state: at24, endButton: false })).toBe(false);
 
     const at25 = computeTurnState({
       topics,
-      metas: afterQuestionTurns(25, "q3"),
+      metas: afterQuestionTurns(50, "q3"),
     });
     expect(decideSummaryEntry({ state: at25, endButton: false })).toBe(true);
   });
@@ -514,7 +514,7 @@ describe("要約の段階", () => {
   it("質問の発話が上限に達していれば戻らない", () => {
     const state = computeSummaryState({
       topics: verifyBillTopics(),
-      metas: [...afterQuestionTurns(25), ...summaryMetas(1)],
+      metas: [...afterQuestionTurns(50), ...summaryMetas(1)],
       phase: "reply",
       forceClose: false,
     });

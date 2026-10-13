@@ -6,6 +6,7 @@
  * LLM が上限の範囲で決める。
  */
 import {
+  QUESTION_TURN_LIMIT_PER_TOPIC,
   QUESTION_TURNS_PER_TOPIC,
   RESUME_MIN_SUMMARY_TURNS,
   RESUME_TOPIC_TURN_LIMIT,
@@ -48,7 +49,7 @@ export interface AssistantTurnMeta {
 export interface TurnState {
   /** これまでの質問の発話数（最初の発話と要約の段階の発話は数えない） */
   questionTurn: number;
-  /** 質問の発話の上限（質問の数 × QUESTION_TURNS_PER_TOPIC） */
+  /** 質問の発話の上限（質問の数 × QUESTION_TURN_LIMIT_PER_TOPIC） */
   questionTurnLimit: number;
   /** 上限までの残り（今回を含む） */
   remainingQuestionTurns: number;
@@ -104,7 +105,7 @@ export function buildTurnTopics(questions: InterviewQuestion[]): TurnTopic[] {
  */
 export function computeQuestionTurnLimit(topics: TurnTopic[]): number {
   return (
-    topics.filter((t) => t.predefined).length * QUESTION_TURNS_PER_TOPIC
+    topics.filter((t) => t.predefined).length * QUESTION_TURN_LIMIT_PER_TOPIC
   );
 }
 

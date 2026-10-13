@@ -14,6 +14,7 @@ import {
 import {
   type AssistantTurnMeta,
   buildTurnTopics,
+  computeQuestionTurnLimit,
   computeSummaryState,
   computeTurnState,
   decideSummaryEntry,
@@ -38,7 +39,6 @@ import {
   LLM_MAX_ATTEMPTS,
   LLM_TIMEOUT_MS,
   type PromptKind,
-  SIMULATION_MAX_TURNS,
 } from "../../shared/constants";
 import {
   type PersonaCharacterSheet,
@@ -60,6 +60,7 @@ interface RunSimulatedInterviewParams {
   kind: PromptKind;
   /** 元インタビューから抽出した文体指標（省略可）。渡すとインタビュイー LLM の回答長を元会話レンジに寄せる */
   styleAnchors?: OriginalStyleAnchors;
+  /** インタビュアーの発話の上限。省略時は本番の質問の発話の上限 + 最初の発話 */
   maxTurns?: number;
   /**
    * 本番と同じ builder を毎ターン呼んで system prompt を再構築するための素材。
@@ -191,7 +192,7 @@ export async function runSimulatedInterview({
   traceId,
   kind,
   styleAnchors,
-  maxTurns = SIMULATION_MAX_TURNS,
+  maxTurns,
   promptInputs,
   summaryModel,
   onTurnComplete,
@@ -200,8 +201,10 @@ export async function runSimulatedInterview({
   const interviewerSelection = getAiModel("interview", interviewerModel);
   const intervieweeSelection = getAiModel("simulation", intervieweeModel);
   const questionsCount = promptInputs.questions.length;
+  // 本番と同じターン制御（次に聞ける話題・発話の上限・要約への移行）を使う
+  const topics = buildTurnTopics(promptInputs.questions);
   const effectiveMaxTurns = deriveTargetMaxTurns(
-    maxTurns,
+    maxTurns ?? computeQuestionTurnLimit(topics) + 1,
     styleAnchors?.originalInterviewerTurns,
     questionsCount
   );
@@ -209,8 +212,6 @@ export async function runSimulatedInterview({
   const startedAt = Date.now();
   // インタビュイーが元の発言回数を超えないうちに自然に畳ませるための「予算」
   const intervieweeBudget = styleAnchors?.originalIntervieweeTurns;
-  // 本番と同じターン制御（次に聞ける話題・発話の上限・要約への移行）を使う
-  const topics = buildTurnTopics(promptInputs.questions);
   const metas: AssistantTurnMeta[] = [];
 
   let stopReason: SimulationRun["stopReason"] = "max_turns";
