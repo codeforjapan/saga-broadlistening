@@ -35,7 +35,10 @@ describe("renderTurnState", () => {
       "- 質問の発話：これまで1回（上限25。最初の発話と要約は数えない。上限に達したら要約に入る）"
     );
     expect(text).toContain(
-      "- いまの話題：Q2「このテーマに関わることで、この1年に「よかった」と感じた場面を1つ教えてください。」。この話題で使える発話：あと4回（今回を含む）"
+      "- いまの話題：Q2「このテーマに関わることで、この1年に「よかった」と感じた場面を1つ教えてください。」"
+    );
+    expect(text).toContain(
+      "- この話題の発話：これまで1回（目安5回。十分に聞けていなければ、目安を超えて続けてよい）。上限まで：あと21回（今回を含む）"
     );
     expect(text).toContain(
       "- 答えが十分でなければ続けて聞く。十分なら次の話題に移ってよい"
@@ -54,7 +57,7 @@ describe("renderTurnState", () => {
 
   it("話題の発話の上限を使い切ったら次の話題へ移るよう指示する", () => {
     const text = renderTurnState(
-      stateAfter("q1", "q2", "q2", "q2", "q2", "q2", "q2")
+      stateAfter("q1", "q2", ...Array<string>(20).fill(""), "q2")
     );
     expect(text).toContain("あと0回");
     expect(text).toContain("- 今回は次の話題に移る");
@@ -85,7 +88,7 @@ describe("renderChatOutputInstructions", () => {
     );
     expect(
       renderChatOutputInstructions(
-        stateAfter("q1", "q2", "q2", "q2", "q2", "q2", "q2")
+        stateAfter("q1", "q2", ...Array<string>(20).fill(""), "q2")
       )
     ).toContain("- question_id：今回は 選んだ話題の ID（Q3・Q4 のどれか）");
   });

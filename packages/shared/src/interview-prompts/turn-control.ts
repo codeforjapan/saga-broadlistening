@@ -1,7 +1,7 @@
 /**
  * AIインタビューのターン制御（純粋関数）。
  *
- * コードが持つのは外枠だけ: 発話の上限（全体と話題ごと）、最初と最後の話題、ステージ遷移、
+ * コードが持つのは外枠だけ: 発話の上限（全体と、最後・再開の話題）、話題ごとの目安、最初と最後の話題、ステージ遷移、
  * 選択肢ボタン。深掘りするか・何を聞くか・早めに次へ移るか・間の話題をどの順に聞くかは
  * LLM が上限の範囲で決める。
  */
@@ -54,7 +54,16 @@ export interface TurnState {
   remainingQuestionTurns: number;
   /** いまの話題（話題が1つもない設定では null） */
   current: TurnTopic | null;
-  /** いまの話題で使える発話（今回を含む） */
+  /** いまの話題で、これまでに使った発話 */
+  topicTurns: number;
+  /** いまの話題の発話の目安。超えてよいかは topicTurnSoft */
+  topicTurnTarget: number;
+  /** 目安を超えて続けてよいか（次へ移れる事前定義の話題だけ true） */
+  topicTurnSoft: boolean;
+  /**
+   * いまの話題で使える発話の上限までの残り（今回を含む）。
+   * 全体の残りから、まだ聞いていない話題に1回ずつ残した分。最後の話題と再開の話題は目安が上限
+   */
   left: number;
   /**
    * 次に聞ける話題。最初の話題の後は、最後の話題を除くまだ聞いていない話題のどれでもよい。
@@ -70,10 +79,10 @@ export interface TurnState {
 }
 
 /**
- * その話題で使える発話の数（最初の質問を含む）。
- * 設定した質問はどれも同じ回数まで深掘りでき、再開の話題だけ短くする。
+ * その話題の発話の目安（最初の質問を含む）。
+ * 設定した質問はどれも同じ回数を目安にし、再開の話題だけ短くする。
  */
-export function topicTurnLimit(topic: TurnTopic): number {
+export function topicTurnTarget(topic: TurnTopic): number {
   return topic.predefined ? QUESTION_TURNS_PER_TOPIC : RESUME_TOPIC_TURN_LIMIT;
 }
 
@@ -200,18 +209,27 @@ export function computeTurnState({
       : topics.filter((t) => t !== current && !askedIds.has(t.id));
   const candidates = selectCandidates(topics, remainingTopics);
 
-  let left = current
-    ? topicTurnLimit(current) - usedCount(metas, current.id)
+  const topicTurns = current ? usedCount(metas, current.id) : 0;
+  const topicTurnTargetValue = current ? topicTurnTarget(current) : 0;
+  // 目安を超えてよいのは、次へ移れる事前定義の話題だけ。最後の話題は次へ移る代わりに
+  // 要約に入るので、再開の話題と同じく目安を上限にする
+  const topicTurnSoft = !!current?.predefined && remainingTopics.length > 0;
+  // 全体の残りから、まだ聞いていない話題に1回ずつ残した分まで使える
+  const room = remainingQuestionTurns - remainingTopics.length;
+  const left = current
+    ? topicTurnSoft
+      ? room
+      : Math.min(room, topicTurnTargetValue - topicTurns)
     : 0;
-  // 残りの話題に最低1回ずつ回す（話題ごとの上限の合計が全体の上限と同じなので、
-  // 通常は起きない。再開した後などの保険）
-  if (remainingQuestionTurns <= remainingTopics.length) left = 0;
 
   return {
     questionTurn,
     questionTurnLimit,
     remainingQuestionTurns,
     current,
+    topicTurns,
+    topicTurnTarget: topicTurnTargetValue,
+    topicTurnSoft,
     left: Math.max(0, left),
     candidates,
     next: candidates[0] ?? null,

@@ -19,10 +19,10 @@ import {
   resolveSummaryPhase,
   resolveSummaryTurn,
   type TurnTopic,
-  topicTurnLimit,
+  topicTurnTarget,
 } from "./turn-control";
 
-/** 確かめる×施策（Q1 関わり / Q2 場面 / Q3 変化 / Q4 受け止め / Q5 言い足し。どの話題も発話5回まで） */
+/** 確かめる×施策（Q1 関わり / Q2 場面 / Q3 変化 / Q4 受け止め / Q5 言い足し。どの話題も発話5回が目安） */
 function verifyBillTopics(): TurnTopic[] {
   return buildTurnTopics(
     getPurposeTemplateSteps("verify", "bill").map((s, i) => ({
@@ -30,6 +30,11 @@ function verifyBillTopics(): TurnTopic[] {
       ...s,
     }))
   );
+}
+
+/** Q2 を聞いている途中で、全体の残りが残りの話題（Q3〜Q5）の数まで減った発話の記録 */
+function exhaustedQ2(): AssistantTurnMeta[] {
+  return metas("q1", "q2", ...Array<null>(20).fill(null), "q2");
 }
 
 /** chat ステージの発話（先頭は最初の発話） */
@@ -72,11 +77,11 @@ describe("buildTurnTopics", () => {
   });
 });
 
-describe("topicTurnLimit", () => {
-  it("設定した質問はどれも発話5回まで、再開の話題は2回まで", () => {
+describe("topicTurnTarget", () => {
+  it("設定した質問はどれも発話5回が目安、再開の話題は2回", () => {
     const [topic] = buildTurnTopics([{ id: "a", question: "a" }]);
-    expect(topicTurnLimit(topic)).toBe(5);
-    expect(topicTurnLimit(RESUME_TOPIC)).toBe(2);
+    expect(topicTurnTarget(topic)).toBe(5);
+    expect(topicTurnTarget(RESUME_TOPIC)).toBe(2);
   });
 });
 
@@ -164,7 +169,7 @@ describe("resolveSummaryPhase", () => {
 });
 
 describe("computeTurnState", () => {
-  it("同じ話題の発話数を発話の上限から引く（最初の発話を Q1 の1回目として数える）", () => {
+  it("話題の発話を数え、全体の残りから残りの話題に1回ずつ残した分を上限にする（最初の発話を Q1 の1回目として数える）", () => {
     const state = computeTurnState({
       topics: verifyBillTopics(),
       metas: metas("q1", "q2", "q3", "q3"),
@@ -173,7 +178,11 @@ describe("computeTurnState", () => {
     expect(state.questionTurnLimit).toBe(25);
     expect(state.remainingQuestionTurns).toBe(22);
     expect(state.current?.id).toBe("q3");
-    expect(state.left).toBe(3);
+    expect(state.topicTurns).toBe(2);
+    expect(state.topicTurnTarget).toBe(5);
+    expect(state.topicTurnSoft).toBe(true);
+    // 残り22から、Q4・Q5 に1回ずつ残す
+    expect(state.left).toBe(20);
     expect(state.next?.id).toBe("q4");
     expect(state.remainingTopics.map((t) => t.id)).toEqual(["q4", "q5"]);
   });
@@ -228,13 +237,24 @@ describe("computeTurnState", () => {
     expect(decideSummaryEntry({ state, endButton: false })).toBe(true);
   });
 
-  it("話題の発話の上限を使い切ったら left は 0", () => {
+  it("次へ移れる話題は、目安の5回を超えても続けられる", () => {
     const state = computeTurnState({
       topics: verifyBillTopics(),
-      metas: metas("q1", "q2", "q2", "q2", "q2", "q2"),
+      metas: metas("q1", "q2", "q2", "q2", "q2", "q2", "q2"),
     });
-    expect(state.left).toBe(0);
+    expect(state.topicTurns).toBe(6);
+    expect(state.topicTurnSoft).toBe(true);
+    expect(state.left).toBe(16);
     expect(state.next?.id).toBe("q3");
+  });
+
+  it("最後の話題は次へ移れないので、目安の5回が上限", () => {
+    const state = computeTurnState({
+      topics: verifyBillTopics(),
+      metas: metas("q1", "q2", "q3", "q4", "q5", "q5"),
+    });
+    expect(state.topicTurnSoft).toBe(false);
+    expect(state.left).toBe(3);
   });
 
   it("残りの質問の発話が残りの話題の数を超えていれば、いまの話題を続けられる", () => {
@@ -245,7 +265,7 @@ describe("computeTurnState", () => {
     });
     expect(state.remainingQuestionTurns).toBe(3);
     expect(state.current?.id).toBe("q3");
-    expect(state.left).toBe(4);
+    expect(state.left).toBe(1);
   });
 
   it("残りの質問の発話が残りの話題の数以下なら、いまの話題を打ち切る", () => {
@@ -367,7 +387,7 @@ describe("normalizeQuestionId", () => {
   it("発話が0なのにいまの話題を返したら、次の話題に進んだものとする", () => {
     const state = computeTurnState({
       topics,
-      metas: metas("q1", "q2", "q2", "q2", "q2", "q2"),
+      metas: exhaustedQ2(),
     });
     expect(normalizeQuestionId("Q2", state)?.id).toBe("q3");
   });
@@ -375,7 +395,7 @@ describe("normalizeQuestionId", () => {
   it("発話が0のときも、選んだ次の話題があればそれを使う", () => {
     const state = computeTurnState({
       topics,
-      metas: metas("q1", "q2", "q2", "q2", "q2", "q2"),
+      metas: exhaustedQ2(),
     });
     expect(normalizeQuestionId("Q4", state)?.id).toBe("q4");
   });
@@ -411,7 +431,7 @@ describe("resolveChatTurn", () => {
   it("発話が0で次の話題を ID で示さなかったら、候補の先頭として記録し選択肢は付けない", () => {
     const state = computeTurnState({
       topics,
-      metas: metas("q1", "q2", "q2", "q2", "q2", "q2"),
+      metas: exhaustedQ2(),
     });
     const result = resolveChatTurn({ state, rawQuestionId: "Q5" });
     expect(result.questionId).toBe("q3");

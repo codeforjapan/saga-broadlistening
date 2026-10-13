@@ -61,7 +61,10 @@ describe("対話用プロンプト", () => {
       "[Q3] この案で、その場面はどう変わりそうですか？／観点：案のどの部分が関わるか"
     );
     expect(prompt).toContain(
-      "- いまの話題：Q3「この案で、その場面はどう変わりそうですか？」。この話題で使える発話：あと3回（今回を含む）"
+      "- いまの話題：Q3「この案で、その場面はどう変わりそうですか？」"
+    );
+    expect(prompt).toContain(
+      "- この話題の発話：これまで2回（目安5回。十分に聞けていなければ、目安を超えて続けてよい）。上限まで：あと18回（今回を含む）"
     );
     expect(prompt).toContain(
       "- 次に聞ける話題：\n  - Q4「ここまでを踏まえて、この案を全体としてどう受け止めていますか？」（選択肢ボタンはシステムが出す）"
@@ -83,7 +86,8 @@ describe("対話用プロンプト", () => {
   it("話題の発話の上限を使い切ったら次の話題に移るよう指示する", () => {
     const exhausted = computeTurnState({
       topics,
-      metas: ["q1", "q2", "q2", "q2", "q2", "q2"].map((questionId) => ({
+      // 全体の残りが、残りの話題（Q3〜Q5）の数まで減った
+      metas: ["q1", "q2", ...Array<null>(20).fill(null), "q2"].map((questionId) => ({
         questionId,
         stage: "chat" as const,
       })),

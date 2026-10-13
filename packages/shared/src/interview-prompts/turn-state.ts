@@ -33,6 +33,16 @@ function candidateLines(state: TurnState): string[] {
   return lines;
 }
 
+/** いまの話題の発話の数。目安を超えてよい話題は、目安と上限を分けて書く */
+function topicTurnLine(state: TurnState): string {
+  const { topicTurns, topicTurnTarget, topicTurnSoft, left } = state;
+  const rest = `あと${left}回${left > 0 ? "（今回を含む）" : ""}`;
+  if (!topicTurnSoft) {
+    return `- この話題の発話：これまで${topicTurns}回。使える発話：${rest}`;
+  }
+  return `- この話題の発話：これまで${topicTurns}回（目安${topicTurnTarget}回。十分に聞けていなければ、目安を超えて続けてよい）。上限まで：${rest}`;
+}
+
 /**
  * 「いまの状況」節。コードが毎ターン作り、回答者には見せない。
  */
@@ -43,9 +53,7 @@ export function renderTurnState(state: TurnState): string {
     `- 質問の発話：これまで${state.questionTurn}回（上限${state.questionTurnLimit}。最初の発話と要約は数えない。上限に達したら要約に入る）`,
   ];
   if (current) {
-    lines.push(
-      `- いまの話題：${current.label}「${current.question}」。この話題で使える発話：あと${left}回${left > 0 ? "（今回を含む）" : ""}`
-    );
+    lines.push(`- いまの話題：${current.label}「${current.question}」`, topicTurnLine(state));
   }
   if (left >= 1) {
     lines.push(
