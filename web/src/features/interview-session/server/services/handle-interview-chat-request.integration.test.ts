@@ -174,14 +174,12 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             question: "関わりはありますか？",
             question_order: 1,
             quick_replies: null,
-            turn_budget: 1,
           },
           {
             interview_config_id: config.id,
             question: "ふだんの場面を教えてください",
             question_order: 2,
             quick_replies: ["思い出せない"],
-            turn_budget: 3,
           },
         ])
         .select("id, question_order");
@@ -236,10 +234,11 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       });
     });
 
-    it("最初の話題の予算を使い切ったら、次の話題に進めて選択肢ボタンを注入する", async () => {
+    it("最初の話題の発話の上限を使い切ったら、次の話題に進めて選択肢ボタンを注入する", async () => {
       const mockModel = createStreamMock([validChatResponse]);
-      const firstAsked = {
-        id: "m1",
+      // 話題ごとの発話の上限（5回）まで Q1 で発話した履歴
+      const askedOnFirstTopic = Array.from({ length: 5 }, (_, i) => ({
+        id: `m${i + 1}`,
         interview_session_id: sessionId,
         role: "assistant" as const,
         content: JSON.stringify({
@@ -248,7 +247,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
         }),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      };
+      }));
 
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "あります" }],
@@ -263,7 +262,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             isPreview: false,
           }),
           getSession: async () => session,
-          getMessages: async () => [firstAsked],
+          getMessages: async () => askedOnFirstTopic,
         },
       });
 

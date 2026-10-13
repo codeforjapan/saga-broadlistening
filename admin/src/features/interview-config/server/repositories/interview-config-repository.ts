@@ -6,7 +6,6 @@ import type {
   InterviewConfig,
   InterviewConfigInsert,
   InterviewQuestion,
-  InterviewQuestionInsert,
 } from "../../shared/types";
 
 // Epic #54 で interview_configs から bill_id が外れ、施策とは
@@ -390,13 +389,13 @@ export async function unpublishReportsByConfigId(
 }
 
 export async function createInterviewQuestions(
-  questions: (Pick<InterviewQuestionInsert, "turn_budget"> & {
+  questions: {
     interview_config_id: string;
     question: string;
     follow_up_guide: string | null;
     quick_replies: string[] | null;
     question_order: number;
-  })[]
+  }[]
 ): Promise<void> {
   const supabase = createAdminClient();
   const { error } = await supabase

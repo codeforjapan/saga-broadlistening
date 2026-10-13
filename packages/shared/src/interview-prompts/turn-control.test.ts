@@ -4,6 +4,7 @@ import { getPurposeTemplateSteps } from "./purpose-types/registry";
 import {
   type AssistantTurnMeta,
   buildTurnTopics,
+  computeQuestionTurnLimit,
   computeSummaryState,
   computeTurnState,
   countQuestionTurns,
@@ -11,14 +12,16 @@ import {
   decideSummaryEntry,
   hasUsedResume,
   normalizeQuestionId,
+  RESUME_TOPIC,
   RESUME_TOPIC_ID,
   resolveChatTurn,
   resolveSummaryPhase,
   resolveSummaryTurn,
   type TurnTopic,
+  topicTurnLimit,
 } from "./turn-control";
 
-/** 確かめる×施策（Q1 関わり1 / Q2 場面3 / Q3 変化4 / Q4 受け止め3 / Q5 言い足し1） */
+/** 確かめる×施策（Q1 関わり / Q2 場面 / Q3 変化 / Q4 受け止め / Q5 言い足し。どの話題も発話5回まで） */
 function verifyBillTopics(): TurnTopic[] {
   return buildTurnTopics(
     getPurposeTemplateSteps("verify", "bill").map((s, i) => ({
@@ -50,31 +53,53 @@ function afterQuestionTurns(n: number, id: string | null = null) {
 }
 
 describe("buildTurnTopics", () => {
-  it("並び順に Q番号を振り、予算と観点を持つ", () => {
+  it("並び順に Q番号を振り、観点を持つ", () => {
     const topics = verifyBillTopics();
     expect(topics.map((t) => t.label)).toEqual(["Q1", "Q2", "Q3", "Q4", "Q5"]);
-    expect(topics[2].turnBudget).toBe(4);
     expect(topics[2].followUpGuide).toContain("案のどの部分");
   });
 
-  it("予算が未設定の質問は既定の予算にする", () => {
+  it("観点の前後の空白を除き、事前定義の話題にする", () => {
     const [topic] = buildTurnTopics([
       { id: "a", question: "どう思いますか？", follow_up_guide: " 理由 " },
     ]);
     expect(topic).toMatchObject({
       label: "Q1",
-      turnBudget: 3,
       followUpGuide: "理由",
       predefined: true,
     });
   });
+});
 
-  it("予算は1〜4に丸める", () => {
-    const topics = buildTurnTopics([
-      { id: "a", question: "a", turn_budget: 9 },
-      { id: "b", question: "b", turn_budget: 0 },
-    ]);
-    expect(topics.map((t) => t.turnBudget)).toEqual([4, 1]);
+describe("topicTurnLimit", () => {
+  it("設定した質問はどれも発話5回まで、再開の話題は2回まで", () => {
+    const [topic] = buildTurnTopics([{ id: "a", question: "a" }]);
+    expect(topicTurnLimit(topic)).toBe(5);
+    expect(topicTurnLimit(RESUME_TOPIC)).toBe(2);
+  });
+});
+
+describe("computeQuestionTurnLimit", () => {
+  it("質問の発話の上限は、設定した質問の数 × 5", () => {
+    expect(computeQuestionTurnLimit(verifyBillTopics())).toBe(25);
+    expect(
+      computeQuestionTurnLimit(
+        buildTurnTopics([
+          { id: "a", question: "a" },
+          { id: "b", question: "b" },
+          { id: "c", question: "c" },
+        ])
+      )
+    ).toBe(15);
+  });
+
+  it("再開の話題は質問の数に含めない", () => {
+    const topics = buildTurnTopics([{ id: "a", question: "a" }]);
+    expect(computeQuestionTurnLimit([...topics, RESUME_TOPIC])).toBe(5);
+  });
+
+  it("質問がなければ上限は0（すぐに要約へ入る）", () => {
+    expect(computeQuestionTurnLimit([])).toBe(0);
   });
 });
 
@@ -138,43 +163,45 @@ describe("resolveSummaryPhase", () => {
 });
 
 describe("computeTurnState", () => {
-  it("同じ話題の発話数を予算から引く（最初の発話を Q1 の1回目として数える）", () => {
+  it("同じ話題の発話数を発話の上限から引く（最初の発話を Q1 の1回目として数える）", () => {
     const state = computeTurnState({
       topics: verifyBillTopics(),
       metas: metas("q1", "q2", "q3", "q3"),
     });
     expect(state.questionTurn).toBe(3);
-    expect(state.remainingQuestionTurns).toBe(17);
+    expect(state.questionTurnLimit).toBe(25);
+    expect(state.remainingQuestionTurns).toBe(22);
     expect(state.current?.id).toBe("q3");
-    expect(state.left).toBe(2);
+    expect(state.left).toBe(3);
     expect(state.next?.id).toBe("q4");
     expect(state.remainingTopics.map((t) => t.id)).toEqual(["q4", "q5"]);
   });
 
-  it("予算を使い切ったら left は 0", () => {
+  it("話題の発話の上限を使い切ったら left は 0", () => {
     const state = computeTurnState({
       topics: verifyBillTopics(),
-      metas: metas("q1", "q2", "q2", "q2"),
+      metas: metas("q1", "q2", "q2", "q2", "q2", "q2"),
     });
     expect(state.left).toBe(0);
     expect(state.next?.id).toBe("q3");
   });
 
   it("残りの質問の発話が残りの話題の数を超えていれば、いまの話題を続けられる", () => {
-    // 質問の発話は17回。残り3（今回を含む）で、残りの話題は Q4・Q5 の2つ
+    // 質問の発話は22回（上限25）。残り3（今回を含む）で、残りの話題は Q4・Q5 の2つ
     const state = computeTurnState({
       topics: verifyBillTopics(),
-      metas: metas("q1", "q2", ...Array<null>(15).fill(null), "q3"),
+      metas: metas("q1", "q2", ...Array<null>(20).fill(null), "q3"),
     });
     expect(state.remainingQuestionTurns).toBe(3);
-    expect(state.left).toBe(3);
+    expect(state.current?.id).toBe("q3");
+    expect(state.left).toBe(4);
   });
 
   it("残りの質問の発話が残りの話題の数以下なら、いまの話題を打ち切る", () => {
-    // 質問の発話は18回。残り2で、残りの話題 Q4・Q5 に1回ずつ回す
+    // 質問の発話は23回（上限25）。残り2で、残りの話題 Q4・Q5 に1回ずつ回す
     const state = computeTurnState({
       topics: verifyBillTopics(),
-      metas: metas("q1", "q2", ...Array<null>(16).fill(null), "q3"),
+      metas: metas("q1", "q2", ...Array<null>(21).fill(null), "q3"),
     });
     expect(state.remainingQuestionTurns).toBe(2);
     expect(state.left).toBe(0);
@@ -191,10 +218,10 @@ describe("computeTurnState", () => {
       ],
     });
     expect(state.questionTurn).toBe(1);
-    expect(state.remainingQuestionTurns).toBe(19);
+    expect(state.remainingQuestionTurns).toBe(24);
   });
 
-  it("終了を求めて飛ばした話題は、再開後の予算計算に数えない", () => {
+  it("終了を求めて飛ばした話題は、再開後の発話の上限の計算に数えない", () => {
     // Q1→Q2 の後に終えたいと言われて要約へ。再開したときに Q3〜Q5 は聞けない
     const state = computeTurnState({
       topics: verifyBillTopics(),
@@ -232,27 +259,36 @@ describe("decideSummaryEntry", () => {
     expect(decideSummaryEntry({ state, endButton: true })).toBe(true);
   });
 
-  it("質問の発話が20回に達したら要約に入る（最初の発話は数えない）", () => {
-    const at19 = computeTurnState({
+  it("質問の発話が上限（質問5つ × 5 = 25回）に達したら要約に入る（最初の発話は数えない）", () => {
+    const at24 = computeTurnState({
       topics,
-      metas: afterQuestionTurns(19, "q3"),
+      metas: afterQuestionTurns(24, "q3"),
     });
-    expect(at19.questionTurn).toBe(19);
-    expect(decideSummaryEntry({ state: at19, endButton: false })).toBe(false);
+    expect(at24.questionTurn).toBe(24);
+    expect(decideSummaryEntry({ state: at24, endButton: false })).toBe(false);
 
-    const at20 = computeTurnState({
+    const at25 = computeTurnState({
       topics,
-      metas: afterQuestionTurns(20, "q3"),
+      metas: afterQuestionTurns(25, "q3"),
     });
-    expect(decideSummaryEntry({ state: at20, endButton: false })).toBe(true);
+    expect(decideSummaryEntry({ state: at25, endButton: false })).toBe(true);
   });
 
-  it("言い足しまで聞き終えたら要約に入る", () => {
+  it("最後の話題の発話の上限を使い切ったら要約に入る", () => {
+    const state = computeTurnState({
+      topics,
+      metas: metas("q1", "q2", "q3", "q4", "q5", "q5", "q5", "q5", "q5"),
+    });
+    expect(decideSummaryEntry({ state, endButton: false })).toBe(true);
+  });
+
+  it("最後の話題に発話が残っていれば、まだ要約に入らない", () => {
     const state = computeTurnState({
       topics,
       metas: metas("q1", "q2", "q3", "q4", "q5"),
     });
-    expect(decideSummaryEntry({ state, endButton: false })).toBe(true);
+    expect(state.left).toBe(4);
+    expect(decideSummaryEntry({ state, endButton: false })).toBe(false);
   });
 
   it("話題が残っていれば続ける", () => {
@@ -264,7 +300,7 @@ describe("decideSummaryEntry", () => {
 describe("normalizeQuestionId", () => {
   const topics = verifyBillTopics();
 
-  it("予算が残っていれば、いまの話題か次の話題をそのまま使う", () => {
+  it("発話が残っていれば、いまの話題か次の話題をそのまま使う", () => {
     const state = computeTurnState({ topics, metas: metas("q1", "q2") });
     expect(normalizeQuestionId("Q2", state)?.id).toBe("q2");
     expect(normalizeQuestionId("Q3", state)?.id).toBe("q3");
@@ -276,10 +312,10 @@ describe("normalizeQuestionId", () => {
     expect(normalizeQuestionId(undefined, state)?.id).toBe("q2");
   });
 
-  it("予算が0なのにいまの話題を返したら、次の話題に進んだものとする", () => {
+  it("発話が0なのにいまの話題を返したら、次の話題に進んだものとする", () => {
     const state = computeTurnState({
       topics,
-      metas: metas("q1", "q2", "q2", "q2"),
+      metas: metas("q1", "q2", "q2", "q2", "q2", "q2"),
     });
     expect(normalizeQuestionId("Q2", state)?.id).toBe("q3");
   });
@@ -313,6 +349,7 @@ describe("resolveChatTurn", () => {
 describe("要約の段階", () => {
   it("初回の要約の後は返事を待つ", () => {
     const state = computeSummaryState({
+      topics: verifyBillTopics(),
       metas: metas("q1", "q2", "q3"),
       phase: "first",
       forceClose: false,
@@ -326,6 +363,7 @@ describe("要約の段階", () => {
 
   it("要約に同意したら完了する", () => {
     const state = computeSummaryState({
+      topics: verifyBillTopics(),
       metas: [...metas("q1", "q2"), ...summaryMetas(1)],
       phase: "reply",
       forceClose: false,
@@ -335,6 +373,7 @@ describe("要約の段階", () => {
 
   it("要約の段階の残りが3回以上あれば、1回だけインタビューに戻れる", () => {
     const state = computeSummaryState({
+      topics: verifyBillTopics(),
       metas: [...metas("q1", "q2"), ...summaryMetas(2)],
       phase: "reply",
       forceClose: false,
@@ -349,6 +388,7 @@ describe("要約の段階", () => {
 
   it("要約の段階の残りが2回なら戻らない", () => {
     const state = computeSummaryState({
+      topics: verifyBillTopics(),
       metas: [...metas("q1", "q2"), ...summaryMetas(3)],
       phase: "reply",
       forceClose: false,
@@ -360,6 +400,7 @@ describe("要約の段階", () => {
 
   it("再開を使った後は戻らない", () => {
     const state = computeSummaryState({
+      topics: verifyBillTopics(),
       metas: [
         ...metas("q1", "q2"),
         ...summaryMetas(1, RESUME_TOPIC_ID),
@@ -373,14 +414,16 @@ describe("要約の段階", () => {
 
   it("質問の発話が上限に達していれば戻らない", () => {
     const state = computeSummaryState({
-      metas: [...afterQuestionTurns(20), ...summaryMetas(1)],
+      topics: verifyBillTopics(),
+      metas: [...afterQuestionTurns(25), ...summaryMetas(1)],
       phase: "reply",
       forceClose: false,
     });
     expect(state.canResume).toBe(false);
 
     const oneLeft = computeSummaryState({
-      metas: [...afterQuestionTurns(19), ...summaryMetas(1)],
+      topics: verifyBillTopics(),
+      metas: [...afterQuestionTurns(24), ...summaryMetas(1)],
       phase: "reply",
       forceClose: false,
     });
@@ -389,6 +432,7 @@ describe("要約の段階", () => {
 
   it("要約の段階の残りが1回なら、どの返事でも締める", () => {
     const state = computeSummaryState({
+      topics: verifyBillTopics(),
       metas: [...metas("q1", "q2"), ...summaryMetas(4)],
       phase: "reply",
       forceClose: false,
@@ -400,6 +444,7 @@ describe("要約の段階", () => {
 
   it("要約中に「終える」が押されたら締める", () => {
     const state = computeSummaryState({
+      topics: verifyBillTopics(),
       metas: [...metas("q1", "q2"), ...summaryMetas(1)],
       phase: "first",
       forceClose: true,

@@ -48,18 +48,6 @@ describe("prepareQuestionsForInsert", () => {
     expect(result[2].quick_replies).toBeNull();
   });
 
-  it("発話予算を引き継ぎ、未指定なら既定値を明示する（一括 insert で NULL にしない）", () => {
-    const result = prepareQuestionsForInsert(
-      [
-        { question: "関わりはありますか？", turn_budget: 1 },
-        { question: "自由な質問" },
-      ],
-      "config-123"
-    );
-    expect(result[0].turn_budget).toBe(1);
-    expect(result[1].turn_budget).toBe(3);
-  });
-
   it("空配列を渡すと空配列を返す", () => {
     const result = prepareQuestionsForInsert([], "config-123");
     expect(result).toEqual([]);

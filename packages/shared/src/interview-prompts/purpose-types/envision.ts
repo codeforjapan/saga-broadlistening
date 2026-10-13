@@ -20,33 +20,28 @@ export const ENVISION: PurposeTypeDefinition = {
 良い例：「何も変わらないと感じているんですね。では、10年後どうなっていたら、よかったと思えますか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "いま、この施策に関わる暮らしや仕事をしていますか？",
         quick_replies: ["自分の暮らしで", "家族のことで", "仕事で", "関わっていない"],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "場面の具体、その場面の何が大事だったか（届かなくてよい）",
         question:
           "この施策に関わることで、「よかった」と感じた最近の場面を1つ教えてください。",
         quick_replies: ["思い出せない"],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "誰と・どこで・何を。実現できるかは聞かない",
         question:
           "10年後、この分野がこうなっていたら嬉しい、という場面を1つ描くと、どんな場面ですか？",
         quick_replies: ["思い浮かばない"],
       },
       {
-        turn_budget: 3,
         follow_up_guide: "一般論なら、最近それを感じた場面",
         question: "その場面を遠ざけているものは何ですか？",
         quick_replies: ["わからない"],
       },
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "ほかに、伝えておきたいことはありますか？",
         quick_replies: ["特にない"],
@@ -61,33 +56,28 @@ export const ENVISION: PurposeTypeDefinition = {
 良い例：「何もないと感じているんですね。では、10年後の佐賀がどうなっていたら、ここで過ごしたいと思えますか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "佐賀市に住んで（関わって）どのくらいになりますか？",
         quick_replies: ["生まれてからずっと", "10年以上", "10年未満", "住んでいない"],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "場面の具体、その場面の何が大事だったか（届かなくてよい）",
         question:
           "このテーマに関わることで、この1年に「よかった」と感じた場面を1つ教えてください。",
         quick_replies: ["思い出せない"],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "誰と・どこで・何を。実現できるかは聞かない",
         question:
           "10年後、あなたが佐賀で過ごしている一日を、このテーマに関わる場面から描いてみてください。",
         quick_replies: ["思い浮かばない"],
       },
       {
-        turn_budget: 3,
         follow_up_guide: "一般論なら、最近それを感じた場面",
         question: "その一日を遠ざけているものは何ですか？",
         quick_replies: ["わからない"],
       },
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "ほかに、10年後の佐賀について伝えておきたいことはありますか？",
         quick_replies: ["特にない"],

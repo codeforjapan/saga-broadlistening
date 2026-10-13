@@ -2,7 +2,7 @@
 -- AIインタビューの目的別テンプレートと、コード側のターン制御のための列を追加する
 --
 -- - interview_configs: 目的（5型）・市がこれから決めること・決まっていること
--- - interview_questions: 話題ごとの発話予算（follow_up_guide は「観点」として使い続ける）
+-- - interview_questions: 列は足さない（follow_up_guide は「観点」として使い続ける）
 -- - interview_sessions: ステージ（chat/summary/summary_complete）をサーバー側で持つ。
 --   要約の段階の場面・再開の有無は、assistant メッセージに残す記録から決めるので列を持たない
 -- - ai_prompts: 聞き手の人物像と初回指示を、ほかのインタビュー用プロンプトと同じく版管理する
@@ -28,12 +28,7 @@ comment on column interview_configs.decided_matters is '決まっていること
 -- ------------------------------------------------------------
 -- interview_questions
 -- ------------------------------------------------------------
-alter table interview_questions
-  add column turn_budget integer not null default 3,
-  add constraint interview_questions_turn_budget_range check (turn_budget between 1 and 4);
-
 comment on column interview_questions.follow_up_guide is '観点。聞けたら話が豊かになること（満たすべき条件ではない）';
-comment on column interview_questions.turn_budget is 'その話題で使えるAIの発話の数（最初の質問を含む、1〜4）';
 
 -- ------------------------------------------------------------
 -- interview_sessions

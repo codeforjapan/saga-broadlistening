@@ -1,4 +1,3 @@
-import { QUESTION_TURN_LIMIT } from "./constants";
 import type { SummaryState, TurnState, TurnTopic } from "./turn-control";
 
 function nextNote(next: TurnTopic, state: TurnState): string {
@@ -21,7 +20,7 @@ export function renderTurnState(state: TurnState): string {
   const { current, next, left } = state;
   const lines = [
     "# いまの状況（システムから。回答者には見せない）",
-    `- 質問の発話：これまで${state.questionTurn}回（上限${QUESTION_TURN_LIMIT}。最初の発話と要約は数えない。上限に達したら要約に入る）`,
+    `- 質問の発話：これまで${state.questionTurn}回（上限${state.questionTurnLimit}。最初の発話と要約は数えない。上限に達したら要約に入る）`,
   ];
   if (current) {
     lines.push(

@@ -686,7 +686,6 @@ export type Database = {
           question: string
           question_order: number
           quick_replies: string[] | null
-          turn_budget: number
           updated_at: string
         }
         Insert: {
@@ -697,7 +696,6 @@ export type Database = {
           question: string
           question_order: number
           quick_replies?: string[] | null
-          turn_budget?: number
           updated_at?: string
         }
         Update: {
@@ -708,7 +706,6 @@ export type Database = {
           question?: string
           question_order?: number
           quick_replies?: string[] | null
-          turn_budget?: number
           updated_at?: string
         }
         Relationships: [

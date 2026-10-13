@@ -14,6 +14,5 @@ export function prepareQuestionsForDuplication(
     follow_up_guide: q.follow_up_guide,
     quick_replies: q.quick_replies,
     question_order: q.question_order,
-    turn_budget: q.turn_budget,
   }));
 }

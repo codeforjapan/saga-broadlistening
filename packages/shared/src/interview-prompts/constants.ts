@@ -1,25 +1,20 @@
 /**
  * AIインタビューのターン制御の定数。
  *
- * LLM が深掘りするか・次へ移るかを決め、コードはこの外枠（上限・予算・ステージ遷移）だけを持つ。
+ * LLM が深掘りするか・次へ移るかを決め、コードはこの外枠（上限・ステージ遷移）だけを持つ。
  * 値を変えるときはこのファイルだけを直す。
  */
 
 /**
- * 質問の発話の上限。chat ステージのAIの発話を数え、最初の発話（あいさつと最初の質問）と
- * 要約の段階の発話は数えない。これに達したら、次の発話から要約に入る
+ * 質問1つあたりの、質問の発話の上限。どの質問（話題）も、この回数までAIが深掘りできる。
+ * 全体の上限は「質問の数 × これ」で、設定した質問の数に応じて変わる。
+ * chat ステージのAIの発話を数え、最初の発話（あいさつと最初の質問）と
+ * 要約の段階の発話は数えない。上限に達したら、次の発話から要約に入る
  */
-export const QUESTION_TURN_LIMIT = 20;
+export const QUESTION_TURNS_PER_TOPIC = 5;
 
 /** 要約の段階でAIが発話できる上限（初回の要約・確認・締め・再開を受ける発話。再開後も通算） */
 export const SUMMARY_TURN_LIMIT = 5;
-
-/** 話題ごとの発話予算の既定（テンプレートで 1〜4 に上書き） */
-export const DEFAULT_TURN_BUDGET = 3;
-
-/** 発話予算の範囲 */
-export const MIN_TURN_BUDGET = 1;
-export const MAX_TURN_BUDGET = 4;
 
 /**
  * summary から chat に戻れる、要約の段階の残りの発話数の下限
@@ -27,8 +22,8 @@ export const MAX_TURN_BUDGET = 4;
  */
 export const RESUME_MIN_SUMMARY_TURNS = 3;
 
-/** 再開した話題の発話予算（再開を受けた発話を含む） */
-export const RESUME_TURN_BUDGET = 2;
+/** 再開した話題の発話の上限（再開を受けた発話を含む） */
+export const RESUME_TOPIC_TURN_LIMIT = 2;
 
 /** 選択肢ボタンの上限（受け止めは「まだ決められない」を含めて5。「とばす」は数えない） */
 export const QUICK_REPLIES_MAX = 4;

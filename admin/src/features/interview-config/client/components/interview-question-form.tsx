@@ -41,8 +41,6 @@ export function InterviewQuestionForm({
     }
 
     onSubmit({
-      // テンプレートの発話予算は職員に見せず、そのまま引き継ぐ
-      turn_budget: initialData?.turn_budget,
       question: question.trim(),
       follow_up_guide: followUpGuide.trim() || undefined,
       quick_replies:

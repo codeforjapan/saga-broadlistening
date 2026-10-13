@@ -1,21 +1,18 @@
 import type { PurposeTemplateStep, PurposeTypeDefinition } from "./types";
 
 const GOOD_POINT_STEP: PurposeTemplateStep = {
-  turn_budget: 2,
   follow_up_guide: "それで何が助かったか",
   question: "その中で、良かったと感じた点はどこですか？",
   quick_replies: ["特にない"],
 };
 
 const BAD_POINT_STEP: PurposeTemplateStep = {
-  turn_budget: 2,
   follow_up_guide: "それで何が困ったか、どうなっているとよいか",
   question: "反対に、困った・物足りなかった点はありますか？",
   quick_replies: ["特にない"],
 };
 
 const ADD_MORE_STEP: PurposeTemplateStep = {
-  turn_budget: 1,
   follow_up_guide: null,
   question: "ほかに伝えておきたいことはありますか？",
   quick_replies: ["特にない"],
@@ -35,7 +32,6 @@ export const EVALUATE: PurposeTypeDefinition = {
 良い例：「助かった一方で、量が減った気がするんですね。量のことに気づいたのは、どんな場面でしたか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: "「関わりはなかった」なら、次の話題を「知ったきっかけ・使わなかった理由」にしてよい",
         question: "この施策と、どんな形で関わりがありましたか？",
         quick_replies: [
@@ -46,7 +42,6 @@ export const EVALUATE: PurposeTypeDefinition = {
         ],
       },
       {
-        turn_budget: 3,
         follow_up_guide: "「特に変わらない」も普通の答え。そのときは変わらなかった理由",
         question:
           "この施策が始まって、暮らしの中で「変わった」と感じた場面を1つ教えてください。",
@@ -55,7 +50,6 @@ export const EVALUATE: PurposeTypeDefinition = {
       GOOD_POINT_STEP,
       BAD_POINT_STEP,
       {
-        turn_budget: 3,
         follow_up_guide: "選んだ理由、続けるならどこを変えるとよいか",
         question: "全体として、この施策をどう受け止めていますか？",
         quick_replies: [
@@ -75,14 +69,12 @@ export const EVALUATE: PurposeTypeDefinition = {
 良い例：「どこに書いてあるかわからないことがあるんですね。最近それを感じたのは、どんなお知らせでしたか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: "「ほとんどない」なら、次の話題を「ふれなかった理由」にしてよい",
         question:
           "この3か月で、このテーマに関わる市の取り組みにふれたことはありますか？",
         quick_replies: ["よくある", "たまに", "ほとんどない"],
       },
       {
-        turn_budget: 3,
         follow_up_guide: "「特にない」も普通の答え。そのときはふれなかった理由",
         question: "それが役に立った、または困った最近の1回を教えてください。",
         quick_replies: ["特にない", "思い出せない"],
@@ -90,7 +82,6 @@ export const EVALUATE: PurposeTypeDefinition = {
       GOOD_POINT_STEP,
       BAD_POINT_STEP,
       {
-        turn_budget: 3,
         follow_up_guide: "選んだ理由、続けるならどこを変えるとよいか",
         question: "全体として、この取り組みは役に立っていると感じますか？",
         quick_replies: [

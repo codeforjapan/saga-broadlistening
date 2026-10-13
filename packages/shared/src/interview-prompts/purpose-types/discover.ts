@@ -1,7 +1,6 @@
 import type { PurposeTemplateStep, PurposeTypeDefinition } from "./types";
 
 const IMPACT_STEP: PurposeTemplateStep = {
-  turn_budget: 3,
   follow_up_guide: "困ったこと・変わったこと・負担になったこと、何が大事か（届かなくてよい）、十分聞いた後ならどうなっているとよいか",
   question: "そのことで、どんなことに影響がありましたか？",
   quick_replies: [],
@@ -22,14 +21,12 @@ export const DISCOVER: PurposeTypeDefinition = {
 良い例：「オンライン申請の途中でエラーになったんですね。そのとき、どうしましたか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: "「使っていない」なら、次の話題を「使おうとしてやめた場面」にしてよい",
         question:
           "この1年で、この施策に関わる手続きやサービスを使ったことはありますか？",
         quick_replies: ["窓口で", "オンラインで", "両方", "使っていない"],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "1つの場面に絞る、そのときどうしたか、予想外の対処",
         question:
           "それを使ったときに「困った」または「助かった」と感じた場面を1つ教えてください。",
@@ -37,7 +34,6 @@ export const DISCOVER: PurposeTypeDefinition = {
       },
       IMPACT_STEP,
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "ほかに、この施策のことで知っておいてほしいことはありますか？",
         quick_replies: ["特にない"],
@@ -50,13 +46,11 @@ export const DISCOVER: PurposeTypeDefinition = {
 良い例：「子どもの熱で急に休むのが大変なんですね。最近その場面があったとき、どうしましたか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: "「関わっていない」なら、次の話題を身近な人の場面にしてよい",
         question: "いま、このテーマに関わることはありますか？",
         quick_replies: ["自分が", "家族が", "以前は", "関わっていない"],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "1つの場面に絞る、そのときどうしたか、予想外の対処",
         question:
           "このテーマで「困った」または「助かった」と感じた最近の場面を1つ教えてください。",
@@ -64,7 +58,6 @@ export const DISCOVER: PurposeTypeDefinition = {
       },
       IMPACT_STEP,
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "ほかに、知っておいてほしいことはありますか？",
         quick_replies: ["特にない"],

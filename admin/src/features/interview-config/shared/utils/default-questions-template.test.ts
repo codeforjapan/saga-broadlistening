@@ -169,10 +169,9 @@ describe("buildQuestionsFromTemplate", () => {
 });
 
 describe("buildPurposeTemplateQuestions", () => {
-  it("目的×対象のテンプレートを、発話予算つきで返す", () => {
+  it("目的×対象のテンプレートを返す", () => {
     const questions = buildPurposeTemplateQuestions("verify", "bill");
     expect(questions).toHaveLength(5);
-    expect(questions.map((q) => q.turn_budget)).toEqual([1, 3, 4, 3, 1]);
     expect(questions[3].quick_replies).toContain("まだ決められない");
   });
 

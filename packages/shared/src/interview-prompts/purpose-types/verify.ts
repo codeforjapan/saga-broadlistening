@@ -18,7 +18,6 @@ export const VERIFY: PurposeTypeDefinition = {
 良い例：「税金の使い方に疑問があるんですね。案のどの部分が特に気になりますか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: "案を知らなければ補足して次へ",
         question: "この案は、あなたの暮らしや仕事に関わりがありますか？",
         quick_replies: [
@@ -29,20 +28,17 @@ export const VERIFY: PurposeTypeDefinition = {
         ],
       },
       {
-        turn_budget: 3,
         follow_up_guide: "いつ・どこで・誰と。一般論なら最近の1回",
         question:
           "この案に関わる、ふだんの場面を1つ思い浮かべると、どんなときですか？",
         quick_replies: ["思い出せない"],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "案のどの部分が関わるか、それで何が困る・良くなるか、どうなっているとよいか",
         question: "この案で、その場面はどう変わりそうですか？",
         quick_replies: [],
       },
       {
-        turn_budget: 3,
         follow_up_guide: "選んだ理由、受け入れやすい条件",
         question: "ここまでを踏まえて、この案を全体としてどう受け止めていますか？",
         quick_replies: [
@@ -54,7 +50,6 @@ export const VERIFY: PurposeTypeDefinition = {
         ],
       },
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "この案について、ほかに伝えておきたいことはありますか？",
         quick_replies: ["特にない"],
@@ -68,26 +63,22 @@ export const VERIFY: PurposeTypeDefinition = {
 良い例：「福岡の方が遊ぶところが多いと感じるんですね。最近出かけた日は、どこで何をしましたか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "このテーマに関わることは、ふだんありますか？",
         quick_replies: ["よくある", "たまに", "ほとんどない"],
       },
       {
-        turn_budget: 3,
         follow_up_guide: "いつ・どこで・誰と。一般論なら最近の1回",
         question:
           "最近、このテーマに関わる場面があった日は、どこで何をしていましたか？",
         quick_replies: ["思い出せない"],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "市が確かめたい見立て（市がこれから決めること）に関わる話が出るか。見立ての言葉は質問に使わない",
         question: "そのとき、そうしたのは、どんなことからでしたか？",
         quick_replies: [],
       },
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "ほかに知っておいてほしいことはありますか？",
         quick_replies: ["特にない"],

@@ -29,13 +29,13 @@ function stateAfter(...ids: string[]) {
 }
 
 describe("renderTurnState", () => {
-  it("予算が残っていれば続けても移ってもよいと書く", () => {
+  it("発話が残っていれば続けても移ってもよいと書く", () => {
     const text = renderTurnState(stateAfter("q1", "q2"));
     expect(text).toContain(
-      "- 質問の発話：これまで1回（上限20。最初の発話と要約は数えない。上限に達したら要約に入る）"
+      "- 質問の発話：これまで1回（上限25。最初の発話と要約は数えない。上限に達したら要約に入る）"
     );
     expect(text).toContain(
-      "- いまの話題：Q2「このテーマに関わることで、この1年に「よかった」と感じた場面を1つ教えてください。」。この話題で使える発話：あと3回（今回を含む）"
+      "- いまの話題：Q2「このテーマに関わることで、この1年に「よかった」と感じた場面を1つ教えてください。」。この話題で使える発話：あと4回（今回を含む）"
     );
     expect(text).toContain("- 続けても、次の話題に移ってもよい");
     expect(text).toContain(
@@ -47,9 +47,10 @@ describe("renderTurnState", () => {
     );
   });
 
-  it("予算を使い切ったら次の話題へ移るよう指示する", () => {
+  it("話題の発話の上限を使い切ったら次の話題へ移るよう指示する", () => {
     const text = renderTurnState(
-      stateAfter("q1", "q2", "q2", "q2", "q2"));
+      stateAfter("q1", "q2", "q2", "q2", "q2", "q2", "q2")
+    );
     expect(text).toContain("あと0回");
     expect(text).toContain("- 今回は次の話題に移る（question_id は Q3）");
   });
@@ -78,7 +79,9 @@ describe("renderChatOutputInstructions", () => {
       "- question_id：いまの話題を続けるなら Q2、次の話題に移るなら Q3。"
     );
     expect(
-      renderChatOutputInstructions(stateAfter("q1", "q2", "q2", "q2", "q2"))
+      renderChatOutputInstructions(
+        stateAfter("q1", "q2", "q2", "q2", "q2", "q2", "q2")
+      )
     ).toContain("- question_id：今回は Q3");
   });
 });

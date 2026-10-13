@@ -125,7 +125,7 @@ describe("AIインタビューの共通プロンプト版管理", () => {
     expect(restored).not.toContain("新版の方針");
     expect(restored).toContain(
       promptKey === "interview-chat-system"
-        ? "[Q1｜発話3回まで] 困りごとは？"
+        ? "[Q1] 困りごとは？"
         : "user [msg_id:message-1]"
     );
     expect((await findPromptState(key)).versions).toHaveLength(2);

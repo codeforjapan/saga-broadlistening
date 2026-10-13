@@ -118,8 +118,6 @@ export interface TransientConfigSnapshot {
     question: string;
     quick_replies: string[] | null;
     follow_up_guide: string | null;
-    /** 目的別テンプレートの発話予算（未指定なら既定の予算で動かす） */
-    turn_budget?: number | null;
   }>;
 }
 

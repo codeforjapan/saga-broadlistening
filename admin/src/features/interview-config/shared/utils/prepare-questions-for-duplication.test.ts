@@ -10,7 +10,6 @@ const baseQuestions: InterviewQuestion[] = [
     follow_up_guide: "指示1",
     quick_replies: ["はい", "いいえ"],
     question_order: 1,
-    turn_budget: 1,
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
   },
@@ -21,7 +20,6 @@ const baseQuestions: InterviewQuestion[] = [
     follow_up_guide: null,
     quick_replies: null,
     question_order: 2,
-    turn_budget: 3,
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
   },
@@ -64,14 +62,6 @@ describe("prepareQuestionsForDuplication", () => {
     expect(result[1].follow_up_guide).toBeNull();
     expect(result[1].quick_replies).toBeNull();
     expect(result[1].question_order).toBe(2);
-  });
-
-  it("発話予算を引き継ぐ", () => {
-    const result = prepareQuestionsForDuplication(
-      baseQuestions,
-      "new-config-id"
-    );
-    expect(result.map((q) => q.turn_budget)).toEqual([1, 3]);
   });
 
   it("空配列を渡すと空配列を返す", () => {

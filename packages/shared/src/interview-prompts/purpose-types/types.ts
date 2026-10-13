@@ -13,8 +13,6 @@ export type InterviewSubjectKind = "bill" | "theme";
 
 /** テンプレートの1話題 */
 export interface PurposeTemplateStep {
-  /** その話題で使えるAIの発話の数（最初の質問を含む、1〜4） */
-  turn_budget: number;
   /** 聞けたら豊かになる観点。満たすべき条件ではない */
   follow_up_guide: string | null;
   question: string;

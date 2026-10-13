@@ -111,7 +111,6 @@ async function buildPipelineParams(
       question: q.question,
       quick_replies: q.quick_replies ?? null,
       follow_up_guide: q.follow_up_guide ?? null,
-      turn_budget: q.turn_budget ?? null,
     }));
 
   // 説明文は改善版を、目的・意見がほしい点などは保存済みの設定を使う

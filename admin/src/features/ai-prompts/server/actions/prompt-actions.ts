@@ -259,6 +259,7 @@ export async function previewAiPrompt(
               ? [{ role: "user", content: parsed.data.conversation }]
               : [],
             summaryState: computeSummaryState({
+              topics,
               metas: [],
               phase: "first",
               forceClose: false,

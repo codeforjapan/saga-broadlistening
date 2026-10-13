@@ -1,16 +1,13 @@
 /**
  * AIインタビューのターン制御（純粋関数）。
  *
- * コードが持つのは外枠だけ: 発話の上限、話題の順番、話題ごとの発話予算、ステージ遷移、
- * 選択肢ボタン。深掘りするか・何を聞くか・早めに次へ移るかは LLM が予算の範囲で決める。
+ * コードが持つのは外枠だけ: 発話の上限（全体と話題ごと）、話題の順番、ステージ遷移、
+ * 選択肢ボタン。深掘りするか・何を聞くか・早めに次へ移るかは LLM が上限の範囲で決める。
  */
 import {
-  DEFAULT_TURN_BUDGET,
-  MAX_TURN_BUDGET,
-  MIN_TURN_BUDGET,
-  QUESTION_TURN_LIMIT,
+  QUESTION_TURNS_PER_TOPIC,
   RESUME_MIN_SUMMARY_TURNS,
-  RESUME_TURN_BUDGET,
+  RESUME_TOPIC_TURN_LIMIT,
   SKIP_QUESTION_REPLY,
   SUMMARY_TURN_LIMIT,
 } from "./constants";
@@ -32,7 +29,6 @@ export interface TurnTopic {
   id: string;
   /** プロンプトで使う短い ID（Q1, Q2 … / 再開は R） */
   label: string;
-  turnBudget: number;
   /** 聞けたら話が豊かになる観点（interview_questions.follow_up_guide） */
   followUpGuide: string | null;
   question: string;
@@ -51,7 +47,9 @@ export interface AssistantTurnMeta {
 export interface TurnState {
   /** これまでの質問の発話数（最初の発話と要約の段階の発話は数えない） */
   questionTurn: number;
-  /** QUESTION_TURN_LIMIT までの残り（今回を含む） */
+  /** 質問の発話の上限（質問の数 × QUESTION_TURNS_PER_TOPIC） */
+  questionTurnLimit: number;
+  /** 上限までの残り（今回を含む） */
   remainingQuestionTurns: number;
   /** いまの話題（話題が1つもない設定では null） */
   current: TurnTopic | null;
@@ -64,9 +62,12 @@ export interface TurnState {
   askedIds: Set<string>;
 }
 
-function clampBudget(value: number | null | undefined): number {
-  if (value == null || !Number.isFinite(value)) return DEFAULT_TURN_BUDGET;
-  return Math.min(MAX_TURN_BUDGET, Math.max(MIN_TURN_BUDGET, Math.trunc(value)));
+/**
+ * その話題で使える発話の数（最初の質問を含む）。
+ * 設定した質問はどれも同じ回数まで深掘りでき、再開の話題だけ短くする。
+ */
+export function topicTurnLimit(topic: TurnTopic): number {
+  return topic.predefined ? QUESTION_TURNS_PER_TOPIC : RESUME_TOPIC_TURN_LIMIT;
 }
 
 /** interview_questions の並びを、ターン制御の話題にする */
@@ -74,7 +75,6 @@ export function buildTurnTopics(questions: InterviewQuestion[]): TurnTopic[] {
   return questions.map((q, index) => ({
     id: q.id,
     label: `Q${index + 1}`,
-    turnBudget: clampBudget(q.turn_budget),
     followUpGuide: q.follow_up_guide?.trim() || null,
     question: q.question,
     quickReplies: (q.quick_replies ?? []).filter((r) => r.trim().length > 0),
@@ -82,11 +82,20 @@ export function buildTurnTopics(questions: InterviewQuestion[]): TurnTopic[] {
   }));
 }
 
+/**
+ * 質問の発話の上限。設定した質問（事前定義の話題）の数に比例させ、
+ * 質問が多い設定でも1問あたりに使える発話が減らないようにする。
+ */
+export function computeQuestionTurnLimit(topics: TurnTopic[]): number {
+  return (
+    topics.filter((t) => t.predefined).length * QUESTION_TURNS_PER_TOPIC
+  );
+}
+
 /** summary から chat に戻ったときの話題 */
 export const RESUME_TOPIC: TurnTopic = {
   id: RESUME_TOPIC_ID,
   label: "R",
-  turnBudget: RESUME_TURN_BUDGET,
   followUpGuide: "回答者が付け足したいこと",
   question: "付け足したいことを続けて話してもらう",
   quickReplies: [],
@@ -147,7 +156,7 @@ function findCurrentTopic(
 }
 
 /**
- * 毎ターン、過去の assistant 発話からいまの話題・残り予算・次の話題を計算する。
+ * 毎ターン、過去の assistant 発話からいまの話題・この話題の残りの発話・次の話題を計算する。
  */
 export function computeTurnState({
   topics,
@@ -157,7 +166,8 @@ export function computeTurnState({
   metas: AssistantTurnMeta[];
 }): TurnState {
   const questionTurn = countQuestionTurns(metas);
-  const remainingQuestionTurns = QUESTION_TURN_LIMIT - questionTurn;
+  const questionTurnLimit = computeQuestionTurnLimit(topics);
+  const remainingQuestionTurns = questionTurnLimit - questionTurn;
   const askedIds = new Set(
     metas.map((m) => m.questionId).filter((id): id is string => !!id)
   );
@@ -174,12 +184,16 @@ export function computeTurnState({
     .slice(currentIndex + 1)
     .filter((t) => !askedIds.has(t.id));
 
-  let left = current ? current.turnBudget - usedCount(metas, current.id) : 0;
-  // 残りの話題に最低1回ずつ回す
+  let left = current
+    ? topicTurnLimit(current) - usedCount(metas, current.id)
+    : 0;
+  // 残りの話題に最低1回ずつ回す（話題ごとの上限の合計が全体の上限と同じなので、
+  // 通常は起きない。再開した後などの保険）
   if (remainingQuestionTurns <= remainingTopics.length) left = 0;
 
   return {
     questionTurn,
+    questionTurnLimit,
     remainingQuestionTurns,
     current,
     left: Math.max(0, left),
@@ -202,7 +216,7 @@ export function decideSummaryEntry({
 }): boolean {
   return (
     endButton ||
-    state.questionTurn >= QUESTION_TURN_LIMIT ||
+    state.questionTurn >= state.questionTurnLimit ||
     (state.left === 0 && state.next === null)
   );
 }
@@ -267,10 +281,13 @@ export interface SummaryState {
 }
 
 export function computeSummaryState({
+  topics,
   metas,
   phase,
   forceClose,
 }: {
+  /** 質問の発話の上限を決めるための話題（再開できるかの判定に使う） */
+  topics: TurnTopic[];
   metas: AssistantTurnMeta[];
   phase: SummaryPhase;
   /** summary 中に「終える」ボタンが押された */
@@ -278,7 +295,7 @@ export function computeSummaryState({
 }): SummaryState {
   const remainingTurns = SUMMARY_TURN_LIMIT - countSummaryTurns(metas);
   const remainingQuestionTurns =
-    QUESTION_TURN_LIMIT - countQuestionTurns(metas);
+    computeQuestionTurnLimit(topics) - countQuestionTurns(metas);
   return {
     phase,
     remainingTurns,

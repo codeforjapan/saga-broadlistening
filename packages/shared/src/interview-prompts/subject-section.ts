@@ -119,15 +119,13 @@ const GENERIC_FOCUS =
 const GENERIC_PERSPECTIVE =
   "一般論の答えには、最近の1回の場面を聞く。良し悪しを先に聞かない。";
 
-/** `[Q2｜発話○回まで] 質問／観点：…` の形で話題を並べる */
+/** `[Q2] 質問／観点：…` の形で話題を並べる */
 export function buildQuestionsText(topics: TurnTopic[]): string {
   if (topics.length === 0) return "（話題は設定されていません）";
   return topics
     .map((t) => {
-      const budget =
-        t.turnBudget === 1 ? "発話1回" : `発話${t.turnBudget}回まで`;
       const guide = t.followUpGuide ? `／観点：${t.followUpGuide}` : "";
-      return `[${t.label}｜${budget}] ${t.question}${guide}`;
+      return `[${t.label}] ${t.question}${guide}`;
     })
     .join("\n");
 }

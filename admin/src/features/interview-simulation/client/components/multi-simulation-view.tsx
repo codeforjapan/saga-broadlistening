@@ -125,7 +125,6 @@ export function MultiSimulationView({
             ? q.quick_replies
             : null,
         follow_up_guide: q.follow_up_guide ?? null,
-        turn_budget: q.turn_budget ?? null,
       })),
     };
 

@@ -53,7 +53,6 @@ export type DefaultQuestionTemplateEntry =
 
 /**
  * 目的（5型）×対象（施策／テーマ）の質問テンプレートを、保存用の質問配列にする。
- * 発話予算はテンプレートの値をそのまま持たせる（職員には見せない）。
  */
 export function buildPurposeTemplateQuestions(
   purposeType: PurposeType,
@@ -64,7 +63,6 @@ export function buildPurposeTemplateQuestions(
     follow_up_guide: step.follow_up_guide ?? undefined,
     quick_replies:
       step.quick_replies.length > 0 ? [...step.quick_replies] : undefined,
-    turn_budget: step.turn_budget,
   }));
 }
 

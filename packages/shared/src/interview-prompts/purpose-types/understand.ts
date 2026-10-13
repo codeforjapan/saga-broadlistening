@@ -12,7 +12,6 @@ export const UNDERSTAND: PurposeTypeDefinition = {
 良い例：「通院で月2回、駅から病院までなんですね。いちばん最近のその1回は、始めから終わりまでどんな流れでしたか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: "「ない」なら、次の話題の対象をふだんの過ごし方にしてよい",
         question:
           "この1か月で、この施策に関わるサービスや手続きを使ったことはありますか？",
@@ -24,20 +23,17 @@ export const UNDERSTAND: PurposeTypeDefinition = {
         ],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "いつ・どこで・誰と、始めから終わりまでの流れ、予定外の出来事",
         question: "いちばん最近それを使った1回は、いつ、どんな用事でしたか？",
         quick_replies: ["思い出せない"],
       },
       {
-        turn_budget: 3,
         follow_up_guide: "それで何が助かるか。価値までは求めない",
         question:
           "その用事に、ほかの方法ではなくそれを使ったのは、どんなことからですか？",
         quick_replies: [],
       },
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "ふだんの使い方で、ほかに知っておいてほしいことはありますか？",
         quick_replies: ["特にない"],
@@ -50,25 +46,21 @@ export const UNDERSTAND: PurposeTypeDefinition = {
 良い例：「友だちとカフェに行ったんですね。その日そこを選んだのは、どんなことからですか？」`,
     steps: [
       {
-        turn_budget: 1,
         follow_up_guide: "「ない」なら、次の話題の対象をふだんの過ごし方にしてよい",
         question: "この1か月で、このテーマに関わる場面はありましたか？",
         quick_replies: ["何度か", "1回くらい", "なかった"],
       },
       {
-        turn_budget: 4,
         follow_up_guide: "いつ・どこで・誰と、始めから終わりまでの流れ、予定外の出来事",
         question: "いちばん最近のその場面は、いつ、どこで、何をしていたときですか？",
         quick_replies: ["思い出せない"],
       },
       {
-        turn_budget: 3,
         follow_up_guide: "それで何が助かるか。価値までは求めない",
         question: "そのとき、そうしたのは、どんなことからですか？",
         quick_replies: [],
       },
       {
-        turn_budget: 1,
         follow_up_guide: null,
         question: "このテーマについて、ほかに知っておいてほしいことはありますか？",
         quick_replies: ["特にない"],

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   EVALUATE_TEMPLATE_TOPICS_MAX,
   EVALUATION_QUICK_REPLIES_MAX,
-  QUESTION_TURN_LIMIT,
   QUICK_REPLIES_MAX,
   TEMPLATE_TOPICS_MAX,
 } from "../constants";
@@ -21,22 +20,16 @@ const UNDECIDED_REPLY = "まだ決められない";
 describe("目的別テンプレート", () => {
   it.each(
     PURPOSE_TYPES.flatMap((type) => SUBJECTS.map((subject) => [type, subject]))
-  )("%s×%s は予算の合計が質問の発話の上限に収まる", (type, subject) => {
+  )("%s×%s は話題の数と選択肢の数が上限に収まる", (type, subject) => {
     const steps = getPurposeTemplateSteps(
       type as (typeof PURPOSE_TYPES)[number],
       subject as (typeof SUBJECTS)[number]
     );
-    // 最初の発話は Q1 の1回目として予算に含まれるが、上限には数えない
-    const total = steps.reduce((sum, s) => sum + s.turn_budget, 0);
-    expect(total - 1).toBeLessThanOrEqual(QUESTION_TURN_LIMIT);
-
     expect(steps.length).toBeLessThanOrEqual(
       type === "evaluate" ? EVALUATE_TEMPLATE_TOPICS_MAX : TEMPLATE_TOPICS_MAX
     );
     expect(steps.at(-1)?.quick_replies).toEqual(["特にない"]);
     for (const step of steps) {
-      expect(step.turn_budget).toBeGreaterThanOrEqual(1);
-      expect(step.turn_budget).toBeLessThanOrEqual(4);
       // 受け止めの質問だけ「まだ決められない」を含めて5つまで
       expect(step.quick_replies.length).toBeLessThanOrEqual(
         step.quick_replies.includes(UNDECIDED_REPLY)

@@ -14,7 +14,7 @@ import {
 } from "./turn-records";
 
 const topics = buildTurnTopics([
-  { id: "q1", question: "関わりは？", turn_budget: 1 },
+  { id: "q1", question: "関わりは？" },
   { id: "q2", question: "場面は？", quick_replies: ["思い出せない"] },
 ]);
 const metas: AssistantTurnMeta[] = [
@@ -88,7 +88,8 @@ describe("buildChatTurnRecord", () => {
     });
     expect(JSON.parse(record.content)).toMatchObject({
       text: "壊れた出力",
-      question_id: "q2",
+      // 読めなかったときは、いまの話題（発話が残っている Q1）を続けたものとする
+      question_id: "q1",
       parse_failed: true,
     });
   });
@@ -97,6 +98,7 @@ describe("buildChatTurnRecord", () => {
 describe("buildSummaryTurnRecord", () => {
   it("要約に同意したら完了にする", () => {
     const summaryState = computeSummaryState({
+      topics,
       metas: summaryReplyMetas,
       phase: "reply",
       forceClose: false,
@@ -116,6 +118,7 @@ describe("buildSummaryTurnRecord", () => {
 
   it("インタビューに戻るときは再開の話題を開き、レポートを残さない", () => {
     const summaryState = computeSummaryState({
+      topics,
       metas: summaryReplyMetas,
       phase: "reply",
       forceClose: false,
@@ -140,6 +143,7 @@ describe("buildSummaryTurnRecord", () => {
 
   it("要約の段階が続くときはセッションを書き戻さない", () => {
     const summaryState = computeSummaryState({
+      topics,
       metas,
       phase: "first",
       forceClose: false,

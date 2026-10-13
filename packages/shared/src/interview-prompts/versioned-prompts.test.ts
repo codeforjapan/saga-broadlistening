@@ -58,10 +58,10 @@ describe("対話用プロンプト", () => {
       `- ${VOICE_USAGE_TEXT}（結果の扱いを聞かれたら、この意味で伝える。結果を知らせる時期や場所は約束しない）`
     );
     expect(prompt).toContain(
-      "[Q3｜発話4回まで] この案で、その場面はどう変わりそうですか？／観点：案のどの部分が関わるか"
+      "[Q3] この案で、その場面はどう変わりそうですか？／観点：案のどの部分が関わるか"
     );
     expect(prompt).toContain(
-      "- いまの話題：Q3「この案で、その場面はどう変わりそうですか？」。この話題で使える発話：あと2回（今回を含む）"
+      "- いまの話題：Q3「この案で、その場面はどう変わりそうですか？」。この話題で使える発話：あと3回（今回を含む）"
     );
     expect(prompt).toContain(
       "- 次の話題：Q4「ここまでを踏まえて、この案を全体としてどう受け止めていますか？」（選択肢ボタンはシステムが出す）"
@@ -80,10 +80,10 @@ describe("対話用プロンプト", () => {
     expect(prompt).not.toContain("どちらかといえば賛成");
   });
 
-  it("予算を使い切ったら次の話題に移るよう指示する", () => {
+  it("話題の発話の上限を使い切ったら次の話題に移るよう指示する", () => {
     const exhausted = computeTurnState({
       topics,
-      metas: ["q1", "q2", "q2", "q2"].map((questionId) => ({
+      metas: ["q1", "q2", "q2", "q2", "q2", "q2"].map((questionId) => ({
         questionId,
         stage: "chat" as const,
       })),
@@ -114,7 +114,7 @@ describe("対話用プロンプト", () => {
     );
     expect(prompt).toContain("独自の方針");
     expect(prompt).toContain("短く話す聞き手");
-    expect(prompt).toContain("[Q1｜発話1回]");
+    expect(prompt).toContain("[Q1] ");
   });
 });
 

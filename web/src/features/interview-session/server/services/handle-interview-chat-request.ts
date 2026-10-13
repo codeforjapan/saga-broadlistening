@@ -91,7 +91,7 @@ export class InterviewAlreadyCompletedError extends Error {
 /**
  * インタビューチャットリクエストを処理してストリーミングレスポンスを返す。
  *
- * 呼び出しは1ターン1回。ステージ（chat / summary）と話題の予算はサーバーが決め、
+ * 呼び出しは1ターン1回。ステージ（chat / summary）と話題ごとの発話の上限はサーバーが決め、
  * LLM は本文と少数の制御フラグだけを返す。LLM の出力を読み切った後に、
  * 次のステージ・選択肢ボタン・正規化した question_id をストリームの末尾へ注入する。
  */
@@ -231,6 +231,7 @@ export async function handleInterviewChatRequest({
 
   // summary: 場面は発話の記録から決める。「終える」ボタンが要約の段階で押されたら締める
   const summaryState = computeSummaryState({
+    topics,
     metas,
     phase: resolveSummaryPhase({ sessionStage: session.stage, metas }),
     forceClose: endButton && session.stage === "summary",

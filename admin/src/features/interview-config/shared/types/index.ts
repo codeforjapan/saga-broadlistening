@@ -4,10 +4,6 @@ import {
   VALID_PARTICIPATION_MODES,
 } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import {
-  MAX_TURN_BUDGET,
-  MIN_TURN_BUDGET,
-} from "@mirai-gikai/shared/interview-prompts/constants";
-import {
   PURPOSE_TYPES,
   type PurposeType,
 } from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
@@ -107,13 +103,6 @@ export const interviewQuestionSchema = z.object({
     .max(2000, "観点は2000文字以内で入力してください")
     .optional(),
   quick_replies: z.array(z.string().min(1)).optional(),
-  // テンプレートの発話予算。職員には編集させず、文言の修正時もそのまま引き継ぐ
-  turn_budget: z
-    .number()
-    .int()
-    .min(MIN_TURN_BUDGET)
-    .max(MAX_TURN_BUDGET)
-    .optional(),
 });
 
 export const interviewQuestionsInputSchema = z.array(interviewQuestionSchema);

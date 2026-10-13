@@ -1,8 +1,4 @@
 import { isValidModelId } from "@mirai-gikai/shared/ai/validate-model-id";
-import {
-  MAX_TURN_BUDGET,
-  MIN_TURN_BUDGET,
-} from "@mirai-gikai/shared/interview-prompts/constants";
 import { z } from "zod";
 import { ENV_DEFAULT_MODEL, MAX_PERSONA_SLOTS } from "./constants";
 
@@ -332,14 +328,6 @@ export const multiSimulationRunRequestSchema = z
                   .max(SMALL_ARRAY_MAX)
                   .nullable(),
                 follow_up_guide: z.string().max(MEDIUM_TEXT_MAX).nullable(),
-                // 目的別テンプレートの発話予算（未指定なら既定の予算で動かす）
-                turn_budget: z
-                  .number()
-                  .int()
-                  .min(MIN_TURN_BUDGET)
-                  .max(MAX_TURN_BUDGET)
-                  .nullable()
-                  .optional(),
               })
               .strict()
           )

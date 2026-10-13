@@ -56,7 +56,6 @@ export interface InterviewQuestion {
   question: string;
   quick_replies?: string[] | null;
   follow_up_guide?: string | null;
-  turn_budget?: number | null;
 }
 
 export type InterviewStage = "chat" | "summary" | "summary_complete";

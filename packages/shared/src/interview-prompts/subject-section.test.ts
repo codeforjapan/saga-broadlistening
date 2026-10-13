@@ -29,13 +29,13 @@ describe("buildInterviewSubject", () => {
 });
 
 describe("buildQuestionsText", () => {
-  it("[Qn｜予算] 質問／観点 の形で並べる", () => {
+  it("[Qn] 質問／観点 の形で並べる", () => {
     const topics = buildTurnTopics([
-      { id: "a", question: "関わりは？", turn_budget: 1 },
+      { id: "a", question: "関わりは？" },
       { id: "b", question: "場面は？", follow_up_guide: "最近の1回" },
     ]);
     expect(buildQuestionsText(topics)).toBe(
-      "[Q1｜発話1回] 関わりは？\n[Q2｜発話3回まで] 場面は？／観点：最近の1回"
+      "[Q1] 関わりは？\n[Q2] 場面は？／観点：最近の1回"
     );
   });
 

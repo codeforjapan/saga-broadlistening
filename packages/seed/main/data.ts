@@ -320,14 +320,9 @@ export const additionalInterviewConfigs: InterviewConfigInsert[] = [
   },
 ];
 
-/** interview_questions の NOT NULL かつ DEFAULT を持つカラムの既定値（withDefaults 用） */
-export const INTERVIEW_QUESTION_DEFAULTS = {
-  turn_budget: 3,
-} satisfies Partial<InterviewQuestionInsert>;
-
 /**
  * 目的別テンプレート（第6章）からインタビュー質問を作成する。
- * 文言・観点・選択肢・発話予算はテンプレートの下書きをそのまま使う。
+ * 文言・観点・選択肢はテンプレートの下書きをそのまま使う。
  */
 export function createInterviewQuestions(
   interviewConfigId: string,
@@ -339,7 +334,6 @@ export function createInterviewQuestions(
     question: step.question,
     follow_up_guide: step.follow_up_guide,
     quick_replies: step.quick_replies.length > 0 ? step.quick_replies : null,
-    turn_budget: step.turn_budget,
     question_order: index + 1,
   }));
 }
