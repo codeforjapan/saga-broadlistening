@@ -159,6 +159,16 @@ describe("shadcnセマンティックマッピング", () => {
     }
   });
 
+  it("きかせてのボタン面（kikasete-600）には白文字を載せられる", () => {
+    expect(meetsAaText(WHITE, PRIMITIVES["kikasete-600"])).toBe(true);
+  });
+
+  it("きかせての文字色（kikasete-700）はきかせての薄い面の上でも 4.5:1 以上", () => {
+    expect(
+      contrastRatio(PRIMITIVES["kikasete-700"], PRIMITIVES["kikasete-50"])
+    ).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+
   it("destructive の面には白文字を載せられる（破壊的操作の視認性）", () => {
     expect(
       contrastRatio(

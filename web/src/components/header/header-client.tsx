@@ -1,7 +1,6 @@
 "use client";
 
 import { SITE_NAME } from "@mirai-gikai/branding/site";
-import { logoImageProps } from "@/lib/logo";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -10,8 +9,10 @@ import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/type
 import { InterviewHeaderActions } from "@/features/interview-session/client/components/interview-header-actions";
 import { sendDifficultyStateEvent } from "@/lib/analytics/preference-state-events";
 import { useOnPageView } from "@/lib/analytics/use-on-page-view";
-import { isInterviewPage, isMainPage } from "@/lib/page-layout-utils";
+import { logoImageProps } from "@/lib/logo";
+import { getPageLayout, isInterviewPage } from "@/lib/page-layout-utils";
 import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 import { HamburgerMenu } from "./hamburger-menu";
 
 interface HeaderClientProps {
@@ -20,7 +21,8 @@ interface HeaderClientProps {
 
 export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
   const pathname = usePathname();
-  const showDifficultySelector = isMainPage(pathname);
+  const { showDifficultySelector, difficultyInMobileMenu } =
+    getPageLayout(pathname);
   const showInterviewActions = isInterviewPage(pathname);
 
   // Headerは1ページに1つだけ常時マウントされるため、
@@ -44,10 +46,17 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
             aria-label="補助ナビゲーション"
           >
             {showDifficultySelector && (
-              <DifficultySelector currentLevel={difficultyLevel} />
+              <DifficultySelector
+                currentLevel={difficultyLevel}
+                className={cn(difficultyInMobileMenu && "max-md:hidden")}
+              />
             )}
             {showInterviewActions && <InterviewHeaderActions />}
-            <HamburgerMenu />
+            <HamburgerMenu
+              mobileDifficultyLevel={
+                difficultyInMobileMenu ? difficultyLevel : undefined
+              }
+            />
           </nav>
         </div>
       </div>

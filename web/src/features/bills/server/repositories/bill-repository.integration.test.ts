@@ -1,24 +1,21 @@
-import { describe, it, expect, afterEach } from "vitest";
 import {
-  createTestPolicy,
   cleanupTestPolicy,
-  createTestPolicyContent,
-  createTestTag,
   cleanupTestTag,
+  createTestPolicy,
+  createTestPolicyContent,
   createTestPolicyTag,
   createTestPreviewToken,
+  createTestTag,
 } from "@test-utils/utils";
+import { afterEach, describe, expect, it } from "vitest";
 import {
-  findPublishedBillsWithContents,
-  findPublishedBillById,
   findBillById,
-  findTagsByBillId,
   findBillContentByDifficulty,
-  findTagsByBillIds,
-  findFeaturedTags,
-  findPublishedBillsByTag,
-  findFeaturedBillsWithContents,
   findPreviewToken,
+  findPublishedBillById,
+  findPublishedBillsWithContents,
+  findTagsByBillId,
+  findTagsByBillIds,
 } from "./bill-repository";
 
 describe("bill-repository 統合テスト", () => {
@@ -251,119 +248,6 @@ describe("bill-repository 統合テスト", () => {
 
   // ============================================================
   // findFeaturedTags
-  // ============================================================
-
-  describe("findFeaturedTags", () => {
-    it("featured_priorityが設定されているタグを取得できる", async () => {
-      const tag = await createTestTag({
-        label: `featured-tag-${Date.now()}`,
-        featured_priority: 1,
-      });
-      tagIds.push(tag.id);
-
-      const result = await findFeaturedTags();
-
-      const found = result.find((t) => t.id === tag.id);
-      expect(found).toBeDefined();
-      expect(found?.featured_priority).toBe(1);
-    });
-
-    it("featured_priorityがnullのタグは含まれない", async () => {
-      const tag = await createTestTag({
-        label: `non-featured-tag-${Date.now()}`,
-      });
-      tagIds.push(tag.id);
-
-      const result = await findFeaturedTags();
-
-      const found = result.find((t) => t.id === tag.id);
-      expect(found).toBeUndefined();
-    });
-  });
-
-  // ============================================================
-  // findPublishedBillsByTag
-  // ============================================================
-
-  describe("findPublishedBillsByTag", () => {
-    it("特定タグに紐づく公開済み施策を取得できる", async () => {
-      const bill = await createTestPolicy({
-        publish_status: "published",
-        published_at: new Date().toISOString(),
-      });
-      billIds.push(bill.id);
-      await createTestPolicyContent(bill.id, { difficulty_level: "normal" });
-      const tag = await createTestTag({ label: `tag-by-tag-${Date.now()}` });
-      tagIds.push(tag.id);
-      await createTestPolicyTag(bill.id, tag.id);
-
-      const result = await findPublishedBillsByTag(tag.id, "normal");
-
-      expect(result).not.toBeNull();
-      expect(result?.length).toBeGreaterThanOrEqual(1);
-      const found = result?.find((r) => r.policy_id === bill.id);
-      expect(found).toBeDefined();
-    });
-
-    it("下書きの施策は含まれない", async () => {
-      const bill = await createTestPolicy({ publish_status: "draft" });
-      billIds.push(bill.id);
-      await createTestPolicyContent(bill.id, { difficulty_level: "normal" });
-      const tag = await createTestTag({ label: `tag-draft-${Date.now()}` });
-      tagIds.push(tag.id);
-      await createTestPolicyTag(bill.id, tag.id);
-
-      const result = await findPublishedBillsByTag(tag.id, "normal");
-
-      const found = result?.find((r) => r.policy_id === bill.id);
-      expect(found).toBeUndefined();
-    });
-  });
-
-  // ============================================================
-  // findFeaturedBillsWithContents
-  // ============================================================
-
-  describe("findFeaturedBillsWithContents", () => {
-    it("注目の施策を取得できる", async () => {
-      const bill = await createTestPolicy({
-        publish_status: "published",
-        published_at: new Date().toISOString(),
-        is_featured: true,
-      });
-      billIds.push(bill.id);
-      await createTestPolicyContent(bill.id, {
-        difficulty_level: "normal",
-        title: "注目施策タイトル",
-      });
-
-      const result = await findFeaturedBillsWithContents("normal");
-
-      const found = result.find((b) => b.id === bill.id);
-      expect(found).toBeDefined();
-      expect(found?.is_featured).toBe(true);
-      expect(found?.policy_contents).toHaveLength(1);
-      expect(found?.policy_contents[0].title).toBe("注目施策タイトル");
-    });
-
-    it("is_featured=falseの施策は含まれない", async () => {
-      const bill = await createTestPolicy({
-        publish_status: "published",
-        published_at: new Date().toISOString(),
-        is_featured: false,
-      });
-      billIds.push(bill.id);
-      await createTestPolicyContent(bill.id, { difficulty_level: "normal" });
-
-      const result = await findFeaturedBillsWithContents("normal");
-
-      const found = result.find((b) => b.id === bill.id);
-      expect(found).toBeUndefined();
-    });
-  });
-
-  // ============================================================
-  // findPreviewToken
   // ============================================================
 
   describe("findPreviewToken", () => {

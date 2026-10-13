@@ -14,6 +14,7 @@ import {
   getInterviewLPLink,
   getInterviewMessageLink,
   getInterviewReportCompleteLink,
+  getInterviewStartLink,
   getPublicReportLink,
   getThemeCardLink,
   getThemeHomeLink,
@@ -268,5 +269,17 @@ describe("extractInterviewTargetFromPath", () => {
 
   it("returns null for the top page", () => {
     expect(extractInterviewTargetFromPath("/")).toBeNull();
+  });
+});
+
+describe("getInterviewStartLink", () => {
+  // チャット冒頭の同意（#158）が入るまでは、同意モーダルのある LP を経由させる
+  it("同意モーダルのある LP を返す", () => {
+    for (const target of [
+      themeInterviewTarget("wakamono-shien"),
+      policyInterviewTarget("bill-123"),
+    ]) {
+      expect(getInterviewStartLink(target)).toBe(getInterviewLPLink(target));
+    }
   });
 });

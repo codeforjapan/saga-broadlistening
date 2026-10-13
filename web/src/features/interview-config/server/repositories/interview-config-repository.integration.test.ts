@@ -43,15 +43,18 @@ describe("findOpenInterviewConfigs 統合テスト", () => {
     });
     cleanups.push(cleanup);
     await createTestPolicyTag(policy.id, tag.id);
-    await createTestSession(config.id, null);
-    await createTestSession(config.id, null);
+    const completedAt = new Date().toISOString();
+    await createTestSession(config.id, null, { completed_at: completedAt });
+    await createTestSession(config.id, null, { completed_at: completedAt });
+    // 途中でやめたセッションは参加人数に数えない
+    await createTestSession(config.id, null, { completed_at: null });
 
     const configs = await findOpenInterviewConfigs();
 
     const found = configs.find((row) => row.id === config.id);
     expect(found).toBeDefined();
     expect(found?.estimated_duration).toBe(5);
-    // 埋め込み集計は [{ count: n }] の形で返る
+    // 埋め込み集計は [{ count: n }] の形で返る（完了したセッションのみ）
     expect(found?.interview_sessions[0]?.count).toBe(2);
 
     const linkedPolicy = found?.policies_interview_configs[0]?.policies;

@@ -1,31 +1,43 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getPageLayout,
   isInterviewPage,
   isInterviewSection,
-  isMainPage,
 } from "./page-layout-utils";
 
-describe("isMainPage", () => {
-  it("returns true for the top page", () => {
-    expect(isMainPage("/")).toBe(true);
+describe("getPageLayout", () => {
+  it("TOPは全幅で、スマホでは難易度切り替えをメニューへ移す", () => {
+    expect(getPageLayout("/")).toEqual({
+      showDifficultySelector: true,
+      difficultyInMobileMenu: true,
+      chatSidebar: false,
+      fullBleed: true,
+    });
   });
 
-  it("returns true for a bill detail page", () => {
-    expect(isMainPage("/bills/abc-123")).toBe(true);
+  it("施策詳細ページは右に常設チャットを置く", () => {
+    expect(getPageLayout("/bills/abc-123")).toEqual({
+      showDifficultySelector: true,
+      difficultyInMobileMenu: false,
+      chatSidebar: true,
+      fullBleed: false,
+    });
   });
 
-  it("returns false for a bill sub-page", () => {
-    expect(isMainPage("/bills/abc-123/interview")).toBe(false);
-  });
-
-  it("returns false for an unrelated path", () => {
-    expect(isMainPage("/about")).toBe(false);
-  });
-
-  it("returns false for the bills list page", () => {
-    expect(isMainPage("/bills")).toBe(false);
-    expect(isMainPage("/bills/")).toBe(false);
+  it.each([
+    "/bills/abc-123/interview",
+    "/about",
+    "/bills",
+    "/bills/",
+    "/interviews/wakamono-shien",
+  ])("%s は既定のレイアウト", (pathname) => {
+    expect(getPageLayout(pathname)).toEqual({
+      showDifficultySelector: false,
+      difficultyInMobileMenu: false,
+      chatSidebar: false,
+      fullBleed: false,
+    });
   });
 });
 
