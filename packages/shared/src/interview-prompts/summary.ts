@@ -5,10 +5,7 @@ import {
 } from "./templates";
 import { OPINION_TAG_CRITERIA } from "../interview-report/opinion-tags-schema";
 import { buildContentRichnessInstructions } from "../content-richness/content-richness-instructions";
-import {
-  buildInterviewSubject,
-  buildPublicationText,
-} from "./subject-section";
+import { buildInterviewSubject } from "./subject-section";
 import type { SummaryState } from "./turn-control";
 import { renderSummaryState } from "./turn-state";
 import type { InterviewConfig, PromptBillInput } from "./types";
@@ -97,19 +94,6 @@ ${OPINION_TAG_CRITERIA.reasoningTypes}
 
 ### 6. ${buildContentRichnessInstructions()}
 
-### 7. topic_depth（話題ごとの聞けた深さ。会話の制御には使わない）
-- 話題ごとに、状況・出来事の具体さ（none／vague／concrete）、暮らしへの影響の有無、理由の深さ（none／A：行動の理由／C：それで得られること／V：その人にとって大事なこと）、望む状態（あれば本人の言葉で）を記録する
-- 満たしていないことを欠陥として扱わない
-
-### 8. dk（「わからない」の種類）
-- 回答者が「わからない」と答えた話題ごとに、次のどれかを記録する: not_aware（知らない）／cannot_articulate（言葉にできない）／ambivalent（迷っている）／unclear_question（問いが分かりにくい）／no_experience（経験がない）／declined（答えたくない）
-
-### 9. emergent_topics（事前の話題の外で出てきた話）
-- 予定していた話題の外で出てきた話を、本人の言葉で記録する
-
-### 10. side_requests（個別の要望・テーマ外の話）
-- 特定の場所や本人の案件への対応を求めた発言、テーマ外の市政の話を、意見とは別に記録する
-
 ### 意見（opinions）の追加ルール
 - 受け止めの選択は、理由・条件と一緒に1件にまとめる
 - 「わからない」だけの話題から意見を作らない
@@ -122,7 +106,6 @@ ${OPINION_TAG_CRITERIA.reasoningTypes}
     themeDescription: themeDescription || "（テーマ未設定）",
     conversationLog,
     summaryState: renderSummaryState(summaryState),
-    publicationText: buildPublicationText(interviewConfig),
     reportInstructions,
   });
 }

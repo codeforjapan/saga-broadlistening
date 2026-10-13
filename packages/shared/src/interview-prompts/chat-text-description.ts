@@ -9,10 +9,6 @@ export const INTERVIEW_CHAT_FIELD_DESCRIPTIONS = {
   topic_title: "その話題の短い名前",
   end_request:
     "回答者が終えたい・やめたいとはっきり言ったら true（「疲れた」だけなら false）",
-  personal_request:
-    "直前の回答が、特定の場所や本人の案件への対応を求めていたら true",
-  off_topic:
-    "直前の回答が、市政に関係するがこのテーマの外の話で、テーマとの関係がはっきりないときだけ true",
   summary_response:
     "要約への返事の分類。初回の要約は none。よい=agree、直したい・付け足したい=revise、インタビューに戻りたい=resume、どれでもない=other",
 } as const;

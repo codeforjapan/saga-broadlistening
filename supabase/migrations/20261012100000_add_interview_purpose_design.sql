@@ -1,7 +1,7 @@
 -- ============================================================
 -- AIインタビューの目的別テンプレートと、コード側のターン制御のための列を追加する
 --
--- - interview_configs: 目的（5型）・市がこれから決めること・決まっていること・結果のお知らせ
+-- - interview_configs: 目的（5型）・市がこれから決めること・決まっていること
 -- - interview_questions: 話題ごとの発話予算（follow_up_guide は「観点」として使い続ける）
 -- - interview_sessions: ステージ（chat/summary/summary_complete）をサーバー側で持つ。
 --   要約の段階の場面・再開の有無は、assistant メッセージに残す記録から決めるので列を持たない
@@ -11,8 +11,6 @@
 create type interview_purpose_type_enum as enum (
   'understand', 'discover', 'verify', 'evaluate', 'envision'
 );
-create type interview_publication_place_enum as enum ('chikat', 'city_web', 'koho');
-create type interview_publication_mode_enum as enum ('scheduled', 'when_ready');
 create type interview_session_stage_enum as enum ('chat', 'summary', 'summary_complete');
 
 -- ------------------------------------------------------------
@@ -21,17 +19,11 @@ create type interview_session_stage_enum as enum ('chat', 'summary', 'summary_co
 alter table interview_configs
   add column purpose_type interview_purpose_type_enum,
   add column opinion_focus text,
-  add column decided_matters text,
-  add column publication_timing text,
-  add column publication_place interview_publication_place_enum,
-  add column publication_mode interview_publication_mode_enum not null default 'when_ready';
+  add column decided_matters text;
 
 comment on column interview_configs.purpose_type is 'インタビューの目的（understand: わかる / discover: 見つける / verify: 確かめる / evaluate: 評価する / envision: 描く）。NULL は目的未設定（汎用の聞き方で動く）';
 comment on column interview_configs.opinion_focus is '意見がほしい点（市がこれから決めること）';
 comment on column interview_configs.decided_matters is '決まっていること（賛否を聞かない事項）。施策型のときだけ使う';
-comment on column interview_configs.publication_timing is '結果を知らせる時期（例「2027年3月ごろ」）。publication_mode が scheduled のときに使う';
-comment on column interview_configs.publication_place is '結果を知らせる場所（chikat: CHIKAT / city_web: 市ホームページ / koho: 広報紙）';
-comment on column interview_configs.publication_mode is 'scheduled: 時期と場所を決めて知らせる / when_ready: まとまり次第 CHIKAT の結果ページで知らせる';
 
 -- ------------------------------------------------------------
 -- interview_questions

@@ -65,11 +65,8 @@ describe("AIインタビューの共通プロンプト版管理", () => {
               topics,
               turnState: computeTurnState({
                 topics,
-                metas: [
-                  { questionId: "q1", budgetExempt: false, stage: "chat" },
-                ],
+                metas: [{ questionId: "q1", stage: "chat" }],
               }),
-              piiNotice: null,
             },
             template.content
           )

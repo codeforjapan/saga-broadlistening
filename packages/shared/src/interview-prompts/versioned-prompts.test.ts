@@ -7,6 +7,7 @@ import {
 import { PromptProvider } from "../prompts/provider";
 import { validatePromptTemplate } from "../prompts/template";
 import { buildChatSystemPrompt } from "./chat-prompt";
+import { NO_INDIVIDUAL_RESPONSE_TEXT, VOICE_USAGE_TEXT } from "./constants";
 import { buildInitialSystemPrompt } from "./initial-prompt";
 import { getPurposeTemplateSteps } from "./purpose-types/registry";
 import { buildSummarySystemPrompt } from "./summary";
@@ -18,9 +19,6 @@ const interviewConfig = {
   purpose_type: "verify" as const,
   opinion_focus: "どの路線をどう変えるか",
   decided_matters: "2027年度に路線を見直すこと",
-  publication_mode: "scheduled" as const,
-  publication_timing: "2027年3月ごろ",
-  publication_place: "chikat" as const,
 };
 const bill = {
   name: "市営バス路線見直し",
@@ -38,7 +36,6 @@ describe("対話用プロンプト", () => {
     topics,
     metas: ["q1", "q2", "q2", "q2", "q3", "q3"].map((questionId) => ({
       questionId,
-      budgetExempt: false,
       stage: "chat" as const,
     })),
   });
@@ -49,7 +46,6 @@ describe("対話用プロンプト", () => {
       interviewConfig,
       topics,
       turnState,
-      piiNotice: "pending",
     });
     expect(prompt).toContain("# 人物像");
     expect(prompt).toContain(
@@ -59,7 +55,7 @@ describe("対話用プロンプト", () => {
       "- 決まっていること（賛否を聞かない）：2027年度に路線を見直すこと"
     );
     expect(prompt).toContain(
-      "- 結果を知らせる時期と場所：2027年3月ごろ、CHIKAT の結果ページで（聞かれたら伝える）"
+      `- ${VOICE_USAGE_TEXT}（結果の扱いを聞かれたら、この意味で伝える。結果を知らせる時期や場所は約束しない）`
     );
     expect(prompt).toContain(
       "[Q3｜発話4回まで] この案で、その場面はどう変わりそうですか？／観点：案のどの部分が関わるか"
@@ -71,11 +67,14 @@ describe("対話用プロンプト", () => {
       "- 次の話題：Q4「ここまでを踏まえて、この案を全体としてどう受け止めていますか？」（選択肢ボタンはシステムが出す）"
     );
     expect(prompt).toContain("- 残りの話題：Q4・Q5（あと2つ）");
-    expect(prompt).toContain("- 伏せ字の案内：まだ");
     expect(prompt).toContain(
       "- question_id：いまの話題を続けるなら Q3、次の話題に移るなら Q4。"
     );
-    expect(prompt).toContain("市民の声窓口で受け付けています");
+    expect(prompt).toContain(
+      `「${NO_INDIVIDUAL_RESPONSE_TEXT}」`
+    );
+    expect(prompt).not.toContain("personal_request");
+    expect(prompt).not.toContain("off_topic");
     expect(prompt).not.toMatch(/\{\{[A-Za-z]+\}\}/);
     // 選択肢の文言は LLM に渡さない
     expect(prompt).not.toContain("どちらかといえば賛成");
@@ -86,7 +85,6 @@ describe("対話用プロンプト", () => {
       topics,
       metas: ["q1", "q2", "q2", "q2"].map((questionId) => ({
         questionId,
-        budgetExempt: false,
         stage: "chat" as const,
       })),
     });
@@ -95,11 +93,9 @@ describe("対話用プロンプト", () => {
       interviewConfig,
       topics,
       turnState: exhausted,
-      piiNotice: null,
     });
     expect(prompt).toContain("- 今回は次の話題に移る（question_id は Q3）");
     expect(prompt).toContain("- question_id：今回は Q3");
-    expect(prompt).not.toContain("伏せ字の案内：");
   });
 
   it("編集した対話方針でも変数を埋め込む", () => {
@@ -113,7 +109,7 @@ describe("対話用プロンプト", () => {
       .map((v) => `{{${v}}}`)
       .join("\n");
     const prompt = buildChatSystemPrompt(
-      { bill, interviewConfig, topics, turnState, piiNotice: null, persona: "短く話す聞き手" },
+      { bill, interviewConfig, topics, turnState, persona: "短く話す聞き手" },
       `独自の方針\n${template}`
     );
     expect(prompt).toContain("独自の方針");
@@ -136,7 +132,7 @@ describe("初回の発話", () => {
 });
 
 describe("要約用プロンプト", () => {
-  it("要約の状況・結果のお知らせ・根拠の発言IDを埋め込む", () => {
+  it("要約の状況・締めの文言・根拠の発言IDを埋め込む", () => {
     const prompt = buildSummarySystemPrompt({
       bill,
       interviewConfig,
@@ -152,12 +148,12 @@ describe("要約用プロンプト", () => {
     });
     expect(prompt).toContain("- 場面：返事を受けたところ");
     expect(prompt).toContain("- インタビューに戻れるか：はい");
-    expect(prompt).toContain("（2027年3月ごろ、CHIKAT の結果ページで）");
+    expect(prompt).toContain(`「${VOICE_USAGE_TEXT}」`);
     expect(prompt).toContain(
       "user [msg_id:message-1]: 増便してほしい {{themeDescription}}"
     );
     expect(prompt).toContain("source_message_id");
-    expect(prompt).toContain("topic_depth");
+    expect(prompt).not.toContain("topic_depth");
     expect(prompt).not.toContain("next_stage");
   });
 });

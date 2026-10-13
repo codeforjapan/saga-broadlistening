@@ -32,7 +32,6 @@ function verifyBillTopics(): TurnTopic[] {
 function metas(...ids: (string | null)[]): AssistantTurnMeta[] {
   return ids.map((questionId) => ({
     questionId,
-    budgetExempt: false,
     stage: "chat",
   }));
 }
@@ -41,7 +40,7 @@ function metas(...ids: (string | null)[]): AssistantTurnMeta[] {
 function summaryMetas(count: number, questionId: string | null = null) {
   return Array.from(
     { length: count },
-    (): AssistantTurnMeta => ({ questionId, budgetExempt: false, stage: "summary" })
+    (): AssistantTurnMeta => ({ questionId, stage: "summary" })
   );
 }
 
@@ -93,8 +92,8 @@ describe("発話の数え方", () => {
 
   it("ステージの記録が無い古い発話は chat として数える", () => {
     const legacy: AssistantTurnMeta[] = [
-      { questionId: "q1", budgetExempt: false, stage: null },
-      { questionId: "q2", budgetExempt: false, stage: null },
+      { questionId: "q1", stage: null },
+      { questionId: "q2", stage: null },
     ];
     expect(countQuestionTurns(legacy)).toBe(1);
     expect(countSummaryTurns(legacy)).toBe(0);
@@ -159,17 +158,6 @@ describe("computeTurnState", () => {
     });
     expect(state.left).toBe(0);
     expect(state.next?.id).toBe("q3");
-  });
-
-  it("予算から除いた発話（個別の要望・テーマ外）は数えない", () => {
-    const state = computeTurnState({
-      topics: verifyBillTopics(),
-      metas: [
-        ...metas("q1", "q2", "q2"),
-        { questionId: "q2", budgetExempt: true, stage: "chat" },
-      ],
-    });
-    expect(state.left).toBe(1);
   });
 
   it("残りの質問の発話が残りの話題の数を超えていれば、いまの話題を続けられる", () => {
@@ -301,14 +289,8 @@ describe("resolveChatTurn", () => {
   const topics = verifyBillTopics();
 
   it("初めて聞く質問には選択肢と「とばす」を付ける", () => {
-    const m = metas("q1", "q2", "q3");
-    const state = computeTurnState({ topics, metas: m });
-    const result = resolveChatTurn({
-      state,
-      metas: m,
-      rawQuestionId: "Q4",
-      sideTurn: false,
-    });
+    const state = computeTurnState({ topics, metas: metas("q1", "q2", "q3") });
+    const result = resolveChatTurn({ state, rawQuestionId: "Q4" });
     expect(result.questionId).toBe("q4");
     // 受け止めの選択肢はテンプレートのデータに「まだ決められない」を含む
     expect(result.quickReplies).toEqual([
@@ -322,41 +304,9 @@ describe("resolveChatTurn", () => {
   });
 
   it("同じ話題を続ける発話には選択肢を付けない", () => {
-    const m = metas("q1", "q2");
-    const state = computeTurnState({ topics, metas: m });
-    const result = resolveChatTurn({
-      state,
-      metas: m,
-      rawQuestionId: "Q2",
-      sideTurn: false,
-    });
+    const state = computeTurnState({ topics, metas: metas("q1", "q2") });
+    const result = resolveChatTurn({ state, rawQuestionId: "Q2" });
     expect(result.quickReplies).toEqual([]);
-  });
-
-  it("脇道の発話を予算から除けるのは話題ごとに1回まで", () => {
-    const first = metas("q1", "q2");
-    const state = computeTurnState({ topics, metas: first });
-    expect(
-      resolveChatTurn({
-        state,
-        metas: first,
-        rawQuestionId: "Q2",
-        sideTurn: true,
-      }).budgetExempt
-    ).toBe(true);
-
-    const second: AssistantTurnMeta[] = [
-      ...first,
-      { questionId: "q2", budgetExempt: true, stage: "chat" },
-    ];
-    expect(
-      resolveChatTurn({
-        state: computeTurnState({ topics, metas: second }),
-        metas: second,
-        rawQuestionId: "Q2",
-        sideTurn: true,
-      }).budgetExempt
-    ).toBe(false);
   });
 });
 

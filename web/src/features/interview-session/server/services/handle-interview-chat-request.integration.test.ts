@@ -77,8 +77,6 @@ const validChatResponse = JSON.stringify({
   topic_title: "ふだんの場面",
   text: "施策についてのご意見をお聞かせください。",
   end_request: false,
-  personal_request: false,
-  off_topic: false,
 });
 
 const endRequestChatResponse = JSON.stringify({
@@ -86,8 +84,6 @@ const endRequestChatResponse = JSON.stringify({
   topic_title: "関わり",
   text: "わかりました。ここまでのお話をまとめますね。",
   end_request: true,
-  personal_request: false,
-  off_topic: false,
 });
 
 // interviewChatWithReportSchema に準拠したモックレスポンス
@@ -113,10 +109,6 @@ const validSummaryResponse = JSON.stringify({
       constructiveness: 65,
       reasoning: "明確な意見表明があり、具体的な理由も述べられている",
     },
-    topic_depth: [],
-    dk: [],
-    emergent_topics: [],
-    side_requests: [],
   },
 });
 

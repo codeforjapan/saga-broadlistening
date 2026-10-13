@@ -242,9 +242,6 @@ export function createInterviewConfig(): InterviewConfigInsert {
     purpose_type: "verify",
     opinion_focus: "廃止後の財源をどう確保するか、移行期間をどう設けるか",
     decided_matters: "暫定税率を見直すこと",
-    publication_mode: "scheduled",
-    publication_timing: "2027年3月ごろ",
-    publication_place: "chikat",
   };
 }
 
@@ -259,7 +256,6 @@ export const INTERVIEW_CONFIG_DEFAULTS = {
   // 開発用 seed は通常ブラウザで回答できるように public にする（Epic #147）
   participation_mode: "public",
   allowed_provider_keys: [],
-  publication_mode: "when_ready",
 } satisfies Partial<InterviewConfigInsert>;
 
 export const additionalInterviewConfigs: InterviewConfigInsert[] = [

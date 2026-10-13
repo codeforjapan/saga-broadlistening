@@ -11,7 +11,6 @@ import {
   QUESTION_TURN_LIMIT,
   RESUME_MIN_SUMMARY_TURNS,
   RESUME_TURN_BUDGET,
-  SIDE_TURN_EXEMPT_PER_TOPIC,
   SKIP_QUESTION_REPLY,
   SUMMARY_TURN_LIMIT,
 } from "./constants";
@@ -45,7 +44,6 @@ export interface TurnTopic {
 /** 過去の assistant 発話から、ターン制御に使う部分だけを取り出したもの */
 export interface AssistantTurnMeta {
   questionId: string | null;
-  budgetExempt: boolean;
   /** その発話を生成したステージ。記録の無い古い発話は null（chat として扱う） */
   stage: InterviewStage | null;
 }
@@ -131,8 +129,7 @@ export function resolveSummaryPhase({
 }
 
 function usedCount(metas: AssistantTurnMeta[], topicId: string): number {
-  return metas.filter((m) => m.questionId === topicId && !m.budgetExempt)
-    .length;
+  return metas.filter((m) => m.questionId === topicId).length;
 }
 
 function findCurrentTopic(
@@ -230,17 +227,6 @@ export function normalizeQuestionId(
   return current;
 }
 
-/** 個別の要望・テーマ外の話への対応を、この話題の予算から除けるか */
-export function canExemptBudget(
-  metas: AssistantTurnMeta[],
-  topicId: string
-): boolean {
-  const exempted = metas.filter(
-    (m) => m.questionId === topicId && m.budgetExempt
-  ).length;
-  return exempted < SIDE_TURN_EXEMPT_PER_TOPIC;
-}
-
 /** 初めて聞く質問に表示する選択肢ボタン（「とばす」はコードが足す） */
 export function buildQuickReplies(topic: TurnTopic): string[] {
   return [...topic.quickReplies, SKIP_QUESTION_REPLY];
@@ -249,38 +235,25 @@ export function buildQuickReplies(topic: TurnTopic): string[] {
 export interface ChatTurnResult {
   /** 保存する question_id（interview_questions.id か RESUME_TOPIC_ID） */
   questionId: string | null;
-  budgetExempt: boolean;
   /** 表示する選択肢ボタン。初めて聞く事前定義の質問のときだけ */
   quickReplies: string[];
 }
 
 /**
- * chat の生成後に、保存する question_id・予算の除外・選択肢ボタンを決める。
+ * chat の生成後に、保存する question_id と選択肢ボタンを決める。
  */
 export function resolveChatTurn({
   state,
-  metas,
   rawQuestionId,
-  sideTurn,
 }: {
   state: TurnState;
-  metas: AssistantTurnMeta[];
   rawQuestionId: unknown;
-  /** personal_request か off_topic が立った発話 */
-  sideTurn: boolean;
 }): ChatTurnResult {
   const topic = normalizeQuestionId(rawQuestionId, state);
-  if (!topic) {
-    return {
-      questionId: null,
-      budgetExempt: false,
-      quickReplies: [],
-    };
-  }
+  if (!topic) return { questionId: null, quickReplies: [] };
   const firstAsk = !state.askedIds.has(topic.id);
   return {
     questionId: topic.id,
-    budgetExempt: sideTurn && canExemptBudget(metas, topic.id),
     quickReplies: firstAsk && topic.predefined ? buildQuickReplies(topic) : [],
   };
 }

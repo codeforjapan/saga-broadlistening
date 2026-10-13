@@ -23,7 +23,6 @@ function stateAfter(...ids: string[]) {
     topics,
     metas: ids.map((questionId) => ({
       questionId,
-      budgetExempt: false,
       stage: "chat" as const,
     })),
   });
@@ -31,7 +30,7 @@ function stateAfter(...ids: string[]) {
 
 describe("renderTurnState", () => {
   it("予算が残っていれば続けても移ってもよいと書く", () => {
-    const text = renderTurnState(stateAfter("q1", "q2"), { piiNotice: null });
+    const text = renderTurnState(stateAfter("q1", "q2"));
     expect(text).toContain(
       "- 質問の発話：これまで1回（上限20。最初の発話と要約は数えない。上限に達したら要約に入る）"
     );
@@ -46,23 +45,17 @@ describe("renderTurnState", () => {
     expect(text).toContain(
       "- この話題で聞けたら豊かになる観点：場面の具体、その場面の何が大事だったか（届かなくてよい）（満たさなくてよい）"
     );
-    expect(text).not.toContain("伏せ字の案内");
   });
 
   it("予算を使い切ったら次の話題へ移るよう指示する", () => {
     const text = renderTurnState(
-      stateAfter("q1", "q2", "q2", "q2", "q2"),
-      { piiNotice: "done" }
-    );
+      stateAfter("q1", "q2", "q2", "q2", "q2"));
     expect(text).toContain("あと0回");
     expect(text).toContain("- 今回は次の話題に移る（question_id は Q3）");
-    expect(text).toContain("- 伏せ字の案内：済み");
   });
 
   it("最後の話題には「最後の質問」と書く", () => {
-    const text = renderTurnState(stateAfter("q1", "q2", "q3", "q4"), {
-      piiNotice: null,
-    });
+    const text = renderTurnState(stateAfter("q1", "q2", "q3", "q4"));
     expect(text).toContain(
       "- 次の話題：Q5「ほかに、10年後の佐賀について伝えておきたいことはありますか？」（最後の質問）"
     );
@@ -71,9 +64,7 @@ describe("renderTurnState", () => {
 
   it("再開の話題の後は次の話題なし", () => {
     const text = renderTurnState(
-      stateAfter("q1", "q2", "q3", "q4", "q5", RESUME_TOPIC_ID),
-      { piiNotice: null }
-    );
+      stateAfter("q1", "q2", "q3", "q4", "q5", RESUME_TOPIC_ID));
     expect(text).toContain(
       "- いまの話題：R「付け足したいことを続けて話してもらう」"
     );

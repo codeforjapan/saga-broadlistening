@@ -27,25 +27,6 @@ export type InterviewQuestionInsert =
 export type InterviewQuestionUpdate =
   Database["public"]["Tables"]["interview_questions"]["Update"];
 
-export const PUBLICATION_MODES = ["scheduled", "when_ready"] as const;
-export const PUBLICATION_MODE_LABELS: Record<
-  (typeof PUBLICATION_MODES)[number],
-  string
-> = {
-  scheduled: "時期と場所を決めて知らせる",
-  when_ready: "まとまり次第お知らせ（CHIKAT の結果ページ）",
-};
-
-export const PUBLICATION_PLACES = ["chikat", "city_web", "koho"] as const;
-export const PUBLICATION_PLACE_LABELS: Record<
-  (typeof PUBLICATION_PLACES)[number],
-  string
-> = {
-  chikat: "CHIKAT",
-  city_web: "市ホームページ",
-  koho: "広報紙",
-};
-
 // バリデーションスキーマ
 export const interviewConfigSchema = z
   .object({
@@ -102,13 +83,6 @@ export const interviewConfigSchema = z
       .max(40, "決まっていることは40文字以内で入力してください")
       .nullable()
       .optional(),
-    publication_mode: z.enum(PUBLICATION_MODES).optional(),
-    publication_timing: z
-      .string()
-      .max(40, "お知らせの時期は40文字以内で入力してください")
-      .nullable()
-      .optional(),
-    publication_place: z.enum(PUBLICATION_PLACES).nullable().optional(),
   })
   .refine(
     (config) =>
@@ -117,23 +91,6 @@ export const interviewConfigSchema = z
     {
       message: `「${PARTICIPATION_MODE_LABELS.external_identity}」にする場合は、連携元を1つ以上選んでください`,
       path: ["allowed_provider_keys"],
-    }
-  )
-  .refine(
-    (config) =>
-      config.publication_mode !== "scheduled" ||
-      !!config.publication_timing?.trim(),
-    {
-      message: "結果を知らせる時期を入力してください",
-      path: ["publication_timing"],
-    }
-  )
-  .refine(
-    (config) =>
-      config.publication_mode !== "scheduled" || !!config.publication_place,
-    {
-      message: "結果を知らせる場所を選んでください",
-      path: ["publication_place"],
     }
   );
 

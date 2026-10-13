@@ -229,9 +229,6 @@ export async function duplicateInterviewConfig(
         purpose_type: originalConfig.purpose_type,
         opinion_focus: originalConfig.opinion_focus,
         decided_matters: originalConfig.decided_matters,
-        publication_mode: originalConfig.publication_mode,
-        publication_timing: originalConfig.publication_timing,
-        publication_place: originalConfig.publication_place,
       });
       await linkPolicyToInterviewConfig(targetBillId, newConfig.id);
     } catch (error) {

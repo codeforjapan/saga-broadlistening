@@ -21,9 +21,6 @@ export const DEFAULT_TURN_BUDGET = 3;
 export const MIN_TURN_BUDGET = 1;
 export const MAX_TURN_BUDGET = 4;
 
-/** 個別の要望・テーマ外の話への対応を予算から除ける回数（話題ごと） */
-export const SIDE_TURN_EXEMPT_PER_TOPIC = 1;
-
 /**
  * summary から chat に戻れる、要約の段階の残りの発話数の下限
  * （再開を受ける発話・もう一度の要約・締めの3回）
@@ -41,8 +38,12 @@ export const EVALUATION_QUICK_REPLIES_MAX = 5;
 export const TEMPLATE_TOPICS_MAX = 5;
 export const EVALUATE_TEMPLATE_TOPICS_MAX = 6;
 
-/** 個別の相談を受け付ける窓口（全体設定の既定値） */
-export const DEFAULT_CONSULTATION_DESK = "市民の声窓口";
-
 /** 初めて聞く質問の選択肢ボタンに、コードが必ず足す選択肢 */
 export const SKIP_QUESTION_REPLY = "この質問はとばす";
+
+/** いただいた声の扱い（固定カード・対話・要約の締めで共通。時期や場所は約束しない） */
+export const VOICE_USAGE_TEXT = "いただいた声は、市の施策に役立てます";
+
+/** 個別の相談・要望に応えられないことの伝え方（固定カードと対話で同じ文を使う） */
+export const NO_INDIVIDUAL_RESPONSE_TEXT =
+  "個別のご相談やご要望には、このインタビューではお応えできません";

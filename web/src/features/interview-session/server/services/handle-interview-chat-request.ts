@@ -1,10 +1,7 @@
 import "server-only";
 
 import { propagateAttributes } from "@langfuse/tracing";
-import {
-  collectAssistantTurnMetas,
-  resolvePiiNotice,
-} from "@mirai-gikai/shared/interview-prompts/assistant-message";
+import { collectAssistantTurnMetas } from "@mirai-gikai/shared/interview-prompts/assistant-message";
 import {
   buildTurnTopics,
   computeSummaryState,
@@ -222,14 +219,13 @@ export async function handleInterviewChatRequest({
       interviewConfig,
       topics,
       turnState: state,
-      piiNotice: resolvePiiNotice(dbMessages),
     });
     logger.debug("System Prompt:", systemPrompt);
     return generateStreamingResponse({
       ...generationParams,
       systemPrompt,
       isSummaryPhase: false,
-      buildRecord: (rawText) => buildChatTurnRecord({ rawText, state, metas }),
+      buildRecord: (rawText) => buildChatTurnRecord({ rawText, state }),
     });
   }
 

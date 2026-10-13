@@ -274,7 +274,6 @@ export async function runSimulatedInterview({
           interviewConfig: promptInputs.interviewConfig,
           topics,
           turnState,
-          piiNotice: null,
         });
         const messages = asInterviewerMessages(transcript);
         const { object } = await withTimeoutRetry(
@@ -306,7 +305,6 @@ export async function runSimulatedInterview({
           buildChatTurnRecord({
             rawText: JSON.stringify(object),
             state: turnState,
-            metas,
           }).content,
           metas
         );

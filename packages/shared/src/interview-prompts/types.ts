@@ -33,9 +33,6 @@ export type InterviewConfig = {
   purpose_type?: PurposeType | null;
   opinion_focus?: string | null;
   decided_matters?: string | null;
-  publication_timing?: string | null;
-  publication_place?: "chikat" | "city_web" | "koho" | null;
-  publication_mode?: "scheduled" | "when_ready" | null;
   [key: string]: unknown;
 } | null;
 

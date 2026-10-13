@@ -13,10 +13,8 @@ export interface InterviewChatPromptInput {
   interviewConfig: InterviewConfig;
   topics: TurnTopic[];
   turnState: TurnState;
-  piiNotice: "pending" | "done" | null;
   /** 聞き手の人物像（interview-persona の公開版） */
   persona?: string;
-  consultationDesk?: string;
 }
 
 /**
@@ -28,18 +26,11 @@ export function buildChatSystemPrompt(
     interviewConfig,
     topics,
     turnState,
-    piiNotice,
     persona = INTERVIEW_PERSONA_TEMPLATE,
-    consultationDesk,
   }: InterviewChatPromptInput,
   template: string = INTERVIEW_CHAT_TEMPLATE
 ): string {
-  const design = buildInterviewDesign({
-    bill,
-    interviewConfig,
-    topics,
-    consultationDesk,
-  });
+  const design = buildInterviewDesign({ bill, interviewConfig, topics });
   return renderPromptTemplate("interview-chat-system", template, {
     persona,
     purposeSection: design.purposeSection,
@@ -49,9 +40,8 @@ export function buildChatSystemPrompt(
     questionsText: design.questionsText,
     perspectiveTechniques: design.perspectiveTechniques,
     clarificationGuidance: design.clarificationGuidance,
-    consultationDesk: design.consultationDesk,
     replyExamples: design.replyExamples,
-    turnState: renderTurnState(turnState, { piiNotice }),
+    turnState: renderTurnState(turnState),
     outputInstructions: renderChatOutputInstructions(turnState),
   });
 }

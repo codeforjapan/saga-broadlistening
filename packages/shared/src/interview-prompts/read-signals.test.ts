@@ -10,14 +10,10 @@ describe("readSignals", () => {
     expect(
       readSignals({
         end_request: true,
-        personal_request: false,
-        off_topic: true,
         summary_response: "revise",
       })
     ).toEqual({
       endRequest: true,
-      personalRequest: false,
-      offTopic: true,
       summaryResponse: "revise",
     });
   });

@@ -40,9 +40,8 @@ export async function loadDisclosureData(
     topics,
     turnState: computeTurnState({
       topics,
-      metas: [{ questionId: firstTopicId, budgetExempt: false, stage: "chat" }],
+      metas: [{ questionId: firstTopicId, stage: "chat" }],
     }),
-    piiNotice: null,
   });
 
   const summaryPrompt = await buildSummarySystemPrompt({

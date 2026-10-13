@@ -593,9 +593,6 @@ export type Database = {
           name: string
           opinion_focus: string | null
           participation_mode: Database["public"]["Enums"]["interview_participation_mode_enum"]
-          publication_mode: Database["public"]["Enums"]["interview_publication_mode_enum"]
-          publication_place: Database["public"]["Enums"]["interview_publication_place_enum"] | null
-          publication_timing: string | null
           purpose_type: Database["public"]["Enums"]["interview_purpose_type_enum"] | null
           slug: string
           starts_at: string | null
@@ -616,9 +613,6 @@ export type Database = {
           name: string
           opinion_focus?: string | null
           participation_mode?: Database["public"]["Enums"]["interview_participation_mode_enum"]
-          publication_mode?: Database["public"]["Enums"]["interview_publication_mode_enum"]
-          publication_place?: Database["public"]["Enums"]["interview_publication_place_enum"] | null
-          publication_timing?: string | null
           purpose_type?: Database["public"]["Enums"]["interview_purpose_type_enum"] | null
           slug: string
           starts_at?: string | null
@@ -639,9 +633,6 @@ export type Database = {
           name?: string
           opinion_focus?: string | null
           participation_mode?: Database["public"]["Enums"]["interview_participation_mode_enum"]
-          publication_mode?: Database["public"]["Enums"]["interview_publication_mode_enum"]
-          publication_place?: Database["public"]["Enums"]["interview_publication_place_enum"] | null
-          publication_timing?: string | null
           purpose_type?: Database["public"]["Enums"]["interview_purpose_type_enum"] | null
           slug?: string
           starts_at?: string | null
@@ -1815,8 +1806,6 @@ export type Database = {
         | "other"
       interview_mode_enum: "loop" | "bulk" | "targeted"
       interview_participation_mode_enum: "public" | "external_identity"
-      interview_publication_mode_enum: "scheduled" | "when_ready"
-      interview_publication_place_enum: "chikat" | "city_web" | "koho"
       interview_purpose_type_enum: "understand" | "discover" | "verify" | "evaluate" | "envision"
       interview_session_stage_enum: "chat" | "summary" | "summary_complete"
       interview_report_role_enum:
@@ -1993,8 +1982,6 @@ export const Constants = {
       ],
       interview_mode_enum: ["loop", "bulk", "targeted"],
       interview_participation_mode_enum: ["public", "external_identity"],
-      interview_publication_mode_enum: ["scheduled", "when_ready"],
-      interview_publication_place_enum: ["chikat", "city_web", "koho"],
       interview_purpose_type_enum: ["understand", "discover", "verify", "evaluate", "envision"],
       interview_session_stage_enum: ["chat", "summary", "summary_complete"],
       interview_report_role_enum: [

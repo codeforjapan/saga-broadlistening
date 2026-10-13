@@ -2,7 +2,6 @@ import type { InterviewConfigInput } from "../types";
 
 /** 意見募集のレコードに書き込む値を、フォーム入力から組み立てる */
 export function toConfigRecord(validatedData: InterviewConfigInput) {
-  const publicationMode = validatedData.publication_mode ?? "when_ready";
   return {
     name: validatedData.name,
     slug: validatedData.slug,
@@ -20,15 +19,5 @@ export function toConfigRecord(validatedData: InterviewConfigInput) {
     purpose_type: validatedData.purpose_type ?? null,
     opinion_focus: validatedData.opinion_focus?.trim() || null,
     decided_matters: validatedData.decided_matters?.trim() || null,
-    publication_mode: publicationMode,
-    // まとまり次第お知らせするときは、時期と場所を持たない
-    publication_timing:
-      publicationMode === "scheduled"
-        ? validatedData.publication_timing?.trim() || null
-        : null,
-    publication_place:
-      publicationMode === "scheduled"
-        ? (validatedData.publication_place ?? null)
-        : null,
   };
 }

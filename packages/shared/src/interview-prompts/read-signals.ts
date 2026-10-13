@@ -4,16 +4,11 @@ import type { SummaryResponse } from "./types";
 /** LLM が本文と一緒に返す制御フラグ */
 export interface TurnSignals {
   endRequest: boolean;
-  personalRequest: boolean;
-  offTopic: boolean;
   summaryResponse: SummaryResponse;
 }
 
-
 export const DEFAULT_TURN_SIGNALS: TurnSignals = {
   endRequest: false,
-  personalRequest: false,
-  offTopic: false,
   summaryResponse: "other",
 };
 
@@ -46,8 +41,6 @@ export function readSignals(out: unknown): TurnSignals {
   );
   return {
     endRequest: o.end_request === true,
-    personalRequest: o.personal_request === true,
-    offTopic: o.off_topic === true,
     summaryResponse: summaryResponse ?? "other",
   };
 }

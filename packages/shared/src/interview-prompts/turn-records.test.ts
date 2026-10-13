@@ -18,11 +18,11 @@ const topics = buildTurnTopics([
   { id: "q2", question: "場面は？", quick_replies: ["思い出せない"] },
 ]);
 const metas: AssistantTurnMeta[] = [
-  { questionId: "q1", budgetExempt: false, stage: "chat" },
+  { questionId: "q1", stage: "chat" },
 ];
 const summaryReplyMetas: AssistantTurnMeta[] = [
   ...metas,
-  { questionId: null, budgetExempt: false, stage: "summary" },
+  { questionId: null, stage: "summary" },
 ];
 
 function chatOutput(fields: Record<string, unknown>): string {
@@ -31,8 +31,6 @@ function chatOutput(fields: Record<string, unknown>): string {
     topic_title: "場面",
     text: "ふだんの場面を教えてください。",
     end_request: false,
-    personal_request: false,
-    off_topic: false,
     ...fields,
   });
 }
@@ -44,7 +42,6 @@ describe("buildChatTurnRecord", () => {
     const record = buildChatTurnRecord({
       rawText: chatOutput({}),
       state,
-      metas,
     });
     expect(JSON.parse(record.content)).toMatchObject({
       text: "ふだんの場面を教えてください。",
@@ -69,27 +66,16 @@ describe("buildChatTurnRecord", () => {
     const record = buildChatTurnRecord({
       rawText: chatOutput({ end_request: true }),
       state,
-      metas,
     });
     expect(record.injected.next_stage).toBe("summary");
     expect(record.injected.chain_summary).toBe(true);
     expect(record.sessionUpdate).toEqual({ stage: "summary" });
   });
 
-  it("個別の要望への対応は予算から除く", () => {
-    const record = buildChatTurnRecord({
-      rawText: chatOutput({ personal_request: true }),
-      state,
-      metas,
-    });
-    expect(JSON.parse(record.content).budget_exempt).toBe(true);
-  });
-
   it("LLM の話題名が空なら null にする", () => {
     const record = buildChatTurnRecord({
       rawText: chatOutput({ topic_title: "  " }),
       state,
-      metas,
     });
     expect(JSON.parse(record.content).topic_title).toBeNull();
     expect(record.injected.resolved_topic_title).toBeNull();
@@ -99,7 +85,6 @@ describe("buildChatTurnRecord", () => {
     const record = buildChatTurnRecord({
       rawText: "壊れた出力",
       state,
-      metas,
     });
     expect(JSON.parse(record.content)).toMatchObject({
       text: "壊れた出力",

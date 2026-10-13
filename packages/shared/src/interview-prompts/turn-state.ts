@@ -17,10 +17,7 @@ function remainingTopicsLine(state: TurnState): string {
 /**
  * 「いまの状況」節。コードが毎ターン作り、回答者には見せない。
  */
-export function renderTurnState(
-  state: TurnState,
-  { piiNotice }: { piiNotice: "pending" | "done" | null }
-): string {
+export function renderTurnState(state: TurnState): string {
   const { current, next, left } = state;
   const lines = [
     "# いまの状況（システムから。回答者には見せない）",
@@ -47,9 +44,6 @@ export function renderTurnState(
       `- この話題で聞けたら豊かになる観点：${current.followUpGuide}（満たさなくてよい）`
     );
   }
-  if (piiNotice) {
-    lines.push(`- 伏せ字の案内：${piiNotice === "pending" ? "まだ" : "済み"}`);
-  }
   return lines.join("\n");
 }
 
@@ -67,8 +61,6 @@ export function renderChatOutputInstructions(state: TurnState): string {
     "- topic_title：その話題の短い名前",
     "- text：回答者に表示する本文",
     "- end_request：回答者が終えたい・やめたいとはっきり言ったら true（「疲れた」だけなら false）",
-    "- personal_request：直前の回答が、特定の場所や本人の案件への対応を求めていたら true",
-    "- off_topic：直前の回答が、市政に関係するがこのテーマの外の話だったら true",
   ].join("\n");
 }
 

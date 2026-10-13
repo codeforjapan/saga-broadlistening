@@ -324,29 +324,11 @@ describe("interviewStageSchema", () => {
   });
 });
 
-const validReportWithExtras = {
-  ...validReport,
-  topic_depth: [
-    {
-      topic: "ふだんの場面",
-      situation: "concrete" as const,
-      life_impact: true,
-      reason_depth: "C" as const,
-      desired_state: null,
-    },
-  ],
-  dk: [{ topic: "全体の受け止め", kind: "ambivalent" as const }],
-  emergent_topics: ["駐車場が少ない"],
-  side_requests: [],
-};
-
 const validChatText = {
   question_id: "Q1",
   topic_title: "関わり",
   text: "こんにちは",
   end_request: false,
-  personal_request: false,
-  off_topic: false,
 };
 
 describe("interviewChatTextSchema", () => {
@@ -374,10 +356,9 @@ describe("interviewChatWithReportSchema", () => {
     const result = interviewChatWithReportSchema.parse({
       text: "まとめです",
       summary_response: "none",
-      report: validReportWithExtras,
+      report: validReport,
     });
     expect(result.report?.summary).toBe(validReport.summary);
-    expect(result.report?.emergent_topics).toEqual(["駐車場が少ない"]);
   });
 
   it("インタビューに戻るときの report は null を許容する", () => {
@@ -401,7 +382,7 @@ describe("interviewChatWithReportSchema", () => {
   it("text が欠けている場合を拒否する", () => {
     const result = interviewChatWithReportSchema.safeParse({
       summary_response: "agree",
-      report: validReportWithExtras,
+      report: validReport,
     });
     expect(result.success).toBe(false);
   });
@@ -421,7 +402,7 @@ describe("interviewChatResponseSchema", () => {
   it("全フィールド指定でパースできる", () => {
     const data = {
       text: "テスト",
-      report: validReportWithExtras,
+      report: validReport,
       quick_replies: ["選択肢1"],
       question_id: "q1",
       topic_title: "トピック",

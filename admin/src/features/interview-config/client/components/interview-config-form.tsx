@@ -56,10 +56,6 @@ import {
   type InterviewConfig,
   type InterviewConfigInput,
   interviewConfigSchema,
-  PUBLICATION_MODE_LABELS,
-  PUBLICATION_MODES,
-  PUBLICATION_PLACE_LABELS,
-  PUBLICATION_PLACES,
 } from "../../shared/types";
 import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
 import { generateDefaultConfigName } from "../../shared/utils/default-config-name";
@@ -135,9 +131,6 @@ export function InterviewConfigForm({
       purpose_type: config?.purpose_type ?? null,
       opinion_focus: config?.opinion_focus ?? "",
       decided_matters: config?.decided_matters ?? "",
-      publication_mode: config?.publication_mode ?? "when_ready",
-      publication_timing: config?.publication_timing ?? "",
-      publication_place: config?.publication_place ?? null,
       // 紐づけ欄を出さないフォームでは undefined のままにして、保存時に紐づけへ触れない
       policy_ids: canEditPolicyLinks ? (linkedPolicyIds ?? []) : undefined,
     },
@@ -219,7 +212,6 @@ export function InterviewConfigForm({
 
   const [isPreviewing, setIsPreviewing] = useState(false);
   const participationMode = form.watch("participation_mode");
-  const publicationMode = form.watch("publication_mode");
   const handlePreview = async () => {
     if (!config || !billId) {
       toast.error("プレビューは施策に紐づく設定を保存した後に利用できます");
@@ -591,86 +583,6 @@ export function InterviewConfigForm({
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="publication_mode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>結果を知らせる時期と場所</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value ?? "when_ready"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="知らせ方を選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {PUBLICATION_MODES.map((mode) => (
-                          <SelectItem key={mode} value={mode}>
-                            {PUBLICATION_MODE_LABELS[mode]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      チャットの前の画面と、インタビューの締めで回答者に伝えます
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {publicationMode === "scheduled" && (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="publication_timing"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>時期</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="例: 2027年3月ごろ"
-                            value={field.value ?? ""}
-                            onChange={(e) => field.onChange(e.target.value)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="publication_place"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>場所</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value ?? undefined}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="場所を選択" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {PUBLICATION_PLACES.map((place) => (
-                              <SelectItem key={place} value={place}>
-                                {PUBLICATION_PLACE_LABELS[place]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
 
               {policyOptions && (
                 <FormField

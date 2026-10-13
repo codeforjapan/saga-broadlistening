@@ -3,7 +3,6 @@ import {
   readSignals,
 } from "./read-signals";
 import {
-  type AssistantTurnMeta,
   buildQuickReplies,
   RESUME_TOPIC_ID,
   RESUME_TOPIC_TITLE,
@@ -63,19 +62,15 @@ export function readTopicTitle(
 export function buildChatTurnRecord({
   rawText,
   state,
-  metas,
 }: {
   rawText: string;
   state: TurnState;
-  metas: AssistantTurnMeta[];
 }): TurnRecord {
   const parsed = parseStructuredOutput(rawText);
   const signals = readSignals(parsed);
   const result = resolveChatTurn({
     state,
-    metas,
     rawQuestionId: parsed?.question_id,
-    sideTurn: signals.personalRequest || signals.offTopic,
   });
   const nextStage: InterviewStage = signals.endRequest ? "summary" : "chat";
   const topicTitle = readTopicTitle(parsed);
@@ -89,9 +84,6 @@ export function buildChatTurnRecord({
     stage: "chat",
     next_stage: nextStage,
     end_request: signals.endRequest,
-    personal_request: signals.personalRequest,
-    off_topic: signals.offTopic,
-    budget_exempt: result.budgetExempt,
     parse_failed: parsed === null,
   };
 
@@ -177,9 +169,6 @@ export function buildInitialTurnContent({
     stage: "chat",
     next_stage: "chat",
     end_request: false,
-    personal_request: false,
-    off_topic: false,
-    budget_exempt: false,
     parse_failed: parsed === null,
   });
 }

@@ -235,7 +235,6 @@ export async function previewAiPrompt(
         const askedCount = Math.max(1, parsed.data.askedQuestionCount);
         const metas = topics.slice(0, askedCount).map((t) => ({
           questionId: t.id,
-          budgetExempt: false,
           stage: "chat" as const,
         }));
         return {
@@ -245,7 +244,6 @@ export async function previewAiPrompt(
               ...input,
               topics,
               turnState: computeTurnState({ topics, metas }),
-              piiNotice: null,
               persona,
             },
             parsed.data.content

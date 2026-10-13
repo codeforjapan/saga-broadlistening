@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   buildInterviewDesign,
   buildInterviewSubject,
-  buildPublicationText,
   buildQuestionsText,
   resolveSubjectTitle,
 } from "./subject-section";
@@ -26,31 +25,6 @@ describe("buildInterviewSubject", () => {
     expect(theme.knowledgeSection).toContain("テーマ「佐賀市のみらい」");
     expect(theme.knowledgeSection).not.toContain("施策名");
     expect(theme.clarificationGuidance).toContain("テーマの説明");
-  });
-});
-
-describe("buildPublicationText", () => {
-  it("時期と場所が決まっていれば両方を書く", () => {
-    expect(
-      buildPublicationText({
-        publication_mode: "scheduled",
-        publication_timing: "2027年3月ごろ",
-        publication_place: "koho",
-      })
-    ).toBe("2027年3月ごろ、広報紙で");
-  });
-
-  it("まとまり次第、または時期・場所が欠けていれば CHIKAT の結果ページ", () => {
-    expect(buildPublicationText({ publication_mode: "when_ready" })).toBe(
-      "まとまり次第、CHIKAT の結果ページで"
-    );
-    expect(
-      buildPublicationText({
-        publication_mode: "scheduled",
-        publication_timing: " ",
-        publication_place: "city_web",
-      })
-    ).toBe("まとまり次第、CHIKAT の結果ページで");
   });
 });
 

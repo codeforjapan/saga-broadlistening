@@ -1,5 +1,9 @@
 "use client";
 
+import {
+  NO_INDIVIDUAL_RESPONSE_TEXT,
+  VOICE_USAGE_TEXT,
+} from "@mirai-gikai/shared/interview-prompts/constants";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +22,7 @@ interface InterviewBriefingCardProps {
 
 /**
  * チャットの前に出す固定カード。「始める」で閉じ、チャット画面からいつでも開き直せる。
- * 目的・結果のお知らせ・途中でやめてよいことを、AI の発話ではなくここで先に伝える。
+ * 目的・いただいた声の扱い・途中でやめてよいことを、AI の発話ではなくここで先に伝える。
  */
 export function InterviewBriefingCard({
   briefing,
@@ -56,10 +60,6 @@ export function InterviewBriefingCard({
               <dd>{briefing.decidedMatters}</dd>
             </div>
           )}
-          <div>
-            <dt className="font-bold">結果のお知らせ</dt>
-            <dd>{briefing.publicationText}</dd>
-          </div>
           {briefing.topicCount > 0 && (
             <p className="font-bold">
               {briefing.topicCount}つの話題{durationText}
@@ -71,12 +71,10 @@ export function InterviewBriefingCard({
           <li>
             途中でやめても大丈夫です。画面の「終える」でいつでも終えられます
           </li>
+          <li>{VOICE_USAGE_TEXT}（個人がわからない形でまとめます）</li>
           <li>
-            いただいた声は、個人がわからない形でまとめ、市の検討に使います
-          </li>
-          <li>
-            一つひとつへの返信や、採用のお約束はできません。個別のご相談は
-            {briefing.consultationDesk}へ
+            一つひとつへの返信や、採用のお約束はできません。
+            {NO_INDIVIDUAL_RESPONSE_TEXT}
           </li>
           <li>聞き手はAIです</li>
           <li>お名前や住所など、個人がわかることは書かないでください</li>

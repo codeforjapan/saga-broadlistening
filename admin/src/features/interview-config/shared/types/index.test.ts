@@ -68,34 +68,7 @@ describe("interviewConfigSchema participation", () => {
   });
 });
 
-describe("interviewConfigSchema publication", () => {
-  it("まとまり次第お知らせなら時期と場所はいらない", () => {
-    expect(
-      interviewConfigSchema.safeParse({
-        ...config,
-        publication_mode: "when_ready",
-      }).success
-    ).toBe(true);
-  });
-
-  it("時期と場所を決めて知らせるなら、時期と場所の両方が必要", () => {
-    expect(
-      interviewConfigSchema.safeParse({
-        ...config,
-        publication_mode: "scheduled",
-        publication_timing: "2027年3月ごろ",
-      }).success
-    ).toBe(false);
-    expect(
-      interviewConfigSchema.safeParse({
-        ...config,
-        publication_mode: "scheduled",
-        publication_timing: "2027年3月ごろ",
-        publication_place: "koho",
-      }).success
-    ).toBe(true);
-  });
-
+describe("interviewConfigSchema の設計項目", () => {
   it("意見がほしい点は60文字まで", () => {
     expect(
       interviewConfigSchema.safeParse({

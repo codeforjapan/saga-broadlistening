@@ -2,7 +2,6 @@ import {
   BILL_CLARIFICATION_GUIDANCE,
   THEME_CLARIFICATION_GUIDANCE,
 } from "./bill-clarification-guidance";
-import { DEFAULT_CONSULTATION_DESK } from "./constants";
 import {
   getPurposeDefinition,
   purposeDisplayName,
@@ -72,22 +71,6 @@ ${knowledgeSource || "（知識ソース未設定）"}
   };
 }
 
-const PLACE_LABELS = {
-  chikat: "CHIKAT の結果ページ",
-  city_web: "市ホームページ",
-  koho: "広報紙",
-} as const;
-
-/** 結果を知らせる時期と場所の文 */
-export function buildPublicationText(config: InterviewConfig): string {
-  const timing = config?.publication_timing?.trim();
-  const place = config?.publication_place;
-  if (config?.publication_mode === "scheduled" && timing && place) {
-    return `${timing}、${PLACE_LABELS[place]}で`;
-  }
-  return "まとまり次第、CHIKAT の結果ページで";
-}
-
 const GENERIC_FOCUS =
   "その人の暮らしの場面から、経験と考えを聞きます。評価や意見だけでなく、そう思うきっかけになった出来事を大事にします。";
 const GENERIC_PERSPECTIVE =
@@ -113,18 +96,15 @@ export function buildInterviewDesign({
   bill,
   interviewConfig,
   topics,
-  consultationDesk = DEFAULT_CONSULTATION_DESK,
 }: {
   bill: PromptBillInput;
   interviewConfig: InterviewConfig;
   topics: TurnTopic[];
-  consultationDesk?: string;
 }) {
   const subject = buildInterviewSubject(bill, interviewConfig);
   const purposeType = interviewConfig?.purpose_type ?? null;
   const definition = purposeType ? getPurposeDefinition(purposeType) : null;
   const variant = definition?.[subject.kind];
-  const publicationText = buildPublicationText(interviewConfig);
   const decided =
     subject.kind === "bill" ? interviewConfig?.decided_matters?.trim() : "";
 
@@ -133,13 +113,10 @@ export function buildInterviewDesign({
     `- 目的：${purposeDisplayName(purposeType, subject.kind)}`,
     `- 市がこれから決めること：${interviewConfig?.opinion_focus?.trim() || "（設定なし）"}`,
     `- 決まっていること（賛否を聞かない）：${decided || "なし"}`,
-    `- 結果を知らせる時期と場所：${publicationText}（聞かれたら伝える）`,
-    `- 個別のご相談の窓口：${consultationDesk}`,
   ].join("\n");
 
   return {
     subject,
-    publicationText,
     purposeSection,
     focusInstruction: definition?.focusInstruction ?? GENERIC_FOCUS,
     themeDescription:
@@ -150,7 +127,6 @@ export function buildInterviewDesign({
     perspectiveTechniques: variant?.perspectiveTechniques ?? GENERIC_PERSPECTIVE,
     replyExamples: variant?.replyExamples ?? "",
     clarificationGuidance: subject.clarificationGuidance,
-    consultationDesk,
   };
 }
 

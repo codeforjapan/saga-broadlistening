@@ -99,7 +99,7 @@ export const INTERVIEW_PROMPT_CATALOG = {
   "interview-chat-system": {
     key: "interview-chat-system", name: "AIインタビュー・対話方針",
     defaultContent: INTERVIEW_CHAT_TEMPLATE,
-    requiredVariables: ["persona", "purposeSection", "focusInstruction", "themeDescription", "knowledgeSection", "questionsText", "perspectiveTechniques", "clarificationGuidance", "consultationDesk", "replyExamples", "turnState", "outputInstructions"],
+    requiredVariables: ["persona", "purposeSection", "focusInstruction", "themeDescription", "knowledgeSection", "questionsText", "perspectiveTechniques", "clarificationGuidance", "replyExamples", "turnState", "outputInstructions"],
   },
   "interview-initial-system": {
     key: "interview-initial-system", name: "AIインタビュー・初回の発話",
@@ -109,7 +109,7 @@ export const INTERVIEW_PROMPT_CATALOG = {
   "interview-summary-system": {
     key: "interview-summary-system", name: "AIインタビュー・要約方針",
     defaultContent: INTERVIEW_SUMMARY_TEMPLATE,
-    requiredVariables: ["persona", "summarySection", "themeDescription", "conversationLog", "summaryState", "publicationText", "reportInstructions"],
+    requiredVariables: ["persona", "summarySection", "themeDescription", "conversationLog", "summaryState", "reportInstructions"],
   },
 } as const satisfies Record<string, { key: string; name: string; defaultContent: string; requiredVariables: readonly string[] }>;
 export type InterviewPromptKey = keyof typeof INTERVIEW_PROMPT_CATALOG;

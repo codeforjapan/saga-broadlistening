@@ -3,7 +3,6 @@ import {
   interviewChatTextSchema,
   interviewChatWithReportSchema,
   interviewInitialSchema,
-  interviewReportWithExtrasSchema,
   SUMMARY_RESPONSES,
 } from "@mirai-gikai/shared/interview-prompts/output-schemas";
 import {
@@ -45,13 +44,11 @@ export type InterviewStage = z.infer<typeof interviewStageSchema>;
  */
 export const interviewChatResponseSchema = z.object({
   text: z.string(),
-  report: interviewReportWithExtrasSchema.optional().nullable(),
+  report: interviewReportSchema.optional().nullable(),
   question_id: z.string().optional().nullable(),
   topic_title: z.string().optional().nullable(),
   summary_response: z.enum(SUMMARY_RESPONSES).optional(),
   end_request: z.boolean().optional(),
-  personal_request: z.boolean().optional(),
-  off_topic: z.boolean().optional(),
   /** サーバーが決めた question_id（interview_questions.id） */
   resolved_question_id: z.string().optional().nullable(),
   /** サーバーが決めた話題名 */

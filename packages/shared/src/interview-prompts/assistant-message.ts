@@ -14,7 +14,7 @@ function readStage(value: unknown): InterviewStage | null {
  */
 export function readAssistantTurnMeta(content: string): AssistantTurnMeta {
   const parsed = parseStructuredOutput(content);
-  if (!parsed) return { questionId: null, budgetExempt: false, stage: null };
+  if (!parsed) return { questionId: null, stage: null };
   const questionId =
     typeof parsed.question_id === "string" && parsed.question_id
       ? parsed.question_id
@@ -23,7 +23,6 @@ export function readAssistantTurnMeta(content: string): AssistantTurnMeta {
         : null;
   return {
     questionId,
-    budgetExempt: parsed.budget_exempt === true,
     stage: readStage(parsed.stage),
   };
 }
@@ -34,29 +33,4 @@ export function collectAssistantTurnMetas(
   return messages
     .filter((m) => m.role === "assistant")
     .map((m) => readAssistantTurnMeta(m.content));
-}
-
-/** システムが自動で伏せた個人情報（[電話番号] など） */
-const MASKED_PII_PATTERN =
-  /\[(電話番号|氏名|名前|住所|メールアドレス|メール|生年月日|個人情報)[^\]\[]{0,20}\]/;
-
-export function containsMaskedPii(text: string): boolean {
-  return MASKED_PII_PATTERN.test(text);
-}
-
-/**
- * 伏せ字の案内が済んだか。伏せ字が一度も無ければ null（案内の行ごと省く）。
- * 伏せ字を含む発言の後に AI が一度でも返していれば、案内は済んだものとする。
- */
-export function resolvePiiNotice(
-  messages: Array<{ role: string; content: string }>
-): "pending" | "done" | null {
-  const firstMasked = messages.findIndex(
-    (m) => m.role === "user" && containsMaskedPii(m.content)
-  );
-  if (firstMasked === -1) return null;
-  const answeredAfter = messages
-    .slice(firstMasked + 1)
-    .some((m) => m.role === "assistant");
-  return answeredAfter ? "done" : "pending";
 }

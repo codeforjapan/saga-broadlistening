@@ -89,16 +89,13 @@ async function buildPipelineParams(
       turn_budget: q.turn_budget ?? null,
     }));
 
-  // 説明文は改善版を、目的・結果のお知らせなどは保存済みの設定を使う
+  // 説明文は改善版を、目的・意見がほしい点などは保存済みの設定を使う
   const promptInterviewConfig = {
     name: config.name,
     description: params.improvedConfig.description,
     purpose_type: config.purpose_type,
     opinion_focus: config.opinion_focus,
     decided_matters: config.decided_matters,
-    publication_mode: config.publication_mode,
-    publication_timing: config.publication_timing,
-    publication_place: config.publication_place,
   };
 
   return {
