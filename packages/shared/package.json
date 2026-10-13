@@ -68,6 +68,10 @@
       "types": "./src/interview-prompts/subject-section.ts",
       "default": "./src/interview-prompts/subject-section.ts"
     },
+    "./interview-prompts/to-prompt-related-policies": {
+      "types": "./src/interview-prompts/to-prompt-related-policies.ts",
+      "default": "./src/interview-prompts/to-prompt-related-policies.ts"
+    },
     "./interview-prompts/summary": {
       "types": "./src/interview-prompts/summary.ts",
       "default": "./src/interview-prompts/summary.ts"

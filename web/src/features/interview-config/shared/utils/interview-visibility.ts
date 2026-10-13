@@ -57,14 +57,30 @@ export function isInterviewVisible(
 }
 
 /**
- * 対話のプロンプトや意見の表示に使う施策を1件に決める。
+ * 対話の主たる施策（冒頭で名乗る対象・知識ソース）や意見の表示に使う施策を1件に決める。
  *
- * 施策と意見募集は多対多だが、複数施策を並べる設計にはなっていないため
+ * 施策と意見募集は多対多だが、画面は複数施策を並べる設計にはなっていないため
  * 公開済みの先頭1件を採用する（複数施策表示の UI 対応は Epic #8 のフォローアップ）。
+ * プロンプトには他の施策も selectRelatedPolicyIds で並べる。
  * 公開済み施策がなければ施策なし（＝テーマだけ）として扱う。
  */
 export function selectPrimaryPolicyId(policies: LinkedPolicy[]): string | null {
   return policies.find((policy) => policy.isPublished)?.id ?? null;
+}
+
+/**
+ * 主たる施策と並べてプロンプトに載せる、他の公開済み施策のIDを返す。
+ *
+ * 意見募集に紐づく施策はすべてAIに渡すが、未公開の施策は市民向けの対話に
+ * 載せない（主たる施策の選び方と同じ公開判定に揃える）。
+ */
+export function selectRelatedPolicyIds(
+  policies: LinkedPolicy[],
+  primaryPolicyId: string | null
+): string[] {
+  return policies
+    .filter((policy) => policy.isPublished && policy.id !== primaryPolicyId)
+    .map((policy) => policy.id);
 }
 
 /**

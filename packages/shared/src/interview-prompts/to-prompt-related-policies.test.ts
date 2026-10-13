@@ -1,0 +1,62 @@
+import { describe, expect, it } from "vitest";
+import { toPromptRelatedPolicies } from "./to-prompt-related-policies";
+
+const medical = {
+  id: "policy-1",
+  name: "子ども医療費の助成拡大",
+  policy_contents: [
+    {
+      title: "高校生まで医療費を助成",
+      summary: "助成対象を18歳まで広げます",
+      content: "通院・入院ともに自己負担をなくします。",
+    },
+  ],
+};
+
+const afterSchool = {
+  id: "policy-2",
+  name: "放課後児童クラブの拡充",
+  policy_contents: [
+    {
+      title: "学童の定員を増やす",
+      summary: "待機児童を解消します",
+      content: "全校区で定員を1.5倍にします。",
+    },
+  ],
+};
+
+describe("toPromptRelatedPolicies", () => {
+  it("施策名とコンテンツをプロンプト用の形に整える", () => {
+    expect(toPromptRelatedPolicies(["policy-1"], [medical])).toEqual([
+      {
+        name: "子ども医療費の助成拡大",
+        title: "高校生まで医療費を助成",
+        summary: "助成対象を18歳まで広げます",
+        content: "通院・入院ともに自己負担をなくします。",
+      },
+    ]);
+  });
+
+  it("DB の返却順ではなく、渡した施策IDの順に並べる", () => {
+    const result = toPromptRelatedPolicies(
+      ["policy-2", "policy-1"],
+      [medical, afterSchool]
+    );
+
+    expect(result.map((policy) => policy.name)).toEqual([
+      "放課後児童クラブの拡充",
+      "子ども医療費の助成拡大",
+    ]);
+  });
+
+  it("取得できなかった施策とコンテンツのない施策は落とす", () => {
+    const result = toPromptRelatedPolicies(
+      ["policy-1", "policy-2", "policy-3"],
+      [medical, { ...afterSchool, policy_contents: [] }]
+    );
+
+    expect(result.map((policy) => policy.name)).toEqual([
+      "子ども医療費の助成拡大",
+    ]);
+  });
+});

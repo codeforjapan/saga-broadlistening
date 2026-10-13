@@ -14,6 +14,7 @@ import {
   findBillById,
   findTagsByBillId,
   findBillContentByDifficulty,
+  findPublishedBillContentsByIds,
   findTagsByBillIds,
   findFeaturedTags,
   findPublishedBillsByTag,
@@ -215,6 +216,64 @@ describe("bill-repository 統合テスト", () => {
       const result = await findBillContentByDifficulty(bill.id, "hard");
 
       expect(result).toBeNull();
+    });
+  });
+
+  // ============================================================
+  // findPublishedBillContentsByIds
+  // ============================================================
+
+  describe("findPublishedBillContentsByIds", () => {
+    it("指定した施策を、指定難易度のコンテンツだけ付けて一括取得できる", async () => {
+      const published = {
+        publish_status: "published" as const,
+        published_at: new Date().toISOString(),
+      };
+      const first = await createTestPolicy(published);
+      const second = await createTestPolicy(published);
+      billIds.push(first.id, second.id);
+      await createTestPolicyContent(first.id, {
+        difficulty_level: "normal",
+        title: "ふつうタイトル1",
+      });
+      await createTestPolicyContent(first.id, {
+        difficulty_level: "hard",
+        title: "むずかしいタイトル1",
+      });
+      await createTestPolicyContent(second.id, {
+        difficulty_level: "normal",
+        title: "ふつうタイトル2",
+      });
+
+      const result = await findPublishedBillContentsByIds(
+        [first.id, second.id],
+        "normal"
+      );
+
+      const titles = Object.fromEntries(
+        result.map((row) => [
+          row.id,
+          row.policy_contents.map((content) => content.title),
+        ])
+      );
+      expect(titles).toEqual({
+        [first.id]: ["ふつうタイトル1"],
+        [second.id]: ["ふつうタイトル2"],
+      });
+    });
+
+    it("下書き施策は含まれない", async () => {
+      const bill = await createTestPolicy({ publish_status: "draft" });
+      billIds.push(bill.id);
+      await createTestPolicyContent(bill.id, { difficulty_level: "normal" });
+
+      const result = await findPublishedBillContentsByIds([bill.id], "normal");
+
+      expect(result).toEqual([]);
+    });
+
+    it("空配列を渡すとDBに問い合わせず空配列を返す", async () => {
+      expect(await findPublishedBillContentsByIds([], "normal")).toEqual([]);
     });
   });
 
