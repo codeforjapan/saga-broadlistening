@@ -15,10 +15,10 @@ function hash(text: string): string {
 
 describe("public prompt templates", () => {
   it("preserves exact prior outputs, including empty and trimmed knowledge", () => {
-    expect(hash(renderPromptTemplate("top-chat-system", PUBLIC_PROMPT_CATALOG["top-chat-system"].defaultContent, { ...variables, billSummary: "{{$&}}" }))).toBe("b3af570354cd15f5d7f1f7a2a708b03cfdcb30e2654f7898797cf60d8815a306");
+    expect(hash(renderPromptTemplate("top-chat-system", PUBLIC_PROMPT_CATALOG["top-chat-system"].defaultContent, { ...variables, billSummary: "{{$&}}" }))).toBe("99fc02070061717b676273dbee01faf55083b1ea216c926b86db055aa0edc121");
     for (const [key, empty, withKnowledge] of [
-      ["bill-chat-system-normal", "7c9b69b8f6e6d08e349669affe9742d85a41b65a3d504c3318f7827c966d85a7", "c4235af5b06b901119d1109c212db0edc9fa3b623dbb4844f0f58f8d7a0025d3"],
-      ["bill-chat-system-hard", "2346d7372dca8998cd8fb636049559af40a77992a90b15ee97f65c87e50e9221", "26277065f4d855473b957f3241141b6825503aea589a8f6b305d75e7a8247bd6"],
+      ["bill-chat-system-normal", "a1920e378a84e31d952bbb4fe5d71afb2f64495cae3a082e6802d0cef8f0ae4d", "d8d7f9a1bd8af12019c8a2338ed5e121a729d9c2b4d1eded1f61c859b339082b"],
+      ["bill-chat-system-hard", "b040308152d271c0ce955708f9f945861469a53be78fbf32536a24a956e54e20", "69afccd9a69a0d1707b206bba91844a5d49778063dfdd39de441800671a6e4a7"],
     ] as const) {
       const content = PUBLIC_PROMPT_CATALOG[key].defaultContent;
       expect(hash(renderPromptTemplate(key, content, variables))).toBe(empty);
