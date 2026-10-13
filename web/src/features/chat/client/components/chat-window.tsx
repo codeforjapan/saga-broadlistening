@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { ChangeEvent, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import remarkBreaks from "remark-breaks";
 import { useStickToBottomContext } from "use-stick-to-bottom";
 import {
   Conversation,
@@ -33,6 +34,9 @@ import {
 } from "./mobile-chat-dialog";
 import { SystemMessage } from "./system-message";
 import { UserMessage } from "./user-message";
+
+// 回答は Markdown を使わない普通の文章なので、1つの改行もそのまま改行として表示する
+const REMARK_PLUGINS = [remarkBreaks];
 
 interface ChatWindowProps {
   billContext?: BillWithContent;
@@ -160,6 +164,7 @@ function ChatMessages({
             billName={billContext?.bill_content?.title ?? billContext?.name}
             interviewParticipation={interviewParticipation}
             interviewTarget={interviewTarget}
+            remarkPlugins={REMARK_PLUGINS}
           />
         );
       })}

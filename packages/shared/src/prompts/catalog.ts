@@ -5,13 +5,15 @@ import {
   INTERVIEW_SUMMARY_TEMPLATE,
 } from "../interview-prompts/templates";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
-import { COMMON_RULES, SERVICE_OVERVIEW } from "./shared-sections";
+import {
+  ASSISTANT_PERSONA,
+  COMMON_RULES,
+  SERVICE_OVERVIEW,
+} from "./shared-sections";
 
 export type PublicPromptKey = "top-chat-system" | "bill-chat-system-normal" | "bill-chat-system-hard";
 
-const TOP_CHAT_SYSTEM = `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
-
-行政・議会・施策・施策について、わかりやすく説明・対話を支援する役割を持ちます。
+const TOP_CHAT_SYSTEM = `${ASSISTANT_PERSONA}
 
 ${SERVICE_OVERVIEW}
 
@@ -31,8 +33,7 @@ ${COMMON_RULES}
 
 以降、ユーザーから質問が来たら、この背景情報をもとに丁寧に応えるようにしてください。`;
 
-const BILL_CHAT_SYSTEM_NORMAL = `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
-行政・議会・施策・施策について、わかりやすく説明・対話を支援する役割を持ちます。
+const BILL_CHAT_SYSTEM_NORMAL = `${ASSISTANT_PERSONA}
 
 ---
 ${SERVICE_OVERVIEW}
@@ -57,9 +58,7 @@ ${COMMON_RULES}
 
 以降、ユーザーから質問が来たら、この背景情報をもとに丁寧に応えるようにしてください。`;
 
-const BILL_CHAT_SYSTEM_HARD = `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
-
-行政・議会・施策・施策について、わかりやすく説明・対話を支援する役割を持ちます。
+const BILL_CHAT_SYSTEM_HARD = `${ASSISTANT_PERSONA}
 
 ${SERVICE_OVERVIEW}
 
