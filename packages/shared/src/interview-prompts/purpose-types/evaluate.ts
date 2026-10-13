@@ -29,7 +29,7 @@ export const EVALUATE: PurposeTypeDefinition = {
   bill: {
     perspectiveTechniques: PERSPECTIVE,
     replyExamples: `回答：「助かったけど、量が減った気がする」
-良い例：「助かった一方で、量が減った気がするんですね。量のことに気づいたのは、どんな場面でしたか？」`,
+良い例：「助かった一方で、量が減った気がするんですね。量が減ったと気づいたときのことを、教えてもらえますか？」`,
     steps: [
       {
         follow_up_guide: "「関わりはなかった」なら、次に聞く話題を「知ったきっかけ・使わなかった理由」にしてよい",
@@ -66,7 +66,7 @@ export const EVALUATE: PurposeTypeDefinition = {
   theme: {
     perspectiveTechniques: PERSPECTIVE,
     replyExamples: `回答：「お知らせは見るけど、どこに書いてあるかわからない」
-良い例：「どこに書いてあるかわからないことがあるんですね。最近それを感じたのは、どんなお知らせでしたか？」`,
+良い例：「どこに書いてあるかわからないことがあるんですね。最近そう感じたお知らせがあれば、教えてもらえますか？」`,
     steps: [
       {
         follow_up_guide: "「ほとんどない」なら、次に聞く話題を「ふれなかった理由」にしてよい",

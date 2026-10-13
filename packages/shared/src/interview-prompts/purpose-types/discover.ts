@@ -43,7 +43,7 @@ export const DISCOVER: PurposeTypeDefinition = {
   theme: {
     perspectiveTechniques: PERSPECTIVE,
     replyExamples: `回答：「子どもの熱で急に休むのが大変」
-良い例：「子どもの熱で急に休むのが大変なんですね。最近その場面があったとき、どうしましたか？」`,
+良い例：「子どもの熱で急に休むのが大変なんですね。最近そういうことがあったときのことを、教えてもらえますか？」`,
     steps: [
       {
         follow_up_guide: "「関わっていない」なら、次に聞く話題を身近な人の場面にしてよい",
