@@ -29,7 +29,7 @@ export const DISCOVER: PurposeTypeDefinition = {
       {
         follow_up_guide: "1つの場面に絞る、そのときどうしたか、予想外の対処",
         question:
-          "それを使ったときに「困った」または「助かった」と感じた場面を1つ教えてください。",
+          "それを使ったときに「困った」または「助かった」と感じたことがあれば、教えてもらえますか？",
         quick_replies: ["思い出せない"],
       },
       IMPACT_STEP,
@@ -53,7 +53,7 @@ export const DISCOVER: PurposeTypeDefinition = {
       {
         follow_up_guide: "1つの場面に絞る、そのときどうしたか、予想外の対処",
         question:
-          "このテーマで「困った」または「助かった」と感じた最近の場面を1つ教えてください。",
+          "このテーマで、最近「困った」または「助かった」と感じたことがあれば、教えてもらえますか？",
         quick_replies: ["思い出せない"],
       },
       IMPACT_STEP,

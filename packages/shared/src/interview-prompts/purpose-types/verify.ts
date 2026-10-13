@@ -30,7 +30,7 @@ export const VERIFY: PurposeTypeDefinition = {
       {
         follow_up_guide: "いつ・どこで・誰と。一般論なら最近の具体的な出来事",
         question:
-          "この案に関わる、ふだんの場面を1つ思い浮かべると、どんなときですか？",
+          "この案に関わることで、ふだんよくあるのは、どんなときですか？",
         quick_replies: ["思い出せない"],
       },
       {

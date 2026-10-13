@@ -44,7 +44,7 @@ export const EVALUATE: PurposeTypeDefinition = {
       {
         follow_up_guide: "「特に変わらない」も普通の答え。そのときは変わらなかった理由",
         question:
-          "この施策が始まって、暮らしの中で「変わった」と感じた場面を1つ教えてください。",
+          "この施策が始まって、暮らしの中で「変わった」と感じたことがあれば、教えてもらえますか？",
         quick_replies: ["特に変わらない", "思い出せない"],
       },
       GOOD_POINT_STEP,
@@ -76,7 +76,8 @@ export const EVALUATE: PurposeTypeDefinition = {
       },
       {
         follow_up_guide: "「特にない」も普通の答え。そのときはふれなかった理由",
-        question: "それが役に立った、または困った最近の1回を教えてください。",
+        question:
+          "そのときのことで、役に立ったことや困ったことがあれば、教えてもらえますか？",
         quick_replies: ["特にない", "思い出せない"],
       },
       GOOD_POINT_STEP,
