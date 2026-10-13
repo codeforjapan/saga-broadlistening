@@ -1,13 +1,13 @@
 import "server-only";
 
-import { generateObject, type LanguageModel } from "ai";
 import { getAiModel } from "@mirai-gikai/shared/ai/registry";
-import { moderationResultSchema } from "@mirai-gikai/shared/moderation/schemas";
 import { buildModerationPrompt } from "@mirai-gikai/shared/moderation/build-prompt";
+import { moderationResultSchema } from "@mirai-gikai/shared/moderation/schemas";
 import {
   determineModerationStatus,
   type ModerationStatus,
 } from "@mirai-gikai/shared/moderation/status";
+import { generateObject, type LanguageModel } from "ai";
 
 /** テスト時にモック注入するための外部依存 */
 export type ModerationDeps = {

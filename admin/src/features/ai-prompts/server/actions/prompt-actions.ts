@@ -1,8 +1,15 @@
 "use server";
 
 import "server-only";
-import { buildLoopModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/loop-mode";
+import { buildChatSystemPrompt } from "@mirai-gikai/shared/interview-prompts/chat-prompt";
+import { buildInitialSystemPrompt } from "@mirai-gikai/shared/interview-prompts/initial-prompt";
+import { getPublishedInterviewPersona } from "@mirai-gikai/shared/interview-prompts/published";
 import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
+import {
+  buildTurnTopics,
+  computeSummaryState,
+  computeTurnState,
+} from "@mirai-gikai/shared/interview-prompts/turn-control";
 import {
   isInterviewPromptKey,
   isPromptKey,
@@ -203,37 +210,64 @@ export async function previewAiPrompt(
     };
   try {
     if (isInterviewPromptKey(parsed.data.key)) {
+      // 人物像は変数を持たないので、そのまま見せる
+      if (parsed.data.key === "interview-persona") {
+        return { success: true, content: parsed.data.content };
+      }
       const input = await findInterviewPreviewInput(
         parsed.data.interviewConfigId ?? ""
       );
       if (!input)
         return { success: false, error: "意見募集が見つかりません。" };
+      const persona = await getPublishedInterviewPersona();
+      const topics = buildTurnTopics(input.questions);
+      if (parsed.data.key === "interview-initial-system") {
+        return {
+          success: true,
+          content: buildInitialSystemPrompt(
+            { topics, persona },
+            parsed.data.content
+          ),
+        };
+      }
+      if (parsed.data.key === "interview-chat-system") {
+        // 先頭から指定数の話題を1回ずつ聞いた直後の状況で組み立てる
+        const askedCount = Math.max(1, parsed.data.askedQuestionCount);
+        const metas = topics.slice(0, askedCount).map((t) => ({
+          questionId: t.id,
+          stage: "chat" as const,
+        }));
+        return {
+          success: true,
+          content: buildChatSystemPrompt(
+            {
+              ...input,
+              topics,
+              turnState: computeTurnState({ topics, metas }),
+              persona,
+            },
+            parsed.data.content
+          ),
+        };
+      }
       return {
         success: true,
-        content:
-          parsed.data.key === "interview-chat-system"
-            ? buildLoopModeSystemPrompt(
-                {
-                  ...input,
-                  currentStage: "chat",
-                  askedQuestionIds: new Set(
-                    input.questions
-                      .slice(0, parsed.data.askedQuestionCount)
-                      .map((q) => q.id)
-                  ),
-                  remainingMinutes: parsed.data.remainingMinutes ?? null,
-                },
-                parsed.data.content
-              )
-            : buildSummarySystemPrompt(
-                {
-                  ...input,
-                  messages: parsed.data.conversation
-                    ? [{ role: "user", content: parsed.data.conversation }]
-                    : [],
-                },
-                parsed.data.content
-              ),
+        content: buildSummarySystemPrompt(
+          {
+            ...input,
+            messages: parsed.data.conversation
+              ? [{ role: "user", content: parsed.data.conversation }]
+              : [],
+            summaryState: computeSummaryState({
+              topics,
+              metas: [],
+              phase: "first",
+              forceClose: false,
+            }),
+            persona,
+          },
+          parsed.data.content
+        ),
       };
     }
     if (parsed.data.key === "top-chat-system") {

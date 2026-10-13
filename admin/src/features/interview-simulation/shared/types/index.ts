@@ -110,7 +110,7 @@ export interface SimulationMetrics {
 export interface TransientConfigSnapshot {
   /** 職員が設定したテーマの説明文（interview_configs.description） */
   description: string | null;
-  /** インタビュー目安時間（分）。本番の「## タイムマネジメント」セクションに反映される */
+  /** インタビュー目安時間（分） */
   estimatedDurationMinutes: number | null;
   questions: Array<{
     /** 既存質問ならその id、未保存の新規質問ならクライアント側の一時 UUID */

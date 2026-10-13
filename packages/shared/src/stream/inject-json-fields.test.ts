@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { injectJsonFields } from "./inject-json-fields";
+import { injectJsonFields, injectJsonFieldsAsync } from "./inject-json-fields";
 
 /**
  * ReadableStreamを作成するヘルパー
@@ -184,5 +184,32 @@ describe("injectJsonFields", () => {
       text: "hi",
       added: true,
     });
+  });
+});
+
+describe("injectJsonFieldsAsync", () => {
+  it("ストリームを読み切った後に決まった値を注入する", async () => {
+    let finished = false;
+    const stream = createStream(['{"text":"こん', 'にちは"}']);
+    const result = await streamToString(
+      injectJsonFieldsAsync(stream, async () => {
+        finished = true;
+        return { next_stage: "summary", quick_replies: ["はい"] };
+      })
+    );
+    expect(finished).toBe(true);
+    expect(JSON.parse(result)).toEqual({
+      text: "こんにちは",
+      next_stage: "summary",
+      quick_replies: ["はい"],
+    });
+  });
+
+  it("注入する値が無ければそのまま返す", async () => {
+    const stream = createStream(['{"text":"a"}']);
+    const result = await streamToString(
+      injectJsonFieldsAsync(stream, async () => ({}))
+    );
+    expect(result).toBe('{"text":"a"}');
   });
 });

@@ -1,12 +1,29 @@
 import "server-only";
 
 import { getAiModel } from "@mirai-gikai/shared/ai/registry";
-import { INTERVIEW_CHAT_TEXT_DESCRIPTION } from "@mirai-gikai/shared/interview-prompts/chat-text-description";
+import { readAssistantTurnMeta } from "@mirai-gikai/shared/interview-prompts/assistant-message";
 import {
+  interviewChatTextSchema,
+  interviewInitialSchema,
+} from "@mirai-gikai/shared/interview-prompts/output-schemas";
+import {
+  buildPublishedInitialPrompt,
   buildPublishedInterviewPrompt,
   buildPublishedSummaryPrompt,
 } from "@mirai-gikai/shared/interview-prompts/published";
-import { buildInitialTurnInstruction } from "@mirai-gikai/shared/interview-prompts/subject-section";
+import {
+  type AssistantTurnMeta,
+  buildTurnTopics,
+  computeQuestionTurnLimit,
+  computeSummaryState,
+  computeTurnState,
+  decideSummaryEntry,
+  RESUME_TOPIC_ID,
+} from "@mirai-gikai/shared/interview-prompts/turn-control";
+import {
+  buildChatTurnRecord,
+  buildInitialTurnContent,
+} from "@mirai-gikai/shared/interview-prompts/turn-records";
 import type {
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
@@ -18,12 +35,10 @@ import {
   type LanguageModel,
   type ModelMessage,
 } from "ai";
-import { z } from "zod";
 import {
   LLM_MAX_ATTEMPTS,
   LLM_TIMEOUT_MS,
   type PromptKind,
-  SIMULATION_MAX_TURNS,
 } from "../../shared/constants";
 import {
   type PersonaCharacterSheet,
@@ -37,33 +52,6 @@ import type { OriginalStyleAnchors } from "../../shared/utils/extract-original-s
 import { isShortAnswer } from "../../shared/utils/format-transcript";
 import { withTimeoutRetry } from "../../shared/utils/with-timeout-retry";
 
-/**
- * シミュレーション中のインタビュアー LLM が返す最低限のフィールド
- * （本番の interviewChatTextSchema に近いが、シミュ用に簡略化）
- */
-const simInterviewerOutputSchema = z
-  .object({
-    text: z.string().describe(INTERVIEW_CHAT_TEXT_DESCRIPTION),
-    topic_title: z
-      .string()
-      .nullable()
-      .describe("質問のテーマ短縮タイトル。なければ null"),
-    question_id: z
-      .string()
-      .nullable()
-      .describe("事前定義質問の ID。深掘り等で該当なしなら null"),
-    next_stage: z
-      .enum(["chat", "summary", "summary_complete"])
-      .describe("次のステージ。インタビュー継続中は chat"),
-    quick_replies: z
-      .array(z.string())
-      .nullable()
-      .describe(
-        "ユーザーに提示する選択肢。事前定義質問の quick_replies または、Yes/No 的な選択を促したい場合に設定。不要なら null"
-      ),
-  })
-  .strict();
-
 interface RunSimulatedInterviewParams {
   persona: PersonaCharacterSheet;
   interviewerModel?: LanguageModel;
@@ -72,6 +60,7 @@ interface RunSimulatedInterviewParams {
   kind: PromptKind;
   /** 元インタビューから抽出した文体指標（省略可）。渡すとインタビュイー LLM の回答長を元会話レンジに寄せる */
   styleAnchors?: OriginalStyleAnchors;
+  /** インタビュアーの発話の上限。省略時は本番の質問の発話の上限 + 最初の発話 */
   maxTurns?: number;
   /**
    * 本番と同じ builder を毎ターン呼んで system prompt を再構築するための素材。
@@ -85,23 +74,6 @@ interface RunSimulatedInterviewParams {
   };
   /** Summary フェーズ用モデル。省略時は明示された interviewerModel、両方未指定なら要約用の環境設定を使用 */
   summaryModel?: LanguageModel;
-  /**
-   * 初回ターン用の enhanced prompt 構築情報。
-   * 本番の `generateInitialQuestion` と同等の挙動を再現するため、初回だけ
-   * system prompt 末尾に「## 重要: これはインタビューの開始です…」を付与し、
-   * messages なし・prompt 直渡しで LLM を呼ぶ。
-   */
-  initialTurnEnhancement?: {
-    /** 名乗る対象名。施策があれば施策名、なければテーマ名 */
-    subjectTitle: string;
-    firstQuestionId: string | null;
-  };
-  /**
-   * インタビュー目安時間（分）。本番では毎ターン実時間ベースで残り時間を計算するが、
-   * シミュでは元インタビューのターン数を基準に時間消費をシミュレートする。
-   * null なら「## タイムマネジメント」セクションが出ない（本番と同じ挙動）。
-   */
-  estimatedDurationMinutes?: number | null;
   /** 各ターン完了時に呼ばれるコールバック（ストリーミング進捗用） */
   onTurnComplete?: (turnIndex: number, turn: SimulatedTurn) => void;
   /** クライアント abort 時に LLM 呼び出しも停止させる */
@@ -109,29 +81,37 @@ interface RunSimulatedInterviewParams {
 }
 
 /**
- * 本番と同じ builder を呼んで、現在のターンの system prompt を構築する。
- * 毎ターン fresh にビルドすることで、refresh によるセクション差し替え漏れを防ぐ。
+ * 本番と同じ形で組み立てた assistant メッセージ（JSON）を、シミュの1ターンにする。
+ * ターン制御に使うメタデータも同時に積む。
  */
-async function buildInterviewerSystemPromptForTurn(
-  promptInputs: RunSimulatedInterviewParams["promptInputs"],
-  askedQuestionIds: Set<string>,
-  remainingMinutes: number | null | undefined
-): Promise<string> {
-  return buildPublishedInterviewPrompt({
-    bill: promptInputs.bill,
-    interviewConfig: promptInputs.interviewConfig,
-    questions: promptInputs.questions,
-    currentStage: "chat",
-    askedQuestionIds,
-    remainingMinutes,
-  });
+function toSimulatedTurn(
+  content: string,
+  metas: AssistantTurnMeta[]
+): SimulatedTurn {
+  metas.push(readAssistantTurnMeta(content));
+  const stored = JSON.parse(content) as {
+    text: string;
+    topic_title: string | null;
+    question_id: string | null;
+    next_stage: "chat" | "summary";
+    quick_replies: string[];
+  };
+  return {
+    role: "interviewer",
+    content: stored.text,
+    topic_title: stored.topic_title,
+    question_id: stored.question_id,
+    next_stage: stored.next_stage,
+    quick_replies:
+      stored.quick_replies.length > 0 ? stored.quick_replies : null,
+  };
 }
 
 function asInterviewerMessages(turns: SimulatedTurn[]): ModelMessage[] {
   // 本番と同じ挙動に合わせる: assistant メッセージはプレーンテキストのみ渡す。
   // JSON 全体（topic_title / question_id 等）を渡すと、LLM が過去の話題文脈を
-  // 強く保持しすぎて深掘りが止まらなくなる。askedQuestionIds の進捗は
-  // system prompt 側の「## ステージ遷移判定」セクションで LLM に伝える。
+  // 強く保持しすぎて深掘りが止まらなくなる。話題の進捗は
+  // system prompt 側の「いまの状況」節で LLM に伝える。
   return turns.map<ModelMessage>((t) => {
     if (t.role === "interviewer") {
       return { role: "assistant", content: t.content };
@@ -187,24 +167,6 @@ function computeMetrics(
 }
 
 /**
- * シミュレート上の残り時間（分）を算出する。
- * 本番は `estimated_duration - (now - session.started_at) / 60000` だが、
- * simでは実時間が数秒しか経過しないため、元インタビューのターン数を基準に
- * 時間消費をシミュレートする。
- *
- * turnIndex=0 で full time、turnIndex=expectedTurns で 0 になるよう線形補間。
- */
-function calculateSimulatedRemainingMinutes(
-  estimatedDuration: number,
-  turnIndex: number,
-  expectedTotalTurns: number
-): number {
-  if (expectedTotalTurns <= 0) return estimatedDuration;
-  const minutesPerTurn = estimatedDuration / expectedTotalTurns;
-  return Math.max(0, Math.ceil(estimatedDuration - turnIndex * minutesPerTurn));
-}
-
-/**
  * 元インタビュアーのターン数から、シミュのターン上限を算出する。
  * 元が短ければシミュも短く、元が長ければ元並みに（ただし hard cap を超えない）。
  * この値は LLM には伝えない（本番プロンプトをいじらないため）。純粋に実行側の安全装置。
@@ -230,30 +192,27 @@ export async function runSimulatedInterview({
   traceId,
   kind,
   styleAnchors,
-  maxTurns = SIMULATION_MAX_TURNS,
+  maxTurns,
   promptInputs,
   summaryModel,
-  initialTurnEnhancement,
-  estimatedDurationMinutes,
   onTurnComplete,
   signal,
 }: RunSimulatedInterviewParams): Promise<SimulationRun> {
   const interviewerSelection = getAiModel("interview", interviewerModel);
   const intervieweeSelection = getAiModel("simulation", intervieweeModel);
   const questionsCount = promptInputs.questions.length;
+  // 本番と同じターン制御（次に聞ける話題・発話の上限・要約への移行）を使う
+  const topics = buildTurnTopics(promptInputs.questions);
   const effectiveMaxTurns = deriveTargetMaxTurns(
-    maxTurns,
+    maxTurns ?? computeQuestionTurnLimit(topics) + 1,
     styleAnchors?.originalInterviewerTurns,
     questionsCount
   );
   const transcript: SimulatedTurn[] = [];
-  const askedQuestionIds = new Set<string>();
   const startedAt = Date.now();
   // インタビュイーが元の発言回数を超えないうちに自然に畳ませるための「予算」
   const intervieweeBudget = styleAnchors?.originalIntervieweeTurns;
-  // タイムマネジメント用: 元インタビューのターン数を基準に残り時間をシミュレート
-  const expectedTotalTurns =
-    styleAnchors?.originalInterviewerTurns ?? questionsCount * 2;
+  const metas: AssistantTurnMeta[] = [];
 
   let stopReason: SimulationRun["stopReason"] = "max_turns";
   // 1 ターン目の system prompt を結果に残す（UI で system prompt 確認用）
@@ -262,42 +221,32 @@ export async function runSimulatedInterview({
   // インタビュアーがリードするので、ターンはペア単位 (interviewer + interviewee) で進む
   for (let turnIndex = 0; turnIndex < effectiveMaxTurns; turnIndex++) {
     // --- インタビュアーの発話 ---
-    // 本番の handleInterviewChatRequest は毎ターン fresh に system prompt を
-    // 再構築するので、シミュでも同じく毎ターン fresh ビルドする。
-    const simulatedRemainingMinutes =
-      estimatedDurationMinutes != null
-        ? calculateSimulatedRemainingMinutes(
-            estimatedDurationMinutes,
-            turnIndex,
-            expectedTotalTurns
-          )
-        : undefined;
+    // 本番の handleInterviewChatRequest と同じく、毎ターン状況を計算してから
+    // system prompt を fresh にビルドする。
+    const isInitialTurn = turnIndex === 0 && transcript.length === 0;
+    const turnState = isInitialTurn
+      ? null
+      : computeTurnState({ topics, metas });
+    if (
+      turnState &&
+      decideSummaryEntry({ state: turnState, endButton: false })
+    ) {
+      stopReason = "summary";
+      break;
+    }
 
-    const interviewerSystemPromptForThisTurn =
-      await buildInterviewerSystemPromptForTurn(
-        promptInputs,
-        askedQuestionIds,
-        simulatedRemainingMinutes
-      );
-    if (turnIndex === 0)
-      firstTurnSystemPrompt = interviewerSystemPromptForThisTurn;
-
-    let interviewerOutput: z.infer<typeof simInterviewerOutputSchema>;
+    let interviewerTurn: SimulatedTurn;
     try {
-      // 初回ターンは本番 generateInitialQuestion と同じ挙動にする。
-      // 「## 重要: これはインタビューの開始です…」を system prompt 末尾に付与し、
-      // messages は渡さず prompt 直渡しで呼び出す。
-      const isInitialTurn = turnIndex === 0 && transcript.length === 0;
-      if (isInitialTurn && initialTurnEnhancement) {
-        const enhancedPrompt = `${interviewerSystemPromptForThisTurn}\n\n${buildInitialTurnInstruction(
-          initialTurnEnhancement
-        )}`;
+      if (!turnState) {
+        // 初回は本番 generateInitialQuestion と同じく、人物像＋初回指示だけで生成する
+        const initialPrompt = await buildPublishedInitialPrompt({ topics });
+        firstTurnSystemPrompt = initialPrompt;
         const { object } = await withTimeoutRetry(
           (attemptSignal) =>
             generateObject({
               ...interviewerSelection,
-              schema: simInterviewerOutputSchema,
-              prompt: enhancedPrompt,
+              schema: interviewInitialSchema,
+              prompt: initialPrompt,
               abortSignal: attemptSignal,
               experimental_telemetry: {
                 isEnabled: true,
@@ -312,15 +261,28 @@ export async function runSimulatedInterview({
             label: "sim-interviewer-initial",
           }
         );
-        interviewerOutput = object;
+        // 本番と同じ保存内容の組み立てを使う（question_id・選択肢・話題名）
+        interviewerTurn = toSimulatedTurn(
+          buildInitialTurnContent({
+            rawText: JSON.stringify(object),
+            firstTopic: topics[0] ?? null,
+          }),
+          metas
+        );
       } else {
+        const systemPrompt = await buildPublishedInterviewPrompt({
+          bill: promptInputs.bill,
+          interviewConfig: promptInputs.interviewConfig,
+          topics,
+          turnState,
+        });
         const messages = asInterviewerMessages(transcript);
         const { object } = await withTimeoutRetry(
           (attemptSignal) =>
             generateObject({
               ...interviewerSelection,
-              schema: simInterviewerOutputSchema,
-              system: interviewerSystemPromptForThisTurn,
+              schema: interviewChatTextSchema,
+              system: systemPrompt,
               messages,
               abortSignal: attemptSignal,
               experimental_telemetry: {
@@ -340,7 +302,13 @@ export async function runSimulatedInterview({
             label: "sim-interviewer",
           }
         );
-        interviewerOutput = object;
+        interviewerTurn = toSimulatedTurn(
+          buildChatTurnRecord({
+            rawText: JSON.stringify(object),
+            state: turnState,
+          }).content,
+          metas
+        );
       }
     } catch (error) {
       // 外部 abort はユーザー操作のキャンセルなのでエラーログに載せない。
@@ -354,33 +322,13 @@ export async function runSimulatedInterview({
       break;
     }
 
-    const interviewerQuickReplies =
-      interviewerOutput.quick_replies &&
-      interviewerOutput.quick_replies.length > 0
-        ? interviewerOutput.quick_replies
-        : null;
-    const interviewerTurn: SimulatedTurn = {
-      role: "interviewer",
-      content: interviewerOutput.text,
-      topic_title: interviewerOutput.topic_title ?? null,
-      question_id: interviewerOutput.question_id ?? null,
-      next_stage: interviewerOutput.next_stage ?? "chat",
-      quick_replies: interviewerQuickReplies,
-    };
     transcript.push(interviewerTurn);
     onTurnComplete?.(turnIndex, interviewerTurn);
-
-    if (interviewerOutput.question_id) {
-      askedQuestionIds.add(interviewerOutput.question_id);
-    }
-
-    if (
-      interviewerOutput.next_stage === "summary" ||
-      interviewerOutput.next_stage === "summary_complete"
-    ) {
-      stopReason = interviewerOutput.next_stage;
+    if (interviewerTurn.next_stage === "summary") {
+      stopReason = "summary";
       break;
     }
+    const interviewerQuickReplies = interviewerTurn.quick_replies;
 
     // 最終イテレーションでは、インタビュイーの返答を生成せずに終了する。
     // → transcript は必ずインタビュアー発話で終わる。
@@ -449,15 +397,11 @@ export async function runSimulatedInterview({
     }
   }
 
-  // Summary フェーズ: summary/summary_complete への自然遷移 or max_turns 到達時に
+  // Summary フェーズ: summary への自然遷移 or max_turns 到達時に
   // 本番と同じ buildSummarySystemPrompt で Summary LLM を呼び、構造化レポートを生成する。
   // max_turns でも要約を生成することで、常にレポートが得られるようにする。
   let generatedReport: SimGeneratedReport | null = null;
-  if (
-    stopReason === "summary" ||
-    stopReason === "summary_complete" ||
-    stopReason === "max_turns"
-  ) {
+  if (stopReason === "summary" || stopReason === "max_turns") {
     try {
       const summaryMessages = transcript.map((t) => ({
         role: t.role === "interviewer" ? "assistant" : "user",
@@ -467,6 +411,12 @@ export async function runSimulatedInterview({
         bill: promptInputs.bill,
         interviewConfig: promptInputs.interviewConfig,
         messages: summaryMessages,
+        summaryState: computeSummaryState({
+          topics,
+          metas,
+          phase: "first",
+          forceClose: false,
+        }),
       });
       const { object } = await withTimeoutRetry(
         (attemptSignal) =>
@@ -502,7 +452,15 @@ export async function runSimulatedInterview({
     interviewerModel: interviewerSelection.modelId,
     intervieweeModel: intervieweeSelection.modelId,
     transcript,
-    metrics: computeMetrics(transcript, askedQuestionIds, questionsCount),
+    metrics: computeMetrics(
+      transcript,
+      new Set(
+        metas
+          .map((m) => m.questionId)
+          .filter((id): id is string => !!id && id !== RESUME_TOPIC_ID)
+      ),
+      questionsCount
+    ),
     stopReason,
     elapsedMs: Date.now() - startedAt,
     generatedReport,

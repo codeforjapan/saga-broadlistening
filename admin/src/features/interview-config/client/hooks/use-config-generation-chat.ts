@@ -6,8 +6,13 @@ import {
   type ConfigGenerationStage,
   configGenerationResponseSchema,
 } from "../../shared/schemas";
-import type { InterviewQuestionInput } from "../../shared/types";
+import {
+  type InterviewDesignInput,
+  type InterviewQuestionInput,
+  textToArray,
+} from "../../shared/types";
 import { buildQuestionsFromTemplate } from "../../shared/utils/default-questions-template";
+import { toProposedQuestions } from "../../shared/utils/to-proposed-questions";
 
 interface ChatMessage {
   id: string;
@@ -18,49 +23,63 @@ interface ChatMessage {
 }
 
 interface UseConfigGenerationChatProps {
-  /** 施策配下から開いたときの施策ID。テーマ単独では null */
-  billId: string | null;
   /**
-   * 施策がないときにAIへ渡すテーマの情報を、送信時点のフォーム値から読み取る。
-   * 職員がテーマ名・説明を書き換えた直後でも最新の内容で生成するため、
+   * AIへ渡すフォームの値を、送信時点で読み取る。
+   * 職員がフォームを書き換えた直後でも最新の内容で生成するため、
    * 値ではなく取得関数を受け取る（呼び出し側で useCallback すること）。
    */
-  getThemeContext?: () => ThemeContext;
-  configId?: string;
+  getFormContext?: () => ConfigFormContext;
   existingThemes?: string[];
   existingQuestions?: InterviewQuestionInput[];
   onThemesConfirmed: (themes: string[]) => void;
   onQuestionsConfirmed: (questions: InterviewQuestionInput[]) => void;
 }
 
-/** AIに渡すテーマの情報。施策に紐づく意見募集では使われない */
-export type ThemeContext = {
+/**
+ * AIに渡す、左のフォームの送信時点の値。
+ * 未保存の入力も含めて生成の前提にする（フォームとAIの提案を食い違わせないため）。
+ */
+export type ConfigFormContext = InterviewDesignInput & {
   themeName: string | null;
   themeDescription: string | null;
+  /** フォームで紐づけ中の施策。先頭の施策を題材にする */
+  policyIds: string[];
 };
 
-const EMPTY_THEME_CONTEXT: ThemeContext = {
+const EMPTY_FORM_CONTEXT: ConfigFormContext = {
   themeName: null,
   themeDescription: null,
+  purposeType: null,
+  opinionFocus: null,
+  decidedMatters: null,
+  policyIds: [],
 };
 
 /** サーバー側に送る stage（クライアント内部の確定状態は送らない） */
 type ServerStage = "default_questions" | "question_proposal" | "theme_proposal";
 
 export function useConfigGenerationChat({
-  billId,
-  getThemeContext,
-  configId,
+  getFormContext,
   existingThemes,
   existingQuestions,
   onThemesConfirmed,
   onQuestionsConfirmed,
 }: UseConfigGenerationChatProps) {
-  /** 送信時点のテーマ情報。施策配下では使われないので空になる */
-  const getThemeContextOrEmpty = useCallback(
-    () => getThemeContext?.() ?? EMPTY_THEME_CONTEXT,
-    [getThemeContext]
+  /** 送信時点のフォームの値 */
+  const getFormContextOrEmpty = useCallback(
+    () => getFormContext?.() ?? EMPTY_FORM_CONTEXT,
+    [getFormContext]
   );
+
+  /**
+   * 送信時点の説明欄からテーマを読む。
+   * 確定したテーマは保存前でもフォームに入っているので、保存済みの値より優先する。
+   */
+  const getCurrentThemes = useCallback((): string[] | undefined => {
+    const description = getFormContextOrEmpty().themeDescription;
+    const themes = description ? textToArray(description) : [];
+    return themes.length > 0 ? themes : undefined;
+  }, [getFormContextOrEmpty]);
 
   const hasExistingThemes = (existingThemes?.length ?? 0) > 0;
   const hasExistingQuestions = (existingQuestions?.length ?? 0) > 0;
@@ -82,9 +101,23 @@ export function useConfigGenerationChat({
     api: "/api/interview-config/generate",
     schema: configGenerationResponseSchema,
     onFinish: ({ object: finishedObject, error: finishedError }) => {
-      if (finishedError || !finishedObject) return;
+      if (finishedError || !finishedObject) {
+        // スキーマに合わない応答は useObject の error に出ないため、ここで知らせる
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: "AIの応答を読み取れませんでした。もう一度お試しください。",
+          },
+        ]);
+        return;
+      }
 
-      const { text, themes, questions, topics, stance } = finishedObject;
+      const { text, themes, topics, stance } = finishedObject;
+      const questions = finishedObject.questions
+        ? toProposedQuestions(finishedObject.questions)
+        : undefined;
 
       // default_questions ステージ: テンプレと合成して proposedQuestions に
       if (topics || stance) {
@@ -112,7 +145,7 @@ export function useConfigGenerationChat({
           role: "assistant",
           content: text ?? "",
           themes: themes ?? undefined,
-          questions: questions as InterviewQuestionInput[] | undefined,
+          questions,
         },
       ]);
 
@@ -120,7 +153,7 @@ export function useConfigGenerationChat({
         setProposedThemes(themes);
       }
       if (questions && questions.length > 0) {
-        setProposedQuestions(questions as InterviewQuestionInput[]);
+        setProposedQuestions(questions);
       }
     },
   });
@@ -182,14 +215,10 @@ export function useConfigGenerationChat({
 
       submit({
         messages: apiMessages,
-        billId,
-        ...getThemeContextOrEmpty(),
-        configId,
+        ...getFormContextOrEmpty(),
         stage: serverStage,
         existingThemes:
-          serverStage === "theme_proposal" && hasExistingThemes
-            ? existingThemes
-            : undefined,
+          serverStage === "theme_proposal" ? getCurrentThemes() : undefined,
         existingQuestions:
           serverStage === "question_proposal" ? questionContext : undefined,
         confirmedQuestions:
@@ -200,23 +229,22 @@ export function useConfigGenerationChat({
     },
     [
       messages,
-      billId,
-      getThemeContextOrEmpty,
-      configId,
+      getFormContextOrEmpty,
       stage,
       isLoading,
       submit,
       resolveServerStage,
-      hasExistingThemes,
-      existingThemes,
       hasExistingQuestions,
       existingQuestions,
       confirmedQuestions,
       proposedQuestions,
+      getCurrentThemes,
     ]
   );
 
   const startGeneration = useCallback(() => {
+    // ブラッシュアップかどうかは保存済みの設定で決める。説明欄の現在値で決めると、
+    // 新規作成で説明を書いただけでもテーマ設定済みとみなし、初期の質問生成を飛ばしてしまう
     if (hasExistingQuestions || hasExistingThemes) {
       // 既存設定あり: ブラッシュアップモード
       const parts: string[] = [
@@ -246,26 +274,24 @@ export function useConfigGenerationChat({
     }
 
     // 新規: テンプレ + LLMでQ1/Q2を生成
+    const formContext = getFormContextOrEmpty();
     setMessages([
       {
         id: "greeting",
         role: "assistant",
-        content: billId
-          ? "インタビュー設定アシスタントです。施策内容を分析して、デフォルトの質問セットを準備します。"
-          : "インタビュー設定アシスタントです。テーマの内容を分析して、デフォルトの質問セットを準備します。",
+        content:
+          formContext.policyIds.length > 0
+            ? "インタビュー設定アシスタントです。施策内容を分析して、デフォルトの質問セットを準備します。"
+            : "インタビュー設定アシスタントです。テーマの内容を分析して、デフォルトの質問セットを準備します。",
       },
     ]);
     submit({
       messages: [],
-      billId,
-      ...getThemeContextOrEmpty(),
-      configId,
+      ...formContext,
       stage: "default_questions",
     });
   }, [
-    billId,
-    getThemeContextOrEmpty,
-    configId,
+    getFormContextOrEmpty,
     submit,
     hasExistingThemes,
     hasExistingQuestions,
@@ -293,24 +319,19 @@ export function useConfigGenerationChat({
 
       submit({
         messages: [],
-        billId,
-        ...getThemeContextOrEmpty(),
-        configId,
+        ...getFormContextOrEmpty(),
         stage: "theme_proposal",
         confirmedQuestions: questions,
-        existingThemes: hasExistingThemes ? existingThemes : undefined,
+        existingThemes: getCurrentThemes(),
       });
     },
     [
-      billId,
-      getThemeContextOrEmpty,
-      configId,
+      getFormContextOrEmpty,
       isLoading,
       stop,
       submit,
       onQuestionsConfirmed,
-      hasExistingThemes,
-      existingThemes,
+      getCurrentThemes,
     ]
   );
 
@@ -365,26 +386,21 @@ export function useConfigGenerationChat({
 
     submit({
       messages: [],
-      billId,
-      ...getThemeContextOrEmpty(),
-      configId,
+      ...getFormContextOrEmpty(),
       stage: "theme_proposal",
       confirmedQuestions:
         questionsToUse.length > 0 ? questionsToUse : undefined,
-      existingThemes: hasExistingThemes ? existingThemes : undefined,
+      existingThemes: getCurrentThemes(),
     });
   }, [
-    billId,
-    getThemeContextOrEmpty,
-    configId,
+    getFormContextOrEmpty,
     isLoading,
     stop,
     submit,
     proposedQuestions,
     confirmedQuestions,
     existingQuestions,
-    hasExistingThemes,
-    existingThemes,
+    getCurrentThemes,
   ]);
 
   /** 生成中のストリームを停止する */

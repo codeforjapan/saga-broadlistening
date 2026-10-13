@@ -1,12 +1,19 @@
-import { INTERVIEW_CHAT_TEMPLATE, INTERVIEW_SUMMARY_TEMPLATE } from "../interview-prompts/templates";
+import {
+  INTERVIEW_CHAT_TEMPLATE,
+  INTERVIEW_INITIAL_TEMPLATE,
+  INTERVIEW_PERSONA_TEMPLATE,
+  INTERVIEW_SUMMARY_TEMPLATE,
+} from "../interview-prompts/templates";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
-import { COMMON_RULES, SERVICE_OVERVIEW } from "./shared-sections";
+import {
+  ASSISTANT_PERSONA,
+  COMMON_RULES,
+  SERVICE_OVERVIEW,
+} from "./shared-sections";
 
 export type PublicPromptKey = "top-chat-system" | "bill-chat-system-normal" | "bill-chat-system-hard";
 
-const TOP_CHAT_SYSTEM = `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
-
-行政・議会・施策・施策について、わかりやすく説明・対話を支援する役割を持ちます。
+const TOP_CHAT_SYSTEM = `${ASSISTANT_PERSONA}
 
 ${SERVICE_OVERVIEW}
 
@@ -20,14 +27,13 @@ ${SERVICE_OVERVIEW}
 
 - 用語はできるだけ平易に、かみ砕いて説明してください（中高生にも伝わるような言葉で）
 - 立場を強く主張しすぎず、中立・客観性を重視
-- 施策や施策の背景・メリット・デメリット、他の論点や反対意見も提示して、バランスを保つ
+- 施策やその背景・メリット・デメリット、他の論点や反対意見も提示して、バランスを保つ
 
 ${COMMON_RULES}
 
 以降、ユーザーから質問が来たら、この背景情報をもとに丁寧に応えるようにしてください。`;
 
-const BILL_CHAT_SYSTEM_NORMAL = `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
-行政・議会・施策・施策について、わかりやすく説明・対話を支援する役割を持ちます。
+const BILL_CHAT_SYSTEM_NORMAL = `${ASSISTANT_PERSONA}
 
 ---
 ${SERVICE_OVERVIEW}
@@ -52,9 +58,7 @@ ${COMMON_RULES}
 
 以降、ユーザーから質問が来たら、この背景情報をもとに丁寧に応えるようにしてください。`;
 
-const BILL_CHAT_SYSTEM_HARD = `あなたは「${SITE_NAME}」上で動作する中立的なAIアシスタントです。
-
-行政・議会・施策・施策について、わかりやすく説明・対話を支援する役割を持ちます。
+const BILL_CHAT_SYSTEM_HARD = `${ASSISTANT_PERSONA}
 
 ${SERVICE_OVERVIEW}
 
@@ -86,17 +90,27 @@ export function isPublicPromptKey(value: string): value is PublicPromptKey {
 }
 
 export const INTERVIEW_PROMPT_CATALOG = {
+  "interview-persona": {
+    key: "interview-persona", name: "AIインタビュー・聞き手の人物像",
+    defaultContent: INTERVIEW_PERSONA_TEMPLATE,
+    requiredVariables: [],
+  },
   "interview-chat-system": {
     key: "interview-chat-system", name: "AIインタビュー・対話方針",
     defaultContent: INTERVIEW_CHAT_TEMPLATE,
-    requiredVariables: ["focusInstruction", "clarificationGuidance", "knowledgeSection", "themeDescription", "questionsText", "replyExamples", "perspectiveTechniques", "stopPolicy", "stopSigns", "stopFollowUps", "outputInstructions"],
+    requiredVariables: ["persona", "purposeSection", "focusInstruction", "themeDescription", "knowledgeSection", "questionsText", "perspectiveTechniques", "clarificationGuidance", "replyExamples", "turnState", "outputInstructions"],
+  },
+  "interview-initial-system": {
+    key: "interview-initial-system", name: "AIインタビュー・初回の発話",
+    defaultContent: INTERVIEW_INITIAL_TEMPLATE,
+    requiredVariables: ["persona", "topicCount", "firstQuestion", "firstQuestionId"],
   },
   "interview-summary-system": {
     key: "interview-summary-system", name: "AIインタビュー・要約方針",
     defaultContent: INTERVIEW_SUMMARY_TEMPLATE,
-    requiredVariables: ["summarySection", "themeDescription", "conversationLog", "reportInstructions"],
+    requiredVariables: ["persona", "summarySection", "themeDescription", "conversationLog", "summaryState", "reportInstructions"],
   },
-} as const;
+} as const satisfies Record<string, { key: string; name: string; defaultContent: string; requiredVariables: readonly string[] }>;
 export type InterviewPromptKey = keyof typeof INTERVIEW_PROMPT_CATALOG;
 export const AI_PROMPT_CATALOG = { ...PUBLIC_PROMPT_CATALOG, ...INTERVIEW_PROMPT_CATALOG };
 export type PromptKey = keyof typeof AI_PROMPT_CATALOG;

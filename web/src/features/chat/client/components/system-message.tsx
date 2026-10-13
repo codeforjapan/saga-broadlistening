@@ -13,6 +13,7 @@ import type { InterviewTarget } from "@/features/interview-config/shared/types/i
 import { InterviewSuggestionBanner } from "./interview-suggestion-banner";
 
 type RehypePlugins = ComponentProps<typeof Response>["rehypePlugins"];
+type RemarkPlugins = ComponentProps<typeof Response>["remarkPlugins"];
 
 interface SystemMessageProps {
   message: UIMessage;
@@ -22,6 +23,7 @@ interface SystemMessageProps {
   interviewParticipation?: InterviewParticipationView;
   interviewTarget?: InterviewTarget;
   rehypePlugins?: RehypePlugins;
+  remarkPlugins?: RemarkPlugins;
 }
 
 export function SystemMessage({
@@ -32,6 +34,7 @@ export function SystemMessage({
   interviewParticipation,
   interviewTarget,
   rehypePlugins,
+  remarkPlugins,
 }: SystemMessageProps) {
   return (
     <Message from="assistant" className="justify-start py-0">
@@ -46,6 +49,7 @@ export function SystemMessage({
                 key={`${message.id}-${i}`}
                 className="break-words"
                 rehypePlugins={rehypePlugins}
+                remarkPlugins={remarkPlugins}
               >
                 {part.text}
               </Response>

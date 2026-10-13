@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical } from "lucide-react";
+import { GripVertical, LayoutTemplate } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import type {
   InterviewQuestion,
   InterviewQuestionInput,
 } from "../../shared/types";
+import { toQuestionInput } from "../../shared/utils/to-question-input";
 import {
   type SortableQuestion,
   toInputs,
@@ -98,6 +99,11 @@ interface InterviewQuestionListProps {
   getQuestionsRef?: React.MutableRefObject<
     (() => InterviewQuestionInput[]) | null
   >;
+  /**
+   * 保存済みの目的から作った質問テンプレート。目的が未設定なら null で、
+   * 「目的のテンプレートを適用」ボタンを出さない。
+   */
+  purposeTemplate?: InterviewQuestionInput[] | null;
 }
 
 export function InterviewQuestionList({
@@ -106,15 +112,10 @@ export function InterviewQuestionList({
   aiGeneratedQuestions,
   onAiQuestionsApplied,
   getQuestionsRef,
+  purposeTemplate,
 }: InterviewQuestionListProps) {
   const [questions, setQuestions] = useState<SortableQuestion[]>(() =>
-    initialQuestions.map((q) =>
-      withUid({
-        question: q.question,
-        follow_up_guide: q.follow_up_guide || undefined,
-        quick_replies: q.quick_replies || undefined,
-      })
-    )
+    initialQuestions.map((q) => withUid(toQuestionInput(q)))
   );
   // 並び替えでインデックスがずれても編集中の行を見失わないよう _uid で管理する
   const [editingUid, setEditingUid] = useState<string | null>(null);
@@ -173,6 +174,23 @@ export function InterviewQuestionList({
     }
   }, [aiGeneratedQuestions, saveQuestions, onAiQuestionsApplied]);
 
+  const handleApplyTemplate = () => {
+    if (!purposeTemplate) return;
+    if (
+      questions.length > 0 &&
+      !confirm(
+        "いまの質問をすべて置き換えて、目的のテンプレートを適用します。よろしいですか？"
+      )
+    ) {
+      return;
+    }
+    const newQuestions = purposeTemplate.map(withUid);
+    setQuestions(newQuestions);
+    setEditingUid(null);
+    saveQuestions(newQuestions);
+    toast.success(`テンプレートの${newQuestions.length}件の質問を適用しました`);
+  };
+
   const handleAdd = (newQuestion: InterviewQuestionInput) => {
     const newQuestions = [...questions, withUid(newQuestion)];
     setQuestions(newQuestions);
@@ -223,10 +241,29 @@ export function InterviewQuestionList({
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold">質問一覧 ({questions.length}件)</h3>
-            {isPending && (
-              <span className="text-sm text-gray-500">保存中...</span>
-            )}
+            <div className="flex items-center gap-2">
+              {isPending && (
+                <span className="text-sm text-gray-500">保存中...</span>
+              )}
+              {purposeTemplate && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleApplyTemplate}
+                  disabled={isPending}
+                >
+                  <LayoutTemplate className="mr-1 size-4" />
+                  目的のテンプレートを適用
+                </Button>
+              )}
+            </div>
           </div>
+          {purposeTemplate && (
+            <p className="mb-4 text-sm text-gray-500">
+              保存済みの目的に合わせた質問の下書きです。文言は直せますが、順番は変えずに使ってください。
+            </p>
+          )}
 
           {questions.length === 0 ? (
             <p className="text-sm text-gray-500">
@@ -275,9 +312,7 @@ export function InterviewQuestionList({
                                   </div>
                                   {question.follow_up_guide && (
                                     <div className="text-sm text-gray-600">
-                                      <span className="font-medium">
-                                        フォローアップ指針:
-                                      </span>{" "}
+                                      <span className="font-medium">観点:</span>{" "}
                                       {question.follow_up_guide}
                                     </div>
                                   )}

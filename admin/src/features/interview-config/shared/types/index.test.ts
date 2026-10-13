@@ -67,3 +67,14 @@ describe("interviewConfigSchema participation", () => {
     ).toBe(false);
   });
 });
+
+describe("interviewConfigSchema の設計項目", () => {
+  it("意見がほしい点は60文字まで", () => {
+    expect(
+      interviewConfigSchema.safeParse({
+        ...config,
+        opinion_focus: "あ".repeat(61),
+      }).success
+    ).toBe(false);
+  });
+});

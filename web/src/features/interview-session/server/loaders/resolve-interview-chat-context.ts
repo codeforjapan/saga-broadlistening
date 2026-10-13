@@ -3,15 +3,21 @@ import "server-only";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
-import type { BillWithContent } from "@/features/bills/shared/types";
 import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { getInterviewConfigWithPoliciesById } from "@/features/interview-config/server/loaders/get-interview-config-by-id";
 import { decideInterviewChatAccess } from "../../shared/utils/interview-chat-access";
+import {
+  type BillWithRelatedPolicies,
+  withRelatedPolicies,
+} from "./with-related-policies";
 
 export type InterviewChatContext = {
   interviewConfig: NonNullable<InterviewConfig>;
-  /** プロンプトに載せる施策。抽象テーマ型・未公開施策では null */
-  bill: BillWithContent | null;
+  /**
+   * プロンプトに載せる施策。抽象テーマ型・未公開施策では null。
+   * 同じ意見募集に紐づく他の公開済み施策を related_policies に持つ
+   */
+  bill: BillWithRelatedPolicies | null;
   /** テレメトリと利用コスト記録に残す施策ID */
   policyId: string | null;
   /** 職員のプレビュー（トークン検証済み）。参加条件を問わない */
@@ -73,7 +79,7 @@ export async function resolveInterviewChatContext({
 
   return {
     interviewConfig,
-    bill,
+    bill: await withRelatedPolicies(bill, interviewConfigId),
     policyId: access.policyId,
     isPreview: access.mode === "preview",
   };

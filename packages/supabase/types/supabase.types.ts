@@ -584,13 +584,16 @@ export type Database = {
           allowed_provider_keys: string[]
           chat_model: string
           created_at: string
+          decided_matters: string | null
           deliberation_enabled: boolean
           description: string | null
           ends_at: string | null
           estimated_duration: number | null
           id: string
           name: string
+          opinion_focus: string | null
           participation_mode: Database["public"]["Enums"]["interview_participation_mode_enum"]
+          purpose_type: Database["public"]["Enums"]["interview_purpose_type_enum"] | null
           slug: string
           starts_at: string | null
           status: Database["public"]["Enums"]["interview_config_status_enum"]
@@ -601,13 +604,16 @@ export type Database = {
           allowed_provider_keys?: string[]
           chat_model: string
           created_at?: string
+          decided_matters?: string | null
           deliberation_enabled?: boolean
           description?: string | null
           ends_at?: string | null
           estimated_duration?: number | null
           id?: string
           name: string
+          opinion_focus?: string | null
           participation_mode?: Database["public"]["Enums"]["interview_participation_mode_enum"]
+          purpose_type?: Database["public"]["Enums"]["interview_purpose_type_enum"] | null
           slug: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["interview_config_status_enum"]
@@ -618,13 +624,16 @@ export type Database = {
           allowed_provider_keys?: string[]
           chat_model?: string
           created_at?: string
+          decided_matters?: string | null
           deliberation_enabled?: boolean
           description?: string | null
           ends_at?: string | null
           estimated_duration?: number | null
           id?: string
           name?: string
+          opinion_focus?: string | null
           participation_mode?: Database["public"]["Enums"]["interview_participation_mode_enum"]
+          purpose_type?: Database["public"]["Enums"]["interview_purpose_type_enum"] | null
           slug?: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["interview_config_status_enum"]
@@ -750,6 +759,7 @@ export type Database = {
           id: string
           interview_config_id: string
           rating: number | null
+          stage: Database["public"]["Enums"]["interview_session_stage_enum"]
           started_at: string
           updated_at: string
           user_id: string | null
@@ -762,6 +772,7 @@ export type Database = {
           id?: string
           interview_config_id: string
           rating?: number | null
+          stage?: Database["public"]["Enums"]["interview_session_stage_enum"]
           started_at?: string
           updated_at?: string
           user_id?: string | null
@@ -774,6 +785,7 @@ export type Database = {
           id?: string
           interview_config_id?: string
           rating?: number | null
+          stage?: Database["public"]["Enums"]["interview_session_stage_enum"]
           started_at?: string
           updated_at?: string
           user_id?: string | null
@@ -1791,6 +1803,8 @@ export type Database = {
         | "other"
       interview_mode_enum: "loop" | "bulk" | "targeted"
       interview_participation_mode_enum: "public" | "external_identity"
+      interview_purpose_type_enum: "understand" | "discover" | "verify" | "evaluate" | "envision"
+      interview_session_stage_enum: "chat" | "summary" | "summary_complete"
       interview_report_role_enum:
         | "subject_expert"
         | "work_related"
@@ -1965,6 +1979,8 @@ export const Constants = {
       ],
       interview_mode_enum: ["loop", "bulk", "targeted"],
       interview_participation_mode_enum: ["public", "external_identity"],
+      interview_purpose_type_enum: ["understand", "discover", "verify", "evaluate", "envision"],
+      interview_session_stage_enum: ["chat", "summary", "summary_complete"],
       interview_report_role_enum: [
         "subject_expert",
         "work_related",

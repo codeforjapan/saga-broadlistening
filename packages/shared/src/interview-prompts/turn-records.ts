@@ -1,0 +1,180 @@
+import {
+  parseStructuredOutput,
+  readSignals,
+} from "./read-signals";
+import {
+  buildQuickReplies,
+  RESUME_TOPIC_ID,
+  RESUME_TOPIC_TITLE,
+  resolveChatTurn,
+  resolveSummaryTurn,
+  type SummaryState,
+  type SummaryTurnResult,
+  type TurnState,
+  type TurnTopic,
+} from "./turn-control";
+import type { InterviewStage } from "./types";
+
+/** レスポンスの末尾にサーバーが注入する値 */
+export interface InjectedTurnFields {
+  resolved_question_id: string | null;
+  resolved_topic_title: string | null;
+  quick_replies: string[];
+  next_stage: InterviewStage;
+  chain_summary: boolean;
+}
+
+/** interview_sessions に書き戻すステージ */
+export interface SessionStageUpdate {
+  stage: InterviewStage;
+}
+
+export interface TurnRecord {
+  /** interview_messages.content に保存する JSON 文字列 */
+  content: string;
+  injected: InjectedTurnFields;
+  /** ステージが変わるときだけ */
+  sessionUpdate: SessionStageUpdate | null;
+}
+
+function displayText(
+  parsed: Record<string, unknown> | null,
+  rawText: string
+): string {
+  return typeof parsed?.text === "string" ? parsed.text : rawText;
+}
+
+/**
+ * 進捗バーに出す話題名。LLM が出力した topic_title が空でなければそれを使う。
+ * 話題名はコードでは決めない（interview_questions に名前の列が無いため）。
+ */
+export function readTopicTitle(
+  parsed: Record<string, unknown> | null
+): string | null {
+  const title = parsed?.topic_title;
+  return typeof title === "string" && title.trim() ? title.trim() : null;
+}
+
+/**
+ * chat の生成結果から、保存するメッセージと注入する値を作る。
+ * 本文は表示済みなので作り直さず、question_id などコードが決める値だけを直す。
+ */
+export function buildChatTurnRecord({
+  rawText,
+  state,
+}: {
+  rawText: string;
+  state: TurnState;
+}): TurnRecord {
+  const parsed = parseStructuredOutput(rawText);
+  const signals = readSignals(parsed);
+  const result = resolveChatTurn({
+    state,
+    rawQuestionId: parsed?.question_id,
+  });
+  // 終えたいと言われたか、最後の話題を聞き終えたら要約へ。話題が残っているときの
+  // wrap_up は無視する（途中で打ち切らないため）
+  const toSummary =
+    signals.endRequest || (signals.wrapUp && state.candidates.length === 0);
+  const nextStage: InterviewStage = toSummary ? "summary" : "chat";
+  const topicTitle = readTopicTitle(parsed);
+
+  const stored = {
+    ...parsed,
+    text: displayText(parsed, rawText),
+    question_id: result.questionId,
+    topic_title: topicTitle,
+    quick_replies: result.quickReplies,
+    stage: "chat",
+    next_stage: nextStage,
+    end_request: signals.endRequest,
+    wrap_up: signals.wrapUp,
+    parse_failed: parsed === null,
+  };
+
+  return {
+    content: JSON.stringify(stored),
+    injected: {
+      resolved_question_id: result.questionId,
+      resolved_topic_title: topicTitle,
+      quick_replies: result.quickReplies,
+      next_stage: nextStage,
+      chain_summary: toSummary,
+    },
+    sessionUpdate: toSummary ? { stage: "summary" } : null,
+  };
+}
+
+/**
+ * summary の生成結果から、保存するメッセージ・注入する値・次のステージを作る。
+ */
+export function buildSummaryTurnRecord({
+  rawText,
+  summaryState,
+}: {
+  rawText: string;
+  summaryState: SummaryState;
+}): TurnRecord & { result: SummaryTurnResult } {
+  const parsed = parseStructuredOutput(rawText);
+  const { summaryResponse } = readSignals(parsed);
+  const result = resolveSummaryTurn(summaryState, summaryResponse);
+  const questionId = result.resumed ? RESUME_TOPIC_ID : null;
+  const topicTitle = result.resumed ? RESUME_TOPIC_TITLE : null;
+
+  const stored = {
+    ...parsed,
+    text: displayText(parsed, rawText),
+    // インタビューに戻るときはレポートを残さない（要約の提示と取り違えないため）
+    ...(result.resumed ? { report: null } : {}),
+    question_id: questionId,
+    topic_title: topicTitle,
+    quick_replies: [],
+    stage: "summary",
+    next_stage: result.stage,
+    summary_response: summaryResponse,
+    parse_failed: parsed === null,
+  };
+
+  return {
+    result,
+    content: JSON.stringify(stored),
+    injected: {
+      resolved_question_id: questionId,
+      resolved_topic_title: topicTitle,
+      quick_replies: [],
+      next_stage: result.stage,
+      chain_summary: false,
+    },
+    // 要約の段階が続くときは書き戻さない（場面は発話の記録から決める）
+    sessionUpdate: result.stage === "summary" ? null : { stage: result.stage },
+  };
+}
+
+/** 初回の発話の話題名。進捗バーには最初の話題名ではなくこれを出す */
+export const INITIAL_TOPIC_TITLE = "はじめに";
+
+/**
+ * 初回の発話の保存内容を作る。question_id は最初の話題、選択肢ボタンを付ける。
+ * 制御フラグはコードが false で埋める。
+ */
+export function buildInitialTurnContent({
+  rawText,
+  firstTopic,
+}: {
+  rawText: string;
+  firstTopic: TurnTopic | null;
+}): string {
+  const parsed = parseStructuredOutput(rawText);
+  return JSON.stringify({
+    ...parsed,
+    text: displayText(parsed, rawText),
+    question_id: firstTopic?.id ?? null,
+    topic_title: INITIAL_TOPIC_TITLE,
+    quick_replies: firstTopic ? buildQuickReplies(firstTopic) : [],
+    stage: "chat",
+    next_stage: "chat",
+    end_request: false,
+    wrap_up: false,
+    parse_failed: parsed === null,
+  });
+}

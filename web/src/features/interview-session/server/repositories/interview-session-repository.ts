@@ -8,6 +8,7 @@ import type {
   InterviewReport,
   InterviewReportInsert,
   InterviewSession,
+  InterviewSessionUpdate,
 } from "../../shared/types";
 
 // Epic #54 で interview_report → opinions に再定義された。
@@ -204,6 +205,27 @@ export async function updateInterviewSessionArchived(
 
   if (error) {
     throw new Error(`Failed to archive interview session: ${error.message}`);
+  }
+}
+
+/**
+ * セッションのステージ（chat / summary / summary_complete）を更新する。
+ * ステージはサーバーがターンごとに決める。
+ */
+export async function updateInterviewSessionStage(
+  sessionId: string,
+  update: Pick<InterviewSessionUpdate, "stage">
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("interview_sessions")
+    .update(update)
+    .eq("id", sessionId);
+
+  if (error) {
+    throw new Error(
+      `Failed to update interview session stage: ${error.message}`
+    );
   }
 }
 

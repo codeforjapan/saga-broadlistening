@@ -2,9 +2,9 @@ import "server-only";
 
 import { INTERVIEW_PARTICIPATION_DENIED_MESSAGE } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
+import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
 import type { VerifySessionOwnershipResult } from "../../shared/utils/resolve-ownership";
 import { resolveOwnership } from "../../shared/utils/resolve-ownership";
-import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
 import { findSessionAccessInfoById } from "../repositories/interview-session-repository";
 import {
   getAuthenticatedUser,

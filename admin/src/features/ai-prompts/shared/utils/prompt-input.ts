@@ -42,7 +42,6 @@ export const previewPromptSchema = z
     content: z.string(),
     billId: z.uuid().optional(),
     interviewConfigId: z.uuid().optional(),
-    remainingMinutes: z.number().min(0).max(240).optional(),
     askedQuestionCount: z.number().int().min(0).max(1000).default(0),
     conversation: z.string().max(20000).default(""),
   })

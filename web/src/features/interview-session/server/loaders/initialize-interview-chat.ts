@@ -14,6 +14,7 @@ import {
 } from "../repositories/interview-session-repository";
 import { requireInterviewParticipation } from "../services/resolve-interview-participation";
 import type { SessionAccessDeps } from "../services/verify-session-access";
+import { withRelatedPolicies } from "./with-related-policies";
 
 type InitializeInterviewChatDeps = SessionAccessDeps & {
   model?: LanguageModel;
@@ -96,7 +97,8 @@ export async function initializeInterviewChat(
     const initialQuestion = await generateInitialQuestion({
       sessionId: session.id,
       interviewConfig,
-      bill,
+      // 2問目以降（resolveInterviewChatContext）と同じく、他の紐づく施策も並べる
+      bill: await withRelatedPolicies(bill, interviewConfig.id),
       userId: user.id,
       deps: { model: deps?.model },
     });

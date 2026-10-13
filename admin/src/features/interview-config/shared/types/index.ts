@@ -3,6 +3,10 @@ import {
   PARTICIPATION_MODE_LABELS,
   VALID_PARTICIPATION_MODES,
 } from "@mirai-gikai/shared/interview-participation/participation-mode";
+import {
+  PURPOSE_TYPES,
+  type PurposeType,
+} from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
 import type { Database } from "@mirai-gikai/supabase";
 import { z } from "zod";
 import { isValidChatModel } from "../utils/chat-model-options";
@@ -56,8 +60,7 @@ export const interviewConfigSchema = z
     thumbnail_url: z.string().nullable().optional(),
     /**
      * 紐づける施策のID一覧。施策と意見募集は多対多で、0件（＝抽象テーマ型）も許容する。
-     * 未指定（undefined）のときは紐付けを更新しない。施策配下の画面のように
-     * 紐付けを扱わないフォームから保存しても、既存の紐付けを消さないため。
+     * 未指定（undefined）のときは紐付けを更新しない。
      */
     policy_ids: z.array(z.string().uuid()).optional(),
     /**
@@ -66,6 +69,18 @@ export const interviewConfigSchema = z
      */
     participation_mode: z.enum(VALID_PARTICIPATION_MODES),
     allowed_provider_keys: z.array(z.enum(EXTERNAL_IDENTITY_PROVIDER_KEYS)),
+    /** インタビューの目的（内部の5型）。null は目的未設定（汎用の聞き方） */
+    purpose_type: z.enum(PURPOSE_TYPES).nullable().optional(),
+    opinion_focus: z
+      .string()
+      .max(60, "意見がほしい点は60文字以内で入力してください")
+      .nullable()
+      .optional(),
+    decided_matters: z
+      .string()
+      .max(40, "決まっていることは40文字以内で入力してください")
+      .nullable()
+      .optional(),
   })
   .refine(
     (config) =>
@@ -84,7 +99,7 @@ export const interviewQuestionSchema = z.object({
     .max(1000, "質問文は1000文字以内で入力してください"),
   follow_up_guide: z
     .string()
-    .max(2000, "フォローアップ指針は2000文字以内で入力してください")
+    .max(2000, "観点は2000文字以内で入力してください")
     .optional(),
   quick_replies: z.array(z.string().min(1)).optional(),
 });
@@ -99,3 +114,13 @@ export type InterviewQuestionsInput = z.infer<
 >;
 
 export { arrayToText, textToArray } from "../utils/array-text-conversion";
+
+/**
+ * AI設定生成に渡す、職員がフォームで入力済みの設計。
+ * 送信時点のフォーム値なので、未保存の入力も含む。
+ */
+export type InterviewDesignInput = {
+  purposeType: PurposeType | null;
+  opinionFocus: string | null;
+  decidedMatters: string | null;
+};

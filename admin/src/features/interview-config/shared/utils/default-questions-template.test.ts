@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPurposeTemplateQuestions,
   buildQuestionsFromTemplate,
   DEFAULT_QUESTIONS_TEMPLATE,
   FOLLOW_UP_DEPTH_LIMIT_RULE,
@@ -28,7 +29,7 @@ describe("DEFAULT_QUESTIONS_TEMPLATE", () => {
     expect(slots).toEqual(["topics", "stance"]);
   });
 
-  it("Q4/Q5/Q7 のフォローアップ指針に3往復ルールが含まれる", () => {
+  it("Q4/Q5/Q7 の観点に3往復ルールが含まれる", () => {
     // index 3=Q4(評価), 4=Q5(具体化), 6=Q7(設計者へ)
     for (const i of [3, 4, 6]) {
       expect(DEFAULT_QUESTIONS_TEMPLATE[i].follow_up_guide).toContain(
@@ -161,8 +162,23 @@ describe("buildQuestionsFromTemplate", () => {
     expect(result[1].question).toBe(
       "この施策について、あなたはどんな立場・関わり方に近いですか？"
     );
-    // 固定フォローアップ指針の特徴文言
+    // 固定観点の特徴文言
     expect(result[0].follow_up_guide).toContain("Q2に進む");
     expect(result[1].follow_up_guide).toContain("専門知識レベル");
+  });
+});
+
+describe("buildPurposeTemplateQuestions", () => {
+  it("目的×対象のテンプレートを返す", () => {
+    const questions = buildPurposeTemplateQuestions("verify", "bill");
+    expect(questions).toHaveLength(5);
+    expect(questions[3].quick_replies).toContain("まだ決められない");
+  });
+
+  it("観点・選択肢が無い話題は未指定にする", () => {
+    const questions = buildPurposeTemplateQuestions("verify", "bill");
+    // Q3（案による変化）は選択肢なし、Q5（言い足し）は観点なし
+    expect(questions[2].quick_replies).toBeUndefined();
+    expect(questions[4].follow_up_guide).toBeUndefined();
   });
 });

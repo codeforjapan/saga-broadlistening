@@ -18,6 +18,7 @@ function buildSession(
     updated_at: "2026-01-01T00:10:00Z",
     rating: null,
     external_identity_id: null,
+    stage: "summary_complete",
     interview_report: null,
     interview_messages: [],
     ...overrides,

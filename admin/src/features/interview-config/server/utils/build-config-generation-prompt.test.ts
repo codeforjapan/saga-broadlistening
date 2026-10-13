@@ -1,5 +1,10 @@
+import { purposeDisplayName } from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
 import { describe, expect, it } from "vitest";
-import { buildConfigGenerationPrompt } from "./build-config-generation-prompt";
+import {
+  buildConfigGenerationPrompt,
+  buildDesignSection,
+  buildQuestionRewriteRules,
+} from "./build-config-generation-prompt";
 
 const billSubject = {
   kind: "bill" as const,
@@ -85,7 +90,7 @@ describe("buildConfigGenerationPrompt", () => {
         confirmedQuestions: [
           {
             question: "質問A",
-            follow_up_guide: "フォローアップ指針A",
+            follow_up_guide: "観点A",
             quick_replies: ["選択肢1", "選択肢2"],
           },
           { question: "質問B" },
@@ -93,7 +98,7 @@ describe("buildConfigGenerationPrompt", () => {
       });
       expect(result).toContain("## 確定済みの質問");
       expect(result).toContain("1. 質問A");
-      expect(result).toContain("フォローアップ指針: フォローアップ指針A");
+      expect(result).toContain("観点: 観点A");
       expect(result).toContain("選択肢: 選択肢1, 選択肢2");
       expect(result).toContain("2. 質問B");
     });
@@ -146,18 +151,27 @@ describe("buildConfigGenerationPrompt", () => {
       expect(result).toContain("質問提案のガイドライン");
     });
 
-    it("施策型ではフォローアップを1往復までに留める", () => {
-      const result = buildConfigGenerationPrompt(questionParams);
-      expect(result).toContain("1往復までの追加確認に留める");
-    });
-
-    it("テーマ型ではフォローアップを1往復に絞らない", () => {
+    it.each([
+      { kind: "bill" as const },
+      { kind: "theme" as const },
+    ])("$kind 型でも共通の書き直しルールを含み、回数を書かせない", ({
+      kind,
+    }) => {
       const result = buildConfigGenerationPrompt({
         ...questionParams,
-        subject: { kind: "theme", themeName: "佐賀での暮らし" },
+        ...(kind === "theme"
+          ? { subject: { kind: "theme" as const, themeName: "佐賀での暮らし" } }
+          : {}),
       });
+      expect(result).toContain("「なぜ」で理由を問う質問文を書かない");
+      expect(result).toContain("質問文に答えの候補を書かない");
+      expect(result).toContain("「決まっていること」の賛否を聞かない");
+      expect(result).toContain("**2つまで**");
+      expect(result).toContain(
+        "回数（「1往復まで」「2〜3回深掘り」など）を書かない"
+      );
       expect(result).not.toContain("1往復までの追加確認に留める");
-      expect(result).toContain("2〜3往復まで深掘りしてよい");
+      expect(result).not.toContain("2〜3往復まで深掘りしてよい");
     });
 
     it("出力形式にquestionsを指定する", () => {
@@ -178,7 +192,7 @@ describe("buildConfigGenerationPrompt", () => {
       });
       expect(result).toContain("## 現在設定されている質問");
       expect(result).toContain("1. 既存質問1");
-      expect(result).toContain("フォローアップ指針: 既存フォローアップ");
+      expect(result).toContain("観点: 既存フォローアップ");
       expect(result).toContain("選択肢: 選択肢1");
       expect(result).toContain("ブラッシュアップ");
     });
@@ -186,7 +200,7 @@ describe("buildConfigGenerationPrompt", () => {
     it("各質問フィールドの説明を含む", () => {
       const result = buildConfigGenerationPrompt(questionParams);
       expect(result).toContain("question: 質問文");
-      expect(result).toContain("follow_up_guide: フォローアップ指針");
+      expect(result).toContain("follow_up_guide: 観点");
       expect(result).toContain("quick_replies: クイックリプライの選択肢");
     });
 
@@ -246,5 +260,126 @@ describe("buildConfigGenerationPrompt", () => {
         "## ナレッジソース（チームの仮説や補足情報）"
       );
     });
+  });
+});
+
+describe("buildDesignSection", () => {
+  const themeSubject = { kind: "theme" as const, themeName: "佐賀市のみらい" };
+
+  it("入力済みの目的・決めること・決まっていることを並べる", () => {
+    const result = buildDesignSection(
+      {
+        purposeType: "discover",
+        opinionFocus: "路線の優先順位",
+        decidedMatters: "来年度から運行開始",
+      },
+      billSubject
+    );
+
+    expect(result).toContain("## 意見募集の設計（管理者が入力済み）");
+    expect(result).toContain(
+      `- 目的: ${purposeDisplayName("discover", "bill")}`
+    );
+    expect(result).toContain("- 市がこれから決めること: 路線の優先順位");
+    expect(result).toContain(
+      "- 決まっていること（賛否を聞かない）: 来年度から運行開始"
+    );
+  });
+
+  it("施策がないときは、決まっていることを載せない", () => {
+    const result = buildDesignSection(
+      {
+        purposeType: "discover",
+        opinionFocus: null,
+        decidedMatters: "来年度から運行開始",
+      },
+      themeSubject
+    );
+
+    expect(result).toContain(
+      `- 目的: ${purposeDisplayName("discover", "theme")}`
+    );
+    expect(result).not.toContain("決まっていること");
+  });
+
+  it("何も入力されていなければセクションを出さない", () => {
+    expect(
+      buildDesignSection(
+        { purposeType: null, opinionFocus: "  ", decidedMatters: null },
+        billSubject
+      )
+    ).toBe("");
+    expect(buildDesignSection(undefined, billSubject)).toBe("");
+  });
+});
+
+describe("buildConfigGenerationPrompt（職員が入力済みの設計と説明）", () => {
+  it("生成プロンプトの題材セクションの直後に入る", () => {
+    const result = buildConfigGenerationPrompt({
+      ...baseParams,
+      design: {
+        purposeType: null,
+        opinionFocus: "路線の優先順位",
+        decidedMatters: null,
+      },
+    });
+
+    expect(result.indexOf("## 施策情報")).toBeLessThan(
+      result.indexOf("## 意見募集の設計")
+    );
+    expect(result).toContain("- 市がこれから決めること: 路線の優先順位");
+  });
+
+  it("施策があるときも、テーマの説明は施策情報のセクションに添える", () => {
+    const result = buildConfigGenerationPrompt({
+      ...baseParams,
+      subject: {
+        ...billSubject,
+        description: "通勤・通学の足について聞きます",
+      },
+    });
+
+    expect(result).toContain("- テーマの説明:\n通勤・通学の足について聞きます");
+  });
+});
+
+describe("buildQuestionRewriteRules", () => {
+  it("目的がないときは、深掘りにあたる質問を作らせず、観点にまとめさせる", () => {
+    const rules = buildQuestionRewriteRules(undefined, billSubject);
+
+    expect(rules).toContain("関わり → 場面 → 影響・受け止め");
+    expect(rules).toContain("深掘りにあたる質問は作らない");
+    expect(rules).toContain("質問の数は減ってよい");
+    expect(rules).toContain("残す質問の順番は変えない");
+    expect(rules).toContain("入りきらない分は落とす");
+    expect(rules).not.toContain("場面 → 理由 → 受け止め");
+  });
+
+  it("目的があるときは、目的別テンプレートの並びを保たせ、深掘りの質問を消させない", () => {
+    const rules = buildQuestionRewriteRules(
+      { purposeType: "understand", opinionFocus: null, decidedMatters: null },
+      billSubject
+    );
+
+    expect(rules).toContain(
+      `目的「${purposeDisplayName("understand", "bill")}」の質問の並びを保つ`
+    );
+    expect(rules).toContain("追加・削除・統合・並べ替えはせず");
+    expect(rules).not.toContain("深掘りにあたる質問は作らない");
+    expect(rules).not.toContain("質問の数は減ってよい");
+  });
+
+  it("質問提案のプロンプトには、設計の目的に応じたルールが入る", () => {
+    const result = buildConfigGenerationPrompt({
+      ...baseParams,
+      stage: "question_proposal",
+      design: {
+        purposeType: "discover",
+        opinionFocus: null,
+        decidedMatters: null,
+      },
+    });
+
+    expect(result).toContain("の質問の並びを保つ");
   });
 });

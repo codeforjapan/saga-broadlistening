@@ -8,6 +8,12 @@ import {
   PARTICIPATION_MODE_LABELS,
   VALID_PARTICIPATION_MODES,
 } from "@mirai-gikai/shared/interview-participation/participation-mode";
+import {
+  PURPOSE_OPTIONS,
+  type PurposeOptionKey,
+  resolvePurposeType,
+  toPurposeSelection,
+} from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
 import { Eye } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
@@ -16,9 +22,10 @@ import { useEffect, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { AiModelSelect } from "@/components/ai-model-select";
+import { CheckboxGroup } from "@/components/checkbox-group";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckboxGroup } from "@/components/checkbox-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -59,7 +66,7 @@ export type PolicyOption = { id: string; name: string };
 
 /**
  * フォームの現在値。保存時に渡す形と同じで、任意項目は null に揃えてある。
- * 読み手（AI生成からの自動作成・シミュレーション）が undefined を都度潰さずに済む。
+ * 読み手（AI生成への送信・シミュレーション）が undefined を都度潰さずに済む。
  */
 export type InterviewConfigFormValues = InterviewConfigInput & {
   description: string | null;
@@ -69,12 +76,6 @@ export type InterviewConfigFormValues = InterviewConfigInput & {
 
 interface InterviewConfigFormProps {
   modelGroups: ChatModelGroup[];
-  /**
-   * 施策配下のフォームから開いたときの施策ID。
-   * テーマ単独のフォーム（抽象テーマ型）では null になる。
-   * プレビューは施策単位で発行するため、null のときは出さない。
-   */
-  billId: string | null;
   config: InterviewConfig | null;
   aiGeneratedThemes?: string[] | null;
   onAiThemesApplied?: () => void;
@@ -83,18 +84,14 @@ interface InterviewConfigFormProps {
   getFormValuesRef?: MutableRefObject<(() => InterviewConfigFormValues) | null>;
   /** 新規作成時の設定名初期値（ログインユーザー名） */
   initialName?: string | null;
-  /**
-   * 紐づけ先として選べる施策の一覧。渡されたときだけ紐づけ欄を出す。
-   * 施策配下のフォームでは渡さず、その施策との紐づけを維持する。
-   */
-  policyOptions?: PolicyOption[];
-  /** 現在紐づいている施策のID一覧 */
-  linkedPolicyIds?: string[];
+  /** 紐づけ先として選べる施策の一覧 */
+  policyOptions: PolicyOption[];
+  /** 現在紐づいている施策のID一覧。新規作成では、施策のページから来たときにその施策が入る */
+  linkedPolicyIds: string[];
 }
 
 export function InterviewConfigForm({
   modelGroups,
-  billId,
   config,
   aiGeneratedThemes,
   onAiThemesApplied,
@@ -107,8 +104,6 @@ export function InterviewConfigForm({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isNew = !config;
-  // 紐づけ欄を出すかどうか。施策配下のフォームでは出さず、その施策との紐づけを維持する
-  const canEditPolicyLinks = policyOptions !== undefined;
 
   const form = useForm<InterviewConfigInput>({
     resolver: zodResolver(interviewConfigSchema),
@@ -121,13 +116,15 @@ export function InterviewConfigForm({
       estimated_duration: isNew ? 10 : (config?.estimated_duration ?? null),
       thumbnail_url: config?.thumbnail_url ?? null,
       ...toParticipationFormValues(config),
-      // 紐づけ欄を出さないフォームでは undefined のままにして、保存時に紐づけへ触れない
-      policy_ids: canEditPolicyLinks ? (linkedPolicyIds ?? []) : undefined,
+      purpose_type: config?.purpose_type ?? null,
+      opinion_focus: config?.opinion_focus ?? "",
+      decided_matters: config?.decided_matters ?? "",
+      policy_ids: linkedPolicyIds,
     },
   });
 
   // 親コンポーネントからフォーム値を読み取れるようにする。
-  // AI生成からの自動作成もこの値をそのまま保存するため、一部だけ返さないこと
+  // AI生成への送信やシミュレーションもこの値を読むため、一部だけ返さないこと
   useEffect(() => {
     if (getFormValuesRef) {
       getFormValuesRef.current = () => {
@@ -149,7 +146,9 @@ export function InterviewConfigForm({
         shouldDirty: true,
       });
       onAiThemesApplied?.();
-      toast.success(`AIが${aiGeneratedThemes.length}件のテーマを設定しました`);
+      toast.success(
+        `AIが${aiGeneratedThemes.length}件のテーマを説明欄に反映しました（保存すると確定します）`
+      );
     }
   }, [aiGeneratedThemes, form, onAiThemesApplied]);
 
@@ -157,13 +156,7 @@ export function InterviewConfigForm({
     setIsSubmitting(true);
     try {
       const result = isNew
-        ? await createInterviewConfig({
-            ...data,
-            // 施策配下の新規作成では、開いている施策との紐づけを必ず作る。
-            // 更新は policy_ids を送らない（＝紐づけに触れない）ままにして、
-            // 他の施策との紐づけを失わないようにする
-            policy_ids: billId ? [billId] : (data.policy_ids ?? []),
-          })
+        ? await createInterviewConfig(data)
         : await updateInterviewConfig(config.id, data);
 
       if (result.success) {
@@ -173,11 +166,7 @@ export function InterviewConfigForm({
             await onConfigCreated(result.data.id);
           }
           toast.success("インタビュー設定を作成しました");
-          router.push(
-            (billId
-              ? routes.billInterviewEdit(billId, result.data.id)
-              : routes.interviewEdit(result.data.id)) as Route
-          );
+          router.push(routes.interviewEdit(result.data.id) as Route);
         } else {
           toast.success("インタビュー設定を保存しました");
           router.refresh();
@@ -202,9 +191,11 @@ export function InterviewConfigForm({
 
   const [isPreviewing, setIsPreviewing] = useState(false);
   const participationMode = form.watch("participation_mode");
+  // プレビューは施策単位で発行するため、紐づく施策の先頭で開く
+  const previewPolicyId = form.watch("policy_ids")?.[0] ?? null;
   const handlePreview = async () => {
-    if (!config || !billId) {
-      toast.error("プレビューは施策に紐づく設定を保存した後に利用できます");
+    if (!config || !previewPolicyId) {
+      toast.error("プレビューは施策を紐づけると利用できます");
       return;
     }
 
@@ -226,7 +217,7 @@ export function InterviewConfigForm({
       }
 
       // 2. プレビューURL生成
-      const result = await generateInterviewPreviewUrl(billId);
+      const result = await generateInterviewPreviewUrl(previewPolicyId);
 
       if (result.success && result.url) {
         window.open(result.url, "_blank");
@@ -243,7 +234,7 @@ export function InterviewConfigForm({
 
   return (
     <div className="space-y-4">
-      {config && billId && (
+      {config && previewPolicyId && (
         <div className="flex justify-end">
           <Button
             type="button"
@@ -459,37 +450,150 @@ export function InterviewConfigForm({
                 )}
               />
 
-              {policyOptions && (
-                <FormField
-                  control={form.control}
-                  name="policy_ids"
-                  render={({ field }) => (
+              <FormField
+                control={form.control}
+                name="purpose_type"
+                render={({ field }) => {
+                  const selection = field.value
+                    ? toPurposeSelection(field.value)
+                    : null;
+                  const option = PURPOSE_OPTIONS.find(
+                    (o) => o.key === selection?.optionKey
+                  );
+                  return (
                     <FormItem>
-                      <FormLabel>紐づく施策</FormLabel>
-                      <FormDescription>
-                        この意見募集を紐づける施策を選びます。1件も選ばない場合は、特定の施策に紐づかないテーマ（抽象テーマ）になります。
-                      </FormDescription>
-                      {policyOptions.length === 0 ? (
-                        <p className="text-sm text-gray-500">
-                          紐づけられる施策がありません。
-                        </p>
-                      ) : (
-                        <CheckboxGroup
-                          idPrefix="policy-link"
-                          options={policyOptions.map((o) => ({
-                            id: o.id,
-                            label: o.name,
-                          }))}
-                          value={field.value ?? []}
-                          onChange={field.onChange}
-                          className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3"
-                        />
+                      <FormLabel>目的</FormLabel>
+                      <Select
+                        value={selection?.optionKey ?? "unset"}
+                        onValueChange={(value) =>
+                          field.onChange(
+                            value === "unset"
+                              ? null
+                              : resolvePurposeType(
+                                  value as PurposeOptionKey,
+                                  false
+                                )
+                          )
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="目的を選択" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="unset">
+                            未設定（汎用の聞き方）
+                          </SelectItem>
+                          {PURPOSE_OPTIONS.map((o) => (
+                            <SelectItem key={o.key} value={o.key}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selection && option?.checkLabel && (
+                        <label
+                          htmlFor="purpose-check"
+                          className="flex cursor-pointer items-center gap-2 text-sm"
+                        >
+                          <Checkbox
+                            id="purpose-check"
+                            checked={selection.checked}
+                            onCheckedChange={(checked) =>
+                              field.onChange(
+                                resolvePurposeType(
+                                  selection.optionKey,
+                                  checked === true
+                                )
+                              )
+                            }
+                          />
+                          {option.checkLabel}
+                        </label>
                       )}
+                      <FormDescription>
+                        AIの聞き方と、質問テンプレートが目的で決まります。保存後、質問一覧の「目的のテンプレートを適用」で下書きを入れられます。
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
-                  )}
-                />
-              )}
+                  );
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="opinion_focus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      意見がほしい点（市がこれから決めること）
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="例: どの路線をどう変えるか"
+                        maxLength={60}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormDescription>60文字まで</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="decided_matters"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>決まっていること（任意）</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="例: 2027年度に路線を見直すこと"
+                        maxLength={40}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      40文字まで。施策に紐づく意見募集のときだけ使います（AIはこの点の賛否を聞きません）
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="policy_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>紐づく施策</FormLabel>
+                    <FormDescription>
+                      この意見募集を紐づける施策を選びます。1件も選ばない場合は、特定の施策に紐づかないテーマ（抽象テーマ）になります。
+                    </FormDescription>
+                    {policyOptions.length === 0 ? (
+                      <p className="text-sm text-gray-500">
+                        紐づけられる施策がありません。
+                      </p>
+                    ) : (
+                      <CheckboxGroup
+                        idPrefix="policy-link"
+                        options={policyOptions.map((o) => ({
+                          id: o.id,
+                          label: o.name,
+                        }))}
+                        value={field.value ?? []}
+                        onChange={field.onChange}
+                        className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3"
+                      />
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

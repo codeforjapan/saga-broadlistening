@@ -1,5 +1,6 @@
 "use client";
 
+import { PARTICIPATION_MODE_FIELD_LABEL } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import {
   BarChart3,
   Copy,
@@ -14,7 +15,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,12 +49,11 @@ import {
 } from "../../server/actions/upsert-interview-config";
 import type { InterviewConfig } from "../../shared/types";
 import { getStatusLabel } from "../../shared/utils/get-status-label";
-import { PARTICIPATION_MODE_FIELD_LABEL } from "@mirai-gikai/shared/interview-participation/participation-mode";
-import { ParticipationModeBadge } from "./participation-mode-badge";
 import {
   type BillOption,
   CopyConfigToBillDialog,
 } from "./copy-config-to-bill-dialog";
+import { ParticipationModeBadge } from "./participation-mode-badge";
 
 interface InterviewConfigListProps {
   billId: string;
@@ -95,7 +94,7 @@ export function InterviewConfigList({
       const result = await duplicateInterviewConfig(configId);
       if (result.success) {
         toast.success("インタビュー設定を複製しました");
-        router.push(routes.billInterviewEdit(billId, result.data.id) as Route);
+        router.push(routes.interviewEdit(result.data.id) as Route);
       } else {
         toast.error(result.error || "複製に失敗しました");
       }
@@ -140,7 +139,7 @@ export function InterviewConfigList({
           <div className="text-sm text-gray-600">
             {configs.length}件のインタビュー設定
           </div>
-          <Link href={routes.billInterviewNew(billId) as Route}>
+          <Link href={routes.interviewNewForPolicy(billId) as Route}>
             <Button size="sm">
               <Plus className="mr-2 h-4 w-4" />
               新規作成
@@ -171,9 +170,7 @@ export function InterviewConfigList({
                   <TableRow key={config.id}>
                     <TableCell>
                       <Link
-                        href={
-                          routes.billInterviewEdit(billId, config.id) as Route
-                        }
+                        href={routes.interviewEdit(config.id) as Route}
                         className="font-medium hover:underline"
                       >
                         {config.name}
@@ -233,12 +230,7 @@ export function InterviewConfigList({
                               asChild
                             >
                               <Link
-                                href={
-                                  routes.billInterviewEdit(
-                                    billId,
-                                    config.id
-                                  ) as Route
-                                }
+                                href={routes.interviewEdit(config.id) as Route}
                               >
                                 <Pencil className="h-4 w-4" />
                               </Link>

@@ -1,4 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { getPurposeTemplateSteps } from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
+import type {
+  InterviewSubjectKind,
+  PurposeType,
+} from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
 import type { Database } from "@mirai-gikai/supabase";
 import { withDefaults } from "../shared/insert-seed";
 import { pickRespondent } from "../shared/respondents";
@@ -233,6 +238,10 @@ export function createInterviewConfig(): InterviewConfigInsert {
     chat_model: DEFAULT_CHAT_MODEL,
     estimated_duration: 10,
     starts_at: "2025-08-01T00:00:00+09:00",
+    // 目的別テンプレート（確かめる×施策）の確認用
+    purpose_type: "verify",
+    opinion_focus: "廃止後の財源をどう確保するか、移行期間をどう設けるか",
+    decided_matters: "暫定税率を見直すこと",
   };
 }
 
@@ -259,6 +268,10 @@ export const additionalInterviewConfigs: InterviewConfigInsert[] = [
     chat_model: DEFAULT_CHAT_MODEL,
     estimated_duration: 15,
     deliberation_enabled: true,
+    // 目的別テンプレート（描く×テーマ）の確認用
+    purpose_type: "envision",
+    opinion_focus:
+      "次の総合計画で描く「10年後の佐賀市」の将来像の言葉と、重点にする分野",
   },
   {
     name: "子育て支援について",
@@ -307,30 +320,22 @@ export const additionalInterviewConfigs: InterviewConfigInsert[] = [
   },
 ];
 
-// インタビュー質問を作成
+/**
+ * 目的別テンプレート（第6章）からインタビュー質問を作成する。
+ * 文言・観点・選択肢はテンプレートの下書きをそのまま使う。
+ */
 export function createInterviewQuestions(
-  interviewConfigId: string
+  interviewConfigId: string,
+  purposeType: PurposeType = "verify",
+  subject: InterviewSubjectKind = "bill"
 ): Omit<InterviewQuestionInsert, "id" | "created_at" | "updated_at">[] {
-  return [
-    {
-      interview_config_id: interviewConfigId,
-      question: "この施策について、まず率直に感じたことを教えてください。",
-      follow_up_guide: "回答者の関心のありかを明確にしてください。",
-      quick_replies: [
-        "暮らしに関係がありそう",
-        "気になる点がある",
-        "まだよく分からない",
-      ],
-      question_order: 1,
-    },
-    {
-      interview_config_id: interviewConfigId,
-      question: "そう感じる理由を教えてください。",
-      follow_up_guide: "具体的な経験や背景を引き出してください。",
-      quick_replies: null,
-      question_order: 2,
-    },
-  ];
+  return getPurposeTemplateSteps(purposeType, subject).map((step, index) => ({
+    interview_config_id: interviewConfigId,
+    question: step.question,
+    follow_up_guide: step.follow_up_guide,
+    quick_replies: step.quick_replies.length > 0 ? step.quick_replies : null,
+    question_order: index + 1,
+  }));
 }
 
 /**

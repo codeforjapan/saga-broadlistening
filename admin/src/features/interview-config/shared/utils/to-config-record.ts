@@ -16,5 +16,8 @@ export function toConfigRecord(validatedData: InterviewConfigInput) {
       validatedData.participation_mode === "external_identity"
         ? validatedData.allowed_provider_keys
         : [],
+    purpose_type: validatedData.purpose_type ?? null,
+    opinion_focus: validatedData.opinion_focus?.trim() || null,
+    decided_matters: validatedData.decided_matters?.trim() || null,
   };
 }

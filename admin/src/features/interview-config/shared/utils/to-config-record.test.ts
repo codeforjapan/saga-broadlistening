@@ -26,6 +26,26 @@ describe("toConfigRecord", () => {
       thumbnail_url: null,
       participation_mode: "public",
       allowed_provider_keys: [],
+      purpose_type: null,
+      opinion_focus: null,
+      decided_matters: null,
+    });
+  });
+
+  it("目的と意見がほしい点を、前後の空白を除いて保存する", () => {
+    expect(
+      toConfigRecord({
+        name: "市民意見",
+        slug: "citizen-voices",
+        status: "draft",
+        participation_mode: "public",
+        allowed_provider_keys: [],
+        purpose_type: "verify",
+        opinion_focus: " どの路線をどう変えるか ",
+      })
+    ).toMatchObject({
+      purpose_type: "verify",
+      opinion_focus: "どの路線をどう変えるか",
     });
   });
 

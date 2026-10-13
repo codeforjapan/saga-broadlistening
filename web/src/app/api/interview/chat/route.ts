@@ -5,7 +5,10 @@ import {
 } from "@/features/chat/server/services/system-cost-guard";
 import { chatErrorToResponse } from "@/features/chat/server/utils/chat-error-response";
 import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
-import { handleInterviewChatRequest } from "@/features/interview-session/server/services/handle-interview-chat-request";
+import {
+  handleInterviewChatRequest,
+  InterviewAlreadyCompletedError,
+} from "@/features/interview-session/server/services/handle-interview-chat-request";
 import { jsonResponse } from "@/lib/api/response";
 import {
   flushTelemetry,
@@ -22,14 +25,14 @@ export async function POST(req: Request) {
   const {
     messages,
     interviewConfigId,
-    currentStage,
+    action,
     isRetry,
     previewPolicyId,
     previewToken,
   }: {
     messages: Array<{ role: string; content: string }>;
     interviewConfigId: string;
-    currentStage: "chat" | "summary" | "summary_complete";
+    action?: unknown;
     isRetry?: boolean;
     previewPolicyId?: unknown;
     previewToken?: unknown;
@@ -56,7 +59,7 @@ export async function POST(req: Request) {
     return await handleInterviewChatRequest({
       messages,
       interviewConfigId,
-      currentStage,
+      action: action === "end" ? "end" : undefined,
       isRetry,
       // 文字列以外は検証対象にしない（不正な型のトークンは未指定として扱う）
       previewPolicyId:
@@ -65,6 +68,9 @@ export async function POST(req: Request) {
       userId: user.id,
     });
   } catch (error) {
+    if (error instanceof InterviewAlreadyCompletedError) {
+      return jsonResponse({ error: "Interview already completed" }, 409);
+    }
     console.error("Interview chat request error:", error);
     return chatErrorToResponse(error);
   }

@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { handleConfigGeneration } from "@/features/interview-config/server/services/handle-config-generation";
 import type { ConfigGenerationStage } from "@/features/interview-config/shared/schemas";
+import type { InterviewDesignInput } from "@/features/interview-config/shared/types";
 
 export async function POST(req: Request) {
   try {
@@ -12,18 +13,21 @@ export async function POST(req: Request) {
   const body = await req.json();
   const {
     messages,
-    billId,
     themeName,
     themeDescription,
+    purposeType,
+    opinionFocus,
+    decidedMatters,
+    policyIds,
     stage,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   }: {
     messages: Array<{ role: string; content: string }>;
-    billId: string | null;
     themeName?: string | null;
     themeDescription?: string | null;
+    policyIds?: string[];
     stage: Extract<
       ConfigGenerationStage,
       "default_questions" | "question_proposal" | "theme_proposal"
@@ -39,12 +43,12 @@ export async function POST(req: Request) {
       follow_up_guide?: string | null;
       quick_replies?: string[] | null;
     }>;
-  } = body;
+  } & Partial<InterviewDesignInput> = body;
 
   // 抽象テーマ型には施策がないため、代わりにテーマ名を手がかりにする
-  if (!billId && !themeName?.trim()) {
+  if (!policyIds?.length && !themeName?.trim()) {
     return new Response(
-      JSON.stringify({ error: "billId or themeName is required" }),
+      JSON.stringify({ error: "policyIds or themeName is required" }),
       {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -55,9 +59,14 @@ export async function POST(req: Request) {
   try {
     return await handleConfigGeneration({
       messages,
-      billId,
       themeName,
       themeDescription,
+      policyIds,
+      design: {
+        purposeType: purposeType ?? null,
+        opinionFocus: opinionFocus ?? null,
+        decidedMatters: decidedMatters ?? null,
+      },
       stage,
       existingThemes,
       existingQuestions,
