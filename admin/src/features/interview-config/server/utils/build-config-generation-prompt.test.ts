@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildConfigGenerationPrompt,
   buildDesignSection,
+  buildQuestionRewriteRules,
 } from "./build-config-generation-prompt";
 
 const billSubject = {
@@ -153,14 +154,16 @@ describe("buildConfigGenerationPrompt", () => {
     it.each([
       { kind: "bill" as const },
       { kind: "theme" as const },
-    ])("$kind 型でも書き直しのルールを含み、回数を書かせない", ({ kind }) => {
+    ])("$kind 型でも共通の書き直しルールを含み、回数を書かせない", ({
+      kind,
+    }) => {
       const result = buildConfigGenerationPrompt({
         ...questionParams,
         ...(kind === "theme"
           ? { subject: { kind: "theme" as const, themeName: "佐賀での暮らし" } }
           : {}),
       });
-      expect(result).toContain("質問の順番を変えないこと");
+      expect(result).toContain("「なぜ」で理由を問う質問文を書かない");
       expect(result).toContain("質問文に答えの候補を書かない");
       expect(result).toContain("「決まっていること」の賛否を聞かない");
       expect(result).toContain("**2つまで**");
@@ -337,5 +340,46 @@ describe("buildConfigGenerationPrompt（職員が入力済みの設計と説明�
     });
 
     expect(result).toContain("- テーマの説明:\n通勤・通学の足について聞きます");
+  });
+});
+
+describe("buildQuestionRewriteRules", () => {
+  it("目的がないときは、深掘りにあたる質問を作らせず、観点にまとめさせる", () => {
+    const rules = buildQuestionRewriteRules(undefined, billSubject);
+
+    expect(rules).toContain("関わり → 場面 → 影響・受け止め");
+    expect(rules).toContain("深掘りにあたる質問は作らない");
+    expect(rules).toContain("質問の数は減ってよい");
+    expect(rules).toContain("残す質問の順番は変えない");
+    expect(rules).toContain("入りきらない分は落とす");
+    expect(rules).not.toContain("場面 → 理由 → 受け止め");
+  });
+
+  it("目的があるときは、目的別テンプレートの並びを保たせ、深掘りの質問を消させない", () => {
+    const rules = buildQuestionRewriteRules(
+      { purposeType: "understand", opinionFocus: null, decidedMatters: null },
+      billSubject
+    );
+
+    expect(rules).toContain(
+      `目的「${purposeDisplayName("understand", "bill")}」の質問の並びを保つ`
+    );
+    expect(rules).toContain("追加・削除・統合・並べ替えはせず");
+    expect(rules).not.toContain("深掘りにあたる質問は作らない");
+    expect(rules).not.toContain("質問の数は減ってよい");
+  });
+
+  it("質問提案のプロンプトには、設計の目的に応じたルールが入る", () => {
+    const result = buildConfigGenerationPrompt({
+      ...baseParams,
+      stage: "question_proposal",
+      design: {
+        purposeType: "discover",
+        opinionFocus: null,
+        decidedMatters: null,
+      },
+    });
+
+    expect(result).toContain("の質問の並びを保つ");
   });
 });
