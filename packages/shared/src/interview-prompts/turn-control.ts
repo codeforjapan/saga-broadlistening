@@ -8,46 +8,34 @@ import {
   DEFAULT_TURN_BUDGET,
   MAX_TURN_BUDGET,
   MIN_TURN_BUDGET,
-  RESUME_MIN_REMAINING_TURNS,
+  QUESTION_TURN_LIMIT,
+  RESUME_MIN_SUMMARY_TURNS,
   RESUME_TURN_BUDGET,
   SIDE_TURN_EXEMPT_PER_TOPIC,
   SKIP_QUESTION_REPLY,
-  SUMMARY_RESERVE_TURNS,
-  SUMMARY_START_TURN,
-  TURN_LIMIT,
+  SUMMARY_TURN_LIMIT,
 } from "./constants";
-import { findPurposeStepTitle } from "./purpose-types/registry";
 import type {
-  InterviewSubjectKind,
-  PurposeType,
-  StepKind,
-} from "./purpose-types/types";
-import type {
-  InterviewConfig,
-  InterviewEndReason,
   InterviewQuestion,
   InterviewStage,
   SummaryPhase,
-  PromptBillInput,
   SummaryResponse,
 } from "./types";
 
 /** summary から chat に戻ったときに開く話題の ID（interview_questions には無い） */
 export const RESUME_TOPIC_ID = "resume";
 
-/** 受け止めの質問に必ず含める選択肢 */
-export const UNDECIDED_REPLY = "まだ決められない";
+/** 再開の話題の名前（進捗バーに出す） */
+export const RESUME_TOPIC_TITLE = "付け足し";
 
 export interface TurnTopic {
   /** interview_questions.id（再開の話題は RESUME_TOPIC_ID） */
   id: string;
   /** プロンプトで使う短い ID（Q1, Q2 … / 再開は R） */
   label: string;
-  title: string;
-  kind: StepKind;
   turnBudget: number;
-  required: boolean;
-  hint: string | null;
+  /** 聞けたら話が豊かになる観点（interview_questions.follow_up_guide） */
+  followUpGuide: string | null;
   question: string;
   quickReplies: string[];
   /** interview_questions にある事前定義の話題か（再開の話題は false） */
@@ -58,22 +46,22 @@ export interface TurnTopic {
 export interface AssistantTurnMeta {
   questionId: string | null;
   budgetExempt: boolean;
+  /** その発話を生成したステージ。記録の無い古い発話は null（chat として扱う） */
+  stage: InterviewStage | null;
 }
 
 export interface TurnState {
-  /** これまでのAIの発話数 */
-  assistantTurn: number;
-  /** TURN_LIMIT までの残り */
-  remainingTurns: number;
+  /** これまでの質問の発話数（最初の発話と要約の段階の発話は数えない） */
+  questionTurn: number;
+  /** QUESTION_TURN_LIMIT までの残り（今回を含む） */
+  remainingQuestionTurns: number;
   /** いまの話題（話題が1つもない設定では null） */
   current: TurnTopic | null;
   /** いまの話題で使える発話（今回を含む） */
   left: number;
   next: TurnTopic | null;
-  /** まだ聞いていない必須の話題（いまの話題より後） */
-  remainingRequired: TurnTopic[];
-  /** まだ聞いていない任意の話題（いまの話題より後。聞くかはシステムが決める） */
-  pendingOptional: TurnTopic[];
+  /** まだ聞いていない話題（いまの話題より後） */
+  remainingTopics: TurnTopic[];
   /** これまでに聞いた話題の ID */
   askedIds: Set<string>;
 }
@@ -84,54 +72,63 @@ function clampBudget(value: number | null | undefined): number {
 }
 
 /** interview_questions の並びを、ターン制御の話題にする */
-export function buildTurnTopics(
-  questions: InterviewQuestion[],
-  {
-    purposeType,
-    subject,
-  }: { purposeType: PurposeType | null; subject: InterviewSubjectKind }
-): TurnTopic[] {
+export function buildTurnTopics(questions: InterviewQuestion[]): TurnTopic[] {
   return questions.map((q, index) => ({
     id: q.id,
     label: `Q${index + 1}`,
-    title:
-      findPurposeStepTitle(purposeType, subject, q.step_key) ??
-      `質問${index + 1}`,
-    kind: q.step_kind ?? "episode",
     turnBudget: clampBudget(q.turn_budget),
-    required: q.required ?? true,
-    hint: q.hint?.trim() || null,
+    followUpGuide: q.follow_up_guide?.trim() || null,
     question: q.question,
     quickReplies: (q.quick_replies ?? []).filter((r) => r.trim().length > 0),
     predefined: true,
   }));
 }
 
-/** 意見募集の設定（目的）と施策の有無から、話題を組み立てる */
-export function buildInterviewTopics(
-  questions: InterviewQuestion[],
-  interviewConfig: InterviewConfig,
-  bill: PromptBillInput
-): TurnTopic[] {
-  return buildTurnTopics(questions, {
-    purposeType: interviewConfig?.purpose_type ?? null,
-    subject: bill ? "bill" : "theme",
-  });
-}
-
 /** summary から chat に戻ったときの話題 */
 export const RESUME_TOPIC: TurnTopic = {
   id: RESUME_TOPIC_ID,
   label: "R",
-  title: "付け足し",
-  kind: "add_more",
   turnBudget: RESUME_TURN_BUDGET,
-  required: false,
-  hint: "回答者が付け足したいこと",
+  followUpGuide: "回答者が付け足したいこと",
   question: "付け足したいことを続けて話してもらう",
   quickReplies: [],
   predefined: false,
 };
+
+/**
+ * これまでの質問の発話数。最初の発話（あいさつと最初の質問）と、
+ * 要約の段階の発話（再開を受ける発話を含む）は数えない。
+ */
+export function countQuestionTurns(metas: AssistantTurnMeta[]): number {
+  return metas.slice(1).filter((m) => m.stage !== "summary").length;
+}
+
+/** これまでの要約の段階の発話数（再開を挟んでも通算） */
+export function countSummaryTurns(metas: AssistantTurnMeta[]): number {
+  return metas.filter((m) => m.stage === "summary").length;
+}
+
+/** summary から chat に戻る再開を、すでに使ったか */
+export function hasUsedResume(metas: AssistantTurnMeta[]): boolean {
+  return metas.some((m) => m.questionId === RESUME_TOPIC_ID);
+}
+
+/**
+ * 要約の段階の場面を、セッションのステージと直前の発話から決める。
+ * このリクエストで要約に入った（セッションがまだ chat）なら初回の要約。
+ * 要約の段階では、直前の発話が要約の段階のものなら返事を受けるところ、
+ * chat の発話（終えたいと言われた直後）なら初回の要約。
+ */
+export function resolveSummaryPhase({
+  sessionStage,
+  metas,
+}: {
+  sessionStage: InterviewStage;
+  metas: AssistantTurnMeta[];
+}): SummaryPhase {
+  if (sessionStage !== "summary") return "first";
+  return metas.at(-1)?.stage === "summary" ? "reply" : "first";
+}
 
 function usedCount(metas: AssistantTurnMeta[], topicId: string): number {
   return metas.filter((m) => m.questionId === topicId && !m.budgetExempt)
@@ -162,8 +159,8 @@ export function computeTurnState({
   topics: TurnTopic[];
   metas: AssistantTurnMeta[];
 }): TurnState {
-  const assistantTurn = metas.length;
-  const remainingTurns = TURN_LIMIT - assistantTurn;
+  const questionTurn = countQuestionTurns(metas);
+  const remainingQuestionTurns = QUESTION_TURN_LIMIT - questionTurn;
   const askedIds = new Set(
     metas.map((m) => m.questionId).filter((id): id is string => !!id)
   );
@@ -175,33 +172,29 @@ export function computeTurnState({
     : current.predefined
       ? topics.indexOf(current)
       : topics.length;
-  const after = topics
+  // これから聞ける話題（飛ばして戻れない話題は数えない）
+  const remainingTopics = topics
     .slice(currentIndex + 1)
     .filter((t) => !askedIds.has(t.id));
-  // これから聞ける必須の話題（飛ばして戻れない話題は数えない）
-  const undoneRequired = after.filter((t) => t.required).length;
 
   let left = current ? current.turnBudget - usedCount(metas, current.id) : 0;
-  // 残りの必須の話題に最低1回ずつ回す
-  if (remainingTurns - SUMMARY_RESERVE_TURNS <= undoneRequired) left = 0;
-  const hasRoomForOptional =
-    remainingTurns - SUMMARY_RESERVE_TURNS > undoneRequired + 1;
-  const next = after.find((t) => t.required || hasRoomForOptional) ?? null;
+  // 残りの話題に最低1回ずつ回す
+  if (remainingQuestionTurns <= remainingTopics.length) left = 0;
 
   return {
-    assistantTurn,
-    remainingTurns,
+    questionTurn,
+    remainingQuestionTurns,
     current,
     left: Math.max(0, left),
-    next,
-    remainingRequired: after.filter((t) => t.required),
-    pendingOptional: after.filter((t) => !t.required),
+    next: remainingTopics[0] ?? null,
+    remainingTopics,
     askedIds,
   };
 }
 
 /**
- * chat の生成前に、要約へ入るかを決める。入るならそのきっかけを返す。
+ * chat の生成前に、要約へ入るかを決める。
+ * 「終える」ボタン・質問の発話の上限・すべての話題を聞き終えた、のいずれかで入る。
  */
 export function decideSummaryEntry({
   state,
@@ -209,11 +202,12 @@ export function decideSummaryEntry({
 }: {
   state: TurnState;
   endButton: boolean;
-}): InterviewEndReason | null {
-  if (endButton) return "end_button";
-  if (state.assistantTurn >= SUMMARY_START_TURN) return "turn_limit";
-  if (state.left === 0 && state.next === null) return "completed";
-  return null;
+}): boolean {
+  return (
+    endButton ||
+    state.questionTurn >= QUESTION_TURN_LIMIT ||
+    (state.left === 0 && state.next === null)
+  );
 }
 
 /**
@@ -249,18 +243,12 @@ export function canExemptBudget(
 
 /** 初めて聞く質問に表示する選択肢ボタン（「とばす」はコードが足す） */
 export function buildQuickReplies(topic: TurnTopic): string[] {
-  const replies = [...topic.quickReplies];
-  if (topic.kind === "evaluation" && !replies.includes(UNDECIDED_REPLY)) {
-    replies.push(UNDECIDED_REPLY);
-  }
-  return [...replies, SKIP_QUESTION_REPLY];
+  return [...topic.quickReplies, SKIP_QUESTION_REPLY];
 }
 
 export interface ChatTurnResult {
   /** 保存する question_id（interview_questions.id か RESUME_TOPIC_ID） */
   questionId: string | null;
-  /** 保存・表示する話題名（コードが決めた話題の名前） */
-  topicTitle: string | null;
   budgetExempt: boolean;
   /** 表示する選択肢ボタン。初めて聞く事前定義の質問のときだけ */
   quickReplies: string[];
@@ -285,7 +273,6 @@ export function resolveChatTurn({
   if (!topic) {
     return {
       questionId: null,
-      topicTitle: null,
       budgetExempt: false,
       quickReplies: [],
     };
@@ -293,7 +280,6 @@ export function resolveChatTurn({
   const firstAsk = !state.askedIds.has(topic.id);
   return {
     questionId: topic.id,
-    topicTitle: topic.title,
     budgetExempt: sideTurn && canExemptBudget(metas, topic.id),
     quickReplies: firstAsk && topic.predefined ? buildQuickReplies(topic) : [],
   };
@@ -301,39 +287,40 @@ export function resolveChatTurn({
 
 export interface SummaryState {
   phase: SummaryPhase;
+  /** 要約の段階で使える残りの発話（今回を含む） */
   remainingTurns: number;
   canResume: boolean;
   isLast: boolean;
 }
 
 export function computeSummaryState({
-  assistantTurn,
+  metas,
   phase,
-  resumeUsed,
   forceClose,
 }: {
-  assistantTurn: number;
+  metas: AssistantTurnMeta[];
   phase: SummaryPhase;
-  resumeUsed: boolean;
   /** summary 中に「終える」ボタンが押された */
   forceClose: boolean;
 }): SummaryState {
-  const remainingTurns = TURN_LIMIT - assistantTurn;
+  const remainingTurns = SUMMARY_TURN_LIMIT - countSummaryTurns(metas);
+  const remainingQuestionTurns =
+    QUESTION_TURN_LIMIT - countQuestionTurns(metas);
   return {
     phase,
     remainingTurns,
-    // 再開を受ける発話の後に、要約へ戻る前の chat の発話が少なくとも1回残ること
+    // 再開は1回まで。戻った後に質問の発話が1回は残り、
+    // 要約の段階に「再開を受ける発話・もう一度の要約・締め」が残ること
     canResume:
-      remainingTurns >= RESUME_MIN_REMAINING_TURNS &&
-      assistantTurn + 1 < SUMMARY_START_TURN &&
-      !resumeUsed,
+      !hasUsedResume(metas) &&
+      remainingQuestionTurns >= 1 &&
+      remainingTurns >= RESUME_MIN_SUMMARY_TURNS,
     isLast: remainingTurns <= 1 || forceClose,
   };
 }
 
 export interface SummaryTurnResult {
   stage: InterviewStage;
-  summaryPhase: SummaryPhase | null;
   /** chat に戻った（再開の話題を開いた） */
   resumed: boolean;
 }
@@ -347,14 +334,14 @@ export function resolveSummaryTurn(
     summaryState.isLast ||
     (summaryState.phase === "reply" && response === "agree")
   ) {
-    return { stage: "summary_complete", summaryPhase: null, resumed: false };
+    return { stage: "summary_complete", resumed: false };
   }
   if (
     summaryState.phase === "reply" &&
     response === "resume" &&
     summaryState.canResume
   ) {
-    return { stage: "chat", summaryPhase: null, resumed: true };
+    return { stage: "chat", resumed: true };
   }
-  return { stage: "summary", summaryPhase: "reply", resumed: false };
+  return { stage: "summary", resumed: false };
 }

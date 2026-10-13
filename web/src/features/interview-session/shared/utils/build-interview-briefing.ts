@@ -11,7 +11,7 @@ export interface InterviewBriefing {
   decidedMatters: string | null;
   /** 「〜でお知らせします」 */
   publicationText: string;
-  /** 必須の話題の数 */
+  /** 話題の数 */
   topicCount: number;
   estimatedDuration: number | null;
   consultationDesk: string;
@@ -29,7 +29,7 @@ export function buildInterviewBriefing({
   };
   /** 紐づく施策の名前。抽象テーマ型では null */
   billName: string | null;
-  questions: Array<{ required?: boolean | null }>;
+  questions: readonly unknown[];
   consultationDesk?: string;
 }): InterviewBriefing {
   return {
@@ -40,7 +40,7 @@ export function buildInterviewBriefing({
       ? interviewConfig.decided_matters?.trim() || null
       : null,
     publicationText: `${buildPublicationText(interviewConfig)}お知らせします`,
-    topicCount: questions.filter((q) => q.required ?? true).length,
+    topicCount: questions.length,
     estimatedDuration: interviewConfig.estimated_duration ?? null,
     consultationDesk,
   };

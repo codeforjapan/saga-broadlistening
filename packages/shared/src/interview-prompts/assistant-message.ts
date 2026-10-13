@@ -1,5 +1,12 @@
 import { parseStructuredOutput } from "./read-signals";
 import type { AssistantTurnMeta } from "./turn-control";
+import type { InterviewStage } from "./types";
+
+const STAGES: readonly InterviewStage[] = ["chat", "summary", "summary_complete"];
+
+function readStage(value: unknown): InterviewStage | null {
+  return STAGES.find((stage) => stage === value) ?? null;
+}
 
 /**
  * assistant メッセージは、LLM の構造化出力にコードが決めた値を足した JSON 文字列で保存する。
@@ -7,14 +14,18 @@ import type { AssistantTurnMeta } from "./turn-control";
  */
 export function readAssistantTurnMeta(content: string): AssistantTurnMeta {
   const parsed = parseStructuredOutput(content);
-  if (!parsed) return { questionId: null, budgetExempt: false };
+  if (!parsed) return { questionId: null, budgetExempt: false, stage: null };
   const questionId =
     typeof parsed.question_id === "string" && parsed.question_id
       ? parsed.question_id
       : typeof parsed.questionId === "string" && parsed.questionId
         ? parsed.questionId
         : null;
-  return { questionId, budgetExempt: parsed.budget_exempt === true };
+  return {
+    questionId,
+    budgetExempt: parsed.budget_exempt === true,
+    stage: readStage(parsed.stage),
+  };
 }
 
 export function collectAssistantTurnMetas(

@@ -14,7 +14,7 @@ describe("buildInterviewBriefing", () => {
         estimated_duration: 10,
       },
       billName: "市営バス路線見直し",
-      questions: [{ required: true }, { required: false }, {}],
+      questions: [{ id: "q1" }, { id: "q2" }],
     });
     expect(briefing).toEqual({
       title: "市営バスの路線見直し案について",

@@ -5,7 +5,7 @@ import { DEFAULT_QUESTIONS_TEMPLATE } from "../../shared/utils/default-questions
 
 interface ExistingQuestion {
   question: string;
-  hint?: string | null;
+  follow_up_guide?: string | null;
   quick_replies?: string[] | null;
 }
 
@@ -46,7 +46,7 @@ const QUESTION_REWRITE_RULES = `- **質問の順番を変えないこと**。関
 - **1つの質問には必ず1つの問いだけを含めること**（1問1論点）。複数の論点を1つの質問文に詰め込まない
 - **質問文に答えの候補を書かない**（「交通や子育てなど」のような例示は書かない）。範囲の指定（「この1か月で」「1つ」）はよい
 - **「決まっていること」の賛否を聞かない**
-- 観点（hint）は「聞けたら話が豊かになる観点」を**2つまで**。満たすべき条件や手順として書かない
+- 観点（follow_up_guide）は「聞けたら話が豊かになる観点」を**2つまで**。満たすべき条件や手順として書かない
 - **質問・観点に回数（「1往復まで」「2〜3回深掘り」など）を書かない**。深掘りの量は実行時に決まる`;
 
 /** 題材の説明セクション（施策情報 or テーマ情報） */
@@ -148,7 +148,7 @@ ${knowledgeSection}
   if (stage === "question_proposal") {
     const existingQuestionsSection =
       existingQuestions && existingQuestions.length > 0
-        ? `\n## 現在設定されている質問\n${existingQuestions.map((q, i) => `${i + 1}. ${q.question}${q.hint ? `\n   観点: ${q.hint}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n\n管理者は既存の質問のブラッシュアップを希望しています。既存質問を踏まえて改善提案をしてください。`
+        ? `\n## 現在設定されている質問\n${existingQuestions.map((q, i) => `${i + 1}. ${q.question}${q.follow_up_guide ? `\n   観点: ${q.follow_up_guide}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n\n管理者は既存の質問のブラッシュアップを希望しています。既存質問を踏まえて改善提案をしてください。`
         : "";
 
     return `${baseRole}
@@ -168,7 +168,7 @@ ${QUESTION_REWRITE_RULES}
 
 ## 各質問に含めるフィールド
 - question: 質問文（1つの問いに絞り、分かりやすく端的に）
-- hint: 観点（任意、聞けたら話が豊かになる観点を2つまで）
+- follow_up_guide: 観点（任意、聞けたら話が豊かになる観点を2つまで）
 - quick_replies: クイックリプライの選択肢（任意、3〜5個）
 
 ## 出力形式
@@ -179,7 +179,7 @@ ${QUESTION_REWRITE_RULES}
   if (stage === "theme_proposal") {
     const confirmedQuestionsSection =
       confirmedQuestions && confirmedQuestions.length > 0
-        ? `\n## 確定済みの質問\n${confirmedQuestions.map((q, i) => `${i + 1}. ${q.question}${q.hint ? `\n   観点: ${q.hint}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n`
+        ? `\n## 確定済みの質問\n${confirmedQuestions.map((q, i) => `${i + 1}. ${q.question}${q.follow_up_guide ? `\n   観点: ${q.follow_up_guide}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n`
         : "";
 
     const existingThemesSection =

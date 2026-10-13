@@ -5,14 +5,14 @@
  * 値を変えるときはこのファイルだけを直す。
  */
 
-/** 1セッションでAIが発話できる上限（初回・要約・確認・締めも数える） */
-export const TURN_LIMIT = 20;
+/**
+ * 質問の発話の上限。chat ステージのAIの発話を数え、最初の発話（あいさつと最初の質問）と
+ * 要約の段階の発話は数えない。これに達したら、次の発話から要約に入る
+ */
+export const QUESTION_TURN_LIMIT = 20;
 
-/** これまでのAIの発話数がこの値に達したら、次の発話から要約に入る */
-export const SUMMARY_START_TURN = 17;
-
-/** 要約・確認・締めのために残しておく発話数 */
-export const SUMMARY_RESERVE_TURNS = 3;
+/** 要約の段階でAIが発話できる上限（初回の要約・確認・締め・再開を受ける発話。再開後も通算） */
+export const SUMMARY_TURN_LIMIT = 5;
 
 /** 話題ごとの発話予算の既定（テンプレートで 1〜4 に上書き） */
 export const DEFAULT_TURN_BUDGET = 3;
@@ -24,19 +24,22 @@ export const MAX_TURN_BUDGET = 4;
 /** 個別の要望・テーマ外の話への対応を予算から除ける回数（話題ごと） */
 export const SIDE_TURN_EXEMPT_PER_TOPIC = 1;
 
-/** summary から chat に戻れる残りの発話数の下限 */
-export const RESUME_MIN_REMAINING_TURNS = 4;
+/**
+ * summary から chat に戻れる、要約の段階の残りの発話数の下限
+ * （再開を受ける発話・もう一度の要約・締めの3回）
+ */
+export const RESUME_MIN_SUMMARY_TURNS = 3;
 
 /** 再開した話題の発話予算（再開を受けた発話を含む） */
 export const RESUME_TURN_BUDGET = 2;
 
-/** 選択肢ボタンの上限（受け止めは5。「とばす」は数えない） */
+/** 選択肢ボタンの上限（受け止めは「まだ決められない」を含めて5。「とばす」は数えない） */
 export const QUICK_REPLIES_MAX = 4;
 export const EVALUATION_QUICK_REPLIES_MAX = 5;
 
-/** 必須の話題の上限（関わり・言い足しを含む。evaluate だけ6） */
-export const REQUIRED_TOPICS_MAX = 5;
-export const EVALUATE_REQUIRED_TOPICS_MAX = 6;
+/** テンプレートの話題の上限（関わり・言い足しを含む。evaluate だけ6） */
+export const TEMPLATE_TOPICS_MAX = 5;
+export const EVALUATE_TEMPLATE_TOPICS_MAX = 6;
 
 /** 個別の相談を受け付ける窓口（全体設定の既定値） */
 export const DEFAULT_CONSULTATION_DESK = "市民の声窓口";

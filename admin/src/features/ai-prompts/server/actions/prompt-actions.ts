@@ -6,7 +6,7 @@ import { buildInitialSystemPrompt } from "@mirai-gikai/shared/interview-prompts/
 import { getPublishedInterviewPersona } from "@mirai-gikai/shared/interview-prompts/published";
 import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
 import {
-  buildInterviewTopics,
+  buildTurnTopics,
   computeSummaryState,
   computeTurnState,
 } from "@mirai-gikai/shared/interview-prompts/turn-control";
@@ -220,11 +220,7 @@ export async function previewAiPrompt(
       if (!input)
         return { success: false, error: "意見募集が見つかりません。" };
       const persona = await getPublishedInterviewPersona();
-      const topics = buildInterviewTopics(
-        input.questions,
-        input.interviewConfig,
-        input.bill
-      );
+      const topics = buildTurnTopics(input.questions);
       if (parsed.data.key === "interview-initial-system") {
         return {
           success: true,
@@ -237,9 +233,11 @@ export async function previewAiPrompt(
       if (parsed.data.key === "interview-chat-system") {
         // 先頭から指定数の話題を1回ずつ聞いた直後の状況で組み立てる
         const askedCount = Math.max(1, parsed.data.askedQuestionCount);
-        const metas = topics
-          .slice(0, askedCount)
-          .map((t) => ({ questionId: t.id, budgetExempt: false }));
+        const metas = topics.slice(0, askedCount).map((t) => ({
+          questionId: t.id,
+          budgetExempt: false,
+          stage: "chat" as const,
+        }));
         return {
           success: true,
           content: buildChatSystemPrompt(
@@ -263,9 +261,8 @@ export async function previewAiPrompt(
               ? [{ role: "user", content: parsed.data.conversation }]
               : [],
             summaryState: computeSummaryState({
-              assistantTurn: topics.length,
+              metas: [],
               phase: "first",
-              resumeUsed: false,
               forceClose: false,
             }),
             persona,

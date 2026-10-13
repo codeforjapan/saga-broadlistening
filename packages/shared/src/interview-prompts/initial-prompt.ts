@@ -5,22 +5,13 @@ import {
 } from "./templates";
 import type { TurnTopic } from "./turn-control";
 
-/** 全体像に並べない話題（関わり・言い足し） */
-const OUTLINE_EXCLUDED_KINDS = new Set(["fact", "add_more"]);
-
 /**
- * 初回の発話の変数を作る。
- * 話題の数は必須の話題（言い足しを含む）、全体像は関わり・言い足しを除いた話題名。
+ * 初回の発話の変数を作る。話題の数は言い足しを含むすべての話題。
  */
 export function buildInitialTurnVariables(topics: TurnTopic[]) {
   const first = topics[0];
-  const outlineTopics = topics.filter(
-    (t) => t.required && !OUTLINE_EXCLUDED_KINDS.has(t.kind)
-  );
   return {
-    topicCount: String(topics.filter((t) => t.required).length),
-    topicOutline:
-      outlineTopics.map((t) => t.title).join("、") || "いくつかの話題",
+    topicCount: String(topics.length),
     firstQuestion: first?.question ?? "このテーマについて、思うことを教えてください。",
     firstQuestionId: first?.label ?? "Q1",
   };

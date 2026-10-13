@@ -23,10 +23,12 @@ export function InterviewQuestionForm({
   submitLabel = "追加",
 }: InterviewQuestionFormProps) {
   const questionId = useId();
-  const hintId = useId();
+  const followUpGuideId = useId();
   const quickRepliesId = useId();
   const [question, setQuestion] = useState(initialData?.question || "");
-  const [hint, setHint] = useState(initialData?.hint || "");
+  const [followUpGuide, setFollowUpGuide] = useState(
+    initialData?.follow_up_guide || ""
+  );
   const [quickRepliesText, setQuickRepliesText] = useState(
     arrayToText(initialData?.quick_replies)
   );
@@ -39,13 +41,10 @@ export function InterviewQuestionForm({
     }
 
     onSubmit({
-      // テンプレートの値（種類・予算・必須）は職員に見せず、そのまま引き継ぐ
-      step_key: initialData?.step_key,
-      step_kind: initialData?.step_kind,
+      // テンプレートの発話予算は職員に見せず、そのまま引き継ぐ
       turn_budget: initialData?.turn_budget,
-      required: initialData?.required,
       question: question.trim(),
-      hint: hint.trim() || undefined,
+      follow_up_guide: followUpGuide.trim() || undefined,
       quick_replies:
         quickRepliesText.trim() !== ""
           ? textToArray(quickRepliesText)
@@ -54,7 +53,7 @@ export function InterviewQuestionForm({
 
     // フォームをリセット
     setQuestion("");
-    setHint("");
+    setFollowUpGuide("");
     setQuickRepliesText("");
   };
 
@@ -64,7 +63,7 @@ export function InterviewQuestionForm({
     } else {
       // フォームをリセット
       setQuestion("");
-      setHint("");
+      setFollowUpGuide("");
       setQuickRepliesText("");
     }
   };
@@ -89,11 +88,11 @@ export function InterviewQuestionForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={hintId}>観点（任意）</Label>
+        <Label htmlFor={followUpGuideId}>観点（任意）</Label>
         <Textarea
-          id={hintId}
-          value={hint}
-          onChange={(e) => setHint(e.target.value)}
+          id={followUpGuideId}
+          value={followUpGuide}
+          onChange={(e) => setFollowUpGuide(e.target.value)}
           placeholder="聞けたら話が豊かになる観点（例：いつ・どこで・誰と）。2つまでが目安です"
           className="min-h-[80px] resize-y"
         />

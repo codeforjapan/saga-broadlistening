@@ -420,9 +420,9 @@ function AssistantMessage({
                     <p className="font-medium">
                       Q{i + 1}: {q.question}
                     </p>
-                    {q.hint && (
+                    {q.follow_up_guide && (
                       <p className="text-xs text-gray-500 ml-4">
-                        観点: {q.hint}
+                        観点: {q.follow_up_guide}
                       </p>
                     )}
                     {q.quick_replies && q.quick_replies.length > 0 && (

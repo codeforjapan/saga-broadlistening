@@ -337,10 +337,10 @@ function AiQuestionsPreview({
                         {question.question}
                       </div>
                     </div>
-                    {question.hint && (
+                    {question.follow_up_guide && (
                       <div className="text-sm text-gray-600">
                         <span className="font-medium">観点:</span>{" "}
-                        {question.hint}
+                        {question.follow_up_guide}
                       </div>
                     )}
                     {question.quick_replies &&

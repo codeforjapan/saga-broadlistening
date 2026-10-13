@@ -7,10 +7,7 @@ import {
   MAX_TURN_BUDGET,
   MIN_TURN_BUDGET,
 } from "@mirai-gikai/shared/interview-prompts/constants";
-import {
-  PURPOSE_TYPES,
-  STEP_KINDS,
-} from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
+import { PURPOSE_TYPES } from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
 import type { Database } from "@mirai-gikai/supabase";
 import { z } from "zod";
 import { isValidChatModel } from "../utils/chat-model-options";
@@ -145,18 +142,18 @@ export const interviewQuestionSchema = z.object({
     .string()
     .min(1, "質問文は必須です")
     .max(1000, "質問文は1000文字以内で入力してください"),
-  hint: z.string().max(2000, "観点は2000文字以内で入力してください").optional(),
+  follow_up_guide: z
+    .string()
+    .max(2000, "観点は2000文字以内で入力してください")
+    .optional(),
   quick_replies: z.array(z.string().min(1)).optional(),
-  // 以下はテンプレートの値。職員には編集させず、文言の修正時もそのまま引き継ぐ
-  step_key: z.string().nullable().optional(),
-  step_kind: z.enum(STEP_KINDS).optional(),
+  // テンプレートの発話予算。職員には編集させず、文言の修正時もそのまま引き継ぐ
   turn_budget: z
     .number()
     .int()
     .min(MIN_TURN_BUDGET)
     .max(MAX_TURN_BUDGET)
     .optional(),
-  required: z.boolean().optional(),
 });
 
 export const interviewQuestionsInputSchema = z.array(interviewQuestionSchema);

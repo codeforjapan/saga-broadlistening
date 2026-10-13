@@ -2,7 +2,7 @@ import "server-only";
 
 import { propagateAttributes } from "@langfuse/tracing";
 import { buildPublishedInitialPrompt } from "@mirai-gikai/shared/interview-prompts/published";
-import { buildInterviewTopics } from "@mirai-gikai/shared/interview-prompts/turn-control";
+import { buildTurnTopics } from "@mirai-gikai/shared/interview-prompts/turn-control";
 import { buildInitialTurnContent } from "@mirai-gikai/shared/interview-prompts/turn-records";
 import { generateText, type LanguageModel, Output } from "ai";
 import type { BillWithContent } from "@/features/bills/shared/types";
@@ -63,7 +63,7 @@ export async function generateInitialQuestion({
 
     // 初回は人物像＋初回指示だけで生成する（全体像1文＋最初の質問）。
     // 本番とシミュレータで同じ組み立てを使う
-    const topics = buildInterviewTopics(questions, interviewConfig, bill);
+    const topics = buildTurnTopics(questions);
     const initialPrompt = await buildPublishedInitialPrompt({ topics });
 
     // メッセージ履歴なしで最初の質問を生成（構造化出力）

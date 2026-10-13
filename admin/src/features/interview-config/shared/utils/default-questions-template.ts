@@ -28,7 +28,7 @@ export const FOLLOW_UP_DEPTH_LIMIT_RULE =
 export type FixedQuestionTemplate = {
   kind: "fixed";
   question: string;
-  hint: string;
+  follow_up_guide: string;
   quick_replies?: string[];
 };
 
@@ -42,7 +42,7 @@ export type QuickRepliesSlotTemplate = {
   /** 固定の質問文 */
   question: string;
   /** 固定の観点 */
-  hint: string;
+  follow_up_guide: string;
   /** LLM 生成のサンプル／フォールバック用 */
   sample_quick_replies: string[];
 };
@@ -53,7 +53,7 @@ export type DefaultQuestionTemplateEntry =
 
 /**
  * 目的（5型）×対象（施策／テーマ）の質問テンプレートを、保存用の質問配列にする。
- * 話題の種類・発話予算・必須はテンプレートの値をそのまま持たせる（職員には見せない）。
+ * 発話予算はテンプレートの値をそのまま持たせる（職員には見せない）。
  */
 export function buildPurposeTemplateQuestions(
   purposeType: PurposeType,
@@ -61,13 +61,10 @@ export function buildPurposeTemplateQuestions(
 ): InterviewQuestionInput[] {
   return getPurposeTemplateSteps(purposeType, subject).map((step) => ({
     question: step.question,
-    hint: step.hint ?? undefined,
+    follow_up_guide: step.follow_up_guide ?? undefined,
     quick_replies:
       step.quick_replies.length > 0 ? [...step.quick_replies] : undefined,
-    step_key: step.step_key,
-    step_kind: step.step_kind,
     turn_budget: step.turn_budget,
-    required: step.required,
   }));
 }
 
@@ -77,7 +74,7 @@ export function buildPurposeTemplateQuestions(
  *
  * インタビュー質問テンプレート（7問固定）
  *
- * - Q1, Q2: 質問文・hint は固定、quick_replies のみ LLM 生成
+ * - Q1, Q2: 質問文・follow_up_guide は固定、quick_replies のみ LLM 生成
  * - Q3, Q4, Q6: 固定の質問と選択肢
  * - Q5, Q7: 固定の質問（自由回答）
  */
@@ -88,7 +85,8 @@ export const DEFAULT_QUESTIONS_TEMPLATE: readonly DefaultQuestionTemplateEntry[]
       slot: "topics",
       question:
         "今回の施策のうち、あなたが特に関係がある、または意見を伝えたいテーマを選んでください。",
-      hint: "回答で選ばれたテーマを以降の深掘りの前提にしてください。この質問で「その他」以外のクイックリプライの選択肢が選ばれた場合、または「その他（自由記述）」が選ばれ、その内容について記述をもらった場合は、速やかにQ2に進む。「その他」が選ばれた場合は、記事だけでなくナレッジソースの資料も参考にしながら、何の話をしているのか特定する。「その他」が選ばれた場合は、選択肢を限定せず、「ありがとうございます。「その他（自由記述）」とのことですが、どのような点について関心がありますか？」と尋ねる。キーワードを受け取ったら速やかに次の質問にいく。",
+      follow_up_guide:
+        "回答で選ばれたテーマを以降の深掘りの前提にしてください。この質問で「その他」以外のクイックリプライの選択肢が選ばれた場合、または「その他（自由記述）」が選ばれ、その内容について記述をもらった場合は、速やかにQ2に進む。「その他」が選ばれた場合は、記事だけでなくナレッジソースの資料も参考にしながら、何の話をしているのか特定する。「その他」が選ばれた場合は、選択肢を限定せず、「ありがとうございます。「その他（自由記述）」とのことですが、どのような点について関心がありますか？」と尋ねる。キーワードを受け取ったら速やかに次の質問にいく。",
       sample_quick_replies: [
         "AI開発でのデータ利用",
         "同意なしのデータ利用",
@@ -102,7 +100,8 @@ export const DEFAULT_QUESTIONS_TEMPLATE: readonly DefaultQuestionTemplateEntry[]
       kind: "quick_replies_slot",
       slot: "stance",
       question: "この施策について、あなたはどんな立場・関わり方に近いですか？",
-      hint: "回答内容から専門知識レベルを判断し、以降の質問の深さや用語の使い方を調整してください。この質問で「その他」以外のクイックリプライの選択肢が選ばれた場合、または「その他（自由記述）」が選ばれ、その内容について記述をもらった場合は、速やかにQ3に進む。",
+      follow_up_guide:
+        "回答内容から専門知識レベルを判断し、以降の質問の深さや用語の使い方を調整してください。この質問で「その他」以外のクイックリプライの選択肢が選ばれた場合、または「その他（自由記述）」が選ばれ、その内容について記述をもらった場合は、速やかにQ3に進む。",
       sample_quick_replies: [
         "仕事で個人情報を扱う",
         "AI・データ分析に関わる",
@@ -115,7 +114,8 @@ export const DEFAULT_QUESTIONS_TEMPLATE: readonly DefaultQuestionTemplateEntry[]
     {
       kind: "fixed",
       question: "今回の施策について、現時点でどの程度ご存知ですか。",
-      hint: "回答内容から専門知識レベルを判断し、以降の質問の深さや用語の使い方を調整する。この質問自体での深掘りは行わない。理解度が高くない場合のみ、以降の質問で制度名を出す前に短い要約を1文だけ挟む。回答を受け止めたらQ4に進む。",
+      follow_up_guide:
+        "回答内容から専門知識レベルを判断し、以降の質問の深さや用語の使い方を調整する。この質問自体での深掘りは行わない。理解度が高くない場合のみ、以降の質問で制度名を出す前に短い要約を1文だけ挟む。回答を受け止めたらQ4に進む。",
       quick_replies: [
         "よく知っている",
         "概要は知っている",
@@ -126,7 +126,7 @@ export const DEFAULT_QUESTIONS_TEMPLATE: readonly DefaultQuestionTemplateEntry[]
     {
       kind: "fixed",
       question: "今回の施策について、全体としてどのように評価していますか。",
-      hint: `評価の理由を1〜2点だけ短く聞く。賛否が割れる論点があれば、どの論点が評価を左右したかを1回確認する。回答を受け止めたらQ5（Q1で選んだテーマの深掘り）に進む。\n${FOLLOW_UP_DEPTH_LIMIT_RULE}`,
+      follow_up_guide: `評価の理由を1〜2点だけ短く聞く。賛否が割れる論点があれば、どの論点が評価を左右したかを1回確認する。回答を受け止めたらQ5（Q1で選んだテーマの深掘り）に進む。\n${FOLLOW_UP_DEPTH_LIMIT_RULE}`,
       quick_replies: [
         "良いと思う",
         "どちらかといえば良い",
@@ -140,13 +140,14 @@ export const DEFAULT_QUESTIONS_TEMPLATE: readonly DefaultQuestionTemplateEntry[]
       kind: "fixed",
       question:
         "Q1で選んだテーマについて、なぜ／どのような点が気になりますか？具体的に教えてください。",
-      hint: `Q1で選んだテーマに即した具体論を引き出す中心的な質問。必要に応じて「どんな場面を想像したか」「どの立場での懸念か」などで具体化する。深掘りが一段落したらQ6に進む。\n${FOLLOW_UP_DEPTH_LIMIT_RULE}`,
+      follow_up_guide: `Q1で選んだテーマに即した具体論を引き出す中心的な質問。必要に応じて「どんな場面を想像したか」「どの立場での懸念か」などで具体化する。深掘りが一段落したらQ6に進む。\n${FOLLOW_UP_DEPTH_LIMIT_RULE}`,
     },
     {
       kind: "fixed",
       question:
         "この施策を実際に運用するうえでハードルがあると思いますか？また、影響を受ける側（個人・事業者・組織など）のさまざまなケースが十分に考慮されていると思いますか？",
-      hint: "「いいえ」の場合は、見落とされそうな具体例（例: 属性や立場の違い（個人・事業者・組織など）、規模や条件の違い（小規模／大規模、地域差、就労形態など）、既存の仕組みとの関係、対象から漏れそうなケースなど）を引き出す。「わからない」の場合は、無理せず次の質問に進む。具体的なキーワードを含む回答を得られた場合は深掘りをやめて次の質問に行く。なるべく一度の質問で回答者から具体的な回答を得るようにこころがけ、長々と質問を続けない。回答者とのやりとりは最大5往復までにとどめる。深掘りが一段落したらQ7に進む。",
+      follow_up_guide:
+        "「いいえ」の場合は、見落とされそうな具体例（例: 属性や立場の違い（個人・事業者・組織など）、規模や条件の違い（小規模／大規模、地域差、就労形態など）、既存の仕組みとの関係、対象から漏れそうなケースなど）を引き出す。「わからない」の場合は、無理せず次の質問に進む。具体的なキーワードを含む回答を得られた場合は深掘りをやめて次の質問に行く。なるべく一度の質問で回答者から具体的な回答を得るようにこころがけ、長々と質問を続けない。回答者とのやりとりは最大5往復までにとどめる。深掘りが一段落したらQ7に進む。",
       quick_replies: [
         "はい（十分考慮されている／ハードルは小さい）",
         "いいえ（考慮が不十分／ハードルが大きい）",
@@ -157,14 +158,14 @@ export const DEFAULT_QUESTIONS_TEMPLATE: readonly DefaultQuestionTemplateEntry[]
       kind: "fixed",
       question:
         "最後に、この制度を設計する人に、何か一つ伝えるとしたらそれは何ですか？",
-      hint: `最後の質問。要望を端的に受け止める。可能なら「それが実現したら評価はどう変わるか」を1度だけ確認する。\n${FOLLOW_UP_DEPTH_LIMIT_RULE}`,
+      follow_up_guide: `最後の質問。要望を端的に受け止める。可能なら「それが実現したら評価はどう変わるか」を1度だけ確認する。\n${FOLLOW_UP_DEPTH_LIMIT_RULE}`,
     },
   ];
 
 /**
  * テンプレートと LLM 生成の quick_replies を合成して質問配列を組み立てる。
  *
- * - Q1/Q2: 固定の質問文・hint + LLM 生成の quick_replies
+ * - Q1/Q2: 固定の質問文・follow_up_guide + LLM 生成の quick_replies
  *   （LLM 応答が無ければサンプルで代替。末尾に「その他（自由記述）」を必ず付与）
  * - 固定質問はそのまま。
  */
@@ -178,7 +179,7 @@ export function buildQuestionsFromTemplate(params: {
     if (entry.kind === "fixed") {
       const out: InterviewQuestionInput = {
         question: entry.question,
-        hint: entry.hint,
+        follow_up_guide: entry.follow_up_guide,
       };
       if (entry.quick_replies && entry.quick_replies.length > 0) {
         out.quick_replies = [...entry.quick_replies];
@@ -200,7 +201,7 @@ export function buildQuestionsFromTemplate(params: {
           );
     return {
       question: entry.question,
-      hint: entry.hint,
+      follow_up_guide: entry.follow_up_guide,
       quick_replies: [...finalChoices, OTHER_FREE_TEXT_OPTION],
     };
   });

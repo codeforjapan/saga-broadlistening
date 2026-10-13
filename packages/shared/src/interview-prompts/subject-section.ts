@@ -7,10 +7,7 @@ import {
   getPurposeDefinition,
   purposeDisplayName,
 } from "./purpose-types/registry";
-import {
-  type InterviewSubjectKind,
-  STEP_KIND_LABELS,
-} from "./purpose-types/types";
+import type { InterviewSubjectKind } from "./purpose-types/types";
 import type { TurnTopic } from "./turn-control";
 import type { InterviewConfig, PromptBillInput } from "./types";
 
@@ -96,15 +93,15 @@ const GENERIC_FOCUS =
 const GENERIC_PERSPECTIVE =
   "一般論の答えには、最近の1回の場面を聞く。良し悪しを先に聞かない。";
 
-/** `[Q2｜名前｜種類｜発話○回まで｜必須] 質問／観点：…` の形で話題を並べる */
+/** `[Q2｜発話○回まで] 質問／観点：…` の形で話題を並べる */
 export function buildQuestionsText(topics: TurnTopic[]): string {
   if (topics.length === 0) return "（話題は設定されていません）";
   return topics
     .map((t) => {
       const budget =
         t.turnBudget === 1 ? "発話1回" : `発話${t.turnBudget}回まで`;
-      const head = `[${t.label}｜${t.title}｜${STEP_KIND_LABELS[t.kind]}｜${budget}｜${t.required ? "必須" : "任意"}]`;
-      return `${head} ${t.question}${t.hint ? `／観点：${t.hint}` : ""}`;
+      const guide = t.followUpGuide ? `／観点：${t.followUpGuide}` : "";
+      return `[${t.label}｜${budget}] ${t.question}${guide}`;
     })
     .join("\n");
 }

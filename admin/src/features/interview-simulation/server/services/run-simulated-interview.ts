@@ -13,7 +13,7 @@ import {
 } from "@mirai-gikai/shared/interview-prompts/published";
 import {
   type AssistantTurnMeta,
-  buildInterviewTopics,
+  buildTurnTopics,
   computeSummaryState,
   computeTurnState,
   decideSummaryEntry,
@@ -210,11 +210,7 @@ export async function runSimulatedInterview({
   // インタビュイーが元の発言回数を超えないうちに自然に畳ませるための「予算」
   const intervieweeBudget = styleAnchors?.originalIntervieweeTurns;
   // 本番と同じターン制御（話題の順番・発話予算・要約への移行）を使う
-  const topics = buildInterviewTopics(
-    promptInputs.questions,
-    promptInputs.interviewConfig,
-    promptInputs.bill
-  );
+  const topics = buildTurnTopics(promptInputs.questions);
   const metas: AssistantTurnMeta[] = [];
 
   let stopReason: SimulationRun["stopReason"] = "max_turns";
@@ -417,9 +413,8 @@ export async function runSimulatedInterview({
         interviewConfig: promptInputs.interviewConfig,
         messages: summaryMessages,
         summaryState: computeSummaryState({
-          assistantTurn: metas.length,
+          metas,
           phase: "first",
-          resumeUsed: false,
           forceClose: false,
         }),
       });

@@ -214,10 +214,7 @@ export async function updateInterviewSessionArchived(
  */
 export async function updateInterviewSessionStage(
   sessionId: string,
-  update: Pick<
-    InterviewSessionUpdate,
-    "stage" | "summary_phase" | "resume_used" | "end_reason"
-  >
+  update: Pick<InterviewSessionUpdate, "stage">
 ): Promise<void> {
   const supabase = createAdminClient();
   const { error } = await supabase

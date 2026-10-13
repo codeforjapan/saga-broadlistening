@@ -41,7 +41,7 @@ export function createBulkOpinionQuestions(
       interview_config_id: configId,
       question:
         "船荷証券の電子化について、あなたはどのように関わっていますか？",
-      hint:
+      follow_up_guide:
         "回答者の立場と、そこから見えている論点を引き出してください。",
       quick_replies: [
         "仕事で関わっている",
@@ -54,7 +54,7 @@ export function createBulkOpinionQuestions(
       interview_config_id: configId,
       question:
         "電子化によって、あなたの業務や生活にどのような影響がありますか？",
-      hint:
+      follow_up_guide:
         "具体的な業務フローの変化やコスト面での影響を掘り下げてください。",
       quick_replies: null,
       question_order: 2,
@@ -62,7 +62,7 @@ export function createBulkOpinionQuestions(
     {
       interview_config_id: configId,
       question: "実施にあたって、どのような課題や不安がありますか？",
-      hint:
+      follow_up_guide:
         "技術面、法的面、コスト面などの具体的な課題を聞いてください。",
       quick_replies: null,
       question_order: 3,

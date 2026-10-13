@@ -6,10 +6,11 @@ import {
   resolvePiiNotice,
 } from "@mirai-gikai/shared/interview-prompts/assistant-message";
 import {
-  buildInterviewTopics,
+  buildTurnTopics,
   computeSummaryState,
   computeTurnState,
   decideSummaryEntry,
+  resolveSummaryPhase,
   type TurnState,
 } from "@mirai-gikai/shared/interview-prompts/turn-control";
 import {
@@ -190,24 +191,17 @@ export async function handleInterviewChatRequest({
     loadSessionAndMessages(),
   ]);
 
-  const topics = buildInterviewTopics(questions, interviewConfig, bill);
+  const topics = buildTurnTopics(questions);
   const metas = collectAssistantTurnMetas(dbMessages);
 
   // 生成前のステージ判定
   let stage = session.stage;
-  let summaryPhase = session.summary_phase ?? "first";
   let turnState: TurnState | null = null;
   if (stage === "chat") {
     turnState = computeTurnState({ topics, metas });
-    const endReason = decideSummaryEntry({ state: turnState, endButton });
-    if (endReason) {
+    if (decideSummaryEntry({ state: turnState, endButton })) {
       stage = "summary";
-      summaryPhase = "first";
-      await updateInterviewSessionStage(session.id, {
-        stage,
-        summary_phase: summaryPhase,
-        end_reason: endReason,
-      });
+      await updateInterviewSessionStage(session.id, { stage });
     }
   }
 
@@ -239,11 +233,10 @@ export async function handleInterviewChatRequest({
     });
   }
 
-  // summary: 「終える」ボタンが要約の段階で押されたら締める
+  // summary: 場面は発話の記録から決める。「終える」ボタンが要約の段階で押されたら締める
   const summaryState = computeSummaryState({
-    assistantTurn: metas.length,
-    phase: summaryPhase,
-    resumeUsed: session.resume_used,
+    metas,
+    phase: resolveSummaryPhase({ sessionStage: session.stage, metas }),
     forceClose: endButton && session.stage === "summary",
   });
   const systemPrompt = await buildSummarySystemPrompt({

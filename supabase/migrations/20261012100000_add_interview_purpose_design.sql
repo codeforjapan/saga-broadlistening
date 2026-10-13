@@ -2,8 +2,9 @@
 -- AIインタビューの目的別テンプレートと、コード側のターン制御のための列を追加する
 --
 -- - interview_configs: 目的（5型）・市がこれから決めること・決まっていること・結果のお知らせ
--- - interview_questions: 話題の種類・発話予算・必須/任意・観点（follow_up_guide を hint に改名）
--- - interview_sessions: ステージ（chat/summary/summary_complete）をサーバー側で持つ
+-- - interview_questions: 話題ごとの発話予算（follow_up_guide は「観点」として使い続ける）
+-- - interview_sessions: ステージ（chat/summary/summary_complete）をサーバー側で持つ。
+--   要約の段階の場面・再開の有無は、assistant メッセージに残す記録から決めるので列を持たない
 -- - ai_prompts: 聞き手の人物像と初回指示を、ほかのインタビュー用プロンプトと同じく版管理する
 -- ============================================================
 
@@ -12,14 +13,7 @@ create type interview_purpose_type_enum as enum (
 );
 create type interview_publication_place_enum as enum ('chikat', 'city_web', 'koho');
 create type interview_publication_mode_enum as enum ('scheduled', 'when_ready');
-create type interview_step_kind_enum as enum (
-  'fact', 'episode', 'reason', 'evaluation', 'add_more'
-);
 create type interview_session_stage_enum as enum ('chat', 'summary', 'summary_complete');
-create type interview_summary_phase_enum as enum ('first', 'reply');
-create type interview_end_reason_enum as enum (
-  'completed', 'end_button', 'end_request', 'turn_limit'
-);
 
 -- ------------------------------------------------------------
 -- interview_configs
@@ -42,34 +36,20 @@ comment on column interview_configs.publication_mode is 'scheduled: 時期と場
 -- ------------------------------------------------------------
 -- interview_questions
 -- ------------------------------------------------------------
-alter table interview_questions rename column follow_up_guide to hint;
-
 alter table interview_questions
-  add column step_key text,
-  add column step_kind interview_step_kind_enum not null default 'episode',
   add column turn_budget integer not null default 3,
-  add column required boolean not null default true,
   add constraint interview_questions_turn_budget_range check (turn_budget between 1 and 4);
 
-comment on column interview_questions.hint is '聞けたら話が豊かになる観点（満たすべき条件ではない）。旧 follow_up_guide';
-comment on column interview_questions.step_key is 'テンプレート内の話題の識別子（例 scene）。テンプレート外の質問は NULL';
-comment on column interview_questions.step_kind is '話題の種類（fact: 事実 / episode: 場面 / reason: 理由 / evaluation: 受け止め / add_more: 言い足し）。プロンプトの表示と要約で使う';
+comment on column interview_questions.follow_up_guide is '観点。聞けたら話が豊かになること（満たすべき条件ではない）';
 comment on column interview_questions.turn_budget is 'その話題で使えるAIの発話の数（最初の質問を含む、1〜4）';
-comment on column interview_questions.required is '必須の話題か。任意の話題は残りの発話数に余裕があるときだけ聞く';
 
 -- ------------------------------------------------------------
 -- interview_sessions
 -- ------------------------------------------------------------
 alter table interview_sessions
-  add column stage interview_session_stage_enum not null default 'chat',
-  add column summary_phase interview_summary_phase_enum,
-  add column resume_used boolean not null default false,
-  add column end_reason interview_end_reason_enum;
+  add column stage interview_session_stage_enum not null default 'chat';
 
 comment on column interview_sessions.stage is '対話のステージ。サーバーがターンごとに決める（chat → summary → summary_complete）';
-comment on column interview_sessions.summary_phase is 'summary ステージ内の場面（first: 初回の要約を出す / reply: 要約への返事を受ける）';
-comment on column interview_sessions.resume_used is 'summary から chat に戻る再開を使ったか（1回まで）';
-comment on column interview_sessions.end_reason is 'summary に入ったきっかけ（completed / end_button / end_request / turn_limit）';
 
 -- 既存セッションのステージを、これまでのやり取りから埋める
 update interview_sessions
@@ -77,7 +57,7 @@ set stage = 'summary_complete'
 where completed_at is not null;
 
 update interview_sessions s
-set stage = 'summary', summary_phase = 'reply'
+set stage = 'summary'
 where s.completed_at is null
   and exists (
     select 1

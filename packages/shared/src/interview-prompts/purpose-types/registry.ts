@@ -112,15 +112,3 @@ export function getPurposeTemplateSteps(
   }));
 }
 
-/** テンプレート内の話題の短い名前を、step_key から引く */
-export function findPurposeStepTitle(
-  type: PurposeType | null,
-  subject: InterviewSubjectKind,
-  stepKey: string | null | undefined
-): string | null {
-  if (!type || !stepKey) return null;
-  const step = PURPOSE_TYPE_DEFINITIONS[type][subject].steps.find(
-    (s) => s.step_key === stepKey
-  );
-  return step?.title ?? null;
-}

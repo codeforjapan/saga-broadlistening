@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  EVALUATE_REQUIRED_TOPICS_MAX,
+  EVALUATE_TEMPLATE_TOPICS_MAX,
   EVALUATION_QUICK_REPLIES_MAX,
+  QUESTION_TURN_LIMIT,
   QUICK_REPLIES_MAX,
-  REQUIRED_TOPICS_MAX,
-  SUMMARY_START_TURN,
+  TEMPLATE_TOPICS_MAX,
 } from "../constants";
 import {
   getPurposeTemplateSteps,
@@ -16,51 +16,56 @@ import {
 import { PURPOSE_TYPES } from "./types";
 
 const SUBJECTS = ["bill", "theme"] as const;
+const UNDECIDED_REPLY = "まだ決められない";
 
 describe("目的別テンプレート", () => {
   it.each(
     PURPOSE_TYPES.flatMap((type) => SUBJECTS.map((subject) => [type, subject]))
-  )("%s×%s は予算の合計が要約開始までに収まる", (type, subject) => {
+  )("%s×%s は予算の合計が質問の発話の上限に収まる", (type, subject) => {
     const steps = getPurposeTemplateSteps(
       type as (typeof PURPOSE_TYPES)[number],
       subject as (typeof SUBJECTS)[number]
     );
+    // 最初の発話は Q1 の1回目として予算に含まれるが、上限には数えない
     const total = steps.reduce((sum, s) => sum + s.turn_budget, 0);
-    expect(total).toBeLessThanOrEqual(SUMMARY_START_TURN);
+    expect(total - 1).toBeLessThanOrEqual(QUESTION_TURN_LIMIT);
 
-    const required = steps.filter((s) => s.required);
-    expect(required.length).toBeLessThanOrEqual(
-      type === "evaluate" ? EVALUATE_REQUIRED_TOPICS_MAX : REQUIRED_TOPICS_MAX
+    expect(steps.length).toBeLessThanOrEqual(
+      type === "evaluate" ? EVALUATE_TEMPLATE_TOPICS_MAX : TEMPLATE_TOPICS_MAX
     );
-    expect(steps[0].step_kind).toBe("fact");
-    expect(steps.at(-1)?.step_kind).toBe("add_more");
+    expect(steps.at(-1)?.quick_replies).toEqual(["特にない"]);
     for (const step of steps) {
       expect(step.turn_budget).toBeGreaterThanOrEqual(1);
       expect(step.turn_budget).toBeLessThanOrEqual(4);
+      // 受け止めの質問だけ「まだ決められない」を含めて5つまで
       expect(step.quick_replies.length).toBeLessThanOrEqual(
-        step.step_kind === "evaluation"
+        step.quick_replies.includes(UNDECIDED_REPLY)
           ? EVALUATION_QUICK_REPLIES_MAX
           : QUICK_REPLIES_MAX
       );
     }
   });
 
-  it("受け止めの選択肢には「まだ決められない」を含める", () => {
-    for (const definition of Object.values(PURPOSE_TYPE_DEFINITIONS)) {
-      for (const subject of SUBJECTS) {
-        for (const step of definition[subject].steps) {
-          if (step.step_kind === "evaluation") {
-            expect(step.quick_replies).toContain("まだ決められない");
-          }
-        }
-      }
+  it("受け止めの質問は「まだ決められない」を選択肢の最後に置く", () => {
+    const evaluationSteps = Object.values(PURPOSE_TYPE_DEFINITIONS).flatMap(
+      (definition) =>
+        SUBJECTS.flatMap((subject) =>
+          definition[subject].steps.filter((step) =>
+            step.quick_replies.includes(UNDECIDED_REPLY)
+          )
+        )
+    );
+    // 確かめる×施策、評価する×施策・テーマ
+    expect(evaluationSteps).toHaveLength(3);
+    for (const step of evaluationSteps) {
+      expect(step.quick_replies.at(-1)).toBe(UNDECIDED_REPLY);
     }
   });
 
   it("確かめる×テーマでは受け止めを聞かない", () => {
     expect(
-      getPurposeTemplateSteps("verify", "theme").some(
-        (s) => s.step_kind === "evaluation"
+      getPurposeTemplateSteps("verify", "theme").some((s) =>
+        s.quick_replies.includes(UNDECIDED_REPLY)
       )
     ).toBe(false);
   });

@@ -5,8 +5,8 @@ import {
 import {
   type AssistantTurnMeta,
   buildQuickReplies,
-  RESUME_TOPIC,
   RESUME_TOPIC_ID,
+  RESUME_TOPIC_TITLE,
   resolveChatTurn,
   resolveSummaryTurn,
   type SummaryState,
@@ -14,11 +14,7 @@ import {
   type TurnState,
   type TurnTopic,
 } from "./turn-control";
-import type {
-  InterviewEndReason,
-  InterviewStage,
-  SummaryPhase,
-} from "./types";
+import type { InterviewStage } from "./types";
 
 /** レスポンスの末尾にサーバーが注入する値 */
 export interface InjectedTurnFields {
@@ -32,9 +28,6 @@ export interface InjectedTurnFields {
 /** interview_sessions に書き戻すステージ */
 export interface SessionStageUpdate {
   stage: InterviewStage;
-  summary_phase: SummaryPhase | null;
-  resume_used?: boolean;
-  end_reason?: InterviewEndReason;
 }
 
 export interface TurnRecord {
@@ -50,6 +43,17 @@ function displayText(
   rawText: string
 ): string {
   return typeof parsed?.text === "string" ? parsed.text : rawText;
+}
+
+/**
+ * 進捗バーに出す話題名。LLM が出力した topic_title が空でなければそれを使う。
+ * 話題名はコードでは決めない（interview_questions に名前の列が無いため）。
+ */
+export function readTopicTitle(
+  parsed: Record<string, unknown> | null
+): string | null {
+  const title = parsed?.topic_title;
+  return typeof title === "string" && title.trim() ? title.trim() : null;
 }
 
 /**
@@ -74,12 +78,13 @@ export function buildChatTurnRecord({
     sideTurn: signals.personalRequest || signals.offTopic,
   });
   const nextStage: InterviewStage = signals.endRequest ? "summary" : "chat";
+  const topicTitle = readTopicTitle(parsed);
 
   const stored = {
     ...parsed,
     text: displayText(parsed, rawText),
     question_id: result.questionId,
-    topic_title: result.topicTitle,
+    topic_title: topicTitle,
     quick_replies: result.quickReplies,
     stage: "chat",
     next_stage: nextStage,
@@ -94,14 +99,12 @@ export function buildChatTurnRecord({
     content: JSON.stringify(stored),
     injected: {
       resolved_question_id: result.questionId,
-      resolved_topic_title: result.topicTitle,
+      resolved_topic_title: topicTitle,
       quick_replies: result.quickReplies,
       next_stage: nextStage,
       chain_summary: signals.endRequest,
     },
-    sessionUpdate: signals.endRequest
-      ? { stage: "summary", summary_phase: "first", end_reason: "end_request" }
-      : null,
+    sessionUpdate: signals.endRequest ? { stage: "summary" } : null,
   };
 }
 
@@ -119,7 +122,7 @@ export function buildSummaryTurnRecord({
   const { summaryResponse } = readSignals(parsed);
   const result = resolveSummaryTurn(summaryState, summaryResponse);
   const questionId = result.resumed ? RESUME_TOPIC_ID : null;
-  const topicTitle = result.resumed ? RESUME_TOPIC.title : null;
+  const topicTitle = result.resumed ? RESUME_TOPIC_TITLE : null;
 
   const stored = {
     ...parsed,
@@ -145,11 +148,8 @@ export function buildSummaryTurnRecord({
       next_stage: result.stage,
       chain_summary: false,
     },
-    sessionUpdate: {
-      stage: result.stage,
-      summary_phase: result.summaryPhase,
-      ...(result.resumed ? { resume_used: true } : {}),
-    },
+    // 要約の段階が続くときは書き戻さない（場面は発話の記録から決める）
+    sessionUpdate: result.stage === "summary" ? null : { stage: result.stage },
   };
 }
 

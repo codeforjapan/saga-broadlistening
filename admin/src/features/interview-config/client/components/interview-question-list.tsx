@@ -20,7 +20,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, LayoutTemplate } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -310,14 +309,11 @@ export function InterviewQuestionList({
                                     <div className="font-semibold text-gray-900">
                                       {question.question}
                                     </div>
-                                    {question.required === false && (
-                                      <Badge variant="outline">任意</Badge>
-                                    )}
                                   </div>
-                                  {question.hint && (
+                                  {question.follow_up_guide && (
                                     <div className="text-sm text-gray-600">
                                       <span className="font-medium">観点:</span>{" "}
-                                      {question.hint}
+                                      {question.follow_up_guide}
                                     </div>
                                   )}
                                   {question.quick_replies &&

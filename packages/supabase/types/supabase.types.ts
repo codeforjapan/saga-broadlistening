@@ -689,43 +689,34 @@ export type Database = {
       interview_questions: {
         Row: {
           created_at: string
-          hint: string | null
+          follow_up_guide: string | null
           id: string
           interview_config_id: string
           question: string
           question_order: number
           quick_replies: string[] | null
-          required: boolean
-          step_key: string | null
-          step_kind: Database["public"]["Enums"]["interview_step_kind_enum"]
           turn_budget: number
           updated_at: string
         }
         Insert: {
           created_at?: string
-          hint?: string | null
+          follow_up_guide?: string | null
           id?: string
           interview_config_id: string
           question: string
           question_order: number
           quick_replies?: string[] | null
-          required?: boolean
-          step_key?: string | null
-          step_kind?: Database["public"]["Enums"]["interview_step_kind_enum"]
           turn_budget?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
-          hint?: string | null
+          follow_up_guide?: string | null
           id?: string
           interview_config_id?: string
           question?: string
           question_order?: number
           quick_replies?: string[] | null
-          required?: boolean
-          step_key?: string | null
-          step_kind?: Database["public"]["Enums"]["interview_step_kind_enum"]
           turn_budget?: number
           updated_at?: string
         }
@@ -776,15 +767,12 @@ export type Database = {
           archived_at: string | null
           completed_at: string | null
           created_at: string
-          end_reason: Database["public"]["Enums"]["interview_end_reason_enum"] | null
           external_identity_id: string | null
           id: string
           interview_config_id: string
           rating: number | null
-          resume_used: boolean
           stage: Database["public"]["Enums"]["interview_session_stage_enum"]
           started_at: string
-          summary_phase: Database["public"]["Enums"]["interview_summary_phase_enum"] | null
           updated_at: string
           user_id: string | null
         }
@@ -792,15 +780,12 @@ export type Database = {
           archived_at?: string | null
           completed_at?: string | null
           created_at?: string
-          end_reason?: Database["public"]["Enums"]["interview_end_reason_enum"] | null
           external_identity_id?: string | null
           id?: string
           interview_config_id: string
           rating?: number | null
-          resume_used?: boolean
           stage?: Database["public"]["Enums"]["interview_session_stage_enum"]
           started_at?: string
-          summary_phase?: Database["public"]["Enums"]["interview_summary_phase_enum"] | null
           updated_at?: string
           user_id?: string | null
         }
@@ -808,15 +793,12 @@ export type Database = {
           archived_at?: string | null
           completed_at?: string | null
           created_at?: string
-          end_reason?: Database["public"]["Enums"]["interview_end_reason_enum"] | null
           external_identity_id?: string | null
           id?: string
           interview_config_id?: string
           rating?: number | null
-          resume_used?: boolean
           stage?: Database["public"]["Enums"]["interview_session_stage_enum"]
           started_at?: string
-          summary_phase?: Database["public"]["Enums"]["interview_summary_phase_enum"] | null
           updated_at?: string
           user_id?: string | null
         }
@@ -1833,13 +1815,10 @@ export type Database = {
         | "other"
       interview_mode_enum: "loop" | "bulk" | "targeted"
       interview_participation_mode_enum: "public" | "external_identity"
-      interview_end_reason_enum: "completed" | "end_button" | "end_request" | "turn_limit"
       interview_publication_mode_enum: "scheduled" | "when_ready"
       interview_publication_place_enum: "chikat" | "city_web" | "koho"
       interview_purpose_type_enum: "understand" | "discover" | "verify" | "evaluate" | "envision"
       interview_session_stage_enum: "chat" | "summary" | "summary_complete"
-      interview_step_kind_enum: "fact" | "episode" | "reason" | "evaluation" | "add_more"
-      interview_summary_phase_enum: "first" | "reply"
       interview_report_role_enum:
         | "subject_expert"
         | "work_related"
@@ -2014,13 +1993,10 @@ export const Constants = {
       ],
       interview_mode_enum: ["loop", "bulk", "targeted"],
       interview_participation_mode_enum: ["public", "external_identity"],
-      interview_end_reason_enum: ["completed", "end_button", "end_request", "turn_limit"],
       interview_publication_mode_enum: ["scheduled", "when_ready"],
       interview_publication_place_enum: ["chikat", "city_web", "koho"],
       interview_purpose_type_enum: ["understand", "discover", "verify", "evaluate", "envision"],
       interview_session_stage_enum: ["chat", "summary", "summary_complete"],
-      interview_step_kind_enum: ["fact", "episode", "reason", "evaluation", "add_more"],
-      interview_summary_phase_enum: ["first", "reply"],
       interview_report_role_enum: [
         "subject_expert",
         "work_related",

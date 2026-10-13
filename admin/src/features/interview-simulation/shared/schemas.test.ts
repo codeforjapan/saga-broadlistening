@@ -14,7 +14,7 @@ type ValidRequest = {
       id: string;
       question: string;
       quick_replies: string[] | null;
-      hint: string | null;
+      follow_up_guide: string | null;
     }>;
   };
   interviewerModel: string;
@@ -34,7 +34,7 @@ function baseValidRequest(): ValidRequest {
           id: "q-1",
           question: "質問 1",
           quick_replies: ["はい", "いいえ"],
-          hint: "掘り下げガイド",
+          follow_up_guide: "掘り下げガイド",
         },
       ],
     },

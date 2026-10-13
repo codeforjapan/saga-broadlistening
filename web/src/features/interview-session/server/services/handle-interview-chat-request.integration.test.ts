@@ -182,7 +182,6 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             question: "関わりはありますか？",
             question_order: 1,
             quick_replies: null,
-            step_kind: "fact",
             turn_budget: 1,
           },
           {
@@ -190,7 +189,6 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             question: "ふだんの場面を教えてください",
             question_order: 2,
             quick_replies: ["思い出せない"],
-            step_kind: "episode",
             turn_budget: 3,
           },
         ])
@@ -310,14 +308,10 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       await new Promise((resolve) => setTimeout(resolve, 300));
       const { data: updated } = await adminClient
         .from("interview_sessions")
-        .select("stage, summary_phase, end_reason")
+        .select("stage")
         .eq("id", sessionId)
         .single();
-      expect(updated).toEqual({
-        stage: "summary",
-        summary_phase: "first",
-        end_reason: "end_request",
-      });
+      expect(updated).toEqual({ stage: "summary" });
     });
 
     it("空白のみのユーザーメッセージはDBに保存されない", async () => {
@@ -397,7 +391,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
     let summarySession: InterviewSession;
 
     beforeEach(() => {
-      summarySession = { ...session, stage: "summary", summary_phase: "first" };
+      summarySession = { ...session, stage: "summary" };
     });
 
     it("ユーザーメッセージとassistantメッセージがDBに保存される", async () => {

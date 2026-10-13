@@ -5,7 +5,7 @@ import { prepareQuestionsForInsert } from "./prepare-questions-for-insert";
 const questions: InterviewQuestionInput[] = [
   {
     question: "質問A",
-    hint: "指示A",
+    follow_up_guide: "指示A",
     quick_replies: ["選択肢1", "選択肢2"],
   },
   {
@@ -13,7 +13,7 @@ const questions: InterviewQuestionInput[] = [
   },
   {
     question: "質問C",
-    hint: undefined,
+    follow_up_guide: undefined,
     quick_replies: undefined,
   },
 ];
@@ -36,45 +36,28 @@ describe("prepareQuestionsForInsert", () => {
   it("質問内容を保持する", () => {
     const result = prepareQuestionsForInsert(questions, "config-123");
     expect(result[0].question).toBe("質問A");
-    expect(result[0].hint).toBe("指示A");
+    expect(result[0].follow_up_guide).toBe("指示A");
     expect(result[0].quick_replies).toEqual(["選択肢1", "選択肢2"]);
   });
 
-  it("未設定のhint/quick_repliesをnullに変換する", () => {
+  it("未設定のfollow_up_guide/quick_repliesをnullに変換する", () => {
     const result = prepareQuestionsForInsert(questions, "config-123");
-    expect(result[1].hint).toBeNull();
+    expect(result[1].follow_up_guide).toBeNull();
     expect(result[1].quick_replies).toBeNull();
-    expect(result[2].hint).toBeNull();
+    expect(result[2].follow_up_guide).toBeNull();
     expect(result[2].quick_replies).toBeNull();
   });
 
-  it("テンプレートの値を引き継ぎ、未指定なら既定値を明示する（一括 insert で NULL にしない）", () => {
+  it("発話予算を引き継ぎ、未指定なら既定値を明示する（一括 insert で NULL にしない）", () => {
     const result = prepareQuestionsForInsert(
       [
-        {
-          question: "関わりはありますか？",
-          step_key: "involvement",
-          step_kind: "fact",
-          turn_budget: 1,
-          required: true,
-        },
+        { question: "関わりはありますか？", turn_budget: 1 },
         { question: "自由な質問" },
       ],
       "config-123"
     );
-    expect(result[0]).toMatchObject({
-      step_key: "involvement",
-      step_kind: "fact",
-      turn_budget: 1,
-      required: true,
-    });
-    expect(result[1].step_key).toBeNull();
-    expect(result[1]).toMatchObject({
-      step_key: null,
-      step_kind: "episode",
-      turn_budget: 3,
-      required: true,
-    });
+    expect(result[0].turn_budget).toBe(1);
+    expect(result[1].turn_budget).toBe(3);
   });
 
   it("空配列を渡すと空配列を返す", () => {

@@ -85,7 +85,7 @@ describe("buildConfigGenerationPrompt", () => {
         confirmedQuestions: [
           {
             question: "質問A",
-            hint: "観点A",
+            follow_up_guide: "観点A",
             quick_replies: ["選択肢1", "選択肢2"],
           },
           { question: "質問B" },
@@ -178,7 +178,7 @@ describe("buildConfigGenerationPrompt", () => {
         existingQuestions: [
           {
             question: "既存質問1",
-            hint: "既存フォローアップ",
+            follow_up_guide: "既存フォローアップ",
             quick_replies: ["選択肢1"],
           },
         ],
@@ -193,7 +193,7 @@ describe("buildConfigGenerationPrompt", () => {
     it("各質問フィールドの説明を含む", () => {
       const result = buildConfigGenerationPrompt(questionParams);
       expect(result).toContain("question: 質問文");
-      expect(result).toContain("hint: 観点");
+      expect(result).toContain("follow_up_guide: 観点");
       expect(result).toContain("quick_replies: クイックリプライの選択肢");
     });
 

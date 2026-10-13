@@ -85,11 +85,8 @@ async function buildPipelineParams(
       id: q.id,
       question: q.question,
       quick_replies: q.quick_replies ?? null,
-      hint: q.hint ?? null,
-      step_key: q.step_key ?? null,
-      step_kind: q.step_kind ?? null,
+      follow_up_guide: q.follow_up_guide ?? null,
       turn_budget: q.turn_budget ?? null,
-      required: q.required ?? null,
     }));
 
   // 説明文は改善版を、目的・結果のお知らせなどは保存済みの設定を使う

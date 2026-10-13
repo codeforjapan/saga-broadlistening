@@ -326,10 +326,7 @@ export const additionalInterviewConfigs: InterviewConfigInsert[] = [
 
 /** interview_questions の NOT NULL かつ DEFAULT を持つカラムの既定値（withDefaults 用） */
 export const INTERVIEW_QUESTION_DEFAULTS = {
-  step_key: null,
-  step_kind: "episode",
   turn_budget: 3,
-  required: true,
 } satisfies Partial<InterviewQuestionInsert>;
 
 /**
@@ -344,12 +341,9 @@ export function createInterviewQuestions(
   return getPurposeTemplateSteps(purposeType, subject).map((step, index) => ({
     interview_config_id: interviewConfigId,
     question: step.question,
-    hint: step.hint,
+    follow_up_guide: step.follow_up_guide,
     quick_replies: step.quick_replies.length > 0 ? step.quick_replies : null,
-    step_key: step.step_key,
-    step_kind: step.step_kind,
     turn_budget: step.turn_budget,
-    required: step.required,
     question_order: index + 1,
   }));
 }

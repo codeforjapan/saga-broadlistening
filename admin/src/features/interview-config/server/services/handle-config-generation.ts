@@ -19,7 +19,7 @@ import {
 
 interface ExistingQuestion {
   question: string;
-  hint?: string | null;
+  follow_up_guide?: string | null;
   quick_replies?: string[] | null;
 }
 

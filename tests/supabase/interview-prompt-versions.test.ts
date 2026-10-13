@@ -20,10 +20,7 @@ const input = {
   bill: null,
   interviewConfig: { name: "交通", description: "交通の改善" },
 };
-const topics = buildTurnTopics([{ id: "q1", question: "困りごとは？" }], {
-  purposeType: null,
-  subject: "theme",
-});
+const topics = buildTurnTopics([{ id: "q1", question: "困りごとは？" }]);
 
 describe("AIインタビューの共通プロンプト版管理", () => {
   let actorId: string;
@@ -68,7 +65,9 @@ describe("AIインタビューの共通プロンプト版管理", () => {
               topics,
               turnState: computeTurnState({
                 topics,
-                metas: [{ questionId: "q1", budgetExempt: false }],
+                metas: [
+                  { questionId: "q1", budgetExempt: false, stage: "chat" },
+                ],
               }),
               piiNotice: null,
             },
@@ -129,7 +128,7 @@ describe("AIインタビューの共通プロンプト版管理", () => {
     expect(restored).not.toContain("新版の方針");
     expect(restored).toContain(
       promptKey === "interview-chat-system"
-        ? "[Q1｜質問1｜場面｜発話3回まで｜必須] 困りごとは？"
+        ? "[Q1｜発話3回まで] 困りごとは？"
         : "user [msg_id:message-1]"
     );
     expect((await findPromptState(key)).versions).toHaveLength(2);

@@ -55,21 +55,13 @@ describe("buildPublicationText", () => {
 });
 
 describe("buildQuestionsText", () => {
-  it("[Qn｜名前｜種類｜予算｜必須] 質問／観点 の形で並べる", () => {
-    const topics = buildTurnTopics(
-      [
-        { id: "a", question: "関わりは？", step_kind: "fact", turn_budget: 1 },
-        {
-          id: "b",
-          question: "場面は？",
-          hint: "最近の1回",
-          required: false,
-        },
-      ],
-      { purposeType: null, subject: "theme" }
-    );
+  it("[Qn｜予算] 質問／観点 の形で並べる", () => {
+    const topics = buildTurnTopics([
+      { id: "a", question: "関わりは？", turn_budget: 1 },
+      { id: "b", question: "場面は？", follow_up_guide: "最近の1回" },
+    ]);
     expect(buildQuestionsText(topics)).toBe(
-      "[Q1｜質問1｜事実｜発話1回｜必須] 関わりは？\n[Q2｜質問2｜場面｜発話3回まで｜任意] 場面は？／観点：最近の1回"
+      "[Q1｜発話1回] 関わりは？\n[Q2｜発話3回まで] 場面は？／観点：最近の1回"
     );
   });
 

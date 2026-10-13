@@ -370,13 +370,10 @@ export async function unpublishReportsByConfigId(
 }
 
 export async function createInterviewQuestions(
-  questions: (Pick<
-    InterviewQuestionInsert,
-    "step_key" | "step_kind" | "turn_budget" | "required"
-  > & {
+  questions: (Pick<InterviewQuestionInsert, "turn_budget"> & {
     interview_config_id: string;
     question: string;
-    hint: string | null;
+    follow_up_guide: string | null;
     quick_replies: string[] | null;
     question_order: number;
   })[]

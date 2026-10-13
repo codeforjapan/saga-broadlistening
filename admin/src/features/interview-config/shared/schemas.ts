@@ -59,7 +59,10 @@ export const questionProposalSchema = z.object({
     .array(
       z.object({
         question: z.string().describe("質問文"),
-        hint: z.string().nullable().describe("観点（深掘り方法など）"),
+        follow_up_guide: z
+          .string()
+          .nullable()
+          .describe("観点（深掘り方法など）"),
         quick_replies: z
           .array(z.string())
           .nullable()
@@ -82,7 +85,7 @@ export const configGenerationResponseSchema = z.object({
     .array(
       z.object({
         question: z.string(),
-        hint: z.string().optional(),
+        follow_up_guide: z.string().optional(),
         quick_replies: z.array(z.string()).optional(),
       })
     )

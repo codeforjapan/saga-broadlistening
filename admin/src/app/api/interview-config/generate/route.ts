@@ -31,12 +31,12 @@ export async function POST(req: Request) {
     existingThemes?: string[];
     existingQuestions?: Array<{
       question: string;
-      hint?: string | null;
+      follow_up_guide?: string | null;
       quick_replies?: string[] | null;
     }>;
     confirmedQuestions?: Array<{
       question: string;
-      hint?: string | null;
+      follow_up_guide?: string | null;
       quick_replies?: string[] | null;
     }>;
   } = body;

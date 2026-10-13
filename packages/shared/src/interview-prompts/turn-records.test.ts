@@ -1,24 +1,29 @@
+import { describe, expect, it } from "vitest";
 import {
+  type AssistantTurnMeta,
   buildTurnTopics,
   computeSummaryState,
   computeTurnState,
   RESUME_TOPIC_ID,
 } from "./turn-control";
-import { describe, expect, it } from "vitest";
 import {
   buildChatTurnRecord,
   buildInitialTurnContent,
   buildSummaryTurnRecord,
+  readTopicTitle,
 } from "./turn-records";
 
-const topics = buildTurnTopics(
-  [
-    { id: "q1", question: "関わりは？", step_kind: "fact", turn_budget: 1 },
-    { id: "q2", question: "場面は？", quick_replies: ["思い出せない"] },
-  ],
-  { purposeType: null, subject: "theme" }
-);
-const metas = [{ questionId: "q1", budgetExempt: false }];
+const topics = buildTurnTopics([
+  { id: "q1", question: "関わりは？", turn_budget: 1 },
+  { id: "q2", question: "場面は？", quick_replies: ["思い出せない"] },
+]);
+const metas: AssistantTurnMeta[] = [
+  { questionId: "q1", budgetExempt: false, stage: "chat" },
+];
+const summaryReplyMetas: AssistantTurnMeta[] = [
+  ...metas,
+  { questionId: null, budgetExempt: false, stage: "summary" },
+];
 
 function chatOutput(fields: Record<string, unknown>): string {
   return JSON.stringify({
@@ -44,7 +49,7 @@ describe("buildChatTurnRecord", () => {
     expect(JSON.parse(record.content)).toMatchObject({
       text: "ふだんの場面を教えてください。",
       question_id: "q2",
-      topic_title: "質問2",
+      topic_title: "場面",
       quick_replies: ["思い出せない", "この質問はとばす"],
       stage: "chat",
       next_stage: "chat",
@@ -52,7 +57,7 @@ describe("buildChatTurnRecord", () => {
     });
     expect(record.injected).toEqual({
       resolved_question_id: "q2",
-      resolved_topic_title: "質問2",
+      resolved_topic_title: "場面",
       quick_replies: ["思い出せない", "この質問はとばす"],
       next_stage: "chat",
       chain_summary: false,
@@ -68,11 +73,7 @@ describe("buildChatTurnRecord", () => {
     });
     expect(record.injected.next_stage).toBe("summary");
     expect(record.injected.chain_summary).toBe(true);
-    expect(record.sessionUpdate).toEqual({
-      stage: "summary",
-      summary_phase: "first",
-      end_reason: "end_request",
-    });
+    expect(record.sessionUpdate).toEqual({ stage: "summary" });
   });
 
   it("個別の要望への対応は予算から除く", () => {
@@ -82,6 +83,16 @@ describe("buildChatTurnRecord", () => {
       metas,
     });
     expect(JSON.parse(record.content).budget_exempt).toBe(true);
+  });
+
+  it("LLM の話題名が空なら null にする", () => {
+    const record = buildChatTurnRecord({
+      rawText: chatOutput({ topic_title: "  " }),
+      state,
+      metas,
+    });
+    expect(JSON.parse(record.content).topic_title).toBeNull();
+    expect(record.injected.resolved_topic_title).toBeNull();
   });
 
   it("パースに失敗したら本文はそのまま、question_id はコードの値にする", () => {
@@ -101,9 +112,8 @@ describe("buildChatTurnRecord", () => {
 describe("buildSummaryTurnRecord", () => {
   it("要約に同意したら完了にする", () => {
     const summaryState = computeSummaryState({
-      assistantTurn: 8,
+      metas: summaryReplyMetas,
       phase: "reply",
-      resumeUsed: false,
       forceClose: false,
     });
     const record = buildSummaryTurnRecord({
@@ -115,18 +125,14 @@ describe("buildSummaryTurnRecord", () => {
       summaryState,
     });
     expect(record.injected.next_stage).toBe("summary_complete");
-    expect(record.sessionUpdate).toEqual({
-      stage: "summary_complete",
-      summary_phase: null,
-    });
+    expect(record.sessionUpdate).toEqual({ stage: "summary_complete" });
     expect(JSON.parse(record.content).report).toEqual({ summary: "要約" });
   });
 
   it("インタビューに戻るときは再開の話題を開き、レポートを残さない", () => {
     const summaryState = computeSummaryState({
-      assistantTurn: 8,
+      metas: summaryReplyMetas,
       phase: "reply",
-      resumeUsed: false,
       forceClose: false,
     });
     const record = buildSummaryTurnRecord({
@@ -139,14 +145,30 @@ describe("buildSummaryTurnRecord", () => {
     });
     expect(JSON.parse(record.content)).toMatchObject({
       question_id: RESUME_TOPIC_ID,
+      topic_title: "付け足し",
       report: null,
+      stage: "summary",
       next_stage: "chat",
     });
-    expect(record.sessionUpdate).toEqual({
-      stage: "chat",
-      summary_phase: null,
-      resume_used: true,
+    expect(record.sessionUpdate).toEqual({ stage: "chat" });
+  });
+
+  it("要約の段階が続くときはセッションを書き戻さない", () => {
+    const summaryState = computeSummaryState({
+      metas,
+      phase: "first",
+      forceClose: false,
     });
+    const record = buildSummaryTurnRecord({
+      rawText: JSON.stringify({
+        text: "まとめました。",
+        summary_response: "none",
+        report: { summary: "要約" },
+      }),
+      summaryState,
+    });
+    expect(record.injected.next_stage).toBe("summary");
+    expect(record.sessionUpdate).toBeNull();
   });
 });
 
@@ -169,5 +191,14 @@ describe("buildInitialTurnContent", () => {
       quick_replies: ["思い出せない", "この質問はとばす"],
       end_request: false,
     });
+  });
+});
+
+describe("readTopicTitle", () => {
+  it("空でない文字列だけを前後の空白を除いて使う", () => {
+    expect(readTopicTitle({ topic_title: " 場面 " })).toBe("場面");
+    expect(readTopicTitle({ topic_title: "" })).toBeNull();
+    expect(readTopicTitle({ topic_title: 1 })).toBeNull();
+    expect(readTopicTitle(null)).toBeNull();
   });
 });

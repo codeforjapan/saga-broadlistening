@@ -12,14 +12,11 @@ export function prepareQuestionsForInsert(
   return questions.map((question, index) => ({
     interview_config_id: interviewConfigId,
     question: question.question,
-    hint: question.hint || null,
+    follow_up_guide: question.follow_up_guide || null,
     quick_replies: question.quick_replies || null,
     question_order: index + 1,
-    // テンプレートの値は職員が文言を直してもそのまま引き継ぐ。
+    // テンプレートの発話予算は職員が文言を直してもそのまま引き継ぐ。
     // 一括 insert では行ごとにキーが欠けると NULL が入るため、既定値も明示する
-    step_key: question.step_key ?? null,
-    step_kind: question.step_kind ?? "episode",
     turn_budget: question.turn_budget ?? DEFAULT_TURN_BUDGET,
-    required: question.required ?? true,
   }));
 }

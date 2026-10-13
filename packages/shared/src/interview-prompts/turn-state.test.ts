@@ -15,14 +15,17 @@ const topics = buildTurnTopics(
   getPurposeTemplateSteps("envision", "theme").map((s, i) => ({
     id: `q${i + 1}`,
     ...s,
-  })),
-  { purposeType: "envision", subject: "theme" }
+  }))
 );
 
 function stateAfter(...ids: string[]) {
   return computeTurnState({
     topics,
-    metas: ids.map((questionId) => ({ questionId, budgetExempt: false })),
+    metas: ids.map((questionId) => ({
+      questionId,
+      budgetExempt: false,
+      stage: "chat" as const,
+    })),
   });
 }
 
@@ -30,14 +33,18 @@ describe("renderTurnState", () => {
   it("予算が残っていれば続けても移ってもよいと書く", () => {
     const text = renderTurnState(stateAfter("q1", "q2"), { piiNotice: null });
     expect(text).toContain(
-      "- いまの話題：Q2「よかった場面」（場面）。この話題で使える発話：あと3回（今回を含む）"
+      "- 質問の発話：これまで1回（上限20。最初の発話と要約は数えない。上限に達したら要約に入る）"
+    );
+    expect(text).toContain(
+      "- いまの話題：Q2「このテーマに関わることで、この1年に「よかった」と感じた場面を1つ教えてください。」。この話題で使える発話：あと3回（今回を含む）"
     );
     expect(text).toContain("- 続けても、次の話題に移ってもよい");
     expect(text).toContain(
-      "- 次の話題：Q3「10年後の一日」（選択肢ボタンはシステムが出す）"
+      "- 次の話題：Q3「10年後、あなたが佐賀で過ごしている一日を、このテーマに関わる場面から描いてみてください。」（選択肢ボタンはシステムが出す）"
     );
+    expect(text).toContain("- 残りの話題：Q3・Q4・Q5（あと3つ）");
     expect(text).toContain(
-      "- 残りの話題：Q3・Q4・Q6（あと3つ。Q5 は残りの発話数によってシステムが決める）"
+      "- この話題で聞けたら豊かになる観点：場面の具体、その場面の何が大事だったか（届かなくてよい）（満たさなくてよい）"
     );
     expect(text).not.toContain("伏せ字の案内");
   });
@@ -52,19 +59,24 @@ describe("renderTurnState", () => {
     expect(text).toContain("- 伏せ字の案内：済み");
   });
 
-  it("最後の必須の話題には「最後の質問」と書く", () => {
-    const text = renderTurnState(stateAfter("q1", "q2", "q3", "q4", "q5"), {
+  it("最後の話題には「最後の質問」と書く", () => {
+    const text = renderTurnState(stateAfter("q1", "q2", "q3", "q4"), {
       piiNotice: null,
     });
-    expect(text).toContain("- 次の話題：Q6「言い足し」（最後の質問）");
+    expect(text).toContain(
+      "- 次の話題：Q5「ほかに、10年後の佐賀について伝えておきたいことはありますか？」（最後の質問）"
+    );
+    expect(text).toContain("- 残りの話題：Q5（あと1つ）");
   });
 
   it("再開の話題の後は次の話題なし", () => {
     const text = renderTurnState(
-      stateAfter("q1", "q2", "q3", "q4", "q6", RESUME_TOPIC_ID),
+      stateAfter("q1", "q2", "q3", "q4", "q5", RESUME_TOPIC_ID),
       { piiNotice: null }
     );
-    expect(text).toContain("- いまの話題：R「付け足し」");
+    expect(text).toContain(
+      "- いまの話題：R「付け足したいことを続けて話してもらう」"
+    );
     expect(text).toContain("- 次の話題：なし（この話題が最後）");
   });
 });
@@ -93,7 +105,7 @@ describe("renderSummaryState", () => {
       [
         "## 要約の状況（システムから）",
         "- 場面：初回の要約",
-        "- 残りの発話：4回",
+        "- 要約の段階で残りの発話：4回（今回を含む）",
         "- インタビューに戻れるか：はい",
         "- これが最後の発話か：いいえ",
       ].join("\n")

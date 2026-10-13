@@ -30,8 +30,7 @@ const topics = buildTurnTopics(
   getPurposeTemplateSteps("verify", "bill").map((s, i) => ({
     id: `q${i + 1}`,
     ...s,
-  })),
-  { purposeType: "verify", subject: "bill" }
+  }))
 );
 
 describe("対話用プロンプト", () => {
@@ -40,6 +39,7 @@ describe("対話用プロンプト", () => {
     metas: ["q1", "q2", "q2", "q2", "q3", "q3"].map((questionId) => ({
       questionId,
       budgetExempt: false,
+      stage: "chat" as const,
     })),
   });
 
@@ -62,13 +62,13 @@ describe("対話用プロンプト", () => {
       "- 結果を知らせる時期と場所：2027年3月ごろ、CHIKAT の結果ページで（聞かれたら伝える）"
     );
     expect(prompt).toContain(
-      "[Q3｜案による変化｜理由｜発話4回まで｜必須] この案で、その場面はどう変わりそうですか？"
+      "[Q3｜発話4回まで] この案で、その場面はどう変わりそうですか？／観点：案のどの部分が関わるか"
     );
     expect(prompt).toContain(
-      "- いまの話題：Q3「案による変化」（理由）。この話題で使える発話：あと2回（今回を含む）"
+      "- いまの話題：Q3「この案で、その場面はどう変わりそうですか？」。この話題で使える発話：あと2回（今回を含む）"
     );
     expect(prompt).toContain(
-      "- 次の話題：Q4「全体の受け止め」（受け止めの質問。選択肢ボタンはシステムが出す）"
+      "- 次の話題：Q4「ここまでを踏まえて、この案を全体としてどう受け止めていますか？」（選択肢ボタンはシステムが出す）"
     );
     expect(prompt).toContain("- 残りの話題：Q4・Q5（あと2つ）");
     expect(prompt).toContain("- 伏せ字の案内：まだ");
@@ -87,6 +87,7 @@ describe("対話用プロンプト", () => {
       metas: ["q1", "q2", "q2", "q2"].map((questionId) => ({
         questionId,
         budgetExempt: false,
+        stage: "chat" as const,
       })),
     });
     const prompt = buildChatSystemPrompt({
@@ -117,7 +118,7 @@ describe("対話用プロンプト", () => {
     );
     expect(prompt).toContain("独自の方針");
     expect(prompt).toContain("短く話す聞き手");
-    expect(prompt).toContain("[Q1｜関わり｜事実｜発話1回｜必須]");
+    expect(prompt).toContain("[Q1｜発話1回]");
   });
 });
 
@@ -125,7 +126,7 @@ describe("初回の発話", () => {
   it("全体像と最初の質問を埋め込む", () => {
     const prompt = buildInitialSystemPrompt({ topics });
     expect(prompt).toContain(
-      "「ふだんの場面、案による変化、全体の受け止めの順に、5つうかがいます。"
+      "「全部で5つうかがいます。途中でやめても大丈夫です。」"
     );
     expect(prompt).toContain(
       "「この案は、あなたの暮らしや仕事に関わりがありますか？」"

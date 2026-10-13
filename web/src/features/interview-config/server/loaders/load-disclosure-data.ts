@@ -1,7 +1,7 @@
 import "server-only";
 
 import {
-  buildInterviewTopics,
+  buildTurnTopics,
   computeTurnState,
 } from "@mirai-gikai/shared/interview-prompts/turn-control";
 import type { BillWithContent } from "@/features/bills/shared/types";
@@ -32,7 +32,7 @@ export async function loadDisclosureData(
   const questions = await getInterviewQuestions(interviewConfig.id);
 
   // 最初の質問を聞いた直後の状況で組み立てる
-  const topics = buildInterviewTopics(questions, interviewConfig, bill);
+  const topics = buildTurnTopics(questions);
   const firstTopicId = topics[0]?.id ?? null;
   const systemPrompt = await buildInterviewSystemPrompt({
     bill,
@@ -40,7 +40,7 @@ export async function loadDisclosureData(
     topics,
     turnState: computeTurnState({
       topics,
-      metas: [{ questionId: firstTopicId, budgetExempt: false }],
+      metas: [{ questionId: firstTopicId, budgetExempt: false, stage: "chat" }],
     }),
     piiNotice: null,
   });

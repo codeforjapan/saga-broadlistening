@@ -7,7 +7,7 @@
  * 持つ構造的サブセット型 PromptBillInput を定義している。BillWithContent は
  * 構造的にこの型を満たすため、既存呼び出し側はそのまま渡せる。
  */
-import type { PurposeType, StepKind } from "./purpose-types/types";
+import type { PurposeType } from "./purpose-types/types";
 
 /**
  * インタビュープロンプトが参照する Bill の最小構造
@@ -46,18 +46,10 @@ export interface InterviewQuestion {
   id: string;
   question: string;
   quick_replies?: string[] | null;
-  hint?: string | null;
-  step_key?: string | null;
-  step_kind?: StepKind | null;
+  follow_up_guide?: string | null;
   turn_budget?: number | null;
-  required?: boolean | null;
 }
 
 export type InterviewStage = "chat" | "summary" | "summary_complete";
 export type SummaryPhase = "first" | "reply";
 export type SummaryResponse = "none" | "agree" | "revise" | "resume" | "other";
-export type InterviewEndReason =
-  | "completed"
-  | "end_button"
-  | "end_request"
-  | "turn_limit";
