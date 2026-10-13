@@ -28,7 +28,7 @@ export const VERIFY: PurposeTypeDefinition = {
         ],
       },
       {
-        follow_up_guide: "いつ・どこで・誰と。一般論なら最近の1回",
+        follow_up_guide: "いつ・どこで・誰と。一般論なら最近の具体的な出来事",
         question:
           "この案に関わる、ふだんの場面を1つ思い浮かべると、どんなときですか？",
         quick_replies: ["思い出せない"],
@@ -68,7 +68,7 @@ export const VERIFY: PurposeTypeDefinition = {
         quick_replies: ["よくある", "たまに", "ほとんどない"],
       },
       {
-        follow_up_guide: "いつ・どこで・誰と。一般論なら最近の1回",
+        follow_up_guide: "いつ・どこで・誰と。一般論なら最近の具体的な出来事",
         question:
           "最近、このテーマに関わる場面があった日は、どこで何をしていましたか？",
         quick_replies: ["思い出せない"],

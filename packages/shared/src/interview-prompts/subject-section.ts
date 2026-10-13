@@ -117,7 +117,7 @@ ${knowledgeSource || "（知識ソース未設定）"}
 const GENERIC_FOCUS =
   "その人の暮らしの場面から、経験と考えを聞きます。評価や意見だけでなく、そう思うきっかけになった出来事を大事にします。";
 const GENERIC_PERSPECTIVE =
-  "一般論の答えには、最近の1回の場面を聞く。良し悪しを先に聞かない。";
+  "一般論の答えには、最近の具体的な出来事を聞く。良し悪しを先に聞かない。";
 
 /** `[Q2] 質問／観点：…` の形で話題を並べる */
 export function buildQuestionsText(topics: TurnTopic[]): string {

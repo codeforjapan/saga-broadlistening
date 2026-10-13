@@ -7,7 +7,7 @@ export const UNDERSTAND: PurposeTypeDefinition = {
   focusInstruction:
     "1つの場面の流れと理由を聞きます。評価や要望は求めません。出ても受け止めるだけで、深掘りしません。",
   bill: {
-    perspectiveTechniques: "「いつも」の話は「その中の1回」に絞る。",
+    perspectiveTechniques: "「いつも」の話は、その中の具体的な出来事に絞って聞く。",
     replyExamples: `回答：「通院で月2回くらい、駅から病院まで」
 良い例：「通院で月2回、駅から病院までなんですね。いちばん最近のその1回は、始めから終わりまでどんな流れでしたか？」`,
     steps: [
@@ -41,7 +41,7 @@ export const UNDERSTAND: PurposeTypeDefinition = {
     ],
   },
   theme: {
-    perspectiveTechniques: "「いつも」の話は「その中の1回」に絞る。",
+    perspectiveTechniques: "「いつも」の話は、その中の具体的な出来事に絞って聞く。",
     replyExamples: `回答：「友だちとカフェに行った」
 良い例：「友だちとカフェに行ったんですね。その日そこを選んだのは、どんなことからですか？」`,
     steps: [
