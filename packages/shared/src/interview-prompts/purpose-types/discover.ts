@@ -1,8 +1,8 @@
 import type { PurposeTemplateStep, PurposeTypeDefinition } from "./types";
 
 const IMPACT_STEP: PurposeTemplateStep = {
-  follow_up_guide: "困ったこと・変わったこと・負担になったこと、何が大事か（届かなくてよい）、十分聞いた後ならどうなっているとよいか",
-  question: "そのことで、どんなことに影響がありましたか？",
+  follow_up_guide: "困ったこと・変わったこと・負担になったこと、何が大事か（届かなくてよい）、十分に聞いた後ならどうなっているとよいか",
+  question: "そのことで、どんな影響がありましたか？",
   quick_replies: [],
 };
 
@@ -14,14 +14,14 @@ export const DISCOVER: PurposeTypeDefinition = {
   type: "discover",
   label: "見つける",
   focusInstruction:
-    "困りごと（または助かったこと）1つについて、出来事と影響を本人の言葉で聞きます。原因の分析や解決策は求めません。提案が出たら原文の言葉で受け止めます。",
+    "困りごと（または助かったこと）1つについて、出来事と影響を本人の言葉で聞きます。原因の分析や解決策は求めません。提案が出たら、その言葉のまま受け止めます。",
   bill: {
     perspectiveTechniques: PERSPECTIVE,
     replyExamples: `回答：「オンライン申請の途中でエラーになった」
 良い例：「オンライン申請の途中でエラーになったんですね。そのとき、どうしましたか？」`,
     steps: [
       {
-        follow_up_guide: "「使っていない」なら、次の話題を「使おうとしてやめた場面」にしてよい",
+        follow_up_guide: "「使っていない」なら、次に聞く話題を「使おうとしてやめた場面」にしてよい",
         question:
           "この1年で、この施策に関わる手続きやサービスを使ったことはありますか？",
         quick_replies: ["窓口で", "オンラインで", "両方", "使っていない"],
@@ -46,7 +46,7 @@ export const DISCOVER: PurposeTypeDefinition = {
 良い例：「子どもの熱で急に休むのが大変なんですね。最近その場面があったとき、どうしましたか？」`,
     steps: [
       {
-        follow_up_guide: "「関わっていない」なら、次の話題を身近な人の場面にしてよい",
+        follow_up_guide: "「関わっていない」なら、次に聞く話題を身近な人の場面にしてよい",
         question: "いま、このテーマに関わることはありますか？",
         quick_replies: ["自分が", "家族が", "以前は", "関わっていない"],
       },

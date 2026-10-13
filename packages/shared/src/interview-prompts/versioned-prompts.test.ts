@@ -64,9 +64,9 @@ describe("対話用プロンプト", () => {
       "- いまの話題：Q3「この案で、その場面はどう変わりそうですか？」。この話題で使える発話：あと3回（今回を含む）"
     );
     expect(prompt).toContain(
-      "- 次の話題：Q4「ここまでを踏まえて、この案を全体としてどう受け止めていますか？」（選択肢ボタンはシステムが出す）"
+      "- 次に聞ける話題：\n  - Q4「ここまでを踏まえて、この案を全体としてどう受け止めていますか？」（選択肢ボタンはシステムが出す）"
     );
-    expect(prompt).toContain("- 残りの話題：Q4・Q5（あと2つ）");
+    expect(prompt).toContain("- 最後に聞く話題：Q5（ほかの話題をすべて聞き終えてから）");
     expect(prompt).toContain(
       "- question_id：いまの話題を続けるなら Q3、次の話題に移るなら Q4。"
     );
@@ -94,8 +94,10 @@ describe("対話用プロンプト", () => {
       topics,
       turnState: exhausted,
     });
-    expect(prompt).toContain("- 今回は次の話題に移る（question_id は Q3）");
-    expect(prompt).toContain("- question_id：今回は Q3");
+    expect(prompt).toContain("- 今回は次の話題に移る");
+    expect(prompt).toContain(
+      "- question_id：今回は 選んだ話題の ID（Q3・Q4 のどれか）"
+    );
   });
 
   it("編集した対話方針でも変数を埋め込む", () => {

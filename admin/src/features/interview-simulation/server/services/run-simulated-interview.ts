@@ -209,7 +209,7 @@ export async function runSimulatedInterview({
   const startedAt = Date.now();
   // インタビュイーが元の発言回数を超えないうちに自然に畳ませるための「予算」
   const intervieweeBudget = styleAnchors?.originalIntervieweeTurns;
-  // 本番と同じターン制御（話題の順番・発話の上限・要約への移行）を使う
+  // 本番と同じターン制御（次に聞ける話題・発話の上限・要約への移行）を使う
   const topics = buildTurnTopics(promptInputs.questions);
   const metas: AssistantTurnMeta[] = [];
 

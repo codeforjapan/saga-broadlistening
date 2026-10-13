@@ -1,8 +1,9 @@
 /**
  * AIインタビューのターン制御（純粋関数）。
  *
- * コードが持つのは外枠だけ: 発話の上限（全体と話題ごと）、話題の順番、ステージ遷移、
- * 選択肢ボタン。深掘りするか・何を聞くか・早めに次へ移るかは LLM が上限の範囲で決める。
+ * コードが持つのは外枠だけ: 発話の上限（全体と話題ごと）、最初と最後の話題、ステージ遷移、
+ * 選択肢ボタン。深掘りするか・何を聞くか・早めに次へ移るか・間の話題をどの順に聞くかは
+ * LLM が上限の範囲で決める。
  */
 import {
   QUESTION_TURNS_PER_TOPIC,
@@ -55,8 +56,14 @@ export interface TurnState {
   current: TurnTopic | null;
   /** いまの話題で使える発話（今回を含む） */
   left: number;
+  /**
+   * 次に聞ける話題。最初の話題の後は、最後の話題を除くまだ聞いていない話題のどれでもよい。
+   * 最後の話題は、ほかを聞き終えてから
+   */
+  candidates: TurnTopic[];
+  /** LLM が次の話題を選べなかったときに移る話題（candidates の先頭） */
   next: TurnTopic | null;
-  /** まだ聞いていない話題（いまの話題より後） */
+  /** まだ聞いていない話題（いまの話題を除く） */
   remainingTopics: TurnTopic[];
   /** これまでに聞いた話題の ID */
   askedIds: Set<string>;
@@ -156,6 +163,19 @@ function findCurrentTopic(
 }
 
 /**
+ * 次に聞ける話題。最後の話題（言い足しの質問など）は、ほかを聞き終えてから聞く。
+ * 最初の話題は、最初の発話で聞くので候補に出てこない。
+ */
+function selectCandidates(
+  topics: TurnTopic[],
+  remainingTopics: TurnTopic[]
+): TurnTopic[] {
+  const last = topics.at(-1);
+  const middle = remainingTopics.filter((t) => t !== last);
+  return middle.length > 0 ? middle : remainingTopics;
+}
+
+/**
  * 毎ターン、過去の assistant 発話からいまの話題・この話題の残りの発話・次の話題を計算する。
  */
 export function computeTurnState({
@@ -173,16 +193,12 @@ export function computeTurnState({
   );
   const current = findCurrentTopic(topics, metas);
 
-  // 話題は前にしか進まない。再開の話題の後に事前定義の話題は無い
-  const currentIndex = !current
-    ? -1
-    : current.predefined
-      ? topics.indexOf(current)
-      : topics.length;
-  // これから聞ける話題（飛ばして戻れない話題は数えない）
-  const remainingTopics = topics
-    .slice(currentIndex + 1)
-    .filter((t) => !askedIds.has(t.id));
+  // 再開の話題の後に事前定義の話題は無い（要約から戻るのは付け足しのため）
+  const remainingTopics =
+    current && !current.predefined
+      ? []
+      : topics.filter((t) => t !== current && !askedIds.has(t.id));
+  const candidates = selectCandidates(topics, remainingTopics);
 
   let left = current
     ? topicTurnLimit(current) - usedCount(metas, current.id)
@@ -197,7 +213,8 @@ export function computeTurnState({
     remainingQuestionTurns,
     current,
     left: Math.max(0, left),
-    next: remainingTopics[0] ?? null,
+    candidates,
+    next: candidates[0] ?? null,
     remainingTopics,
     askedIds,
   };
@@ -222,7 +239,7 @@ export function decideSummaryEntry({
 }
 
 /**
- * LLM が返した question_id を、いまの話題か次の話題に読み替える。
+ * LLM が返した question_id を、いまの話題か次に聞ける話題に読み替える。
  * 本文は表示済みなので作り直さず、保存する値だけを直す。
  */
 export function normalizeQuestionId(
@@ -230,15 +247,20 @@ export function normalizeQuestionId(
   state: TurnState
 ): TurnTopic | null {
   const { current, next, left } = state;
+  const chosen = findChosenCandidate(raw, state);
+  if (chosen) return chosen;
+  // 発話が0なのに次の話題を選ばなかったら、候補の先頭に移ったものとする
   if (left === 0) return next ?? current;
-  if (
-    next &&
-    typeof raw === "string" &&
-    (raw === next.label || raw === next.id)
-  ) {
-    return next;
-  }
   return current;
+}
+
+/** LLM が返した question_id が、次に聞ける話題のどれかを指していればその話題 */
+function findChosenCandidate(
+  raw: unknown,
+  state: TurnState
+): TurnTopic | undefined {
+  if (typeof raw !== "string") return undefined;
+  return state.candidates.find((t) => raw === t.label || raw === t.id);
 }
 
 /** 初めて聞く質問に表示する選択肢ボタン（「とばす」はコードが足す） */
@@ -266,9 +288,14 @@ export function resolveChatTurn({
   const topic = normalizeQuestionId(rawQuestionId, state);
   if (!topic) return { questionId: null, quickReplies: [] };
   const firstAsk = !state.askedIds.has(topic.id);
+  // 次の話題に移った発話は、LLM が選んだ話題を ID で示したときだけ選択肢を出す。
+  // 候補の先頭に読み替えただけなら、実際に聞いた話題と違う選択肢になりうるため
+  const confirmed =
+    topic === state.current || !!findChosenCandidate(rawQuestionId, state);
   return {
     questionId: topic.id,
-    quickReplies: firstAsk && topic.predefined ? buildQuickReplies(topic) : [],
+    quickReplies:
+      firstAsk && topic.predefined && confirmed ? buildQuickReplies(topic) : [],
   };
 }
 

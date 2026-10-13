@@ -5,7 +5,7 @@ export const UNDERSTAND: PurposeTypeDefinition = {
   type: "understand",
   label: "わかる",
   focusInstruction:
-    "1つの場面の流れと理由を聞きます。評価や要望は求めません。出てきたら受け止めて、深掘りしません。",
+    "1つの場面の流れと理由を聞きます。評価や要望は求めません。出ても受け止めるだけで、深掘りしません。",
   bill: {
     perspectiveTechniques: "「いつも」の話は「その中の1回」に絞る。",
     replyExamples: `回答：「通院で月2回くらい、駅から病院まで」

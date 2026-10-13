@@ -8,7 +8,7 @@ const GOOD_POINT_STEP: PurposeTemplateStep = {
 
 const BAD_POINT_STEP: PurposeTemplateStep = {
   follow_up_guide: "それで何が困ったか、どうなっているとよいか",
-  question: "反対に、困った・物足りなかった点はありますか？",
+  question: "反対に、困った点や物足りなかった点はありますか？",
   quick_replies: ["特にない"],
 };
 
@@ -32,7 +32,7 @@ export const EVALUATE: PurposeTypeDefinition = {
 良い例：「助かった一方で、量が減った気がするんですね。量のことに気づいたのは、どんな場面でしたか？」`,
     steps: [
       {
-        follow_up_guide: "「関わりはなかった」なら、次の話題を「知ったきっかけ・使わなかった理由」にしてよい",
+        follow_up_guide: "「関わりはなかった」なら、次に聞く話題を「知ったきっかけ・使わなかった理由」にしてよい",
         question: "この施策と、どんな形で関わりがありましたか？",
         quick_replies: [
           "対象の当事者として",
@@ -69,7 +69,7 @@ export const EVALUATE: PurposeTypeDefinition = {
 良い例：「どこに書いてあるかわからないことがあるんですね。最近それを感じたのは、どんなお知らせでしたか？」`,
     steps: [
       {
-        follow_up_guide: "「ほとんどない」なら、次の話題を「ふれなかった理由」にしてよい",
+        follow_up_guide: "「ほとんどない」なら、次に聞く話題を「ふれなかった理由」にしてよい",
         question:
           "この3か月で、このテーマに関わる市の取り組みにふれたことはありますか？",
         quick_replies: ["よくある", "たまに", "ほとんどない"],

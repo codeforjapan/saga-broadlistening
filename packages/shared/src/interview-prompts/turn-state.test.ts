@@ -39,9 +39,12 @@ describe("renderTurnState", () => {
     );
     expect(text).toContain("- 続けても、次の話題に移ってもよい");
     expect(text).toContain(
-      "- 次の話題：Q3「10年後、あなたが佐賀で過ごしている一日を、このテーマに関わる場面から描いてみてください。」（選択肢ボタンはシステムが出す）"
+      "- 次に聞ける話題（前の答えに自然につながるものを選ぶ）：\n  - Q3「10年後、あなたが佐賀で過ごしている一日を、このテーマに関わる場面から描いてみてください。」（選択肢ボタンはシステムが出す）\n  - Q4「その一日を遠ざけているものは何ですか？」"
     );
-    expect(text).toContain("- 残りの話題：Q3・Q4・Q5（あと3つ）");
+    expect(text).toContain(
+      "- 最後に聞く話題：Q5（ほかの話題をすべて聞き終えてから）"
+    );
+    expect(text).toContain("- まだ聞いていない話題：3つ（回答者には伝えない）");
     expect(text).toContain(
       "- この話題で聞けたら豊かになる観点：場面の具体、その場面の何が大事だったか（届かなくてよい）（満たさなくてよい）"
     );
@@ -52,15 +55,15 @@ describe("renderTurnState", () => {
       stateAfter("q1", "q2", "q2", "q2", "q2", "q2", "q2")
     );
     expect(text).toContain("あと0回");
-    expect(text).toContain("- 今回は次の話題に移る（question_id は Q3）");
+    expect(text).toContain("- 今回は次の話題に移る");
   });
 
   it("最後の話題には「最後の質問」と書く", () => {
     const text = renderTurnState(stateAfter("q1", "q2", "q3", "q4"));
     expect(text).toContain(
-      "- 次の話題：Q5「ほかに、10年後の佐賀について伝えておきたいことはありますか？」（最後の質問）"
+      "- 次に聞ける話題：\n  - Q5「ほかに、10年後の佐賀について伝えておきたいことはありますか？」（最後の質問）"
     );
-    expect(text).toContain("- 残りの話題：Q5（あと1つ）");
+    expect(text).not.toContain("最後に聞く話題");
   });
 
   it("再開の話題の後は次の話題なし", () => {
@@ -69,20 +72,20 @@ describe("renderTurnState", () => {
     expect(text).toContain(
       "- いまの話題：R「付け足したいことを続けて話してもらう」"
     );
-    expect(text).toContain("- 次の話題：なし（この話題が最後）");
+    expect(text).toContain("- 次に聞ける話題：なし（この話題が最後）");
   });
 });
 
 describe("renderChatOutputInstructions", () => {
-  it("question_id に入れてよい値をいまと次の ID で示す", () => {
+  it("question_id に入れてよい値をいまの話題と次に聞ける話題の ID で示す", () => {
     expect(renderChatOutputInstructions(stateAfter("q1", "q2"))).toContain(
-      "- question_id：いまの話題を続けるなら Q2、次の話題に移るなら Q3。"
+      "- question_id：いまの話題を続けるなら Q2、次の話題に移るなら 選んだ話題の ID（Q3・Q4 のどれか）。"
     );
     expect(
       renderChatOutputInstructions(
         stateAfter("q1", "q2", "q2", "q2", "q2", "q2", "q2")
       )
-    ).toContain("- question_id：今回は Q3");
+    ).toContain("- question_id：今回は 選んだ話題の ID（Q3・Q4 のどれか）");
   });
 });
 

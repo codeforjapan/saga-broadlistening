@@ -3,6 +3,7 @@ import { SKIP_QUESTION_REPLY } from "./constants";
 import { getPurposeTemplateSteps } from "./purpose-types/registry";
 import {
   type AssistantTurnMeta,
+  buildQuickReplies,
   buildTurnTopics,
   computeQuestionTurnLimit,
   computeSummaryState,
@@ -177,6 +178,56 @@ describe("computeTurnState", () => {
     expect(state.remainingTopics.map((t) => t.id)).toEqual(["q4", "q5"]);
   });
 
+  it("最初の話題の後は、最後の話題を除くまだ聞いていない話題のどれからでも聞ける", () => {
+    const state = computeTurnState({
+      topics: verifyBillTopics(),
+      metas: metas("q1"),
+    });
+    expect(state.candidates.map((t) => t.id)).toEqual(["q2", "q3", "q4"]);
+    expect(state.next?.id).toBe("q2");
+    expect(state.remainingTopics.map((t) => t.id)).toEqual([
+      "q2",
+      "q3",
+      "q4",
+      "q5",
+    ]);
+  });
+
+  it("先に聞いた話題を飛ばした話題も、後から聞ける", () => {
+    const state = computeTurnState({
+      topics: verifyBillTopics(),
+      metas: metas("q1", "q3"),
+    });
+    expect(state.current?.id).toBe("q3");
+    expect(state.candidates.map((t) => t.id)).toEqual(["q2", "q4"]);
+  });
+
+  it("最後の話題は、ほかの話題を聞き終えてから聞ける", () => {
+    const state = computeTurnState({
+      topics: verifyBillTopics(),
+      metas: metas("q1", "q3", "q2", "q4"),
+    });
+    expect(state.candidates.map((t) => t.id)).toEqual(["q5"]);
+    expect(state.remainingTopics.map((t) => t.id)).toEqual(["q5"]);
+  });
+
+  it("話題が2つなら、最初の話題の後は最後の話題だけが候補", () => {
+    const state = computeTurnState({
+      topics: verifyBillTopics().slice(0, 2),
+      metas: metas("q1"),
+    });
+    expect(state.candidates.map((t) => t.id)).toEqual(["q2"]);
+  });
+
+  it("話題が1つなら、候補はなく、使い切ったら要約に入る", () => {
+    const state = computeTurnState({
+      topics: verifyBillTopics().slice(0, 1),
+      metas: metas("q1", "q1", "q1", "q1", "q1"),
+    });
+    expect(state.candidates).toEqual([]);
+    expect(decideSummaryEntry({ state, endButton: false })).toBe(true);
+  });
+
   it("話題の発話の上限を使い切ったら left は 0", () => {
     const state = computeTurnState({
       topics: verifyBillTopics(),
@@ -300,13 +351,14 @@ describe("decideSummaryEntry", () => {
 describe("normalizeQuestionId", () => {
   const topics = verifyBillTopics();
 
-  it("発話が残っていれば、いまの話題か次の話題をそのまま使う", () => {
+  it("発話が残っていれば、いまの話題か次に聞ける話題をそのまま使う", () => {
     const state = computeTurnState({ topics, metas: metas("q1", "q2") });
     expect(normalizeQuestionId("Q2", state)?.id).toBe("q2");
     expect(normalizeQuestionId("Q3", state)?.id).toBe("q3");
+    expect(normalizeQuestionId("q4", state)?.id).toBe("q4");
   });
 
-  it("いま・次以外の ID は、いまの話題に読み替える", () => {
+  it("次に聞けない ID（ほかを聞き終える前の最後の話題など）は、いまの話題に読み替える", () => {
     const state = computeTurnState({ topics, metas: metas("q1", "q2") });
     expect(normalizeQuestionId("Q5", state)?.id).toBe("q2");
     expect(normalizeQuestionId(undefined, state)?.id).toBe("q2");
@@ -318,6 +370,14 @@ describe("normalizeQuestionId", () => {
       metas: metas("q1", "q2", "q2", "q2", "q2", "q2"),
     });
     expect(normalizeQuestionId("Q2", state)?.id).toBe("q3");
+  });
+
+  it("発話が0のときも、選んだ次の話題があればそれを使う", () => {
+    const state = computeTurnState({
+      topics,
+      metas: metas("q1", "q2", "q2", "q2", "q2", "q2"),
+    });
+    expect(normalizeQuestionId("Q4", state)?.id).toBe("q4");
   });
 });
 
@@ -337,6 +397,25 @@ describe("resolveChatTurn", () => {
       "まだ決められない",
       SKIP_QUESTION_REPLY,
     ]);
+  });
+
+  it("並びで次ではない話題に移っても、その話題の選択肢を付ける", () => {
+    const state = computeTurnState({ topics, metas: metas("q1", "q2") });
+    const result = resolveChatTurn({ state, rawQuestionId: "Q4" });
+    expect(result.questionId).toBe("q4");
+    expect(result.quickReplies).toEqual(
+      buildQuickReplies(topics[3] as TurnTopic)
+    );
+  });
+
+  it("発話が0で次の話題を ID で示さなかったら、候補の先頭として記録し選択肢は付けない", () => {
+    const state = computeTurnState({
+      topics,
+      metas: metas("q1", "q2", "q2", "q2", "q2", "q2"),
+    });
+    const result = resolveChatTurn({ state, rawQuestionId: "Q5" });
+    expect(result.questionId).toBe("q3");
+    expect(result.quickReplies).toEqual([]);
   });
 
   it("同じ話題を続ける発話には選択肢を付けない", () => {
