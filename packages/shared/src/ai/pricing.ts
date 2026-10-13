@@ -31,6 +31,21 @@ export const modelPricing: Record<string, ModelPricing> = {
     inputTokensPerMillionUsd: 0.18,
     outputTokensPerMillionUsd: 0.73,
   },
+  // --- Amazon Bedrock: ap-northeast-1 / JP Geo, verified 2026-10-13 ---
+  // AWS Price List (2026-10-12): "Standard"（Globalではない地域CRIS）の単価。
+  // https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonBedrockFoundationModels/current/ap-northeast-1/index.json
+  // Opus 5.5 input/output SKUs: 4UM7VQEX96S43UHB / ZC2N8WCN3YQ986H6
+  [AI_MODELS.bedrock_opus_5_5]: {
+    inputTokensPerMillionUsd: 4.4,
+    outputTokensPerMillionUsd: 22,
+  },
+  // Haiku 5.5 input/output SKUs: 9D2S94N3SHXNXPD2 / PYU9RNCMEN6TQS67
+  // 入力100,000 tokens超のリクエストは長文脈料金（0.55 / 2.75）になるが、
+  // ここでは標準料金のみを扱う。
+  [AI_MODELS.bedrock_haiku_5_5]: {
+    inputTokensPerMillionUsd: 0.11,
+    outputTokensPerMillionUsd: 0.55,
+  },
   // --- OpenAI ---
   [AI_MODELS.gpt4o]: {
     inputTokensPerMillionUsd: 2.5,

@@ -22,6 +22,21 @@ describe("buildBedrockProviderOptions", () => {
     ).toEqual({ guardrailConfig: guardrail });
   });
 
+  it("Opus 5.5 にはネイティブ構造化出力を指定する", () => {
+    expect(
+      buildBedrockProviderOptions("jp.anthropic.claude-opus-5-5", guardrail)
+    ).toEqual({
+      guardrailConfig: guardrail,
+      structuredOutputMode: "outputFormat",
+    });
+  });
+
+  it("Haiku 5.5 は既定の構造化出力のまま", () => {
+    expect(
+      buildBedrockProviderOptions("jp.anthropic.claude-haiku-5-5", undefined)
+    ).toBeUndefined();
+  });
+
   it("gpt-oss でも guardrail と併用できる", () => {
     expect(
       buildBedrockProviderOptions("openai.gpt-oss-120b-1:0", guardrail)
