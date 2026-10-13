@@ -8,8 +8,18 @@ import { InterviewConfigEditor } from "@/features/interview-config/server/compon
 import { generateDefaultConfigName } from "@/features/interview-config/shared/utils/default-config-name";
 import { routes } from "@/lib/routes";
 
-export default async function InterviewNewPage() {
-  const [admin, policyOptions] = await Promise.all([
+interface InterviewNewPageProps {
+  searchParams: Promise<{
+    /** 施策のページから来たときの施策ID。その施策を紐づけた状態で始める */
+    policyId?: string;
+  }>;
+}
+
+export default async function InterviewNewPage({
+  searchParams,
+}: InterviewNewPageProps) {
+  const [{ policyId }, admin, policyOptions] = await Promise.all([
+    searchParams,
     getCurrentAdmin(),
     getPolicyOptions(),
   ]);
@@ -18,34 +28,41 @@ export default async function InterviewNewPage() {
   const initialName = username
     ? `${generateDefaultConfigName()} (${username})`
     : null;
+  // 存在しない施策のIDは無視する
+  const fromPolicy = policyOptions.find((o) => o.id === policyId) ?? null;
 
   return (
     <div>
       <div className="mb-6">
         <Link
-          href={routes.interviews() as Route}
+          href={
+            (fromPolicy
+              ? routes.billInterview(fromPolicy.id)
+              : routes.interviews()) as Route
+          }
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" />
-          インタビュー管理に戻る
+          {fromPolicy ? "インタビュー設定一覧に戻る" : "インタビュー管理に戻る"}
         </Link>
       </div>
 
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">意見募集の作成</h1>
         <p className="text-gray-600 mt-1">
-          新しい意見募集（テーマ）を作成します。施策を紐づけない場合は、特定の施策に属さないテーマとして公開されます。
+          {fromPolicy
+            ? `施策「${fromPolicy.name}」に紐づく意見募集を作成します。ほかの施策も紐づけられます。`
+            : "新しい意見募集（テーマ）を作成します。施策を紐づけない場合は、特定の施策に属さないテーマとして公開されます。"}
         </p>
       </div>
 
       <InterviewConfigEditor
-        billId={null}
         config={null}
         questions={[]}
         completedReports={[]}
         initialName={initialName}
         policyOptions={policyOptions}
-        linkedPolicyIds={[]}
+        linkedPolicyIds={fromPolicy ? [fromPolicy.id] : []}
       />
     </div>
   );

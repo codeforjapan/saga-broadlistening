@@ -76,12 +76,6 @@ export type InterviewConfigFormValues = InterviewConfigInput & {
 
 interface InterviewConfigFormProps {
   modelGroups: ChatModelGroup[];
-  /**
-   * 施策配下のフォームから開いたときの施策ID。
-   * テーマ単独のフォーム（抽象テーマ型）では null になる。
-   * プレビューは施策単位で発行するため、null のときは出さない。
-   */
-  billId: string | null;
   config: InterviewConfig | null;
   aiGeneratedThemes?: string[] | null;
   onAiThemesApplied?: () => void;
@@ -90,18 +84,14 @@ interface InterviewConfigFormProps {
   getFormValuesRef?: MutableRefObject<(() => InterviewConfigFormValues) | null>;
   /** 新規作成時の設定名初期値（ログインユーザー名） */
   initialName?: string | null;
-  /**
-   * 紐づけ先として選べる施策の一覧。渡されたときだけ紐づけ欄を出す。
-   * 施策配下のフォームでは渡さず、その施策との紐づけを維持する。
-   */
-  policyOptions?: PolicyOption[];
-  /** 現在紐づいている施策のID一覧 */
-  linkedPolicyIds?: string[];
+  /** 紐づけ先として選べる施策の一覧 */
+  policyOptions: PolicyOption[];
+  /** 現在紐づいている施策のID一覧。新規作成では、施策のページから来たときにその施策が入る */
+  linkedPolicyIds: string[];
 }
 
 export function InterviewConfigForm({
   modelGroups,
-  billId,
   config,
   aiGeneratedThemes,
   onAiThemesApplied,
@@ -114,8 +104,6 @@ export function InterviewConfigForm({
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isNew = !config;
-  // 紐づけ欄を出すかどうか。施策配下のフォームでは出さず、その施策との紐づけを維持する
-  const canEditPolicyLinks = policyOptions !== undefined;
 
   const form = useForm<InterviewConfigInput>({
     resolver: zodResolver(interviewConfigSchema),
@@ -131,8 +119,7 @@ export function InterviewConfigForm({
       purpose_type: config?.purpose_type ?? null,
       opinion_focus: config?.opinion_focus ?? "",
       decided_matters: config?.decided_matters ?? "",
-      // 紐づけ欄を出さないフォームでは undefined のままにして、保存時に紐づけへ触れない
-      policy_ids: canEditPolicyLinks ? (linkedPolicyIds ?? []) : undefined,
+      policy_ids: linkedPolicyIds,
     },
   });
 
@@ -169,13 +156,7 @@ export function InterviewConfigForm({
     setIsSubmitting(true);
     try {
       const result = isNew
-        ? await createInterviewConfig({
-            ...data,
-            // 施策配下の新規作成では、開いている施策との紐づけを必ず作る。
-            // 更新は policy_ids を送らない（＝紐づけに触れない）ままにして、
-            // 他の施策との紐づけを失わないようにする
-            policy_ids: billId ? [billId] : (data.policy_ids ?? []),
-          })
+        ? await createInterviewConfig(data)
         : await updateInterviewConfig(config.id, data);
 
       if (result.success) {
@@ -185,11 +166,7 @@ export function InterviewConfigForm({
             await onConfigCreated(result.data.id);
           }
           toast.success("インタビュー設定を作成しました");
-          router.push(
-            (billId
-              ? routes.billInterviewEdit(billId, result.data.id)
-              : routes.interviewEdit(result.data.id)) as Route
-          );
+          router.push(routes.interviewEdit(result.data.id) as Route);
         } else {
           toast.success("インタビュー設定を保存しました");
           router.refresh();
@@ -214,9 +191,11 @@ export function InterviewConfigForm({
 
   const [isPreviewing, setIsPreviewing] = useState(false);
   const participationMode = form.watch("participation_mode");
+  // プレビューは施策単位で発行するため、紐づく施策の先頭で開く
+  const previewPolicyId = form.watch("policy_ids")?.[0] ?? null;
   const handlePreview = async () => {
-    if (!config || !billId) {
-      toast.error("プレビューは施策に紐づく設定を保存した後に利用できます");
+    if (!config || !previewPolicyId) {
+      toast.error("プレビューは施策を紐づけると利用できます");
       return;
     }
 
@@ -238,7 +217,7 @@ export function InterviewConfigForm({
       }
 
       // 2. プレビューURL生成
-      const result = await generateInterviewPreviewUrl(billId);
+      const result = await generateInterviewPreviewUrl(previewPolicyId);
 
       if (result.success && result.url) {
         window.open(result.url, "_blank");
@@ -255,7 +234,7 @@ export function InterviewConfigForm({
 
   return (
     <div className="space-y-4">
-      {config && billId && (
+      {config && previewPolicyId && (
         <div className="flex justify-end">
           <Button
             type="button"
@@ -586,37 +565,35 @@ export function InterviewConfigForm({
                 )}
               />
 
-              {policyOptions && (
-                <FormField
-                  control={form.control}
-                  name="policy_ids"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>紐づく施策</FormLabel>
-                      <FormDescription>
-                        この意見募集を紐づける施策を選びます。1件も選ばない場合は、特定の施策に紐づかないテーマ（抽象テーマ）になります。
-                      </FormDescription>
-                      {policyOptions.length === 0 ? (
-                        <p className="text-sm text-gray-500">
-                          紐づけられる施策がありません。
-                        </p>
-                      ) : (
-                        <CheckboxGroup
-                          idPrefix="policy-link"
-                          options={policyOptions.map((o) => ({
-                            id: o.id,
-                            label: o.name,
-                          }))}
-                          value={field.value ?? []}
-                          onChange={field.onChange}
-                          className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3"
-                        />
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              <FormField
+                control={form.control}
+                name="policy_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>紐づく施策</FormLabel>
+                    <FormDescription>
+                      この意見募集を紐づける施策を選びます。1件も選ばない場合は、特定の施策に紐づかないテーマ（抽象テーマ）になります。
+                    </FormDescription>
+                    {policyOptions.length === 0 ? (
+                      <p className="text-sm text-gray-500">
+                        紐づけられる施策がありません。
+                      </p>
+                    ) : (
+                      <CheckboxGroup
+                        idPrefix="policy-link"
+                        options={policyOptions.map((o) => ({
+                          id: o.id,
+                          label: o.name,
+                        }))}
+                        value={field.value ?? []}
+                        onChange={field.onChange}
+                        className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3"
+                      />
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}

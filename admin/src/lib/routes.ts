@@ -18,6 +18,9 @@ export const routes = {
   interviews: () => "/interviews" as const,
   interviewPrompts: () => "/interviews/prompts" as const,
   interviewNew: () => "/interviews/new" as const,
+  /** 施策のページから作成するとき。その施策を紐づけた状態で始める */
+  interviewNewForPolicy: (policyId: string) =>
+    `/interviews/new?policyId=${policyId}` as const,
   interviewOpinionBackfill: () => "/interview-opinion-backfill" as const,
   userTopicAnalysisAll: () => "/user-topic-analysis" as const,
 
@@ -35,10 +38,6 @@ export const routes = {
 
   // インタビュー
   billInterview: (billId: string) => `/bills/${billId}/interview` as const,
-  billInterviewNew: (billId: string) =>
-    `/bills/${billId}/interview/new` as const,
-  billInterviewEdit: (billId: string, configId: string) =>
-    `/bills/${billId}/interview/${configId}/edit` as const,
 
   // レポート（インタビュー設定配下）
   billReports: (billId: string, configId: string) =>

@@ -17,7 +17,6 @@ import {
   getSubjectLabel,
   type PromptSubject,
 } from "../utils/build-config-generation-prompt";
-import { resolveSubjectPolicyId } from "../utils/resolve-subject-policy-id";
 
 interface ExistingQuestion {
   question: string;
@@ -27,13 +26,14 @@ interface ExistingQuestion {
 
 interface HandleConfigGenerationParams {
   messages: Array<{ role: string; content: string }>;
-  /** 施策配下から呼ばれたときの施策ID。抽象テーマ型では null */
-  billId: string | null;
   /** 施策がないときに題材にするテーマ名 */
   themeName?: string | null;
   /** 職員が書いたテーマの説明。施策があってもなくても題材に添える */
   themeDescription?: string | null;
-  /** フォームで紐づけ中の施策。施策配下でなければ先頭の施策を題材にする */
+  /**
+   * フォームで紐づけ中の施策。先頭の施策を題材にする（インタビュー本番も紐づく施策を
+   * 主たる題材にするため）。空なら施策なしとしてテーマを題材にする
+   */
   policyIds?: string[];
   /** フォームで入力済みの設計 */
   design?: InterviewDesignInput;
@@ -45,7 +45,6 @@ interface HandleConfigGenerationParams {
 
 export async function handleConfigGeneration({
   messages,
-  billId,
   themeName,
   themeDescription,
   policyIds,
@@ -56,7 +55,7 @@ export async function handleConfigGeneration({
   confirmedQuestions,
 }: HandleConfigGenerationParams) {
   const subject = await loadPromptSubject(
-    resolveSubjectPolicyId(billId, policyIds),
+    policyIds?.[0] ?? null,
     themeName,
     themeDescription
   );

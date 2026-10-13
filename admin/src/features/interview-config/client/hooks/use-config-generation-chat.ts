@@ -23,8 +23,6 @@ interface ChatMessage {
 }
 
 interface UseConfigGenerationChatProps {
-  /** 施策配下から開いたときの施策ID。テーマ単独では null */
-  billId: string | null;
   /**
    * AIへ渡すフォームの値を、送信時点で読み取る。
    * 職員がフォームを書き換えた直後でも最新の内容で生成するため、
@@ -44,7 +42,7 @@ interface UseConfigGenerationChatProps {
 export type ConfigFormContext = InterviewDesignInput & {
   themeName: string | null;
   themeDescription: string | null;
-  /** フォームで紐づけ中の施策。施策配下の画面では billId が優先される */
+  /** フォームで紐づけ中の施策。先頭の施策を題材にする */
   policyIds: string[];
 };
 
@@ -61,7 +59,6 @@ const EMPTY_FORM_CONTEXT: ConfigFormContext = {
 type ServerStage = "default_questions" | "question_proposal" | "theme_proposal";
 
 export function useConfigGenerationChat({
-  billId,
   getFormContext,
   existingThemes,
   existingQuestions,
@@ -218,7 +215,6 @@ export function useConfigGenerationChat({
 
       submit({
         messages: apiMessages,
-        billId,
         ...getFormContextOrEmpty(),
         stage: serverStage,
         existingThemes:
@@ -233,7 +229,6 @@ export function useConfigGenerationChat({
     },
     [
       messages,
-      billId,
       getFormContextOrEmpty,
       stage,
       isLoading,
@@ -279,23 +274,23 @@ export function useConfigGenerationChat({
     }
 
     // 新規: テンプレ + LLMでQ1/Q2を生成
+    const formContext = getFormContextOrEmpty();
     setMessages([
       {
         id: "greeting",
         role: "assistant",
-        content: billId
-          ? "インタビュー設定アシスタントです。施策内容を分析して、デフォルトの質問セットを準備します。"
-          : "インタビュー設定アシスタントです。テーマの内容を分析して、デフォルトの質問セットを準備します。",
+        content:
+          formContext.policyIds.length > 0
+            ? "インタビュー設定アシスタントです。施策内容を分析して、デフォルトの質問セットを準備します。"
+            : "インタビュー設定アシスタントです。テーマの内容を分析して、デフォルトの質問セットを準備します。",
       },
     ]);
     submit({
       messages: [],
-      billId,
-      ...getFormContextOrEmpty(),
+      ...formContext,
       stage: "default_questions",
     });
   }, [
-    billId,
     getFormContextOrEmpty,
     submit,
     hasExistingThemes,
@@ -324,7 +319,6 @@ export function useConfigGenerationChat({
 
       submit({
         messages: [],
-        billId,
         ...getFormContextOrEmpty(),
         stage: "theme_proposal",
         confirmedQuestions: questions,
@@ -332,7 +326,6 @@ export function useConfigGenerationChat({
       });
     },
     [
-      billId,
       getFormContextOrEmpty,
       isLoading,
       stop,
@@ -393,7 +386,6 @@ export function useConfigGenerationChat({
 
     submit({
       messages: [],
-      billId,
       ...getFormContextOrEmpty(),
       stage: "theme_proposal",
       confirmedQuestions:
@@ -401,7 +393,6 @@ export function useConfigGenerationChat({
       existingThemes: getCurrentThemes(),
     });
   }, [
-    billId,
     getFormContextOrEmpty,
     isLoading,
     stop,

@@ -27,11 +27,6 @@ import { InterviewQuestionList } from "./interview-question-list";
 
 interface InterviewConfigEditClientProps {
   modelGroups: ChatModelGroup[];
-  /**
-   * 施策配下の画面から開いたときの施策ID。
-   * テーマ単独の画面（抽象テーマ型を含む）では null。
-   */
-  billId: string | null;
   config: InterviewConfig | null;
   questions: InterviewQuestion[];
   completedReports: CompletedReportListItem[];
@@ -40,10 +35,10 @@ interface InterviewConfigEditClientProps {
   /** 切り詰め上限値 */
   completedReportsLimit?: number;
   initialName?: string | null;
-  /** 紐づけ先として選べる施策。渡されたときだけフォームに紐づけ欄を出す */
-  policyOptions?: PolicyOption[];
-  /** 現在紐づいている施策のID一覧 */
-  linkedPolicyIds?: string[];
+  /** 紐づけ先として選べる施策 */
+  policyOptions: PolicyOption[];
+  /** 現在紐づいている施策のID一覧。新規作成では、施策のページから来たときにその施策が入る */
+  linkedPolicyIds: string[];
   /**
    * ペルソナ素材を施策全体から選べるか。抽象テーマ型では false になり、
    * この意見募集自身の完了インタビューだけが候補になる。
@@ -52,7 +47,6 @@ interface InterviewConfigEditClientProps {
 }
 
 export function InterviewConfigEditClient({
-  billId,
   modelGroups,
   config: initialConfig,
   questions,
@@ -68,7 +62,7 @@ export function InterviewConfigEditClient({
   const purposeTemplate = initialConfig?.purpose_type
     ? buildPurposeTemplateQuestions(
         initialConfig.purpose_type,
-        billId || (linkedPolicyIds?.length ?? 0) > 0 ? "bill" : "theme"
+        linkedPolicyIds.length > 0 ? "bill" : "theme"
       )
     : null;
   // 保存済みの設定のID。新規作成画面では保存後に編集ページへ移るまで未定
@@ -100,7 +94,7 @@ export function InterviewConfigEditClient({
       purposeType: formValues?.purpose_type ?? null,
       opinionFocus: formValues?.opinion_focus ?? null,
       decidedMatters: formValues?.decided_matters ?? null,
-      policyIds: formValues?.policy_ids ?? linkedPolicyIds ?? [],
+      policyIds: formValues?.policy_ids ?? linkedPolicyIds,
     };
   }, [initialConfig, linkedPolicyIds]);
 
@@ -148,7 +142,6 @@ export function InterviewConfigEditClient({
           <div className="space-y-6">
             <InterviewConfigForm
               modelGroups={modelGroups}
-              billId={billId}
               config={initialConfig}
               aiGeneratedThemes={aiGeneratedThemes}
               onAiThemesApplied={() => setAiGeneratedThemes(null)}
@@ -178,7 +171,7 @@ export function InterviewConfigEditClient({
           {/* 右カラム: AI 設定生成チャット */}
           <div>
             <ConfigGenerationChat
-              billId={billId}
+              hasLinkedPolicy={linkedPolicyIds.length > 0}
               getFormContext={getFormContext}
               existingThemes={
                 initialConfig?.description
