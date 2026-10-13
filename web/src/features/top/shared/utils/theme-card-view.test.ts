@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_INTERVIEW_THUMBNAIL } from "@/features/interview-config/shared/utils/interview-theme";
 import {
+  selectTopThemeCards,
   type ThemeCardSource,
   toThemeCardView,
   usesThemeGrid,
@@ -67,13 +68,13 @@ describe("toThemeCardView", () => {
   });
 
   it("表示中の難易度の本文を使い、なければふつうの本文を使う", () => {
-    expect(toThemeCardView(source(), "hard")?.title).toBe("難しい見出し");
+    expect(toThemeCardView(source(), "hard").title).toBe("難しい見出し");
     const normalOnly = source({
       policy_contents: [
         { title: "ふつう", summary: null, difficulty_level: "normal" },
       ],
     });
-    expect(toThemeCardView(normalOnly, "hard")?.title).toBe("ふつう");
+    expect(toThemeCardView(normalOnly, "hard").title).toBe("ふつう");
   });
 
   it("本文も画像もなければ施策名と既定の画像を使う", () => {
@@ -81,22 +82,97 @@ describe("toThemeCardView", () => {
       source({ policy_contents: [], thumbnail_url: null }),
       "normal"
     );
-    expect(view?.title).toBe("若者支援");
-    expect(view?.summary).toBeNull();
-    expect(view?.bannerSrc).toBe(DEFAULT_INTERVIEW_THUMBNAIL);
+    expect(view.title).toBe("若者支援");
+    expect(view.summary).toBeNull();
+    expect(view.bannerSrc).toBe(DEFAULT_INTERVIEW_THUMBNAIL);
   });
 
   it("テーマにつながっていなければきかせて枠を出さない", () => {
     expect(
       toThemeCardView(source({ policies_interview_configs: [] }), "normal")
-        ?.interview
+        .interview
     ).toBeNull();
   });
+});
 
-  it("公開中の子を持たない施策はカードにしない", () => {
-    expect(
-      toThemeCardView(source({ child_policies: [] }), "normal")
-    ).toBeNull();
+describe("selectTopThemeCards", () => {
+  const ids = (views: { policyId: string }[]) => views.map((v) => v.policyId);
+
+  describe("親施策が1件以上あるとき", () => {
+    it("親施策だけを、取得した順にカードにする", () => {
+      const sources = [
+        source({ id: "standard", child_policies: [] }),
+        source({ id: "parent-a" }),
+        source({
+          id: "child",
+          parent_policy_id: "parent-a",
+          child_policies: [],
+        }),
+        source({ id: "parent-b" }),
+      ];
+      expect(ids(selectTopThemeCards(sources, "normal"))).toEqual([
+        "parent-a",
+        "parent-b",
+      ]);
+    });
+
+    it("テーマにつながらない親施策もカードにする（きかせて枠なし）", () => {
+      const [view] = selectTopThemeCards(
+        [source({ id: "parent", policies_interview_configs: [] })],
+        "normal"
+      );
+      expect(view?.policyId).toBe("parent");
+      expect(view?.interview).toBeNull();
+    });
+
+    it("子が下書きだけの施策は親施策に数えない", () => {
+      const sources = [
+        source({
+          id: "draft-children",
+          child_policies: [{ publish_status: "draft" }],
+        }),
+        source({ id: "parent" }),
+      ];
+      expect(ids(selectTopThemeCards(sources, "normal"))).toEqual(["parent"]);
+    });
+  });
+
+  describe("親施策が1件もないとき", () => {
+    it("テーマにつながる施策を、取得した順にカードにする", () => {
+      const sources = [
+        source({ id: "a", child_policies: [] }),
+        source({
+          id: "no-theme",
+          child_policies: [],
+          policies_interview_configs: [],
+        }),
+        source({ id: "b", child_policies: [] }),
+      ];
+      expect(ids(selectTopThemeCards(sources, "normal"))).toEqual(["a", "b"]);
+    });
+
+    it("つながるテーマが下書きだけの施策はカードにしない", () => {
+      const sources = [
+        source({
+          id: "draft-theme",
+          child_policies: [],
+          policies_interview_configs: [
+            { interview_configs: { ...youthTheme, status: "draft" } },
+          ],
+        }),
+      ];
+      expect(selectTopThemeCards(sources, "normal")).toEqual([]);
+    });
+
+    it("テーマにつながる施策もなければ空（TOP は「準備中」だけになる）", () => {
+      expect(
+        selectTopThemeCards(
+          [source({ child_policies: [], policies_interview_configs: [] })],
+          "normal"
+        )
+      ).toEqual([]);
+      expect(selectTopThemeCards([], "normal")).toEqual([]);
+    });
   });
 });
 
