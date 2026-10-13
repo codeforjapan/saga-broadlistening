@@ -33,13 +33,12 @@ export async function OpinionsPage({ target }: OpinionsPageProps) {
 
   return (
     <AnalysisPageLayout
-      target={target}
       subject={context.subject}
       trail={[{ label: "インタビュー回答一覧" }]}
       heading="👫AIインタビューの回答一覧"
       count={`${respondents.length}人`}
       notice="実際に回答された一人ひとりのAIインタビューの内容と、会話ログを読むことができます。公開に同意されたインタビュー回答のみ掲載しています。"
-      isInterviewOpen={context.isInterviewOpen}
+      kikasete={context.kikasete}
     >
       {respondents.length > 0 ? (
         // 相対日時はサーバーで基準時刻を固定し、クライアントでの再計算ずれを防ぐ。

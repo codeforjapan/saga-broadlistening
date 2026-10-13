@@ -34,7 +34,7 @@ export function toKikaseteInterview(
 ): KikaseteInterview {
   return {
     slug: theme.slug,
-    prompt: `${theme.name}について、あなたの経験や考えを聞かせてください`,
+    prompt: `${stripAbout(theme.name)}について、あなたの経験や考えを聞かせてください`,
     durationLabel: formatEstimatedDuration(theme.estimated_duration),
     participantLabel: formatParticipantCount(
       theme.interview_sessions[0]?.count ?? 0
@@ -46,4 +46,9 @@ export function toKikaseteInterview(
       allowed_provider_keys: theme.allowed_provider_keys,
     },
   };
+}
+
+/** テーマ名が「〜について」で終わるとき、問いかけが「〜についてについて」にならないよう外す */
+export function stripAbout(name: string): string {
+  return name.replace(/について$/, "");
 }

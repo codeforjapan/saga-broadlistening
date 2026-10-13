@@ -13,7 +13,7 @@ interface TopicSubjectHeaderProps {
   trail: BreadcrumbItem[];
 }
 
-/** トピック分析ページ共通の「パンくず + 対象名への戻りリンク」。 */
+/** トピック分析ページ共通の「パンくず + 対象名への戻りリンク」。対象にリンクがなければ戻りリンクは出さない。 */
 export function TopicSubjectHeader({
   subject,
   trail,
@@ -21,15 +21,20 @@ export function TopicSubjectHeader({
   return (
     <div className="flex flex-col gap-2">
       <Breadcrumb
-        items={[{ label: subject.label, href: subject.href }, ...trail]}
+        items={[
+          { label: subject.name, href: subject.href ?? undefined },
+          ...trail,
+        ]}
       />
-      <Link
-        href={subject.href as Route}
-        className="inline-flex items-center gap-2 text-[15px] font-medium leading-6 text-black"
-      >
-        <span className="underline">{subject.name}</span>
-        <Undo2 className="size-4 shrink-0" />
-      </Link>
+      {subject.href && (
+        <Link
+          href={subject.href as Route}
+          className="inline-flex items-center gap-2 text-[15px] font-medium leading-6 text-foreground"
+        >
+          <span className="underline">{subject.name}</span>
+          <Undo2 className="size-4 shrink-0" />
+        </Link>
+      )}
     </div>
   );
 }

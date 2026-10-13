@@ -265,6 +265,19 @@ export async function findInterviewParticipationRulesByIds(
   return data;
 }
 
+/** きかせてボックスに出すテーマの列（参加人数は完了セッションの埋め込み集計） */
+const KIKASETE_THEME_SELECT = `
+  id,
+  name,
+  slug,
+  status,
+  estimated_duration,
+  created_at,
+  participation_mode,
+  allowed_provider_keys,
+  interview_sessions ( count )
+`;
+
 /**
  * 施策につながるテーマを、きかせてボックスに出す情報（完了セッション数つき）とあわせて全件取得する。
  * 親施策ページで、表示する1件を selectPrimaryThemeForPolicy で選ぶために使う。
@@ -274,21 +287,26 @@ export async function findKikaseteThemesByPolicyId(
 ): Promise<KikaseteThemeSource[]> {
   const { data, error } = await createAdminClient()
     .from("policies_interview_configs")
-    .select(
-      `interview_configs!inner (
-        id,
-        name,
-        slug,
-        status,
-        estimated_duration,
-        created_at,
-        participation_mode,
-        allowed_provider_keys,
-        interview_sessions ( count )
-      )`
-    )
+    .select(`interview_configs!inner ( ${KIKASETE_THEME_SELECT} )`)
     .eq("policy_id", policyId)
     .not(`interview_configs.${COMPLETED_SESSIONS_FILTER}`, "is", null);
   if (error) throw new Error(`Failed to fetch policy themes: ${error.message}`);
   return data.map((row) => row.interview_configs);
+}
+
+/**
+ * テーマ1件を、きかせてボックスに出す情報（完了セッション数つき）と、
+ * 公開判定に使う紐づく施策とあわせて取得する。
+ */
+export async function findKikaseteThemeById(configId: string) {
+  const { data, error } = await createAdminClient()
+    .from("interview_configs")
+    .select(
+      `${KIKASETE_THEME_SELECT}, policies_interview_configs ( policies ( id, publish_status ) )`
+    )
+    .eq("id", configId)
+    .not(COMPLETED_SESSIONS_FILTER, "is", null)
+    .maybeSingle();
+  if (error) throw new Error(`Failed to fetch theme: ${error.message}`);
+  return data;
 }

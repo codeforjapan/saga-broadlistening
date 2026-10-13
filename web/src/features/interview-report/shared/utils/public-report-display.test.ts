@@ -181,22 +181,13 @@ describe("getReportOriginLink", () => {
 });
 
 describe("resolveReportSubject", () => {
-  it("施策があれば難易度別コンテンツの見出しを名前に使う", () => {
+  it("施策があれば施策名と施策のページを使う（トピック一覧のパンくずとそろえる）", () => {
     expect(
       resolveReportSubject(
-        { name: "学校給食の無償化", bill_content: { title: "給食費をなくす" } },
+        { name: "若者支援" },
         { ...openThemeOrigin, policyId: "policy-1" }
       )
-    ).toEqual({ name: "給食費をなくす", href: "/bills/policy-1" });
-  });
-
-  it("見出しがなければ施策名にフォールバックする", () => {
-    expect(
-      resolveReportSubject(
-        { name: "学校給食の無償化", bill_content: null },
-        { ...openThemeOrigin, policyId: "policy-1" }
-      ).name
-    ).toBe("学校給食の無償化");
+    ).toEqual({ name: "若者支援", href: "/bills/policy-1" });
   });
 
   it("施策がなければテーマ名とテーマのページを使う", () => {

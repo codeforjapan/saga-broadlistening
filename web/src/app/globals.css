@@ -29,6 +29,20 @@
   --radius: 0.625rem;
 }
 
+/*
+ * みんなの声（トピック一覧・トピック詳細・インタビューレポート・まとめ）の配色（Epic #162 / #159）。
+ * レイアウトはそのままに、アクセントをきかせての緑に置き換える。セマンティック変数を
+ * この中だけ差し替えるので、配下の bg-primary・text-primary-accent などがまとめて緑になる。
+ * kikasete-600 に白文字は AA を満たす（palette.test.ts）。
+ */
+.theme-kikasete {
+  --primary: var(--color-kikasete-600);
+  --primary-foreground: var(--color-base-white);
+  --primary-accent: var(--color-kikasete-700);
+  --secondary: var(--color-kikasete-50);
+  --ring: var(--color-kikasete-700);
+}
+
 @layer base {
   /* Tailwind の preflight により border-width の既定は 0 のため、この宣言は
      「罫線を引いたときの既定色」を決めるだけで、罫線そのものは増やさない。

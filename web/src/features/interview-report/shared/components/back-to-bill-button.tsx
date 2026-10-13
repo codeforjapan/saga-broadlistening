@@ -11,6 +11,8 @@ import {
 interface BackToBillButtonProps {
   /** 意見が寄せられた対象（施策・テーマ） */
   origin: ReportOrigin;
+  /** 施策名（「〇〇に戻る」に使う）。施策のない抽象テーマ型では使わない */
+  policyName?: string;
   /** "opinions" の場合、レポート一覧に戻るボタンを表示 */
   from?: "complete" | "opinions";
 }
@@ -23,13 +25,20 @@ interface BackToBillButtonProps {
  * そのテーマのページへ戻す。ヘッダーのリンクと同じ場所を指すよう、
  * 遷移先は getReportOriginLink に揃える。
  */
-function resolveDestination({ origin, from }: BackToBillButtonProps) {
+function resolveDestination({
+  origin,
+  from,
+  policyName,
+}: BackToBillButtonProps) {
   if (from === "opinions") {
     return { href: getReportOpinionsLink(origin), label: "レポート一覧に戻る" };
   }
 
   if (origin.policyId) {
-    return { href: getReportOriginLink(origin), label: "施策の記事に戻る" };
+    return {
+      href: getReportOriginLink(origin),
+      label: policyName ? `${policyName}に戻る` : "施策の記事に戻る",
+    };
   }
 
   return {

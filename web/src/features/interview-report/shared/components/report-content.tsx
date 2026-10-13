@@ -16,6 +16,8 @@ interface ReportContentProps {
   reportId: string;
   /** 意見が寄せられた対象（施策・テーマ）。戻り導線とパンくずに使う */
   origin: ReportOrigin;
+  /** 施策名（「〇〇に戻る」に使う） */
+  policyName?: string;
   summary: string | null;
   roleTitle?: string | null;
   sessionStartedAt: string | null;
@@ -45,6 +47,7 @@ interface ReportContentProps {
 export function ReportContent({
   reportId,
   origin,
+  policyName,
   summary,
   roleTitle,
   sessionStartedAt,
@@ -107,7 +110,7 @@ export function ReportContent({
           />
         )}
         {/* 施策の記事に戻るボタン */}
-        <BackToBillButton origin={origin} from={from} />
+        <BackToBillButton origin={origin} from={from} policyName={policyName} />
         {/* 問題を報告する */}
         <ReportProblemButton />
       </div>
