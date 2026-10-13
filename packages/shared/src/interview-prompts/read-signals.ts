@@ -4,11 +4,14 @@ import type { SummaryResponse } from "./types";
 /** LLM が本文と一緒に返す制御フラグ */
 export interface TurnSignals {
   endRequest: boolean;
+  /** 最後の話題を聞き終えた（次に聞ける話題がないときだけ効く） */
+  wrapUp: boolean;
   summaryResponse: SummaryResponse;
 }
 
 export const DEFAULT_TURN_SIGNALS: TurnSignals = {
   endRequest: false,
+  wrapUp: false,
   summaryResponse: "other",
 };
 
@@ -41,6 +44,7 @@ export function readSignals(out: unknown): TurnSignals {
   );
   return {
     endRequest: o.end_request === true,
+    wrapUp: o.wrap_up === true,
     summaryResponse: summaryResponse ?? "other",
   };
 }

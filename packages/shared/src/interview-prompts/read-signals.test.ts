@@ -10,10 +10,12 @@ describe("readSignals", () => {
     expect(
       readSignals({
         end_request: true,
+        wrap_up: true,
         summary_response: "revise",
       })
     ).toEqual({
       endRequest: true,
+      wrapUp: true,
       summaryResponse: "revise",
     });
   });

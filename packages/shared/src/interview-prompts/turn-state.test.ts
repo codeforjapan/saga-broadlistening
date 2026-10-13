@@ -92,6 +92,15 @@ describe("renderChatOutputInstructions", () => {
       )
     ).toContain("- question_id：今回は 選んだ話題の ID（Q3・Q4 のどれか）");
   });
+
+  it("最後の話題のときだけ wrap_up の使い方を示す", () => {
+    expect(renderChatOutputInstructions(stateAfter("q1", "q2"))).toContain(
+      "- wrap_up：false（まだ聞いていない話題がある）"
+    );
+    expect(
+      renderChatOutputInstructions(stateAfter("q1", "q2", "q3", "q4", "q5"))
+    ).toContain("- wrap_up：この話題が最後。");
+  });
 });
 
 describe("renderSummaryState", () => {

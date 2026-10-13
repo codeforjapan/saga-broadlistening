@@ -329,6 +329,7 @@ const validChatText = {
   topic_title: "関わり",
   text: "こんにちは",
   end_request: false,
+  wrap_up: false,
 };
 
 describe("interviewChatTextSchema", () => {

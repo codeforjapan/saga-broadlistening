@@ -49,6 +49,7 @@ export const interviewChatResponseSchema = z.object({
   topic_title: z.string().optional().nullable(),
   summary_response: z.enum(SUMMARY_RESPONSES).optional(),
   end_request: z.boolean().optional(),
+  wrap_up: z.boolean().optional(),
   /** サーバーが決めた question_id（interview_questions.id） */
   resolved_question_id: z.string().optional().nullable(),
   /** サーバーが決めた話題名 */
@@ -57,7 +58,7 @@ export const interviewChatResponseSchema = z.object({
   quick_replies: z.array(z.string()).optional().nullable(),
   /** サーバーが決めた次のステージ */
   next_stage: interviewStageSchema.optional(),
-  /** true なら、続けて初回の要約を取りにいく（end_request を受けたとき） */
+  /** true なら、続けて初回の要約を取りにいく（end_request・最後の話題の wrap_up を受けたとき） */
   chain_summary: z.boolean().optional(),
 });
 

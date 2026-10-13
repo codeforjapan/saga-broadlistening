@@ -72,7 +72,11 @@ export function buildChatTurnRecord({
     state,
     rawQuestionId: parsed?.question_id,
   });
-  const nextStage: InterviewStage = signals.endRequest ? "summary" : "chat";
+  // 終えたいと言われたか、最後の話題を聞き終えたら要約へ。話題が残っているときの
+  // wrap_up は無視する（途中で打ち切らないため）
+  const toSummary =
+    signals.endRequest || (signals.wrapUp && state.candidates.length === 0);
+  const nextStage: InterviewStage = toSummary ? "summary" : "chat";
   const topicTitle = readTopicTitle(parsed);
 
   const stored = {
@@ -84,6 +88,7 @@ export function buildChatTurnRecord({
     stage: "chat",
     next_stage: nextStage,
     end_request: signals.endRequest,
+    wrap_up: signals.wrapUp,
     parse_failed: parsed === null,
   };
 
@@ -94,9 +99,9 @@ export function buildChatTurnRecord({
       resolved_topic_title: topicTitle,
       quick_replies: result.quickReplies,
       next_stage: nextStage,
-      chain_summary: signals.endRequest,
+      chain_summary: toSummary,
     },
-    sessionUpdate: signals.endRequest ? { stage: "summary" } : null,
+    sessionUpdate: toSummary ? { stage: "summary" } : null,
   };
 }
 
@@ -169,6 +174,7 @@ export function buildInitialTurnContent({
     stage: "chat",
     next_stage: "chat",
     end_request: false,
+    wrap_up: false,
     parse_failed: parsed === null,
   });
 }

@@ -16,6 +16,7 @@ export const interviewChatTextSchema = z.object({
   topic_title: z.string().describe(INTERVIEW_CHAT_FIELD_DESCRIPTIONS.topic_title),
   text: z.string().describe(INTERVIEW_CHAT_TEXT_DESCRIPTION),
   end_request: z.boolean().describe(INTERVIEW_CHAT_FIELD_DESCRIPTIONS.end_request),
+  wrap_up: z.boolean().describe(INTERVIEW_CHAT_FIELD_DESCRIPTIONS.wrap_up),
 });
 export type InterviewChatText = z.infer<typeof interviewChatTextSchema>;
 

@@ -72,6 +72,32 @@ describe("buildChatTurnRecord", () => {
     expect(record.sessionUpdate).toEqual({ stage: "summary" });
   });
 
+  it("最後の話題を聞き終えた（wrap_up）ら要約へ進め、続けて要約を取りにいく", () => {
+    // Q2 が最後の話題で、次に聞ける話題がない
+    const lastTopicState = computeTurnState({
+      topics,
+      metas: [...metas, { questionId: "q2", stage: "chat" }],
+    });
+    const record = buildChatTurnRecord({
+      rawText: chatOutput({ wrap_up: true }),
+      state: lastTopicState,
+    });
+    expect(JSON.parse(record.content).wrap_up).toBe(true);
+    expect(record.injected.next_stage).toBe("summary");
+    expect(record.injected.chain_summary).toBe(true);
+    expect(record.sessionUpdate).toEqual({ stage: "summary" });
+  });
+
+  it("まだ聞いていない話題があれば、wrap_up は無視して続ける", () => {
+    const record = buildChatTurnRecord({
+      rawText: chatOutput({ wrap_up: true }),
+      state,
+    });
+    expect(record.injected.next_stage).toBe("chat");
+    expect(record.injected.chain_summary).toBe(false);
+    expect(record.sessionUpdate).toBeNull();
+  });
+
   it("LLM の話題名が空なら null にする", () => {
     const record = buildChatTurnRecord({
       rawText: chatOutput({ topic_title: "  " }),
