@@ -18,7 +18,14 @@ import { InterviewActionButtons } from "./interview-action-buttons";
 export type KikasetePageVoices = {
   /** 「86件のご意見 · 2026.10.8 更新」 */
   meta: string;
-  topicsHref: string;
+  /** 公開中のまとめ（問いと冒頭の段落）。なければ null */
+  summary: {
+    question: string | null;
+    lead: string | null;
+    href: string;
+  } | null;
+  /** トピック一覧。公開中のトピック分析がなければ null */
+  topicsHref: string | null;
 };
 
 interface KikasetePageProps {
@@ -120,16 +127,37 @@ export function KikasetePage({
                 {voices.meta}
               </span>
             </div>
-            <Button
-              asChild
-              variant="outline"
-              className="self-start border-kikasete-400 text-kikasete-700"
-            >
-              <Link href={voices.topicsHref as Route}>
-                トピック一覧を見る
-                <ChevronRight aria-hidden="true" />
-              </Link>
-            </Button>
+            {voices.summary?.question && (
+              <h3 className="font-bold leading-normal">
+                {voices.summary.question}
+              </h3>
+            )}
+            {voices.summary?.lead && (
+              <p className="text-sm leading-relaxed">{voices.summary.lead}</p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {voices.summary && (
+                <Button asChild variant="kikasete" size="sm" className="px-4">
+                  <Link href={voices.summary.href as Route}>
+                    まとめを見る
+                    <ChevronRight aria-hidden="true" />
+                  </Link>
+                </Button>
+              )}
+              {voices.topicsHref && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="border-kikasete-400 px-4 text-kikasete-700"
+                >
+                  <Link href={voices.topicsHref as Route}>
+                    トピック一覧を見る
+                    <ChevronRight aria-hidden="true" />
+                  </Link>
+                </Button>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               寄せられた意見をAIが整理したものです。佐賀市の方針や決定事項ではありません。
             </p>

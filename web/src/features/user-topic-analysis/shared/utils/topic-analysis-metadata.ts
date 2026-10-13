@@ -12,8 +12,8 @@ type TopicPageMetadataInput = {
   shareImageUrl: string;
 };
 
-/** 施策配下・テーマ配下で共通のOGP/Twitterカード。 */
-function buildShareMetadata(
+/** 施策配下・テーマ配下で共通のOGP/Twitterカード（みんなの声のまとめページでも使う）。 */
+export function buildShareMetadata(
   title: string,
   description: string,
   shareImageUrl: string,

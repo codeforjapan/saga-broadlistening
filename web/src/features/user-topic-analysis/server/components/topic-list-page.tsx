@@ -1,7 +1,13 @@
 import "server-only";
 
+import { ChevronRight } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { getPublishedVoiceSummary } from "@/features/voice-summary/server/loaders/get-published-voice-summary";
+import { routes } from "@/lib/routes";
 import { TopicList } from "../../client/components/topic-list";
 import { getOpinionsLink } from "../../shared/utils/topic-analysis-links";
 import { getTopicListHeading } from "../../shared/utils/topic-analysis-subject";
@@ -22,6 +28,11 @@ export async function TopicListPage({ target }: TopicListPageProps) {
   }
 
   const topics = context.analysis?.topics ?? [];
+  // テーマのページだけ、公開中のまとめへの導線を出す（#159・#161）
+  const voiceSummary =
+    target.kind === "theme" && context.interviewConfigId
+      ? await getPublishedVoiceSummary(context.interviewConfigId)
+      : null;
 
   return (
     <AnalysisPageLayout
@@ -54,6 +65,14 @@ export async function TopicListPage({ target }: TopicListPageProps) {
         <p className="py-8 text-center text-muted-foreground">
           トピック分析は準備中です
         </p>
+      )}
+      {target.kind === "theme" && voiceSummary && (
+        <Button asChild className="w-full">
+          <Link href={routes.interviewThemeSummary(target.slug) as Route}>
+            みんなの声のまとめを見る
+            <ChevronRight aria-hidden="true" />
+          </Link>
+        </Button>
       )}
     </AnalysisPageLayout>
   );

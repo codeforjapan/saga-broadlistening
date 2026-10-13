@@ -1,6 +1,7 @@
 import type { Root, RootContent } from "mdast";
 import rehypeSanitize, { type Options as SanitizeSchema } from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
+import remarkBreaks from "remark-breaks";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
 import { unified } from "unified";
@@ -121,6 +122,8 @@ export function renderVoiceSummaryHtml(markdown: string): string {
   return String(
     unified()
       .use(remarkParse)
+      // 引用の「特に多かった声」のように、行の途中の改行をそのまま改行として出す（web の本文と同じ）
+      .use(remarkBreaks)
       .use(remarkRehype)
       .use(rehypeSanitize, RENDER_SCHEMA)
       .use(rehypeStringify)
