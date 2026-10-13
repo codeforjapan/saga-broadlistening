@@ -1,3 +1,5 @@
+import { themePolicyContents } from "./theme-policy-data";
+
 type DifficultyLevel = "normal" | "hard";
 
 interface PolicyContentWithPolicyName {
@@ -1133,7 +1135,8 @@ export const policyContentsWithPolicyName: PolicyContentWithPolicyName[] = [
 export function createPolicyContents(
   insertedPolicies: { id: string; name: string }[]
 ) {
-  return policyContentsWithPolicyName.map((content) => {
+  const allContents = [...policyContentsWithPolicyName, ...themePolicyContents];
+  return allContents.map((content) => {
     const policy = insertedPolicies.find((p) => p.name === content.policy_name);
     if (!policy) {
       throw new Error(`Policy not found for content: ${content.policy_name}`);

@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { parseRelatedLinks } from "@mirai-gikai/shared/policy/related-links";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -12,15 +13,17 @@ import {
   type Bill,
   type BillUpdateInput,
   billUpdateSchema,
+  type ParentPolicyOptions,
 } from "../../shared/types";
 import { useBillForm } from "../hooks/use-bill-form";
 import { BillFormFields } from "./bill-form-fields";
 
 interface BillEditFormProps {
   bill: Bill;
+  parentPolicyOptions: ParentPolicyOptions;
 }
 
-export function BillEditForm({ bill }: BillEditFormProps) {
+export function BillEditForm({ bill, parentPolicyOptions }: BillEditFormProps) {
   const { isSubmitting, error, handleSubmit, handleCancel } = useBillForm();
 
   const form = useForm<BillUpdateInput>({
@@ -35,6 +38,11 @@ export function BillEditForm({ bill }: BillEditFormProps) {
       is_featured: bill.is_featured,
       knowledge_source: bill.knowledge_source ?? "",
       enable_ai_chat: bill.enable_ai_chat,
+      parent_policy_id: bill.parent_policy_id,
+      sort_order: bill.sort_order,
+      // DB の値は admin の保存時に検証済み。形の合わない要素（手で入れた不正値）は
+      // フォームに出さず、次の保存で取り除く
+      related_links: parseRelatedLinks(bill.related_links),
     },
   });
 
@@ -53,7 +61,11 @@ export function BillEditForm({ bill }: BillEditFormProps) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <BillFormFields control={form.control} billId={bill.id} />
+            <BillFormFields
+              control={form.control}
+              billId={bill.id}
+              parentPolicyOptions={parentPolicyOptions}
+            />
 
             {error && (
               <div className="rounded-md bg-yellow-400/20 p-4 text-sm text-system-warning">

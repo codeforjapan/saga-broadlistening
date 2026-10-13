@@ -7,7 +7,6 @@ import {
   updateBillPublishStatus,
 } from "@/features/bills/server/repositories/bill-repository";
 import {
-  createBillRecord,
   createBillsTags,
   deleteBillsTags,
   findBillById,
@@ -16,6 +15,7 @@ import {
   findBillsTagsByBillId,
   upsertBillContent,
 } from "@/features/bills-edit/server/repositories/bill-edit-repository";
+import { createBillWithSideEffects } from "@/features/bills-edit/server/services/create-bill-with-side-effects";
 import { updateBillWithSideEffects } from "@/features/bills-edit/server/services/update-bill-with-side-effects";
 import {
   billCreateSchema,
@@ -98,8 +98,7 @@ export function registerBillsTools(server: McpServer): void {
       inputSchema: billCreateSchema.shape,
     },
     async (input) => {
-      const inserted = await createBillRecord(input);
-      await invalidateBillsCache();
+      const inserted = await createBillWithSideEffects(input);
       return jsonResult({ ok: true, bill: inserted });
     }
   );

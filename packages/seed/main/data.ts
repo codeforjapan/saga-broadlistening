@@ -4,6 +4,13 @@ import { withDefaults } from "../shared/insert-seed";
 import { pickRespondent } from "../shared/respondents";
 import { BULK_OPINION_CONFIG_SLUG } from "./bulk-opinion-data";
 import type { OpinionSeed, SeededInterviewSession } from "./seed-types";
+import {
+  themeInterviewConfigs,
+  themePolicyConfigSlugMap,
+  themePolicySeeds,
+  themePolicyTagMap,
+  themeTags,
+} from "./theme-policy-data";
 
 type PolicyInsert = Database["public"]["Tables"]["policies"]["Insert"];
 type TagInsert = Database["public"]["Tables"]["tags"]["Insert"];
@@ -57,12 +64,15 @@ export const tags: TagInsert[] = [
     description: "選挙制度、政治改革、民主主義の強化に関する施策",
     featured_priority: 3,
   },
+  ...themeTags,
 ];
 
 /** NOT NULL かつ DEFAULT を持つカラムの既定値（withDefaults の説明を参照） */
 const POLICY_DEFAULTS = {
   is_featured: false,
   enable_ai_chat: false,
+  sort_order: 0,
+  related_links: [],
 } satisfies Partial<PolicyInsert>;
 
 const policySeeds: PolicyInsert[] = [
@@ -144,10 +154,12 @@ const policySeeds: PolicyInsert[] = [
   },
 ];
 
-export const policies: PolicyInsert[] = withDefaults(
-  POLICY_DEFAULTS,
-  policySeeds
-);
+// 子施策が親施策を ID で参照するため、全行に ID を振る
+// （PostgREST の一括 INSERT では、一部の行だけが id を持つと他の行が null になる）
+export const policies: PolicyInsert[] = withDefaults(POLICY_DEFAULTS, [
+  ...themePolicySeeds,
+  ...policySeeds,
+]).map((policy) => ({ ...policy, id: policy.id ?? randomUUID() }));
 
 /** AI質問機能を有効にした施策の名前（run.ts のログ用） */
 export const AI_CHAT_POLICY_NAME = "ガソリン税暫定税率廃止法案";
@@ -171,6 +183,7 @@ export function createPoliciesTags(
     ),
     船荷証券の電子化に関する法律案: ["エネルギー・環境"],
     "中学生・高校生向けプログラミング教育必修化法案": ["子育て・教育"],
+    ...themePolicyTagMap,
   };
 
   const policiesTags: PoliciesTagsInsert[] = [];
@@ -202,6 +215,7 @@ const policyConfigSlugMap: { [policyName: string]: string[] } = {
   学校給食無償化促進法案: [CLOSED_CONFIG_SLUG],
   こども家庭庁予算大幅増額法案: [KOSODATE_CONFIG_SLUG],
   "18歳選挙権完全実施法案": [SEIJI_SANKA_CONFIG_SLUG],
+  ...themePolicyConfigSlugMap,
 };
 
 export function createPoliciesInterviewConfigs(
@@ -305,6 +319,7 @@ export const additionalInterviewConfigs: InterviewConfigInsert[] = [
     starts_at: "2025-01-10T00:00:00+09:00",
     ends_at: "2025-03-31T23:59:59+09:00",
   },
+  ...themeInterviewConfigs,
 ];
 
 // インタビュー質問を作成

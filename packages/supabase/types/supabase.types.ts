@@ -745,6 +745,7 @@ export type Database = {
         Row: {
           archived_at: string | null
           completed_at: string | null
+          consented_at: string | null
           created_at: string
           external_identity_id: string | null
           id: string
@@ -757,6 +758,7 @@ export type Database = {
         Insert: {
           archived_at?: string | null
           completed_at?: string | null
+          consented_at?: string | null
           created_at?: string
           external_identity_id?: string | null
           id?: string
@@ -769,6 +771,7 @@ export type Database = {
         Update: {
           archived_at?: string | null
           completed_at?: string | null
+          consented_at?: string | null
           created_at?: string
           external_identity_id?: string | null
           id?: string
@@ -909,8 +912,7 @@ export type Database = {
           moderation_reasoning: string | null
           moderation_score: number | null
           moderation_status:
-            | Database["public"]["Enums"]["moderation_status_enum"]
-            | null
+            Database["public"]["Enums"]["moderation_status_enum"] | null
           opinions_reextracted_at: string | null
           review_status: Database["public"]["Enums"]["opinion_review_status"]
           reviewed_at: string | null
@@ -933,8 +935,7 @@ export type Database = {
           moderation_reasoning?: string | null
           moderation_score?: number | null
           moderation_status?:
-            | Database["public"]["Enums"]["moderation_status_enum"]
-            | null
+            Database["public"]["Enums"]["moderation_status_enum"] | null
           opinions_reextracted_at?: string | null
           review_status?: Database["public"]["Enums"]["opinion_review_status"]
           reviewed_at?: string | null
@@ -957,8 +958,7 @@ export type Database = {
           moderation_reasoning?: string | null
           moderation_score?: number | null
           moderation_status?:
-            | Database["public"]["Enums"]["moderation_status_enum"]
-            | null
+            Database["public"]["Enums"]["moderation_status_enum"] | null
           opinions_reextracted_at?: string | null
           review_status?: Database["public"]["Enums"]["opinion_review_status"]
           reviewed_at?: string | null
@@ -991,10 +991,13 @@ export type Database = {
           is_featured: boolean
           knowledge_source: string | null
           name: string
+          parent_policy_id: string | null
           publish_status: Database["public"]["Enums"]["policy_publish_status"]
           published_at: string | null
+          related_links: Json
           share_thumbnail_url: string | null
           slug: string
+          sort_order: number
           thumbnail_url: string | null
           updated_at: string
         }
@@ -1009,10 +1012,13 @@ export type Database = {
           is_featured?: boolean
           knowledge_source?: string | null
           name: string
+          parent_policy_id?: string | null
           publish_status?: Database["public"]["Enums"]["policy_publish_status"]
           published_at?: string | null
+          related_links?: Json
           share_thumbnail_url?: string | null
           slug: string
+          sort_order?: number
           thumbnail_url?: string | null
           updated_at?: string
         }
@@ -1027,14 +1033,25 @@ export type Database = {
           is_featured?: boolean
           knowledge_source?: string | null
           name?: string
+          parent_policy_id?: string | null
           publish_status?: Database["public"]["Enums"]["policy_publish_status"]
           published_at?: string | null
+          related_links?: Json
           share_thumbnail_url?: string | null
           slug?: string
+          sort_order?: number
           thumbnail_url?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "policies_parent_policy_id_fkey"
+            columns: ["parent_policy_id"]
+            isOneToOne: false
+            referencedRelation: "policies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       policies_interview_configs: {
         Row: {
@@ -1240,6 +1257,78 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      theme_voice_summaries: {
+        Row: {
+          content_md: string
+          created_at: string
+          edited_at: string | null
+          edited_by: string | null
+          generated_at: string | null
+          id: string
+          interview_config_id: string
+          model: string | null
+          prompt_version: string | null
+          published_at: string | null
+          source_opinion_count: number
+          source_topic_count: number
+          source_topic_ids: string[]
+          status: string
+          topic_analysis_version_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          content_md: string
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          generated_at?: string | null
+          id?: string
+          interview_config_id: string
+          model?: string | null
+          prompt_version?: string | null
+          published_at?: string | null
+          source_opinion_count: number
+          source_topic_count: number
+          source_topic_ids?: string[]
+          status?: string
+          topic_analysis_version_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content_md?: string
+          created_at?: string
+          edited_at?: string | null
+          edited_by?: string | null
+          generated_at?: string | null
+          id?: string
+          interview_config_id?: string
+          model?: string | null
+          prompt_version?: string | null
+          published_at?: string | null
+          source_opinion_count?: number
+          source_topic_count?: number
+          source_topic_ids?: string[]
+          status?: string
+          topic_analysis_version_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "theme_voice_summaries_interview_config_id_fkey"
+            columns: ["interview_config_id"]
+            isOneToOne: false
+            referencedRelation: "interview_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "theme_voice_summaries_topic_analysis_version_id_fkey"
+            columns: ["topic_analysis_version_id"]
+            isOneToOne: false
+            referencedRelation: "topic_analysis_version"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       topic: {
         Row: {
@@ -1744,6 +1833,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      publish_theme_voice_summary: {
+        Args: { p_summary_id: string }
+        Returns: undefined
+      }
       publish_topic_analysis_version: {
         Args: { p_version_id: string }
         Returns: undefined
@@ -1825,12 +1918,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1852,13 +1945,12 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1877,13 +1969,12 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1902,13 +1993,12 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1921,11 +2011,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1989,4 +2079,3 @@ export const Constants = {
     },
   },
 } as const
-

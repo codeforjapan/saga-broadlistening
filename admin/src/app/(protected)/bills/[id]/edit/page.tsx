@@ -5,6 +5,7 @@ import { BillEditForm } from "@/features/bills-edit/client/components/bill-edit-
 import { BillTagsForm } from "@/features/bills-edit/client/components/bill-tags-form";
 import { getBillById } from "@/features/bills-edit/server/loaders/get-bill-by-id";
 import { getBillTagIds } from "@/features/bills-edit/server/loaders/get-bill-tag-ids";
+import { getParentPolicyOptions } from "@/features/bills-edit/server/loaders/get-parent-policy-options";
 import { loadTags } from "@/features/tags/server/loaders/load-tags";
 import { routes } from "@/lib/routes";
 
@@ -16,11 +17,13 @@ interface BillEditPageProps {
 
 export default async function BillEditPage({ params }: BillEditPageProps) {
   const { id } = await params;
-  const [bill, allTags, selectedTagIds] = await Promise.all([
-    getBillById(id),
-    loadTags(),
-    getBillTagIds(id),
-  ]);
+  const [bill, allTags, selectedTagIds, parentPolicyOptions] =
+    await Promise.all([
+      getBillById(id),
+      loadTags(),
+      getBillTagIds(id),
+      getParentPolicyOptions(id),
+    ]);
 
   if (!bill) {
     notFound();
@@ -44,7 +47,7 @@ export default async function BillEditPage({ params }: BillEditPageProps) {
       </div>
 
       <div className="space-y-6">
-        <BillEditForm bill={bill} />
+        <BillEditForm bill={bill} parentPolicyOptions={parentPolicyOptions} />
         <BillTagsForm
           billId={bill.id}
           allTags={allTags}

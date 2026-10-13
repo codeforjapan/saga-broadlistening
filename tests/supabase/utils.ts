@@ -100,6 +100,9 @@ export type TestPolicyOverrides = Partial<{
   enable_ai_chat: boolean;
   knowledge_source: string;
   thumbnail_url: string;
+  parent_policy_id: string | null;
+  sort_order: number;
+  related_links: Json;
 }>;
 
 export type TestInterviewConfigOverrides = Partial<{

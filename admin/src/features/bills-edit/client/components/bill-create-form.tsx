@@ -8,11 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
 
 import { createBill } from "../../server/actions/create-bill";
-import { type BillCreateInput, billCreateSchema } from "../../shared/types";
+import {
+  type BillCreateInput,
+  billCreateSchema,
+  type ParentPolicyOptions,
+} from "../../shared/types";
 import { useBillForm } from "../hooks/use-bill-form";
 import { BillFormFields } from "./bill-form-fields";
 
-export function BillCreateForm() {
+interface BillCreateFormProps {
+  parentPolicyOptions: ParentPolicyOptions;
+}
+
+export function BillCreateForm({ parentPolicyOptions }: BillCreateFormProps) {
   const { isSubmitting, error, handleSubmit, handleCancel } = useBillForm();
 
   const form = useForm<BillCreateInput>({
@@ -27,6 +35,9 @@ export function BillCreateForm() {
       is_featured: false,
       knowledge_source: "",
       enable_ai_chat: false,
+      parent_policy_id: null,
+      sort_order: 0,
+      related_links: [],
     },
   });
 
@@ -42,7 +53,10 @@ export function BillCreateForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <BillFormFields control={form.control} />
+            <BillFormFields
+              control={form.control}
+              parentPolicyOptions={parentPolicyOptions}
+            />
 
             {error && (
               <div className="rounded-md bg-yellow-400/20 p-4 text-sm text-system-warning">

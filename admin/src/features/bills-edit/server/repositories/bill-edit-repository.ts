@@ -164,3 +164,54 @@ export async function createBillsTags(billId: string, tagIds: string[]) {
     throw new Error(`Failed to create bill tags: ${error.message}`);
   }
 }
+
+/** 親施策の候補（親を持たない施策）を名前順で返す。excludeId の施策は除く */
+export async function findTopLevelPolicies(excludeId: string | null) {
+  const supabase = createAdminClient();
+  let query = supabase
+    .from("policies")
+    .select("id, name")
+    .is("parent_policy_id", null)
+    .order("name");
+  if (excludeId) {
+    query = query.neq("id", excludeId);
+  }
+  const { data, error } = await query;
+
+  if (error) {
+    throw new Error(`Failed to fetch top-level policies: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+export async function findPolicyParentRef(id: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("policies")
+    .select("id, parent_policy_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to fetch policy: ${error.message}`);
+  }
+
+  return data;
+}
+
+/** 子施策の数。parentId が null（新規作成中の施策）なら 0 */
+export async function countChildPolicies(parentId: string | null) {
+  if (parentId === null) return 0;
+  const supabase = createAdminClient();
+  const { count, error } = await supabase
+    .from("policies")
+    .select("id", { count: "exact", head: true })
+    .eq("parent_policy_id", parentId);
+
+  if (error) {
+    throw new Error(`Failed to count child policies: ${error.message}`);
+  }
+
+  return count ?? 0;
+}
