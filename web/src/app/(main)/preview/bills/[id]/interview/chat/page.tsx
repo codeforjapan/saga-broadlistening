@@ -8,7 +8,9 @@ import { validatePreviewToken } from "@/features/bills/server/loaders/validate-p
 import { getInterviewConfigAdmin } from "@/features/interview-config/server/loaders/get-interview-config-admin";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
 import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
 import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
+import { InterviewChatStart } from "@/features/interview-session/client/components/interview-chat-start";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 import { env } from "@/lib/env";
@@ -75,12 +77,25 @@ export default async function InterviewPreviewChatPage({
   // インタビューチャットの初期化処理
   try {
     // プレビューは職員の確認用なので、テーマの参加条件は問わない
-    const { session, messages } = await initializeInterviewChat(
-      interviewConfig,
-      bill,
-      { isPreview: true }
-    );
+    const chat = await initializeInterviewChat(interviewConfig, bill, {
+      isPreview: true,
+    });
+    const target = policyInterviewTarget(billId, token);
 
+    if (chat.kind === "start") {
+      return (
+        <>
+          <PreviewBanner />
+          <InterviewChatStart
+            target={target}
+            interviewConfig={interviewConfig}
+            themeHref={getBillDetailLink(billId, token)}
+          />
+        </>
+      );
+    }
+
+    const { session, messages } = chat;
     return (
       <>
         <PreviewBanner />

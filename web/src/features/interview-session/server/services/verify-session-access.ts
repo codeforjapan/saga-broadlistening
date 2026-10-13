@@ -4,6 +4,7 @@ import { INTERVIEW_PARTICIPATION_DENIED_MESSAGE } from "@mirai-gikai/shared/inte
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
 import type { VerifySessionOwnershipResult } from "../../shared/utils/resolve-ownership";
 import { resolveOwnership } from "../../shared/utils/resolve-ownership";
+import type { PreviewCredential } from "../../shared/types/errors";
 import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
 import { findSessionAccessInfoById } from "../repositories/interview-session-repository";
 import {
@@ -17,11 +18,22 @@ import {
 
 export type SessionAccessDeps = LoaderDeps & ParticipationDeps;
 
-/** 職員プレビューからの操作。トークンが有効なら参加条件を問わない */
-export type PreviewCredential = {
-  policyId: string;
-  token: string;
-};
+export type { PreviewCredential };
+
+/**
+ * 職員プレビューのトークンが、このテーマにつながる施策のものとして有効か。
+ * テーマにつながらない施策のトークンでは参加条件・募集状態を免除しない。
+ */
+export async function isValidPreviewForConfig(
+  linkedPolicyIds: string[],
+  preview: PreviewCredential | undefined
+): Promise<boolean> {
+  return (
+    preview !== undefined &&
+    linkedPolicyIds.includes(preview.policyId) &&
+    (await validatePreviewToken(preview.policyId, preview.token))
+  );
+}
 
 /**
  * 会話を進める操作（チャットの完了・アーカイブ）向けに、所有者確認に加えて
@@ -55,13 +67,10 @@ export async function verifySessionAccess(
     return ownership;
   }
 
-  const preview = options?.preview;
-  const isPreview =
-    preview !== undefined &&
-    rule.policies_interview_configs.some(
-      (link) => link.policy_id === preview.policyId
-    ) &&
-    (await validatePreviewToken(preview.policyId, preview.token));
+  const isPreview = await isValidPreviewForConfig(
+    rule.policies_interview_configs.map((link) => link.policy_id),
+    options?.preview
+  );
 
   const participation = evaluateInterviewParticipation({
     rule,

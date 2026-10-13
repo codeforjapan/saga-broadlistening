@@ -1,5 +1,6 @@
+import { themeInterviewTarget } from "../types/interview-target";
 import type { InterviewTheme } from "../types/interview-theme";
-import { getThemeCardLink } from "./interview-links";
+import { getInterviewStartLink, getThemeCardLink } from "./interview-links";
 import { isInterviewVisible, isPublishedPolicy } from "./interview-visibility";
 
 /** テーマにも施策にも画像がないときに使う既定の画像 */
@@ -143,7 +144,10 @@ export type InterviewThemeCardAction = {
 
 /**
  * テーマカードの遷移先とCTAラベルを決める。
- * 遷移先の判断は getThemeCardLink に委ね、ここでは文言だけを決める。
+ *
+ * 参加できるテーマの「はじめる」はチャットへ直行する（同意はチャット冒頭の案内で取る、#158）。
+ * 参加条件を満たさないテーマは回答方法の案内がある LP へ、募集終了テーマは結果へ送る
+ * （この2つの判断は getThemeCardLink に委ねる）。
  */
 export function buildInterviewThemeCardAction(
   slug: string,
@@ -151,12 +155,15 @@ export function buildInterviewThemeCardAction(
   canParticipate = true
 ): InterviewThemeCardAction {
   const isOpen = purpose === "participate";
-  const participateLabel = canParticipate
-    ? "はじめる"
-    : "アプリから回答する方法";
+  if (isOpen && canParticipate) {
+    return {
+      href: getInterviewStartLink(themeInterviewTarget(slug)),
+      ctaLabel: "はじめる",
+    };
+  }
   return {
     href: getThemeCardLink({ slug, isOpen }),
-    ctaLabel: isOpen ? participateLabel : "結果を見る",
+    ctaLabel: isOpen ? "アプリから回答する方法" : "結果を見る",
   };
 }
 

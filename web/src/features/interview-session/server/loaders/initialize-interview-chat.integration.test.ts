@@ -72,20 +72,36 @@ describe("initializeInterviewChat 統合テスト", () => {
       },
     });
 
+    if (result.kind !== "chat") throw new Error("expected chat");
     expect(result.session.id).toBe(sessionId);
     expect(result.session.interview_config_id).toBe(interviewConfigId);
     expect(result.messages).toHaveLength(2);
     expect(result.messages[0].interview_session_id).toBe(sessionId);
   });
 
-  it("セッションが存在しない場合は新しいセッションを作成する", async () => {
-    const mockModel = createGenerateMock(llmResponse);
-
+  it("進行中のセッションがなければ、セッションを作らずに開始画面を返す", async () => {
     // 既存セッションをアーカイブして「セッションなし」の状態にする
     await adminClient
       .from("interview_sessions")
       .update({ archived_at: new Date().toISOString() })
       .eq("id", sessionId);
+
+    const result = await initializeInterviewChat(config, bill, {
+      deps: { getUser: createGetUser(testUser.id) },
+    });
+
+    expect(result).toEqual({ kind: "start" });
+    // 同意前にはセッションを作らない（#158）
+    const { count } = await adminClient
+      .from("interview_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("interview_config_id", interviewConfigId)
+      .is("archived_at", null);
+    expect(count).toBe(0);
+  });
+
+  it("メッセージのない進行中セッションでは最初の質問を生成する", async () => {
+    const mockModel = createGenerateMock(llmResponse);
 
     const result = await initializeInterviewChat(config, bill, {
       deps: {
@@ -94,10 +110,8 @@ describe("initializeInterviewChat 統合テスト", () => {
       },
     });
 
-    // 新しいセッションが作成されていること
-    expect(result.session.id).not.toBe(sessionId);
-    expect(result.session.interview_config_id).toBe(interviewConfigId);
-    expect(result.session.user_id).toBe(testUser.id);
+    if (result.kind !== "chat") throw new Error("expected chat");
+    expect(result.session.id).toBe(sessionId);
     // MockModelが生成した初期質問メッセージが含まれること
     expect(result.messages).toHaveLength(1);
     expect(result.messages[0].role).toBe("assistant");
@@ -120,6 +134,7 @@ describe("initializeInterviewChat 統合テスト", () => {
         },
       });
 
+      if (result.kind !== "chat") throw new Error("expected chat");
       expect(result.session.id).toBe(sessionId);
       expect(result.session.external_identity_id).toBe(identities[0].id);
 

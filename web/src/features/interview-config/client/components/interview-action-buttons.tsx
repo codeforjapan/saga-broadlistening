@@ -4,7 +4,6 @@ import { ArrowRight } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getInterviewChatLink } from "@/features/interview-config/shared/utils/interview-links";
 import { NewInterviewButton } from "@/features/interview-session/client/components/new-interview-button";
@@ -13,20 +12,30 @@ import type { LatestInterviewSession } from "@/features/interview-session/server
 import type { InterviewParticipationView } from "../../shared/types/interview-participation-view";
 import type { InterviewTarget } from "../../shared/types/interview-target";
 import { ExternalIdentityGuideNotice } from "./external-identity-guide-notice";
-import { InterviewConsentModal } from "./interview-consent-modal";
 
 interface InterviewActionButtonsProps {
   target: InterviewTarget;
   sessionInfo: LatestInterviewSession | null;
   participation: InterviewParticipationView;
+  /** きかせてページ（#158）では、はじめる・再開のボタンをきかせての緑にする */
+  tone?: "primary" | "kikasete";
 }
+
+const START_BUTTON_CLASS =
+  "w-full rounded-[100px] h-[48px] px-6 font-bold text-[15px] hover:opacity-90 transition-opacity flex items-center justify-center gap-4";
+
+const TONE_VARIANTS = {
+  primary: "default",
+  kikasete: "kikasete",
+} as const;
 
 export function InterviewActionButtons({
   target,
   sessionInfo,
   participation,
+  tone = "primary",
 }: InterviewActionButtonsProps) {
-  const [showConsentModal, setShowConsentModal] = useState(false);
+  const startVariant = TONE_VARIANTS[tone];
   const isActive = sessionInfo?.status === "active";
   const isCompleted = sessionInfo?.status === "completed";
 
@@ -39,16 +48,13 @@ export function InterviewActionButtons({
     return <NewInterviewButton target={target} />;
   }
 
-  // 進行中の場合は直接遷移
-  if (isActive) {
-    const chatLink = getInterviewChatLink(target);
+  const chatLink = getInterviewChatLink(target);
 
+  // 進行中の場合は続きから
+  if (isActive) {
     return (
       <>
-        <Button
-          asChild
-          className="w-full bg-primary text-primary-foreground rounded-[100px] h-[48px] px-6 font-bold text-[15px] hover:opacity-90 transition-opacity flex items-center justify-center gap-4"
-        >
+        <Button asChild variant={startVariant} className={START_BUTTON_CLASS}>
           <Link href={chatLink as Route}>
             <Image
               src="/icons/messages-square-icon.svg"
@@ -66,13 +72,10 @@ export function InterviewActionButtons({
     );
   }
 
-  // 新規の場合はモーダルを表示
+  // 新規の場合もチャットへ直接進む。同意はチャット冒頭の案内で取る（#158）
   return (
-    <>
-      <Button
-        onClick={() => setShowConsentModal(true)}
-        className="w-full bg-primary text-primary-foreground rounded-[100px] h-[48px] px-6 font-bold text-[15px] hover:opacity-90 transition-opacity flex items-center justify-center gap-4"
-      >
+    <Button asChild variant={startVariant} className={START_BUTTON_CLASS}>
+      <Link href={chatLink as Route}>
         <Image
           src="/icons/messages-square-icon.svg"
           alt=""
@@ -82,13 +85,7 @@ export function InterviewActionButtons({
         />
         <span>AIインタビューをはじめる</span>
         <ArrowRight className="size-5" />
-      </Button>
-
-      <InterviewConsentModal
-        open={showConsentModal}
-        onOpenChange={setShowConsentModal}
-        target={target}
-      />
-    </>
+      </Link>
+    </Button>
   );
 }

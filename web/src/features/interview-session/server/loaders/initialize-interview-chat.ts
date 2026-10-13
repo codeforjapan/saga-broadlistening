@@ -6,8 +6,8 @@ import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-serve
 import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { generateInitialQuestion } from "@/features/interview-session/server/services/generate-initial-question";
 import type { InterviewMessage, InterviewSession } from "../../shared/types";
+import { resolveChatEntry } from "../../shared/utils/resolve-chat-entry";
 import {
-  createInterviewSessionRecord,
   findActiveInterviewSession,
   findInterviewMessagesBySessionId,
   updateInterviewSessionExternalIdentity,
@@ -24,14 +24,22 @@ type InitializeInterviewChatOptions = {
   isPreview?: boolean;
 };
 
-type InitializeInterviewChatResult = {
-  session: InterviewSession;
-  messages: InterviewMessage[];
-};
+/**
+ * まだ回答を始めていない（進行中のセッションがない）ときは開始画面を出す。
+ * セッションは開始画面の「はじめる」（同意）で作るので、ここでは書き込まない（#158）。
+ */
+export type InitializeInterviewChatResult =
+  | { kind: "start" }
+  | {
+      kind: "chat";
+      session: InterviewSession;
+      messages: InterviewMessage[];
+    };
 
 /**
  * インタビューチャットの初期化処理
- * 参加条件の判定、セッション取得/作成、メッセージ履歴取得、最初の質問生成を行う。
+ * 参加条件の判定、進行中セッションの取得、メッセージ履歴取得、最初の質問生成を行う。
+ * 進行中のセッションがなければ開始画面（kind: "start"）を返す。
  * 参加条件を満たさない場合は InterviewParticipationDeniedError を投げる
  * （呼び出し側のページは LP へ戻す）。
  */
@@ -70,15 +78,15 @@ export async function initializeInterviewChat(
     findActiveInterviewSession(interviewConfig.id, user.id),
   ]);
 
-  // セッション取得または作成。紐付いている外部IDがあれば、参加条件に関係なく記録する
-  let session = activeSession;
-  if (!session) {
-    session = await createInterviewSessionRecord({
-      interviewConfigId: interviewConfig.id,
-      userId: user.id,
-      externalIdentityId,
-    });
-  } else if (session.external_identity_id === null && externalIdentityId) {
+  // 進行中のセッションがなければ開始画面を出す（同意前にセッションを作らない）
+  const entry = resolveChatEntry(activeSession);
+  if (entry.kind === "start") {
+    return entry;
+  }
+
+  // 紐付いている外部IDがあれば、参加条件に関係なく記録する
+  let session = entry.session;
+  if (session.external_identity_id === null && externalIdentityId) {
     // チャットページを開いた後に UID を受け取った（#uid= の送信が初回描画より遅れた）場合、
     // 進行中のセッションにも外部IDを後から記録する
     await updateInterviewSessionExternalIdentity(
@@ -107,6 +115,7 @@ export async function initializeInterviewChat(
   }
 
   return {
+    kind: "chat",
     session,
     messages,
   };
