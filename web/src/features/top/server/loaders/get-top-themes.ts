@@ -2,28 +2,19 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
-import { getInterviewParticipationView } from "@/features/interview-config/server/loaders/get-interview-participation-view";
-import { themeInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import {
-  getInterviewStartLink,
-  getThemeCardLink,
-} from "@/features/interview-config/shared/utils/interview-links";
-import {
-  type KikaseteStart,
-  resolveKikaseteStart,
-} from "@/features/interview-config/shared/utils/kikasete-start";
+  getKikaseteBox,
+  type KikaseteBoxData,
+} from "@/features/interview-config/server/loaders/get-kikasete-box";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import {
-  type ThemeCardInterview,
   type ThemeCardView,
   toThemeCardView,
 } from "../../shared/utils/theme-card-view";
 import { findTopLevelPublishedPoliciesWithThemes } from "../repositories/top-theme-repository";
 
 export type TopTheme = Omit<ThemeCardView, "interview"> & {
-  interview:
-    | (ThemeCardInterview & { aboutHref: string; start: KikaseteStart })
-    | null;
+  kikasete: KikaseteBoxData | null;
 };
 
 /** 取得結果は難易度によらないので、キャッシュは1件にまとめ、変換はキャッシュの外で行う */
@@ -50,30 +41,9 @@ export async function getTopThemes(
   });
 
   return Promise.all(
-    views.map(async ({ interview, ...view }) => {
-      if (!interview) {
-        return { ...view, interview: null };
-      }
-      const target = themeInterviewTarget(interview.slug);
-      const participation = await getInterviewParticipationView(
-        interview.participationRule
-      );
-      return {
-        ...view,
-        interview: {
-          ...interview,
-          // 募集が終わったテーマは LP が公開されないので、結果（トピック一覧）へ送る
-          aboutHref: getThemeCardLink({
-            slug: interview.slug,
-            isOpen: interview.isOpen,
-          }),
-          start: resolveKikaseteStart({
-            isOpen: interview.isOpen,
-            startHref: getInterviewStartLink(target),
-            participation,
-          }),
-        },
-      };
-    })
+    views.map(async ({ interview, ...view }) => ({
+      ...view,
+      kikasete: interview ? (await getKikaseteBox(interview)).box : null,
+    }))
   );
 }

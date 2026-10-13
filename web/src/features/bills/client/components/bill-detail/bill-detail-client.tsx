@@ -18,6 +18,8 @@ interface BillDetailClientProps {
   hasInterviewConfig: boolean;
   interviewParticipation?: InterviewParticipationView;
   interviewTarget?: InterviewTarget;
+  /** チャットのサンプル質問。省略時は施策ページの既定の質問 */
+  chatSampleQuestions?: string[];
   children: ReactNode;
 }
 
@@ -35,6 +37,7 @@ export function BillDetailClient({
   hasInterviewConfig,
   interviewParticipation,
   interviewTarget,
+  chatSampleQuestions,
   children,
 }: BillDetailClientProps) {
   const chatButtonRef = useRef<ChatButtonRef>(null);
@@ -57,6 +60,7 @@ export function BillDetailClient({
         interviewParticipation={interviewParticipation}
         interviewTarget={interviewTarget}
         difficultyLevel={currentDifficulty}
+        sampleQuestions={chatSampleQuestions}
       />
     </>
   );

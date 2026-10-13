@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient, type Database } from "@mirai-gikai/supabase";
+import type { KikaseteThemeSource } from "../../shared/utils/kikasete-interview";
 
 // Epic #54 で interview_configs.bill_id が廃止され、施策との紐づけは
 // policies_interview_configs（多対多）経由になった。
@@ -262,4 +263,32 @@ export async function findInterviewParticipationRulesByIds(
   if (error)
     throw new Error(`Failed to fetch participation rules: ${error.message}`);
   return data;
+}
+
+/**
+ * 施策につながるテーマを、きかせてボックスに出す情報（完了セッション数つき）とあわせて全件取得する。
+ * 親施策ページで、表示する1件を selectPrimaryThemeForPolicy で選ぶために使う。
+ */
+export async function findKikaseteThemesByPolicyId(
+  policyId: string
+): Promise<KikaseteThemeSource[]> {
+  const { data, error } = await createAdminClient()
+    .from("policies_interview_configs")
+    .select(
+      `interview_configs!inner (
+        id,
+        name,
+        slug,
+        status,
+        estimated_duration,
+        created_at,
+        participation_mode,
+        allowed_provider_keys,
+        interview_sessions ( count )
+      )`
+    )
+    .eq("policy_id", policyId)
+    .not(`interview_configs.${COMPLETED_SESSIONS_FILTER}`, "is", null);
+  if (error) throw new Error(`Failed to fetch policy themes: ${error.message}`);
+  return data.map((row) => row.interview_configs);
 }

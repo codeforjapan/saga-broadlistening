@@ -29,7 +29,7 @@ export function ThemeCard({
   stacked,
   priority = false,
 }: ThemeCardProps) {
-  const { interview } = theme;
+  const { kikasete } = theme;
 
   return (
     <article className="relative flex flex-col overflow-hidden rounded-3xl bg-card shadow-lg">
@@ -88,16 +88,7 @@ export function ThemeCard({
           </Button>
         </div>
 
-        {interview && (
-          <KikaseteBox
-            prompt={interview.prompt}
-            durationLabel={interview.durationLabel}
-            participantLabel={interview.participantLabel}
-            aboutHref={interview.aboutHref}
-            start={interview.start}
-            stacked={stacked}
-          />
-        )}
+        {kikasete && <KikaseteBox {...kikasete} stacked={stacked} />}
       </div>
     </article>
   );
