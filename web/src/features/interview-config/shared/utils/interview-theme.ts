@@ -76,7 +76,7 @@ export function toInterviewThemeRows(
 }
 
 /** 文字列の降順比較。同値なら 0 */
-function descending(a: string, b: string): number {
+export function descending(a: string, b: string): number {
   if (a === b) {
     return 0;
   }

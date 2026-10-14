@@ -1,4 +1,4 @@
-import { ChevronRight, Clock, Users } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import {
   formatParticipantCount,
   type InterviewThemeCardPurpose,
 } from "../../shared/utils/interview-theme";
+import { InterviewMeta } from "./interview-meta";
 
 interface InterviewThemeCardProps {
   theme: InterviewTheme;
@@ -74,22 +75,10 @@ export function InterviewThemeCard({
               lineClamp={2}
               className="text-sm leading-relaxed text-muted-foreground"
             />
-            {(estimatedDuration || participantCount) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                {estimatedDuration && (
-                  <span className="flex items-center gap-1">
-                    <Clock className="size-3.5" aria-hidden="true" />
-                    {estimatedDuration}
-                  </span>
-                )}
-                {participantCount && (
-                  <span className="flex items-center gap-1">
-                    <Users className="size-3.5" aria-hidden="true" />
-                    {participantCount}
-                  </span>
-                )}
-              </div>
-            )}
+            <InterviewMeta
+              durationLabel={estimatedDuration}
+              participantLabel={participantCount}
+            />
           </div>
 
           <div className="flex shrink-0 items-center gap-1 self-end text-xs font-bold text-primary-accent sm:self-auto sm:text-sm">

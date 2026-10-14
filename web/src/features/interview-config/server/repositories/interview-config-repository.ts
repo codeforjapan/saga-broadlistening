@@ -164,6 +164,12 @@ const CONFIG_LIST_SELECT = `
  */
 const CLOSED_CONFIG_LIST_LIMIT = 30;
 
+/**
+ * 「N人が参加」はインタビューを完了したセッションだけを数える（TOP のテーマカードと同じ定義）。
+ * 埋め込み集計 interview_sessions(count) にこの条件を付ける。
+ */
+const COMPLETED_SESSIONS_FILTER = "interview_sessions.completed_at" as const;
+
 /** カードに出す代表タグは施策ごとに1件だけなので、転送量を増やさない。 */
 const PRIMARY_TAG_TABLE =
   "policies_interview_configs.policies.policies_tags" as const;
@@ -174,7 +180,7 @@ const PRIMARY_TAG_TABLE =
  * 参加導線がテーマ単独URLになったため、施策の紐付けが0件のテーマ（抽象テーマ型）も
  * そのまま一覧に載せられる。施策は画像・タグのフォールバック元と公開判定にだけ使うので、
  * 埋め込みは inner join にしない。
- * 参加人数は埋め込み集計（interview_sessions(count)）で同じ1本に含める。
+ * 参加人数（完了したセッション数）は埋め込み集計で同じ1本に含める。
  * 一覧に出す条件と並び順は呼び出し側（buildInterviewThemes）に委ねる。
  */
 export async function findOpenInterviewConfigs() {
@@ -183,6 +189,7 @@ export async function findOpenInterviewConfigs() {
     .from("interview_configs")
     .select(CONFIG_LIST_SELECT)
     .eq("status", "open")
+    .not(COMPLETED_SESSIONS_FILTER, "is", null)
     .order("created_at", { referencedTable: PRIMARY_TAG_TABLE })
     .limit(1, { referencedTable: PRIMARY_TAG_TABLE });
 
@@ -208,6 +215,7 @@ export async function findClosedInterviewConfigsWithPublishedAnalysis() {
     .select(`${CONFIG_LIST_SELECT}, topic_analysis_version!inner (id)`)
     .eq("status", "closed")
     .eq("topic_analysis_version.is_published", true)
+    .not(COMPLETED_SESSIONS_FILTER, "is", null)
     .order("created_at", { ascending: false })
     .limit(CLOSED_CONFIG_LIST_LIMIT)
     .order("created_at", { referencedTable: PRIMARY_TAG_TABLE })

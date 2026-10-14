@@ -24,21 +24,8 @@ export type BillTag = {
   label: string;
 };
 
-export type FeaturedTag = {
-  id: string;
-  label: string;
-  priority: number;
-};
-
 export type BillWithContent = Bill & {
   bill_content?: BillContent;
   tags: BillTag[];
-  featured_tag?: FeaturedTag;
   hasPublicInterview?: boolean;
-};
-
-// タグごとにグループ化された施策
-export type BillsByTag = {
-  tag: BillTag & { description?: string; priority: number };
-  bills: BillWithContent[];
 };

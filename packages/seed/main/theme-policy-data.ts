@@ -161,7 +161,7 @@ export const themePolicySeeds: PolicyInsert[] = [
     published_at: THEME_PUBLISHED_AT,
     is_featured: true,
     sort_order: 0,
-    thumbnail_url: "https://placehold.co/1200x580/e6f6ff/0068af/png?text=Wakamono",
+    thumbnail_url: "/img/top/theme-youth.jpg",
     enable_ai_chat: true,
     knowledge_source:
       "若者支援は、奨学金返還支援・進学や留学の支援・交流の機会づくりの3つの柱で構成されています。",
@@ -176,7 +176,7 @@ export const themePolicySeeds: PolicyInsert[] = [
     published_at: THEME_PUBLISHED_AT,
     is_featured: true,
     sort_order: 1,
-    thumbnail_url: "https://placehold.co/1200x580/fff8e1/8a6d00/png?text=Koureisha",
+    thumbnail_url: "/img/top/theme-elderly.jpg",
   },
   ...childPolicyDefs.map(toChildPolicySeed),
 ];

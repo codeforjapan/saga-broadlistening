@@ -18,6 +18,8 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 underline !p-0 !h-auto hover:opacity-90",
+        // 「CHIKAT きかせて」（AIインタビュー）の導線。白文字で AA を満たす濃さの緑を使う
+        kikasete: "bg-kikasete-600 text-base-white shadow-xs hover:opacity-90",
       },
       size: {
         default: "h-13 px-4 py-2 has-[>svg]:px-3",
