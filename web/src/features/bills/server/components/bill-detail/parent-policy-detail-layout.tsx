@@ -8,6 +8,9 @@ import { themeInterviewTarget } from "@/features/interview-config/shared/types/i
 import type { KikaseteInterview } from "@/features/interview-config/shared/utils/kikasete-interview";
 import { TopicsPreviewSection } from "@/features/user-topic-analysis/server/components/topics-preview-section";
 import { getTopicAnalysisContext } from "@/features/user-topic-analysis/server/loaders/get-topic-analysis-context";
+import { VoiceSummaryPreview } from "@/features/voice-summary/server/components/voice-summary-preview";
+import { getPublishedVoiceSummary } from "@/features/voice-summary/server/loaders/get-published-voice-summary";
+import { routes } from "@/lib/routes";
 import { BillDetailClient } from "../../../client/components/bill-detail/bill-detail-client";
 import { BillDisclaimer } from "../../../client/components/bill-detail/bill-disclaimer";
 import type { BillWithContent } from "../../../shared/types";
@@ -46,6 +49,9 @@ export async function ParentPolicyDetailLayout({
     target ? getTopicAnalysisContext(target) : null,
   ]);
   const kikasete = kikaseteResult?.box ?? null;
+  const voiceSummary = topicContext?.interviewConfigId
+    ? await getPublishedVoiceSummary(topicContext.interviewConfigId)
+    : null;
 
   return (
     <div className="container mx-auto pb-8 max-w-4xl">
@@ -81,18 +87,27 @@ export async function ParentPolicyDetailLayout({
           </div>
         )}
 
-        {/* みんなの声のまとめ（まとめ本文のプレビューは #161 で足す） */}
-        {target && topicContext?.analysis && (
+        {/* みんなの声のまとめ（まとめのプレビューとテーマのトピック一覧。どちらもなければ出さない） */}
+        {target && interview && (voiceSummary || topicContext?.analysis) && (
           <section className="my-8 flex flex-col gap-4">
             <h2 className="text-[22px] font-bold leading-9">
               みんなの声のまとめ
             </h2>
-            <div className="rounded-2xl bg-white p-4 md:p-6">
-              <TopicsPreviewSection
-                target={target}
-                topics={topicContext.analysis.topics}
-                publicOpinionCount={topicContext.publicOpinionCount}
-              />
+            <div className="flex flex-col gap-6 rounded-2xl bg-white p-4 md:p-6">
+              {voiceSummary && (
+                <VoiceSummaryPreview
+                  summary={voiceSummary}
+                  href={routes.interviewThemeSummary(interview.slug)}
+                  linkLabel="まとめを図で見る"
+                />
+              )}
+              {topicContext?.analysis && (
+                <TopicsPreviewSection
+                  target={target}
+                  topics={topicContext.analysis.topics}
+                  publicOpinionCount={topicContext.publicOpinionCount}
+                />
+              )}
             </div>
           </section>
         )}

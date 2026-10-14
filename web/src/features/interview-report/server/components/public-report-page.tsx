@@ -58,7 +58,26 @@ export async function PublicReportPage({
   ];
 
   return (
-    <VoicesPageFrame kikasete={kikasete}>
+    <VoicesPageFrame
+      kikasete={kikasete}
+      // アクションはきかせてボックスの下に置く（デザイン「5d」）
+      footer={
+        <div className="flex flex-col items-center gap-3 pt-2">
+          <ShareArticleButton
+            billName={subject.name}
+            shareUrl={shareUrl}
+            ogImageUrl={ogImageUrl}
+            shareMessage={data.summary}
+          />
+          <BackToBillButton
+            origin={data.origin}
+            from={from}
+            policyName={data.bill?.name}
+          />
+          <ReportProblemButton />
+        </div>
+      }
+    >
       {/* パンくず + 施策タイトル */}
       <div className="flex flex-col gap-2">
         <Breadcrumb items={breadcrumbItems} />
@@ -95,22 +114,6 @@ export async function PublicReportPage({
           highlightMessageId={highlightMessageId}
         />
       )}
-
-      {/* アクション */}
-      <div className="flex flex-col items-center gap-3 pt-2">
-        <ShareArticleButton
-          billName={subject.name}
-          shareUrl={shareUrl}
-          ogImageUrl={ogImageUrl}
-          shareMessage={data.summary}
-        />
-        <BackToBillButton
-          origin={data.origin}
-          from={from}
-          policyName={data.bill?.name}
-        />
-        <ReportProblemButton />
-      </div>
     </VoicesPageFrame>
   );
 }

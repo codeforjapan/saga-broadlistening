@@ -6,6 +6,7 @@ import { getUserReportsByInterviewConfig } from "@/features/interview-report/ser
 import { countPublicOpinionsByInterviewConfigId } from "@/features/interview-report/server/repositories/interview-report-repository";
 import { getLatestInterviewSession } from "@/features/interview-session/server/loaders/get-latest-interview-session";
 import { getPublicTopicAnalysisByInterviewConfigId } from "@/features/user-topic-analysis/server/loaders/get-public-topic-analysis";
+import { getPublishedVoiceSummary } from "@/features/voice-summary/server/loaders/get-published-voice-summary";
 import { routes } from "@/lib/routes";
 import { KikasetePage } from "../../client/components/kikasete-page";
 import { themeInterviewTarget } from "../../shared/types/interview-target";
@@ -43,6 +44,7 @@ export async function InterviewThemePage({ slug }: InterviewThemePageProps) {
     analysis,
     publicOpinionCount,
     participation,
+    voiceSummary,
   ] = await Promise.all([
     policyId ? getBillById(policyId) : null,
     getLatestInterviewSession(config.id),
@@ -51,7 +53,9 @@ export async function InterviewThemePage({ slug }: InterviewThemePageProps) {
     // 「N件のご意見」は公開された回答の件数。分析の total_opinions は論点の数なので使わない
     countPublicOpinionsByInterviewConfigId(config.id),
     getInterviewParticipationView(config),
+    getPublishedVoiceSummary(config.id),
   ]);
+  const hasTopics = (analysis?.topics.length ?? 0) > 0;
 
   return (
     <KikasetePage
@@ -61,15 +65,23 @@ export async function InterviewThemePage({ slug }: InterviewThemePageProps) {
       sessionInfo={latestSession}
       participation={participation}
       userReports={userReports}
-      // 公開中の分析が無いテーマでは「これまでの声」を出さない（まとめは #161 で足す）
+      // まとめもトピック分析も公開されていないテーマでは「これまでの声」を出さない
       voices={
-        analysis && analysis.topics.length > 0
+        hasTopics || voiceSummary
           ? {
               meta: formatVoicesMeta({
                 opinionCount: publicOpinionCount,
-                updatedAt: analysis.generated_at,
+                updatedAt:
+                  voiceSummary?.publishedAt ?? analysis?.generated_at ?? null,
               }),
-              topicsHref: routes.interviewThemeTopics(slug),
+              summary: voiceSummary
+                ? {
+                    question: voiceSummary.question,
+                    lead: voiceSummary.lead,
+                    href: routes.interviewThemeSummary(slug),
+                  }
+                : null,
+              topicsHref: hasTopics ? routes.interviewThemeTopics(slug) : null,
             }
           : null
       }

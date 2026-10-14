@@ -87,6 +87,12 @@ describe("renderVoiceSummaryHtml", () => {
     expect(html).toContain("市HP");
   });
 
+  it("行の途中の改行は <br> にする（引用の見出し行など）", () => {
+    expect(
+      renderVoiceSummaryHtml("# 問い\n\n> **特に多かった声**\n> 本文")
+    ).toContain("<strong>特に多かった声</strong><br>");
+  });
+
   it("生の HTML は出力しない", () => {
     expect(renderVoiceSummaryHtml("# 問い\n\n<script>alert(1)</script>")).not.toContain(
       "<script>"

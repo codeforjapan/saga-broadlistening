@@ -8,6 +8,8 @@ interface VoicesPageFrameProps {
   /** ページ下部のきかせてボックス。募集中でなければ null（出さない） */
   kikasete: KikaseteBoxData | null;
   children: ReactNode;
+  /** きかせてボックスの下に置く要素（共有・戻る・問題を報告する） */
+  footer?: ReactNode;
 }
 
 /**
@@ -16,12 +18,17 @@ interface VoicesPageFrameProps {
  * 背景は水色をやめ、白いカードが浮いて見える薄いグレー（muted）にする。
  * ページ下部の参加導線は、TOP・親施策ページと同じきかせてボックス。
  */
-export function VoicesPageFrame({ kikasete, children }: VoicesPageFrameProps) {
+export function VoicesPageFrame({
+  kikasete,
+  children,
+  footer,
+}: VoicesPageFrameProps) {
   return (
     <div className="theme-kikasete min-h-dvh bg-muted pt-24 md:pt-0">
       <div className="mx-auto flex max-w-[720px] flex-col gap-8 px-4 pb-8 md:pt-8">
         {children}
         {kikasete && <KikaseteBox {...kikasete} />}
+        {footer}
       </div>
     </div>
   );
