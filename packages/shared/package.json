@@ -187,7 +187,16 @@
     "./url/is-http-url": {
       "types": "./src/url/is-http-url.ts",
       "default": "./src/url/is-http-url.ts"
-    }
+    },
+    "./voice-summary/markdown": {
+      "types": "./src/voice-summary/markdown.ts",
+      "default": "./src/voice-summary/markdown.ts"
+    },
+    "./voice-summary/threshold": {
+      "types": "./src/voice-summary/threshold.ts",
+      "default": "./src/voice-summary/threshold.ts"
+    },
+    "./voice-summary/voice-summary.css": "./src/voice-summary/voice-summary.css"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^4.0.176",
@@ -195,11 +204,16 @@
     "@ai-sdk/openai": "^3.0.9",
     "@aws-sdk/credential-providers": "^3.1121.0",
     "@langfuse/otel": "^5.11.1",
+    "@mirai-gikai/branding": "workspace:*",
     "@mirai-gikai/supabase": "workspace:*",
     "@opentelemetry/sdk-trace-node": "^2.1.0",
     "@vercel/oidc-aws-credentials-provider": "^3.3.5",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
     "server-only": "^0.0.1",
-    "@mirai-gikai/branding": "workspace:*"
+    "unified": "^11.0.5"
   },
   "peerDependencies": {
     "ai": "^6.0.33",
@@ -208,6 +222,7 @@
   "devDependencies": {
     "@langfuse/tracing": "^5.11.1",
     "@opentelemetry/api": "^1.9.0",
+    "@types/mdast": "^4.0.4",
     "ai": "^6.0.33",
     "typescript": "^5.6.2",
     "vitest": "^3.2.7",

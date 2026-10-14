@@ -14,6 +14,8 @@ const PURPOSE_ENV = {
   topicWriting: "AI_TOPIC_WRITING_MODEL",
   opinionBackfill: "AI_OPINION_BACKFILL_MODEL",
   opinionTags: "AI_OPINION_TAGS_MODEL",
+  /** みんなの声のまとめ（Markdown）の生成（Epic #162 / #160） */
+  voiceSummary: "AI_VOICE_SUMMARY_MODEL",
 } as const;
 export type AiModelPurpose = keyof typeof PURPOSE_ENV;
 export const AI_MODEL_PURPOSES = Object.keys(PURPOSE_ENV) as AiModelPurpose[];

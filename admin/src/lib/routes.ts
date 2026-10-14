@@ -25,6 +25,11 @@ export const routes = {
   interviewEdit: (configId: string) => `/interviews/${configId}/edit` as const,
   interviewUserTopicAnalysis: (configId: string) =>
     `/interviews/${configId}/user-topic-analysis` as const,
+  /** summaryId を渡すと、その版を開いた状態にする */
+  interviewVoiceSummary: (configId: string, summaryId?: string) =>
+    summaryId
+      ? (`/interviews/${configId}/voice-summary?summaryId=${summaryId}` as const)
+      : (`/interviews/${configId}/voice-summary` as const),
 
   // ── 施策配下 ──────────────────────────────────────
   billEdit: (billId: string) => `/bills/${billId}/edit` as const,
