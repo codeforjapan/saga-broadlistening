@@ -128,6 +128,8 @@ describe("provider-qualified pricing", () => {
 it.each([
   ["bedrock:jp.anthropic.claude-sonnet-4-6", 19.8],
   ["bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0", 6.6],
+  ["bedrock:jp.anthropic.claude-opus-5-5", 26.4],
+  ["bedrock:jp.anthropic.claude-haiku-5-5", 0.66],
   ["bedrock:openai.gpt-oss-120b-1:0", 0.91],
 ])("calculates default Bedrock usage cost: %s", (model, expected) => {
   expect(

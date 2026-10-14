@@ -23,6 +23,8 @@ describe("接続先ごとのモデル選択", () => {
     expect(groups[0].options.map((x) => x.label)).toEqual([
       "Claude Sonnet 4.6",
       "Claude Haiku 4.5",
+      "Claude Opus 5.5",
+      "Claude Haiku 5.5",
       "GPT OSS 120B",
     ]);
   });
