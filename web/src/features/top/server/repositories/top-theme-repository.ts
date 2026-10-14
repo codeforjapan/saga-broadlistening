@@ -4,14 +4,14 @@ import { createAdminClient } from "@mirai-gikai/supabase";
 import type { ThemeCardSource } from "../../shared/utils/theme-card-view";
 
 /**
- * TOP のテーマカードの候補（親を持たない公開中の施策）を、本文・子施策・
+ * TOP のテーマカードの候補（公開中の施策）を、本文・子施策・
  * つながるテーマ（完了セッション数つき）とあわせて取得する。
- * 親施策かどうか（公開中の子を持つか）の判定と、カードに使うテーマの選択は
- * 呼び出し側（toThemeCardView）で行う。
+ * 親施策の判定（親施策がなければテーマにつながる施策に切り替える）と、
+ * カードに使うテーマの選択は呼び出し側（selectTopThemeCards）で行う。
  *
  * 並び順は is_featured desc, sort_order, published_at desc（新しい順）。
  */
-export async function findTopLevelPublishedPoliciesWithThemes(): Promise<
+export async function findPublishedPoliciesWithThemes(): Promise<
   ThemeCardSource[]
 > {
   const supabase = createAdminClient();
@@ -41,7 +41,6 @@ export async function findTopLevelPublishedPoliciesWithThemes(): Promise<
     `
     )
     .eq("publish_status", "published")
-    .is("parent_policy_id", null)
     // 「N人が参加」はインタビューを完了したセッションだけを数える
     .not(
       "policies_interview_configs.interview_configs.interview_sessions.completed_at",
@@ -53,7 +52,7 @@ export async function findTopLevelPublishedPoliciesWithThemes(): Promise<
     .order("published_at", { ascending: false, nullsFirst: false });
 
   if (error) {
-    throw new Error(`Failed to fetch top-level policies: ${error.message}`);
+    throw new Error(`Failed to fetch published policies: ${error.message}`);
   }
 
   // 自己参照の一対多（子施策）は、生成型では一対一として推論されるため配列にそろえる

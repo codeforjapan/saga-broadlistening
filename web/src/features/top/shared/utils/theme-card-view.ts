@@ -44,7 +44,31 @@ export type ThemeCardView = {
 };
 
 /**
- * 親施策1件をテーマカードの表示用データに変換する。親施策でなければ null。
+ * TOP のテーマカードを、取得した公開中の施策（並び順どおり）から選んで作る。
+ *
+ * - 親施策（公開中の子を持つ施策）が1件でもあれば、親施策ごとに1枚（#155 の仕様）。
+ * - 1件もなければ、テーマにつながる施策ごとに1枚。親子関係を使わない自治体でも
+ *   TOP が空にならないようにする（親子関係は任意。FORK_GUIDELINES.md）。
+ *
+ * テーマにつながらない施策は、親施策でない限りカードにしない。
+ */
+export function selectTopThemeCards(
+  sources: ThemeCardSource[],
+  difficulty: DifficultyLevelEnum
+): ThemeCardView[] {
+  const parents = sources.filter((source) =>
+    isParentPolicy(source, source.child_policies)
+  );
+  if (parents.length > 0) {
+    return parents.map((source) => toThemeCardView(source, difficulty));
+  }
+  return sources
+    .map((source) => toThemeCardView(source, difficulty))
+    .filter((view) => view.interview !== null);
+}
+
+/**
+ * 施策1件をテーマカードの表示用データに変換する。
  *
  * 見出し・説明文は表示中の難易度の本文から取り、なければ「ふつう」の本文を使う。
  * 本文がなければ施策名を見出しにする。
@@ -52,11 +76,7 @@ export type ThemeCardView = {
 export function toThemeCardView(
   source: ThemeCardSource,
   difficulty: DifficultyLevelEnum
-): ThemeCardView | null {
-  if (!isParentPolicy(source, source.child_policies)) {
-    return null;
-  }
-
+): ThemeCardView {
   const content =
     source.policy_contents.find((c) => c.difficulty_level === difficulty) ??
     source.policy_contents.find((c) => c.difficulty_level === "normal") ??
