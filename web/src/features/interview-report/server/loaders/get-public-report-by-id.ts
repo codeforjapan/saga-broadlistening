@@ -27,6 +27,8 @@ export type PublicReportOpinion = {
 export type PublicReportData = InterviewReport & {
   /** 意見が寄せられた対象（施策・テーマ） */
   origin: ReportOrigin;
+  /** 意見が寄せられた意見募集（ページ下部のきかせてボックスに使う） */
+  interviewConfigId: string;
   session_started_at: string;
   session_completed_at: string | null;
   /** 紐づく公開済み施策。抽象テーマ型では null */
@@ -91,6 +93,7 @@ export const getPublicReportById = cache(
     return {
       ...reportData,
       origin,
+      interviewConfigId: session.interview_config_id,
       session_started_at: session.started_at,
       session_completed_at: session.completed_at,
       bill: bill

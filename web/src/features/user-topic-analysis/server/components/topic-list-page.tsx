@@ -25,7 +25,6 @@ export async function TopicListPage({ target }: TopicListPageProps) {
 
   return (
     <AnalysisPageLayout
-      target={target}
       subject={context.subject}
       trail={[{ label: "トピック一覧" }]}
       heading={getTopicListHeading(target)}
@@ -43,7 +42,7 @@ export async function TopicListPage({ target }: TopicListPageProps) {
           です。気になるトピックから、実際の意見とインタビュー会話ログまで遡れます。
         </>
       }
-      isInterviewOpen={context.isInterviewOpen}
+      kikasete={context.kikasete}
     >
       {topics.length > 0 ? (
         <TopicList

@@ -12,6 +12,7 @@ import type { InterviewParticipationView } from "../../shared/types/interview-pa
 import type { InterviewTarget } from "../../shared/types/interview-target";
 import { formatEstimatedDuration } from "../../shared/utils/format-estimated-duration";
 import { getInterviewDisclosureLink } from "../../shared/utils/interview-links";
+import { stripAbout } from "../../shared/utils/kikasete-interview";
 import { InterviewActionButtons } from "./interview-action-buttons";
 
 export type KikasetePageVoices = {
@@ -84,7 +85,8 @@ export function KikasetePage({
       <div className="mx-auto flex max-w-[560px] flex-col items-center gap-6">
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-xl font-bold leading-normal md:text-2xl">
-            {interviewConfig.name}について、あなたの声を聞かせてください
+            {stripAbout(interviewConfig.name)}
+            について、あなたの声を聞かせてください
           </h1>
           {subtitle && (
             <p className="text-sm font-bold text-primary-accent">{subtitle}</p>

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type KikaseteThemeSource,
+  stripAbout,
   toKikaseteInterview,
 } from "./kikasete-interview";
 
@@ -32,6 +33,12 @@ describe("toKikaseteInterview", () => {
     });
   });
 
+  it("テーマ名が「〜について」で終わっても、問いかけで重ねない", () => {
+    expect(
+      toKikaseteInterview({ ...youthTheme, name: "子育て支援について" }).prompt
+    ).toBe("子育て支援について、あなたの経験や考えを聞かせてください");
+  });
+
   it("参加人数が0件なら表示しない", () => {
     expect(
       toKikaseteInterview({ ...youthTheme, interview_sessions: [] })
@@ -43,5 +50,13 @@ describe("toKikaseteInterview", () => {
     expect(
       toKikaseteInterview({ ...youthTheme, status: "closed" }).isOpen
     ).toBe(false);
+  });
+});
+
+describe("stripAbout", () => {
+  it("末尾の「について」だけを外す", () => {
+    expect(stripAbout("子育て支援について")).toBe("子育て支援");
+    expect(stripAbout("若者支援")).toBe("若者支援");
+    expect(stripAbout("給食についての意見")).toBe("給食についての意見");
   });
 });

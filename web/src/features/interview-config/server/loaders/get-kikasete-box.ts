@@ -6,11 +6,17 @@ import {
   getInterviewStartLink,
   getThemeCardLink,
 } from "../../shared/utils/interview-links";
+import {
+  isInterviewVisible,
+  toLinkedPolicies,
+} from "../../shared/utils/interview-visibility";
 import type { KikaseteInterview } from "../../shared/utils/kikasete-interview";
+import { toKikaseteInterview } from "../../shared/utils/kikasete-interview";
 import {
   type KikaseteStart,
   resolveKikaseteStart,
 } from "../../shared/utils/kikasete-start";
+import { findKikaseteThemeById } from "../repositories/interview-config-repository";
 import { getInterviewParticipationView } from "./get-interview-participation-view";
 
 /** KikaseteBox にそのまま渡せる形 */
@@ -52,4 +58,24 @@ export async function getKikaseteBox(
     // チャットの提案バナーなど、ボックスの外で参加判定を使う呼び出し元のために返す
     participation,
   };
+}
+
+/**
+ * テーマ（意見募集）1件のきかせてボックス。トピック・レポート・まとめのページ下部で使う。
+ * 募集中でない・公開されていないテーマでは参加導線を出さないので null。
+ */
+export async function getKikaseteBoxByConfigId(
+  configId: string
+): Promise<KikaseteBoxData | null> {
+  const theme = await findKikaseteThemeById(configId);
+  // 公開中の施策につながらないテーマはチャット・LP が公開されないので、導線も出さない
+  if (
+    !theme ||
+    !isInterviewVisible(toLinkedPolicies(theme.policies_interview_configs))
+  ) {
+    return null;
+  }
+  const interview = toKikaseteInterview(theme);
+  if (!interview.isOpen) return null;
+  return (await getKikaseteBox(interview)).box;
 }

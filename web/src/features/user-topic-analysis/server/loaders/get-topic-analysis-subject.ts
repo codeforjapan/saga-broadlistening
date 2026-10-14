@@ -3,9 +3,16 @@ import "server-only";
 import { cache } from "react";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { getResultsInterviewConfigBySlug } from "@/features/interview-config/server/loaders/get-interview-config-by-slug";
+import {
+  getKikaseteBoxByConfigId,
+  type KikaseteBoxData,
+} from "@/features/interview-config/server/loaders/get-kikasete-box";
 import { getPrimaryInterviewConfig } from "@/features/interview-config/server/loaders/get-linked-interview-config-id";
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
-import { isOpenInterview } from "@/features/interview-config/shared/utils/interview-visibility";
+import {
+  isOpenInterview,
+  selectPrimaryPolicyId,
+} from "@/features/interview-config/shared/utils/interview-visibility";
 import {
   buildPolicyTopicSubject,
   buildThemeTopicSubject,
@@ -24,8 +31,8 @@ export type TopicAnalysisSubjectContext = {
   interviewConfigId: string | null;
   /** 見出し・戻り導線に使う対象（施策 or テーマ） */
   subject: TopicAnalysisSubject;
-  /** 募集中なら AIインタビュー参加CTA を出す */
-  isInterviewOpen: boolean;
+  /** ページ下部のきかせてボックス。募集中でなければ null */
+  kikasete: KikaseteBoxData | null;
 };
 
 const getPolicySubject = cache(
@@ -39,13 +46,12 @@ const getPolicySubject = cache(
 
     return {
       interviewConfigId: primaryConfig?.id ?? null,
-      subject: buildPolicyTopicSubject({
-        id: policyId,
-        name: bill.bill_content?.title || bill.name,
-      }),
+      subject: buildPolicyTopicSubject({ id: policyId, name: bill.name }),
       // 募集中の意見募集があるときだけ参加導線を出す（募集終了後は結果だけ見せる）。
-      isInterviewOpen:
-        primaryConfig != null && isOpenInterview(primaryConfig.status),
+      kikasete:
+        primaryConfig != null && isOpenInterview(primaryConfig.status)
+          ? await getKikaseteBoxByConfigId(primaryConfig.id)
+          : null,
     };
   }
 );
@@ -55,13 +61,23 @@ const getThemeSubject = cache(
     const result = await getResultsInterviewConfigBySlug(slug);
     if (!result) return null;
 
-    const { config } = result;
-    const isOpen = isOpenInterview(config.status);
+    const { config, policies } = result;
+    // テーマにつながる施策（親施策）をパンくずの起点にする（#159）
+    const policyId = selectPrimaryPolicyId(policies);
+    const [policy, kikasete] = await Promise.all([
+      policyId ? getBillById(policyId) : null,
+      isOpenInterview(config.status)
+        ? getKikaseteBoxByConfigId(config.id)
+        : null,
+    ]);
 
     return {
       interviewConfigId: config.id,
-      subject: buildThemeTopicSubject({ slug, name: config.name, isOpen }),
-      isInterviewOpen: isOpen,
+      subject: buildThemeTopicSubject({
+        name: config.name,
+        policy: policy ? { id: policy.id, name: policy.name } : null,
+      }),
+      kikasete,
     };
   }
 );

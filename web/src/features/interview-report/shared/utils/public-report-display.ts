@@ -137,7 +137,6 @@ export type ReportSubject = {
 /** 見出しに施策名を出すために必要な最小の施策情報 */
 export type ReportSubjectBill = {
   name: string;
-  bill_content?: { title: string } | null;
 } | null;
 
 /**
@@ -181,7 +180,8 @@ export function resolveReportSubject(
   origin: ReportOrigin
 ): ReportSubject {
   return {
-    name: bill ? bill.bill_content?.title || bill.name : origin.theme.name,
+    // 施策名（親施策なら「若者支援」）を出す。トピック一覧のパンくずと同じ呼び方にそろえる（#159）
+    name: bill ? bill.name : origin.theme.name,
     href: getReportOriginLink(origin),
   };
 }

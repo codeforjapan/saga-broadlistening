@@ -11,44 +11,27 @@ import {
 } from "./topic-analysis-subject";
 
 describe("buildPolicyTopicSubject", () => {
-  it("施策詳細を戻り先にする", () => {
+  it("施策ページを起点にする", () => {
     expect(
       buildPolicyTopicSubject({ id: "policy-1", name: "子育て支援策" })
-    ).toEqual({
-      name: "子育て支援策",
-      href: "/bills/policy-1",
-      label: "施策詳細",
-    });
+    ).toEqual({ name: "子育て支援策", href: "/bills/policy-1" });
   });
 });
 
 describe("buildThemeTopicSubject", () => {
-  it("募集中のテーマはテーマページを戻り先にする", () => {
+  it("テーマにつながる施策（親施策）があれば、その施策を起点にする", () => {
     expect(
       buildThemeTopicSubject({
-        slug: "kosodate",
-        name: "子育ての困りごと",
-        isOpen: true,
+        name: "若者支援のテーマ",
+        policy: { id: "parent-1", name: "若者支援" },
       })
-    ).toEqual({
-      name: "子育ての困りごと",
-      href: "/interviews/kosodate",
-      label: "テーマ詳細",
-    });
+    ).toEqual({ name: "若者支援", href: "/bills/parent-1" });
   });
 
-  it("募集が終わったテーマは個別ページが無いためテーマ一覧に送る", () => {
+  it("施策につながらないテーマは、テーマ名だけを出してリンクしない", () => {
     expect(
-      buildThemeTopicSubject({
-        slug: "kosodate",
-        name: "子育ての困りごと",
-        isOpen: false,
-      })
-    ).toEqual({
-      name: "子育ての困りごと",
-      href: "/interviews",
-      label: "テーマ一覧",
-    });
+      buildThemeTopicSubject({ name: "まちの未来について", policy: null })
+    ).toEqual({ name: "まちの未来について", href: null });
   });
 });
 

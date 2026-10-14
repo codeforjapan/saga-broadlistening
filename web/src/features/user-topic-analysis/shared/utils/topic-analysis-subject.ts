@@ -1,45 +1,36 @@
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
-import { getThemeHomeLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
 
-/** トピック分析の見出し・戻り導線に使う対象（施策 or テーマ）。 */
+/**
+ * トピック分析の見出し・パンくずの起点に使う対象（施策 or テーマ）。
+ * パンくずの先頭と、その下の戻りリンクに使う。href が null なら戻りリンクを出さない。
+ */
 export type TopicAnalysisSubject = {
-  /** 表示名 */
+  /** 表示名（パンくずの先頭にも使う） */
   name: string;
   /** 対象のページへのリンク */
-  href: string;
-  /** パンくずでのラベル */
-  label: string;
+  href: string | null;
 };
 
-/** 施策に紐づく意見募集の分析は、施策詳細を上位階層に置く。 */
+/** 施策に紐づく意見募集の分析は、施策ページ（若者支援などの親施策を含む）を起点にする。 */
 export function buildPolicyTopicSubject(policy: {
   id: string;
   name: string;
 }): TopicAnalysisSubject {
-  return {
-    name: policy.name,
-    href: routes.billDetail(policy.id),
-    label: "施策詳細",
-  };
+  return { name: policy.name, href: routes.billDetail(policy.id) };
 }
 
 /**
- * 抽象テーマ型の分析は、テーマの入口を上位階層に置く。
- *
- * 遷移先は意見詳細の戻り導線と同じ getThemeHomeLink に委ね、
- * ここではパンくずのラベルだけを決める（募集終了時はテーマ一覧に送られる）。
+ * テーマの分析は、テーマにつながる施策（親施策）を起点にする（#159）。
+ * 施策につながらない抽象テーマ型は、テーマ名だけを出してリンクしない。
  */
 export function buildThemeTopicSubject(theme: {
-  slug: string;
   name: string;
-  isOpen: boolean;
+  policy: { id: string; name: string } | null;
 }): TopicAnalysisSubject {
-  return {
-    name: theme.name,
-    href: getThemeHomeLink(theme),
-    label: theme.isOpen ? "テーマ詳細" : "テーマ一覧",
-  };
+  return theme.policy
+    ? buildPolicyTopicSubject(theme.policy)
+    : { name: theme.name, href: null };
 }
 
 /**
