@@ -2,6 +2,7 @@ import { MessageSquare } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
@@ -18,6 +19,10 @@ import type { BillWithContent } from "../../../shared/types";
 
 interface BillDetailHeaderProps {
   bill: BillWithContent;
+  /** 見出し。省略時は本文のタイトル（親施策ページでは施策名を出す） */
+  title?: string;
+  /** レビュー中表示の下に置く要素（親施策ページのきかせてボックス） */
+  children?: ReactNode;
   hasInterviewConfig?: boolean;
   /** 意見数（トピック分析の total_opinions）。回答者数（人数）ではない点に注意。 */
   opinionCount?: number;
@@ -27,11 +32,13 @@ interface BillDetailHeaderProps {
 
 export async function BillDetailHeader({
   bill,
+  title,
+  children,
   hasInterviewConfig,
   opinionCount,
   topicCount,
 }: BillDetailHeaderProps) {
-  const displayTitle = bill.bill_content?.title;
+  const displayTitle = title ?? bill.bill_content?.title;
   const displaySummary = bill.bill_content?.summary;
 
   const { shareUrl, shareMessage, thumbnailUrl } = await getBillShareData(bill);
@@ -96,6 +103,7 @@ export async function BillDetailHeader({
             <ReviewInProgressBanner />
           </div>
         )}
+        {children && <div className="mb-4">{children}</div>}
 
         {opinionCount != null && opinionCount > 0 && (
           <Link

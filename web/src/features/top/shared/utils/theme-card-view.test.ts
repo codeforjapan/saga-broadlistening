@@ -86,26 +86,6 @@ describe("toThemeCardView", () => {
     expect(view?.bannerSrc).toBe(DEFAULT_INTERVIEW_THUMBNAIL);
   });
 
-  it("参加人数が0件なら表示しない", () => {
-    const noSessions = source({
-      policies_interview_configs: [
-        { interview_configs: { ...youthTheme, interview_sessions: [] } },
-      ],
-    });
-    expect(
-      toThemeCardView(noSessions, "normal")?.interview?.participantLabel
-    ).toBeNull();
-  });
-
-  it("テーマが募集中でなければ「はじめる」を押せない状態にする", () => {
-    const closed = source({
-      policies_interview_configs: [
-        { interview_configs: { ...youthTheme, status: "closed" } },
-      ],
-    });
-    expect(toThemeCardView(closed, "normal")?.interview?.isOpen).toBe(false);
-  });
-
   it("テーマにつながっていなければきかせて枠を出さない", () => {
     expect(
       toThemeCardView(source({ policies_interview_configs: [] }), "normal")

@@ -208,3 +208,30 @@ export async function findBillIdsWithPublicInterview(
 
   return new Set(data.map((row) => row.policy_id));
 }
+
+// ============================================================
+// Policy Hierarchy
+// ============================================================
+
+/**
+ * 親施策の公開中の子施策を、関連施策カードに出す情報つきで取得する。
+ * 並び順は sort_order, published_at desc（新しい順）。
+ */
+export async function findPublishedChildPolicies(parentId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("policies")
+    .select(
+      "id, name, thumbnail_url, publish_status, policies_tags ( tags ( label ) )"
+    )
+    .eq("parent_policy_id", parentId)
+    .eq("publish_status", "published")
+    .order("sort_order", { ascending: true })
+    .order("published_at", { ascending: false, nullsFirst: false });
+
+  if (error) {
+    throw new Error(`Failed to fetch child policies: ${error.message}`);
+  }
+
+  return data;
+}

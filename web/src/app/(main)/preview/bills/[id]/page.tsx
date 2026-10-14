@@ -1,7 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
-import { BillDetailLayout } from "@/features/bills/server/components/bill-detail/bill-detail-layout";
+import { PolicyDetail } from "@/features/bills/server/components/bill-detail/policy-detail";
 import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
 import { env } from "@/lib/env";
@@ -64,7 +64,7 @@ export default async function PreviewBillPage({
   return (
     <>
       <PreviewBanner />
-      <BillDetailLayout
+      <PolicyDetail
         bill={bill}
         currentDifficulty={difficulty}
         previewToken={searchParams.token}

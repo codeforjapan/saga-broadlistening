@@ -55,7 +55,14 @@ interface ChatWindowProps {
   disableAutoFocus?: boolean;
   returnFocusRef: RefObject<HTMLElement | null>;
   sessionId: string;
+  /** 施策ページのサンプル質問。省略時は「この施策のポイントは？」など */
+  sampleQuestions?: string[];
 }
+
+const DEFAULT_BILL_SAMPLE_QUESTIONS = [
+  "この施策のポイントは？",
+  "この施策は私にどんな影響がある？",
+];
 
 /**
  * Conversation内部で使用するコンポーネント
@@ -72,6 +79,7 @@ function ChatMessages({
   status,
   pageContext,
   sessionId,
+  sampleQuestions = DEFAULT_BILL_SAMPLE_QUESTIONS,
 }: {
   billContext?: BillWithContent;
   hasInterviewConfig?: boolean;
@@ -83,6 +91,7 @@ function ChatMessages({
   status: ChatWindowProps["chatState"]["status"];
   pageContext?: ChatWindowProps["pageContext"];
   sessionId: string;
+  sampleQuestions?: string[];
 }) {
   const { scrollToBottom } = useStickToBottomContext();
   const userMessageLength = messages.filter((x) => x.role === "user").length;
@@ -113,7 +122,7 @@ function ChatMessages({
         {/* サンプル質問チップ */}
         <div className="flex flex-wrap gap-3">
           {(billContext
-            ? ["この施策のポイントは？", "この施策は私にどんな影響がある？"]
+            ? sampleQuestions
             : [
                 `${SITE_NAME}って何？`,
                 "佐賀市はどんな施策を検討しているの？",
@@ -183,6 +192,7 @@ export function ChatWindow({
   disableAutoFocus = false,
   returnFocusRef,
   sessionId,
+  sampleQuestions,
 }: ChatWindowProps) {
   const [input, setInput] = useState("");
   const [isMounted, setIsMounted] = useState(false);
@@ -248,6 +258,7 @@ export function ChatWindow({
             status={status}
             pageContext={pageContext}
             sessionId={sessionId}
+            sampleQuestions={sampleQuestions}
           />
         </ConversationContent>
         <ConversationScrollButton />

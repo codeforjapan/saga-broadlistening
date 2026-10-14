@@ -56,3 +56,17 @@ export function selectPrimaryThemeForPolicy<T extends ThemeCandidate>(
     null
   );
 }
+
+/** 施策ページの種類。親施策はテーマの親ページ、子施策は施策紹介ページとして表示する */
+export type PolicyPageKind = "parent" | "child" | "standard";
+
+/**
+ * 施策ページにインタビュー導線（協力ボタン・回答方法の案内・トピック一覧・LP への誘導・
+ * チャットの提案バナー）を出すか。子施策は親ページに集約するので出さない（#157）。
+ */
+export function shouldShowInterviewEntry(params: {
+  pageKind: PolicyPageKind;
+  hasInterviewConfig: boolean;
+}): boolean {
+  return params.pageKind !== "child" && params.hasInterviewConfig;
+}

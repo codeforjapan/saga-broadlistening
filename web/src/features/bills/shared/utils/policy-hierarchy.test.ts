@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isParentPolicy,
   selectPrimaryThemeForPolicy,
+  shouldShowInterviewEntry,
 } from "./policy-hierarchy";
 
 describe("isParentPolicy", () => {
@@ -92,5 +93,19 @@ describe("selectPrimaryThemeForPolicy", () => {
 
   it("テーマがなければ null", () => {
     expect(selectPrimaryThemeForPolicy([])).toBeNull();
+  });
+});
+
+describe("shouldShowInterviewEntry", () => {
+  it.each([
+    ["standard", true, true],
+    ["standard", false, false],
+    ["parent", true, true],
+    ["child", true, false],
+    ["child", false, false],
+  ] as const)("%s・テーマあり=%s のとき %s", (pageKind, hasInterviewConfig, expected) => {
+    expect(shouldShowInterviewEntry({ pageKind, hasInterviewConfig })).toBe(
+      expected
+    );
   });
 });

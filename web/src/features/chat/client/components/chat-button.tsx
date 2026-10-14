@@ -30,6 +30,8 @@ interface ChatButtonProps {
   interviewParticipation?: InterviewParticipationView;
   interviewTarget?: InterviewTarget;
   difficultyLevel: string;
+  /** 施策ページのサンプル質問（親施策ページで差し替える） */
+  sampleQuestions?: string[];
   pageContext?: {
     type: "home" | "bill";
     bills?: Array<{
@@ -53,6 +55,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
       interviewParticipation,
       interviewTarget,
       difficultyLevel,
+      sampleQuestions,
       pageContext,
     },
     ref
@@ -198,6 +201,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
             setOpenedWithText(false);
           }}
           pageContext={pageContext}
+          sampleQuestions={sampleQuestions}
           disableAutoFocus={openedWithText}
           returnFocusRef={chatTriggerRef}
           sessionId={sessionId}
