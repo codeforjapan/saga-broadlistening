@@ -101,6 +101,8 @@ describe("provider-qualified estimates", () => {
 it.each([
   ["bedrock:jp.anthropic.claude-sonnet-4-6", 0.33],
   ["bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0", 0.11],
+  ["bedrock:jp.anthropic.claude-opus-5-5", 0.44],
+  ["bedrock:jp.anthropic.claude-haiku-5-5", 0.011],
   ["bedrock:openai.gpt-oss-120b-1:0", 0.01749],
 ])("estimates Bedrock interview cost using regional rates: %s", (model, expected) => {
   expect(estimateInterviewCostUsd(model)).toBeCloseTo(expected, 5);
