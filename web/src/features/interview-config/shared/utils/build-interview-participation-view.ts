@@ -1,17 +1,11 @@
 import { EXTERNAL_IDENTITY_PROVIDERS } from "@mirai-gikai/shared/external-identity/providers";
 import type { InterviewParticipationRule } from "@mirai-gikai/shared/interview-participation/participation-mode";
+import { isHttpUrl } from "@mirai-gikai/shared/url/is-http-url";
 import type { InterviewParticipationView } from "../types/interview-participation-view";
 
 function httpGuideUrl(value: string | undefined): string | null {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:"
-      ? url.href
-      : null;
-  } catch {
-    return null;
-  }
+  if (!value || !isHttpUrl(value)) return null;
+  return new URL(value).href;
 }
 
 /** UIDや外部IDの内部IDをClient Componentへ渡さず、表示用の情報だけを作る。 */

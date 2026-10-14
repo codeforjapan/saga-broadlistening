@@ -53,6 +53,7 @@ import {
 } from "./data";
 import { createPolicyContents } from "./policy-contents-data";
 import type { OpinionSeed, OpinionSegmentSeed } from "./seed-types";
+import { YOUTH_CONFIG_SLUG } from "./theme-policy-data";
 
 /** 投入済みメッセージを (セッションID, 本文) から引くためのキー */
 function messageKey(sessionId: string, content: string): string {
@@ -212,7 +213,8 @@ async function seedDatabase() {
     );
     const defaultConfigId = configIdBySlug.get(DEFAULT_CONFIG_SLUG);
     const bulkConfigId = configIdBySlug.get(BULK_OPINION_CONFIG_SLUG);
-    if (!defaultConfigId || !bulkConfigId) {
+    const youthConfigId = configIdBySlug.get(YOUTH_CONFIG_SLUG);
+    if (!defaultConfigId || !bulkConfigId || !youthConfigId) {
       throw new Error("Interview configs were not inserted as expected");
     }
 
@@ -237,6 +239,7 @@ async function seedDatabase() {
         .insert([
           ...createInterviewQuestions(defaultConfigId),
           ...createBulkOpinionQuestions(bulkConfigId),
+          ...createInterviewQuestions(youthConfigId),
         ])
         .select("id"),
     });

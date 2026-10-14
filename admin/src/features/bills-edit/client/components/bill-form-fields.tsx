@@ -13,15 +13,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import type { BillCreateInput } from "../../shared/types";
+import type { BillCreateInput, ParentPolicyOptions } from "../../shared/types";
+import { PolicyHierarchyFields } from "./policy-hierarchy-fields";
+import { RelatedLinksField } from "./related-links-field";
 import { ThumbnailUpload } from "./thumbnail-upload";
 
 interface BillFormFieldsProps {
   control: Control<BillCreateInput>;
   billId?: string;
+  parentPolicyOptions: ParentPolicyOptions;
 }
 
-export function BillFormFields({ control, billId }: BillFormFieldsProps) {
+export function BillFormFields({
+  control,
+  billId,
+  parentPolicyOptions,
+}: BillFormFieldsProps) {
   return (
     <>
       <FormField
@@ -102,6 +109,11 @@ export function BillFormFields({ control, billId }: BillFormFieldsProps) {
         />
       </div>
 
+      <PolicyHierarchyFields
+        control={control}
+        parentPolicyOptions={parentPolicyOptions}
+      />
+
       <FormField
         control={control}
         name="thumbnail_url"
@@ -165,6 +177,8 @@ export function BillFormFields({ control, billId }: BillFormFieldsProps) {
           </FormItem>
         )}
       />
+
+      <RelatedLinksField control={control} />
 
       <FormField
         control={control}

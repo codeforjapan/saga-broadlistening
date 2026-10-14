@@ -179,6 +179,14 @@
     "./interview-participation/participation-mode": {
       "types": "./src/interview-participation/participation-mode.ts",
       "default": "./src/interview-participation/participation-mode.ts"
+    },
+    "./policy/related-links": {
+      "types": "./src/policy/related-links.ts",
+      "default": "./src/policy/related-links.ts"
+    },
+    "./url/is-http-url": {
+      "types": "./src/url/is-http-url.ts",
+      "default": "./src/url/is-http-url.ts"
     }
   },
   "dependencies": {

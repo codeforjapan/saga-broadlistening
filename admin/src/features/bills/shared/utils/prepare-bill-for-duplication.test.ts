@@ -22,6 +22,9 @@ const baseBill: Bill = {
   enable_ai_chat: true,
   thumbnail_url: null,
   share_thumbnail_url: null,
+  parent_policy_id: null,
+  sort_order: 0,
+  related_links: [],
 };
 
 describe("prepareBillForDuplication", () => {
