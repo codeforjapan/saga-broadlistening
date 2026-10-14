@@ -56,12 +56,10 @@ export function getInterviewLPLink(target: InterviewTarget): string {
 
 /**
  * 「はじめる」の遷移先（TOP・親施策ページなどのきかせてボックス）。
- *
- * Epic #162 ではチャットへ直行させ、同意はチャット冒頭の案内で取る。
- * チャット冒頭の同意（#158）が入るまでは、同意モーダルのある LP を経由させる。
+ * チャットへ直行させ、同意はチャット冒頭の案内で取る（#158）。
  */
 export function getInterviewStartLink(target: InterviewTarget): string {
-  return getInterviewLPLink(target);
+  return getInterviewChatLink(target);
 }
 
 /**

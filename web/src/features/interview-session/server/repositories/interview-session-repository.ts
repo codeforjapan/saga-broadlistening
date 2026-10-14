@@ -148,6 +148,8 @@ export async function createInterviewSessionRecord(params: {
   userId: string;
   /** 回答時に紐付いていた外部ID。参加条件に関係なく、あれば記録する */
   externalIdentityId: string | null;
+  /** チャット冒頭の案内に同意した日時（#158） */
+  consentedAt: string;
 }): Promise<InterviewSession> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -157,6 +159,7 @@ export async function createInterviewSessionRecord(params: {
       user_id: params.userId,
       external_identity_id: params.externalIdentityId,
       started_at: new Date().toISOString(),
+      consented_at: params.consentedAt,
     })
     .select()
     .single();

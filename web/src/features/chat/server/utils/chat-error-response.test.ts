@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { InterviewParticipationDeniedError } from "@/features/interview-session/shared/types/errors";
+import {
+  INTERVIEW_SESSION_NOT_STARTED_MESSAGE,
+  InterviewParticipationDeniedError,
+  InterviewSessionNotStartedError,
+} from "@/features/interview-session/shared/types/errors";
 import { ChatError, ChatErrorCode } from "../../shared/types/errors";
 import { chatErrorToResponse } from "./chat-error-response";
 
@@ -8,6 +12,12 @@ describe("chatErrorToResponse", () => {
     const res = chatErrorToResponse(new InterviewParticipationDeniedError());
     expect(res.status).toBe(403);
     expect(await res.text()).toContain("条件を満たしていません");
+  });
+
+  it("InterviewSessionNotStartedError で 409 を返す（開始画面からはじめてもらう）", async () => {
+    const res = chatErrorToResponse(new InterviewSessionNotStartedError());
+    expect(res.status).toBe(409);
+    expect(await res.text()).toBe(INTERVIEW_SESSION_NOT_STARTED_MESSAGE);
   });
 
   it("DAILY_COST_LIMIT_REACHED で 429 を返す", async () => {

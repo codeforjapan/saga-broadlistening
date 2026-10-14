@@ -22,6 +22,7 @@ import type { GetUserFn } from "../utils/verify-session-ownership";
 import { archiveInterviewSessionCore } from "./archive-interview-session-core";
 import { handleInterviewChatRequest } from "./handle-interview-chat-request";
 import { InterviewParticipationDeniedError } from "./resolve-interview-participation";
+import { startInterviewSessionCore } from "./start-interview-session-core";
 import { verifySessionAccess } from "./verify-session-access";
 
 const PROVIDER = "saga_super_app" as const;
@@ -75,27 +76,15 @@ describe("参加制御（external_identity テーマ）統合テスト", () => {
       expect(count).toBe(0);
     });
 
-    it("許可された連携元の外部IDが紐付いていれば、外部ID付きでセッションを作る", async () => {
+    it("許可された連携元の外部IDが紐付いていれば、開始画面に進める（同意前なのでセッションは作らない）", async () => {
       const result = await initializeInterviewChat(config, null, {
         deps: {
           getUser: createGetUser(user.id),
           getExternalIdentities: async () => linked,
-          model: createStreamMock([]),
         },
       });
 
-      expect(result.session.external_identity_id).toBe(linked[0].id);
-      expect(result.session.user_id).toBe(user.id);
-
-      const { data } = await adminClient
-        .from("interview_sessions")
-        .select("external_identity_id, user_id")
-        .eq("id", result.session.id)
-        .single();
-      expect(data).toEqual({
-        external_identity_id: linked[0].id,
-        user_id: user.id,
-      });
+      expect(result).toEqual({ kind: "start" });
     });
 
     it("プレビューでは参加条件を問わない（職員の確認用）", async () => {
@@ -104,11 +93,32 @@ describe("参加制御（external_identity テーマ）統合テスト", () => {
         deps: {
           getUser: createGetUser(user.id),
           getExternalIdentities: noIdentities,
-          model: createStreamMock([]),
         },
       });
 
-      expect(result.session.external_identity_id).toBeNull();
+      expect(result).toEqual({ kind: "start" });
+    });
+  });
+
+  describe("startInterviewSessionCore（開始画面の「はじめる」）", () => {
+    it("許可された連携元の外部IDが紐付いていれば、外部ID付きでセッションを作る", async () => {
+      const result = await startInterviewSessionCore(config.id, {
+        deps: {
+          getUser: createGetUser(user.id),
+          getExternalIdentities: async () => linked,
+        },
+      });
+
+      expect(result).toEqual({ success: true });
+      const { data } = await adminClient
+        .from("interview_sessions")
+        .select("external_identity_id, user_id")
+        .eq("interview_config_id", config.id)
+        .single();
+      expect(data).toEqual({
+        external_identity_id: linked[0].id,
+        user_id: user.id,
+      });
     });
   });
 

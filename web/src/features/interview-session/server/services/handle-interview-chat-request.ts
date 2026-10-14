@@ -32,17 +32,17 @@ import type {
 import { getMeteredAiModel } from "@/lib/ai/get-metered-ai-model";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { InterviewSessionNotStartedError } from "../../shared/types/errors";
 import { buildSummaryModelMessages } from "../../shared/utils/build-summary-model-messages";
 import { ensureTrailingUserMessage } from "../../shared/utils/ensure-trailing-user-message";
+import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
 import { calculateLoopModeNextQuestionId } from "../../shared/utils/interview-logic/loop-mode";
 import { mergeMessagesWithIds } from "../../shared/utils/merge-messages-with-ids";
-import { createInterviewSessionRecord } from "../repositories/interview-session-repository";
 import {
   buildInterviewSystemPrompt,
   buildSummarySystemPrompt,
 } from "../utils/build-interview-system-prompt";
 import { collectAskedQuestionIds } from "../utils/interview-logic";
-import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
 import {
   InterviewParticipationDeniedError,
   loadExternalIdentities,
@@ -126,13 +126,11 @@ export async function handleInterviewChatRequest({
   const loadSessionAndMessages = async () => {
     const getSessionFn = deps?.getSession ?? getInterviewSession;
     const getMessagesFn = deps?.getMessages ?? getInterviewMessages;
-    const session =
-      (await getSessionFn(interviewConfig.id)) ??
-      (await createInterviewSessionRecord({
-        interviewConfigId: interviewConfig.id,
-        userId,
-        externalIdentityId: participation.externalIdentityId,
-      }));
+    // セッションは開始画面の同意と同時に作る（#158）。ここでは作らない
+    const session = await getSessionFn(interviewConfig.id);
+    if (!session) {
+      throw new InterviewSessionNotStartedError();
+    }
 
     // ユーザーメッセージを保存（保存後に取得することで dbMessages に最新を含める）
     if (lastMessage?.role === "user" && lastMessage.content.trim()) {

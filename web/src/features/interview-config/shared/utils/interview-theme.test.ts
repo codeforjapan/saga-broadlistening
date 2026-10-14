@@ -228,9 +228,9 @@ describe("buildInterviewThemeCardAction", () => {
       }
     );
   });
-  it("募集中のテーマは参加導線（テーマのLP）へ送る", () => {
+  it("募集中のテーマの「はじめる」はチャットへ直行する", () => {
     expect(buildInterviewThemeCardAction("kosodate", "participate")).toEqual({
-      href: "/interviews/kosodate",
+      href: "/interviews/kosodate/chat",
       ctaLabel: "はじめる",
     });
   });

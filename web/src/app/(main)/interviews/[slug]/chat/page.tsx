@@ -10,9 +10,11 @@ import { themeInterviewTarget } from "@/features/interview-config/shared/types/i
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
 import { selectPrimaryPolicyId } from "@/features/interview-config/shared/utils/interview-visibility";
 import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
+import { InterviewChatStart } from "@/features/interview-session/client/components/interview-chat-start";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 import { InterviewParticipationDeniedError } from "@/features/interview-session/server/services/resolve-interview-participation";
+import { routes } from "@/lib/routes";
 
 interface ThemeChatPageProps {
   params: Promise<{
@@ -40,8 +42,22 @@ export default async function ThemeChatPage({ params }: ThemeChatPageProps) {
   const target = themeInterviewTarget(slug);
 
   try {
-    const { session, messages } = await initializeInterviewChat(config, bill);
+    const chat = await initializeInterviewChat(config, bill);
 
+    if (chat.kind === "start") {
+      return (
+        <InterviewChatStart
+          target={target}
+          interviewConfig={config}
+          // テーマにつながる施策（親施策）があればそのページ、なければきかせてページへ
+          themeHref={
+            policyId ? routes.billDetail(policyId) : getInterviewLPLink(target)
+          }
+        />
+      );
+    }
+
+    const { session, messages } = chat;
     return (
       <InterviewChatClient
         target={target}

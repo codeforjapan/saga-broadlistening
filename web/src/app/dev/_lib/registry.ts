@@ -34,11 +34,6 @@ export const previewRegistry: PreviewGroup[] = [
     name: "Interview",
     items: [
       {
-        path: "/dev/features/interview/consent-modal",
-        label: "ConsentModal",
-        description: "AIインタビュー同意モーダル",
-      },
-      {
         path: "/dev/features/interview/public-consent-modal",
         label: "PublicConsentModal",
         description: "インタビュー公開設定モーダル",
