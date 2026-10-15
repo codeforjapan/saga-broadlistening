@@ -204,7 +204,6 @@ export type Database = {
           created_at: string
           id: string
           is_featured: boolean
-          is_review_completed: boolean
           knowledge_source: string | null
           name: string
           originating_house: Database["public"]["Enums"]["house_enum"]
@@ -226,7 +225,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_featured?: boolean
-          is_review_completed?: boolean
           knowledge_source?: string | null
           name: string
           originating_house: Database["public"]["Enums"]["house_enum"]
@@ -248,7 +246,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_featured?: boolean
-          is_review_completed?: boolean
           knowledge_source?: string | null
           name?: string
           originating_house?: Database["public"]["Enums"]["house_enum"]
@@ -981,8 +978,6 @@ export type Database = {
       }
       policies: {
         Row: {
-          approved_at: string | null
-          approved_by: string | null
           contact: string | null
           created_at: string
           department: string | null
@@ -1002,8 +997,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
           contact?: string | null
           created_at?: string
           department?: string | null
@@ -1023,8 +1016,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          approved_at?: string | null
-          approved_by?: string | null
           contact?: string | null
           created_at?: string
           department?: string | null
