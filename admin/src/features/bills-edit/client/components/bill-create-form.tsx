@@ -38,6 +38,7 @@ export function BillCreateForm({ parentPolicyOptions }: BillCreateFormProps) {
       parent_policy_id: null,
       sort_order: 0,
       related_links: [],
+      is_approved: false,
     },
   });
 

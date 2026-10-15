@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BillEditForm } from "@/features/bills-edit/client/components/bill-edit-form";
 import { BillTagsForm } from "@/features/bills-edit/client/components/bill-tags-form";
-import { getBillById } from "@/features/bills-edit/server/loaders/get-bill-by-id";
 import { getBillTagIds } from "@/features/bills-edit/server/loaders/get-bill-tag-ids";
+import { getBillWithApprover } from "@/features/bills-edit/server/loaders/get-bill-with-approver";
 import { getParentPolicyOptions } from "@/features/bills-edit/server/loaders/get-parent-policy-options";
 import { loadTags } from "@/features/tags/server/loaders/load-tags";
 import { routes } from "@/lib/routes";
@@ -17,13 +17,17 @@ interface BillEditPageProps {
 
 export default async function BillEditPage({ params }: BillEditPageProps) {
   const { id } = await params;
-  const [bill, allTags, selectedTagIds, parentPolicyOptions] =
-    await Promise.all([
-      getBillById(id),
-      loadTags(),
-      getBillTagIds(id),
-      getParentPolicyOptions(id),
-    ]);
+  const [
+    { bill, approverEmail },
+    allTags,
+    selectedTagIds,
+    parentPolicyOptions,
+  ] = await Promise.all([
+    getBillWithApprover(id),
+    loadTags(),
+    getBillTagIds(id),
+    getParentPolicyOptions(id),
+  ]);
 
   if (!bill) {
     notFound();
@@ -47,7 +51,11 @@ export default async function BillEditPage({ params }: BillEditPageProps) {
       </div>
 
       <div className="space-y-6">
-        <BillEditForm bill={bill} parentPolicyOptions={parentPolicyOptions} />
+        <BillEditForm
+          bill={bill}
+          parentPolicyOptions={parentPolicyOptions}
+          approverEmail={approverEmail}
+        />
         <BillTagsForm
           billId={bill.id}
           allTags={allTags}

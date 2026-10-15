@@ -21,6 +21,34 @@ export async function findBillById(id: string) {
   return data;
 }
 
+export async function findPolicyApproval(id: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("policies")
+    .select("approved_at, approved_by")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to fetch policy approval: ${error.message}`);
+  }
+
+  return data;
+}
+
+/** 承認者（auth ユーザー）のメールアドレス。ユーザーが見つからなければ null */
+export async function findAuthUserEmail(userId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.auth.admin.getUserById(userId);
+
+  if (error) {
+    if (error.status === 404) return null;
+    throw new Error(`Failed to fetch auth user: ${error.message}`);
+  }
+
+  return data.user.email ?? null;
+}
+
 export async function findBillContentsByBillId(billId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase

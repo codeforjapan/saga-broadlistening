@@ -10,13 +10,13 @@ import { createBillWithSideEffects } from "../services/create-bill-with-side-eff
 export async function createBill(input: BillCreateInput) {
   try {
     // 管理者権限チェック
-    await requireAdmin();
+    const admin = await requireAdmin();
 
     // バリデーション
     const validatedData = billCreateSchema.parse(input);
 
     // 親子関係の検証・挿入・web側のキャッシュ無効化
-    await createBillWithSideEffects(validatedData);
+    await createBillWithSideEffects(validatedData, { actorId: admin.id });
   } catch (error) {
     console.error("Create bill error:", error);
     throw new Error(

@@ -47,6 +47,8 @@ const billBaseSchema = z.object({
     .max(9999)
     .optional(),
   related_links: relatedLinksSchema.optional(),
+  // 「レビュー完了（承認）」。approved_at / approved_by に変換して保存する
+  is_approved: z.boolean().optional(),
 });
 
 // 更新用スキーマ（既存）

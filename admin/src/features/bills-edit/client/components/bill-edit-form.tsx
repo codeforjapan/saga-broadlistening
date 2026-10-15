@@ -21,9 +21,14 @@ import { BillFormFields } from "./bill-form-fields";
 interface BillEditFormProps {
   bill: Bill;
   parentPolicyOptions: ParentPolicyOptions;
+  approverEmail: string | null;
 }
 
-export function BillEditForm({ bill, parentPolicyOptions }: BillEditFormProps) {
+export function BillEditForm({
+  bill,
+  parentPolicyOptions,
+  approverEmail,
+}: BillEditFormProps) {
   const { isSubmitting, error, handleSubmit, handleCancel } = useBillForm();
 
   const form = useForm<BillUpdateInput>({
@@ -43,12 +48,17 @@ export function BillEditForm({ bill, parentPolicyOptions }: BillEditFormProps) {
       // DB の値は admin の保存時に検証済み。形の合わない要素（手で入れた不正値）は
       // フォームに出さず、次の保存で取り除く
       related_links: parseRelatedLinks(bill.related_links),
+      is_approved: bill.approved_at !== null,
     },
   });
 
-  const onSubmit = (data: BillUpdateInput) => {
+  const onSubmit = ({ is_approved, ...data }: BillUpdateInput) => {
+    // 承認はチェックを変えたときだけ送る。開いたままの古い画面からほかの項目を
+    // 保存しても、別の管理者が後から行った承認・取り消しを戻さない
+    const approval =
+      is_approved !== (bill.approved_at !== null) ? { is_approved } : {};
     handleSubmit(
-      () => updateBill(bill.id, data),
+      () => updateBill(bill.id, { ...data, ...approval }),
       "更新中にエラーが発生しました"
     );
   };
@@ -65,6 +75,8 @@ export function BillEditForm({ bill, parentPolicyOptions }: BillEditFormProps) {
               control={form.control}
               billId={bill.id}
               parentPolicyOptions={parentPolicyOptions}
+              approvedAt={bill.approved_at}
+              approverEmail={approverEmail}
             />
 
             {error && (

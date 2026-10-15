@@ -95,7 +95,8 @@ export function registerBillsTools(server: McpServer): void {
       title: "施策を作成",
       description:
         "policiesテーブルに新しい施策を作成する。コンテンツやタグは別ツール（update_bill_contents / update_bill_tags）で後から設定する。",
-      inputSchema: billCreateSchema.shape,
+      // 承認は操作した管理者を記録するため、admin の画面からだけ行う
+      inputSchema: billCreateSchema.omit({ is_approved: true }).shape,
     },
     async (input) => {
       const inserted = await createBillWithSideEffects(input);
@@ -111,7 +112,7 @@ export function registerBillsTools(server: McpServer): void {
         "指定IDの施策のメタ情報（name, department, contact, enable_ai_chat 等）を部分更新する。指定したフィールドのみが更新され、省略したフィールドは変更されない。",
       inputSchema: {
         billId: z.string().uuid(),
-        ...billUpdateSchema.partial().shape,
+        ...billUpdateSchema.omit({ is_approved: true }).partial().shape,
       },
     },
     async ({ billId, ...rest }) => {

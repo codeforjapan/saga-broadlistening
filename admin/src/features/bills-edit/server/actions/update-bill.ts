@@ -7,9 +7,9 @@ import { updateBillWithSideEffects } from "../services/update-bill-with-side-eff
 
 export async function updateBill(id: string, input: BillUpdateInput) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const validatedData = billUpdateSchema.parse(input);
-    await updateBillWithSideEffects(id, validatedData);
+    await updateBillWithSideEffects(id, validatedData, { actorId: admin.id });
   } catch (error) {
     console.error("Update bill error:", error);
     throw new Error(

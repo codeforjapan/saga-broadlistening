@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { formatJstDateTime } from "@/features/interview-reports/shared/utils/format-jst-date-time";
 import type { BillCreateInput, ParentPolicyOptions } from "../../shared/types";
 import { PolicyHierarchyFields } from "./policy-hierarchy-fields";
 import { RelatedLinksField } from "./related-links-field";
@@ -22,12 +23,17 @@ interface BillFormFieldsProps {
   control: Control<BillCreateInput>;
   billId?: string;
   parentPolicyOptions: ParentPolicyOptions;
+  /** 保存済みの承認日時と承認者（編集時のみ） */
+  approvedAt?: string | null;
+  approverEmail?: string | null;
 }
 
 export function BillFormFields({
   control,
   billId,
   parentPolicyOptions,
+  approvedAt,
+  approverEmail,
 }: BillFormFieldsProps) {
   return (
     <>
@@ -173,6 +179,33 @@ export function BillFormFields({
               <FormDescription>
                 トップページなどで優先的に表示されます
               </FormDescription>
+            </div>
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={control}
+        name="is_approved"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+            <FormControl>
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={field.onChange}
+              />
+            </FormControl>
+            <div className="space-y-1 leading-none">
+              <FormLabel>レビュー完了（承認）</FormLabel>
+              <FormDescription>
+                チェックして保存すると、公開ページの「複数有識者によるレビュー中です」の案内が消え、施策名の横にレビュー完了のチェックが付きます。
+              </FormDescription>
+              {approvedAt && (
+                <FormDescription>
+                  {formatJstDateTime(approvedAt)} に承認
+                  {approverEmail && `（承認者：${approverEmail}）`}
+                </FormDescription>
+              )}
             </div>
           </FormItem>
         )}
