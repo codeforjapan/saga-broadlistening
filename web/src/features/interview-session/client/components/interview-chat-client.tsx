@@ -13,6 +13,7 @@ import { useInterviewTimer } from "../hooks/use-interview-timer";
 import { calcInterviewProgress } from "../utils/calc-interview-progress";
 import { embedBillLink } from "../utils/embed-bill-link";
 import { InterviewChatInput } from "./interview-chat-input";
+import { InterviewChatSurface } from "./interview-chat-surface";
 import { InterviewErrorDisplay } from "./interview-error-display";
 import { InterviewMessage } from "./interview-message";
 import { InterviewProgressBar } from "./interview-progress-bar";
@@ -163,166 +164,164 @@ export function InterviewChatClient({
   );
 
   return (
-    <div className="h-dvh md:h-[calc(100dvh-96px)] bg-muted">
-      <div className="flex flex-col h-full pt-23 md:pt-10 bg-white md:rounded-t-[36px] md:px-12">
-        {showProgressBar && progress && (
-          <div className="px-4 pb-1">
-            <InterviewProgressBar
-              percentage={progress.percentage}
-              currentTopic={progress.currentTopic}
-              remainingMinutes={timerMinutes}
-            />
-          </div>
-        )}
-        <Conversation className="min-h-0 flex-1 overflow-y-auto">
-          <ConversationContent className="flex flex-col gap-4">
-            {/* 初期表示メッセージ */}
-            {messages.length === 0 && !object && (
-              <div className="flex flex-col gap-4">
-                <p className="text-sm font-bold leading-[1.8] text-foreground">
-                  {bill
-                    ? "施策についてのAIインタビューを開始します。"
-                    : "AIインタビューを開始します。"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  あなたの意見や経験をお聞かせください。
-                </p>
-              </div>
-            )}
+    <InterviewChatSurface className="md:px-12">
+      {showProgressBar && progress && (
+        <div className="px-4 pb-1">
+          <InterviewProgressBar
+            percentage={progress.percentage}
+            currentTopic={progress.currentTopic}
+            remainingMinutes={timerMinutes}
+          />
+        </div>
+      )}
+      <Conversation className="min-h-0 flex-1 overflow-y-auto">
+        <ConversationContent className="flex flex-col gap-4">
+          {/* 初期表示メッセージ */}
+          {messages.length === 0 && !object && (
+            <div className="flex flex-col gap-4">
+              <p className="text-sm font-bold leading-[1.8] text-foreground">
+                {bill
+                  ? "施策についてのAIインタビューを開始します。"
+                  : "AIインタビューを開始します。"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                あなたの意見や経験をお聞かせください。
+              </p>
+            </div>
+          )}
 
-            {/* メッセージ一覧を表示 */}
-            {messages.map((message, index) => {
-              // 最後のAIメッセージかつストリーミング中でない場合にスキップボタンを表示
-              const showSkipFooter =
-                index === lastAssistantIndex &&
-                stage === "chat" &&
-                !isLoading &&
-                !showStreamingMessage;
+          {/* メッセージ一覧を表示 */}
+          {messages.map((message, index) => {
+            // 最後のAIメッセージかつストリーミング中でない場合にスキップボタンを表示
+            const showSkipFooter =
+              index === lastAssistantIndex &&
+              stage === "chat" &&
+              !isLoading &&
+              !showStreamingMessage;
 
-              // 最初のAIメッセージの施策名をリンクに変換（施策がある場合のみ）
-              const content =
-                index === 0 &&
-                message.role === "assistant" &&
-                bill &&
-                billDetailLink
-                  ? embedBillLink(message.content, bill.title, billDetailLink)
-                  : message.content;
+            // 最初のAIメッセージの施策名をリンクに変換（施策がある場合のみ）
+            const content =
+              index === 0 &&
+              message.role === "assistant" &&
+              bill &&
+              billDetailLink
+                ? embedBillLink(message.content, bill.title, billDetailLink)
+                : message.content;
 
-              return (
-                <InterviewMessage
-                  key={message.id}
-                  message={{
-                    id: message.id,
-                    role: message.role,
-                    parts: [{ type: "text" as const, text: content }],
-                  }}
-                  openLinksInNewTab={index === 0}
-                  isStreaming={false}
-                  report={message.report}
-                  footer={
-                    showSkipFooter ? (
-                      <SkipActionPopover
-                        onSelect={handleSkipAction}
-                        disabled={isLoading}
-                      />
-                    ) : undefined
-                  }
-                />
-              );
-            })}
-
-            {/* ストリーミング中のAIレスポンスを表示 */}
-            {showStreamingMessage && (
+            return (
               <InterviewMessage
-                key="streaming-assistant"
+                key={message.id}
                 message={{
-                  id: "streaming-assistant",
-                  role: "assistant",
-                  parts: [{ type: "text" as const, text: object.text ?? "" }],
+                  id: message.id,
+                  role: message.role,
+                  parts: [{ type: "text" as const, text: content }],
                 }}
-                isStreaming={isLoading}
-                report={streamingReportData}
-              />
-            )}
-
-            {/* ローディング表示 */}
-            {isLoading && !object && (
-              <span className="text-sm text-muted-foreground">考え中...</span>
-            )}
-
-            {/* エラー表示 */}
-            <InterviewErrorDisplay
-              error={error}
-              canRetry={canRetry}
-              onRetry={handleRetry}
-              isRetrying={isLoading}
-            />
-
-            {/* クイックリプライボタン */}
-            {stage === "chat" &&
-              (() => {
-                const replies = isLoading
-                  ? streamingQuickReplies
-                  : currentQuickReplies;
-                return (
-                  replies.length > 0 && (
-                    <QuickReplyButtons
-                      replies={replies}
-                      onSelect={handleChatQuickReply}
+                openLinksInNewTab={index === 0}
+                isStreaming={false}
+                report={message.report}
+                footer={
+                  showSkipFooter ? (
+                    <SkipActionPopover
+                      onSelect={handleSkipAction}
                       disabled={isLoading}
                     />
-                  )
-                );
-              })()}
-          </ConversationContent>
-        </Conversation>
+                  ) : undefined
+                }
+              />
+            );
+          })}
 
-        {/* 評価ウィジェット */}
-        {showRating && (
-          <div className="shrink-0 py-2">
-            <InterviewRatingWidget
-              sessionId={sessionId}
-              onDismiss={handleRatingDismiss}
+          {/* ストリーミング中のAIレスポンスを表示 */}
+          {showStreamingMessage && (
+            <InterviewMessage
+              key="streaming-assistant"
+              message={{
+                id: "streaming-assistant",
+                role: "assistant",
+                parts: [{ type: "text" as const, text: object.text ?? "" }],
+              }}
+              isStreaming={isLoading}
+              report={streamingReportData}
             />
-          </div>
-        )}
+          )}
 
-        {/* 時間超過プロンプト */}
-        {showTimeUpPrompt && (
-          <TimeUpPrompt
-            onEndInterview={handleEndInterviewTimeUp}
-            onContinue={handleContinueInterview}
-            disabled={isLoading}
+          {/* ローディング表示 */}
+          {isLoading && !object && (
+            <span className="text-sm text-muted-foreground">考え中...</span>
+          )}
+
+          {/* エラー表示 */}
+          <InterviewErrorDisplay
+            error={error}
+            canRetry={canRetry}
+            onRetry={handleRetry}
+            isRetrying={isLoading}
+          />
+
+          {/* クイックリプライボタン */}
+          {stage === "chat" &&
+            (() => {
+              const replies = isLoading
+                ? streamingQuickReplies
+                : currentQuickReplies;
+              return (
+                replies.length > 0 && (
+                  <QuickReplyButtons
+                    replies={replies}
+                    onSelect={handleChatQuickReply}
+                    disabled={isLoading}
+                  />
+                )
+              );
+            })()}
+        </ConversationContent>
+      </Conversation>
+
+      {/* 評価ウィジェット */}
+      {showRating && (
+        <div className="shrink-0 py-2">
+          <InterviewRatingWidget
+            sessionId={sessionId}
+            onDismiss={handleRatingDismiss}
+          />
+        </div>
+      )}
+
+      {/* 時間超過プロンプト */}
+      {showTimeUpPrompt && (
+        <TimeUpPrompt
+          onEndInterview={handleEndInterviewTimeUp}
+          onContinue={handleContinueInterview}
+          disabled={isLoading}
+        />
+      )}
+
+      {/* 入力エリア */}
+      <div className="px-6 pt-2">
+        {(stage === "summary" || stage === "summary_complete") && (
+          <InterviewSummaryInput
+            sessionId={sessionId}
+            target={target}
+            hasReport={hasReport}
+            input={input}
+            onInputChange={setInput}
+            onSubmit={handleSubmit}
+            onResume={handleResumeInterview}
+            isLoading={isLoading}
+            error={error}
           />
         )}
 
-        {/* 入力エリア */}
-        <div className="px-6 pt-2">
-          {(stage === "summary" || stage === "summary_complete") && (
-            <InterviewSummaryInput
-              sessionId={sessionId}
-              target={target}
-              hasReport={hasReport}
-              input={input}
-              onInputChange={setInput}
-              onSubmit={handleSubmit}
-              onResume={handleResumeInterview}
-              isLoading={isLoading}
-              error={error}
-            />
-          )}
-
-          {stage === "chat" && (
-            <InterviewChatInput
-              input={input}
-              onInputChange={setInput}
-              onSubmit={handleChatSubmit}
-              placeholder="AIの質問に回答する"
-              isResponding={isLoading}
-            />
-          )}
-        </div>
+        {stage === "chat" && (
+          <InterviewChatInput
+            input={input}
+            onInputChange={setInput}
+            onSubmit={handleChatSubmit}
+            placeholder="AIの質問に回答する"
+            isResponding={isLoading}
+          />
+        )}
       </div>
-    </div>
+    </InterviewChatSurface>
   );
 }
