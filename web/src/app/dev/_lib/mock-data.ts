@@ -7,8 +7,6 @@ const baseBill: BillWithContent = {
   department: "こども未来部",
   contact: "kodomo@example.jp",
   is_featured: false,
-  approved_by: null,
-  approved_at: "2026-02-15T00:00:00Z",
   thumbnail_url: null,
   share_thumbnail_url: null,
   parent_policy_id: null,

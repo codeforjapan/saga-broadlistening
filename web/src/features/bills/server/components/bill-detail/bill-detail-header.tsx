@@ -9,10 +9,6 @@ import { getInterviewLPLink } from "@/features/interview-config/shared/utils/int
 import { routes } from "@/lib/routes";
 import { formatDateWithDots } from "@/lib/utils/date";
 import { BillDetailShareButton } from "../../../client/components/bill-detail/bill-detail-share-button";
-import {
-  ReviewCompleteBadge,
-  ReviewInProgressBanner,
-} from "../../../client/components/bill-detail/review-status-banner";
 import { BillTag } from "../../../client/components/bill-list/bill-tag";
 import { getBillShareData } from "../../../client/utils/share";
 import type { BillWithContent } from "../../../shared/types";
@@ -21,7 +17,7 @@ interface BillDetailHeaderProps {
   bill: BillWithContent;
   /** 見出し。省略時は本文のタイトル（親施策ページでは施策名を出す） */
   title?: string;
-  /** レビュー中表示の下に置く要素（親施策ページのきかせてボックス） */
+  /** 施策名の下に置く要素（親施策ページのきかせてボックス） */
   children?: ReactNode;
   hasInterviewConfig?: boolean;
   /** 意見数（トピック分析の total_opinions）。回答者数（人数）ではない点に注意。 */
@@ -62,15 +58,7 @@ export async function BillDetailHeader({
 
       <div className="px-4 pt-8 mb-3">
         {displayTitle && (
-          <h1 className="text-2xl font-bold mb-3">
-            {displayTitle}
-            {bill.approved_at && (
-              <>
-                {" "}
-                <ReviewCompleteBadge showTooltip />
-              </>
-            )}
-          </h1>
+          <h1 className="text-2xl font-bold mb-3">{displayTitle}</h1>
         )}
         <div className="flex flex-row gap-4">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -98,11 +86,6 @@ export async function BillDetailHeader({
         <p className="text-sm text-muted-foreground font-medium mb-4">
           {bill.name}
         </p>
-        {!bill.approved_at && (
-          <div className="mb-4">
-            <ReviewInProgressBanner />
-          </div>
-        )}
         {children && <div className="mb-4">{children}</div>}
 
         {opinionCount != null && opinionCount > 0 && (

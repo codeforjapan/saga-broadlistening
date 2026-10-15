@@ -15,8 +15,6 @@ const baseBill: Bill = {
   contact: "kodomo@example.jp",
   publish_status: "published",
   published_at: "2025-01-03T00:00:00Z",
-  approved_by: "admin-001",
-  approved_at: "2025-01-03T00:00:00Z",
   is_featured: true,
   knowledge_source: null,
   enable_ai_chat: true,
@@ -44,12 +42,6 @@ describe("prepareBillForDuplication", () => {
     const result = prepareBillForDuplication(baseBill, "new-slug");
     expect(result.publish_status).toBe("draft");
     expect(result.published_at).toBeNull();
-  });
-
-  it("承認情報をリセットする", () => {
-    const result = prepareBillForDuplication(baseBill, "new-slug");
-    expect(result.approved_by).toBeNull();
-    expect(result.approved_at).toBeNull();
   });
 
   it("渡されたslugを設定する", () => {

@@ -15,8 +15,6 @@ const makeBill = (
   department: null,
   contact: null,
   is_featured: false,
-  approved_by: null,
-  approved_at: null,
   publish_status: "published",
   published_at: null,
   share_thumbnail_url: null,

@@ -24,8 +24,6 @@ export function prepareBillForDuplication(
     name: `${originalBill.name} (複製)`,
     publish_status: "draft",
     published_at: null,
-    approved_by: null,
-    approved_at: null,
   };
 }
 
