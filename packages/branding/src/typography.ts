@@ -57,6 +57,13 @@ export type TextToken = keyof typeof TEXT_SCALE;
  */
 export const BODY_FONT_WEIGHT = "500";
 
+/**
+ * タッチ端末での入力欄の最小文字サイズ。
+ * iOS Safari はフォーカスした入力欄の文字が 16px 未満だと自動ズームするため、
+ * これを下回らせない（ピンチズームは WCAG 1.4.4 のため許可したまま）。
+ */
+export const INPUT_MIN_FONT_SIZE = "1rem";
+
 /** 行間ユーティリティ。`leading-relaxed` はルビ用の余裕を持たせている */
 export const LINE_HEIGHTS = {
   relaxed: "1.875",

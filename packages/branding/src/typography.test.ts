@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BODY_FONT_WEIGHT,
   FONT_FAMILIES,
+  INPUT_MIN_FONT_SIZE,
   LINE_HEIGHTS,
   TEXT_SCALE,
 } from "./typography";
@@ -104,5 +105,11 @@ describe("書体", () => {
 
   it("見出しが読めない環境でも本文書体にフォールバックする", () => {
     expect(FONT_FAMILIES.heading).toContain("--font-noto-sans-jp");
+  });
+});
+
+describe("入力欄の最小サイズ", () => {
+  it("16px（iOS Safari はこれ未満の入力欄にフォーカスすると自動ズームする）", () => {
+    expect(remToPx(INPUT_MIN_FONT_SIZE)).toBe(16);
   });
 });
