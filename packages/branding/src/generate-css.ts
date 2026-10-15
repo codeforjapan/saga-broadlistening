@@ -16,6 +16,7 @@ import { SHADOWS } from "./shadows";
 import {
   BODY_FONT_WEIGHT,
   FONT_FAMILIES,
+  INPUT_MIN_FONT_SIZE,
   LINE_HEIGHTS,
   TEXT_SCALE,
 } from "./typography";
@@ -124,6 +125,31 @@ ${uiVars}
   /* セマンティック変数をユーティリティクラスとして公開する */
 ${semanticThemeVars}
 ${uiThemeVars}
+}
+
+/* iOS Safari はフォーカスした入力欄の文字が 16px 未満だと自動ズームする。
+   ピンチズーム（WCAG 1.4.4）を許可したまま自動ズームだけを防ぐため、
+   タッチ端末ではテキスト入力系の文字サイズを max(16px, 親の文字サイズ) にする。
+   @layer の外に置くことで text-sm 等のユーティリティより優先される。
+   そのためタッチ端末では入力欄自体の text-* 指定は大小とも効かない。
+   大きくしたい場合は !text-lg のように important で指定する */
+@media (pointer: coarse) {
+  input:not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="range"],
+      [type="file"],
+      [type="color"],
+      [type="hidden"],
+      [type="button"],
+      [type="submit"],
+      [type="reset"],
+      [type="image"]
+    ),
+  textarea,
+  select {
+    font-size: max(${INPUT_MIN_FONT_SIZE}, 1em);
+  }
 }
 `;
 }
