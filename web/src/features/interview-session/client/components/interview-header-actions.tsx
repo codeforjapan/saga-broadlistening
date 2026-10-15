@@ -29,7 +29,14 @@ export function InterviewHeaderActions() {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleSaveAndExit}>
+    <Button
+      variant="outline"
+      size="sm"
+      // 開始画面（data-interview-chat-start）を出しているあいだは隠す。
+      // 「はじめる」でチャットに切り替わると、再読み込みなしで出る
+      className="[body:has([data-interview-chat-start])_&]:hidden"
+      onClick={handleSaveAndExit}
+    >
       保存して中断
     </Button>
   );
