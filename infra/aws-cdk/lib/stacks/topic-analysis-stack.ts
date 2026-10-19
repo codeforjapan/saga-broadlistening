@@ -9,6 +9,13 @@ import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import type { EnvConfig } from "../config/types";
+import {
+  type BatchArnParams,
+  buildSubmitTopicAnalysisJobResourceArns,
+  buildTopicAnalysisJobDefinitionArn,
+  topicAnalysisJobDefinitionName,
+  topicAnalysisJobQueueName,
+} from "./topic-analysis-resource-names";
 
 export interface TopicAnalysisStackProps extends cdk.StackProps {
   readonly envConfig: EnvConfig;
@@ -37,22 +44,34 @@ const WORKER_SECRETS = [
 ] as const;
 type WorkerSecretEnvVar = (typeof WORKER_SECRETS)[number]["envVar"];
 
+function batchArnParamsOf(stack: cdk.Stack, envName: string): BatchArnParams {
+  return {
+    partition: stack.partition,
+    region: stack.region,
+    account: stack.account,
+    envName,
+  };
+}
+
 /**
  * トピック分析workerのBatchジョブを起動する権限（batch:SubmitJob）を表すPolicyStatementを
  * 作る。EventBridge SchedulerのSchedulerExecutionRoleとVercel OIDCロール（admin手動起動、
  * #49）の両方から呼ばれるため、ここに一元化している。SubmitJobはJob Definition登録時に
  * 確定したjobRole/executionRoleを使うため、ECS RunTaskと異なりiam:PassRoleは不要
  * （AWS管理ポリシー AWSBatchServiceEventTargetRole と同じ設計）。
+ * ARNはクロススタック参照ではなく名前から組み立てる（理由は topic-analysis-resource-names.ts）。
  */
 export function createSubmitTopicAnalysisJobPolicyStatement(
-  jobQueueArn: string,
-  jobDefinitionArn: string
+  stack: cdk.Stack,
+  envName: string
 ): iam.PolicyStatement {
   return new iam.PolicyStatement({
     sid: "SubmitTopicAnalysisJob",
     effect: iam.Effect.ALLOW,
     actions: ["batch:SubmitJob"],
-    resources: [jobQueueArn, jobDefinitionArn],
+    resources: buildSubmitTopicAnalysisJobResourceArns(
+      batchArnParamsOf(stack, envName)
+    ),
   });
 }
 
@@ -96,7 +115,7 @@ export class TopicAnalysisStack extends cdk.Stack {
 
     const computeEnvironment = this.createComputeEnvironment(envName);
     this.jobQueue = new batch.JobQueue(this, "JobQueue", {
-      jobQueueName: `mirai-gikai-topic-analysis-${envName}`,
+      jobQueueName: topicAnalysisJobQueueName(envName),
       computeEnvironments: [{ computeEnvironment, order: 1 }],
     });
     this.jobDefinition = this.createJobDefinition(envName);
@@ -109,13 +128,23 @@ export class TopicAnalysisStack extends cdk.Stack {
       description: "ARN of the topic-analysis worker Batch Job Queue",
       exportName: `MiraiGikaiTopicAnalysisJobQueueArn-${envName}`,
     });
+    // リビジョン番号を含まないARNを出力する。adminのTOPIC_ANALYSIS_BATCH_JOB_DEFINITION_ARNに
+    // この値を設定すれば、Job Definition更新後も常に最新のACTIVEリビジョンで起動される。
+    const revisionlessJobDefinitionArn = buildTopicAnalysisJobDefinitionArn(
+      batchArnParamsOf(this, envName)
+    );
     new cdk.CfnOutput(this, "JobDefinitionArnOutput", {
-      value: this.jobDefinition.jobDefinitionArn,
-      description: "ARN of the topic-analysis worker Batch Job Definition",
+      value: revisionlessJobDefinitionArn,
+      description:
+        "Revisionless ARN of the topic-analysis worker Batch Job Definition (resolves to the latest ACTIVE revision)",
       exportName: `MiraiGikaiTopicAnalysisJobDefinitionArn-${envName}`,
     });
 
-    this.createSchedule(envName, props.envConfig.topicAnalysisSchedulerEnabled);
+    this.createSchedule(
+      envName,
+      props.envConfig.topicAnalysisSchedulerEnabled,
+      revisionlessJobDefinitionArn
+    );
   }
 
   private createVpc(): ec2.Vpc {
@@ -234,7 +263,7 @@ export class TopicAnalysisStack extends cdk.Stack {
     });
 
     return new batch.EcsJobDefinition(this, "JobDefinition", {
-      jobDefinitionName: `mirai-gikai-topic-analysis-worker-${envName}`,
+      jobDefinitionName: topicAnalysisJobDefinitionName(envName),
       container: new batch.EcsFargateContainerDefinition(this, "Container", {
         image: ecs.ContainerImage.fromEcrRepository(this.repository, "latest"),
         cpu: JOB_VCPUS,
@@ -261,7 +290,11 @@ export class TopicAnalysisStack extends cdk.Stack {
     });
   }
 
-  private createSchedule(envName: string, schedulerEnabled: boolean): void {
+  private createSchedule(
+    envName: string,
+    schedulerEnabled: boolean,
+    jobDefinitionArn: string
+  ): void {
     // EventBridge SchedulerがBatchにジョブを投入するためのロール。
     const schedulerExecutionRole = new iam.Role(
       this,
@@ -274,10 +307,7 @@ export class TopicAnalysisStack extends cdk.Stack {
       }
     );
     schedulerExecutionRole.addToPolicy(
-      createSubmitTopicAnalysisJobPolicyStatement(
-        this.jobQueue.jobQueueArn,
-        this.jobDefinition.jobDefinitionArn
-      )
+      createSubmitTopicAnalysisJobPolicyStatement(this, envName)
     );
 
     // 毎朝6:00 JSTに全議案の増分トピック分析を実行する（GCP Cloud Schedulerの後継）。
@@ -303,7 +333,8 @@ export class TopicAnalysisStack extends cdk.Stack {
         input: cdk.Stack.of(this).toJsonString({
           JobName: `topic-analysis-analyze-all-${envName}`,
           JobQueue: this.jobQueue.jobQueueArn,
-          JobDefinition: this.jobDefinition.jobDefinitionArn,
+          // adminと同じくリビジョン無しで指定し、最新のACTIVEリビジョンで起動する
+          JobDefinition: jobDefinitionArn,
           ContainerOverrides: { Command: DEFAULT_COMMAND },
         }),
       },

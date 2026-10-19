@@ -175,9 +175,11 @@ pushするだけで次回起動から反映される）。
   admin側（#49）にもインフラの詳細が漏れ出す問題があったため、AWS Batchへ移行した（#66）。
 - `VercelOidcStack`: Vercel（`saga-kocho-web`/`saga-kocho-admin`）からOIDC Federationで
   AWSを呼び出すためのIAMロールを管理。Bedrock呼び出し権限に加え、`TopicAnalysisStack`の
-  Job Queue/Job Definition ARNに限定した`batch:SubmitJob`権限も付与している。
-  `TopicAnalysisStack`の出力を参照するため、`bin/app.ts`では`VercelOidcStack`より
-  先にデプロイされる必要がある（個別スタック指定で`cdk deploy`する場合は順序に注意）。
+  Job Queue/Job Definition（リビジョン問わず）に限定した`batch:SubmitJob`権限も付与している。
+  ARNは名前から組み立てており、`TopicAnalysisStack`へのクロススタック参照は持たない
+  （Job Definition更新でリビジョン付きARNが変わるたびにexport使用中エラーで
+  `TopicAnalysisStack`のデプロイが失敗していたため）。旧構成からの移行のため
+  `bin/app.ts`では`VercelOidcStack`を`TopicAnalysisStack`より先にデプロイする。
   admin側の実際のディスパッチ実装（現行のGCP Cloud Run Job起動処理
   `admin/src/lib/cloud-run-job.ts`をBatch SubmitJob版に置き換える想定）は
   GitHub Issue #49で対応する。実際の呼び出しコード例は

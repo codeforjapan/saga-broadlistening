@@ -144,9 +144,8 @@ describe("TopicAnalysisStack", () => {
 
     const template = Template.fromStack(topicAnalysisStack);
 
-    // InputはjobQueue/jobDefinitionのARNをトークンとして含むためFn::Joinに
-    // なる。固定文字列部分だけを正規表現で照合する（jobQueue/jobDefinitionの
-    // ARN自体はFn::GetAtt/Refとして別要素になるため、ここでは照合しない）。
+    // InputはARNのトークン（jobQueueのFn::GetAtt・AWS::Partition）を含むためFn::Joinに
+    // なる。固定文字列部分だけを正規表現で照合する。
     // キー名はPascalCase（実機デプロイでcamelCaseだと拒否されることを確認済み）。
     template.hasResourceProperties("AWS::Scheduler::Schedule", {
       ScheduleExpression: "cron(0 6 * * ? *)",
@@ -161,8 +160,9 @@ describe("TopicAnalysisStack", () => {
               Match.stringLikeRegexp(
                 `"JobName":"topic-analysis-analyze-all-${envConfig.envName}"`
               ),
+              // JobDefinitionはリビジョン番号を含まないARNで指定する
               Match.stringLikeRegexp(
-                String.raw`"ContainerOverrides":\{"Command":\["--mode=analyze-all"\]\}\}`
+                String.raw`:job-definition/mirai-gikai-topic-analysis-worker-${envConfig.envName}","ContainerOverrides":\{"Command":\["--mode=analyze-all"\]\}\}`
               ),
             ]),
           ],
@@ -204,7 +204,18 @@ describe("TopicAnalysisStack", () => {
         Name: `MiraiGikaiTopicAnalysisJobQueueArn-${envConfig.envName}`,
       },
     });
+    // Job Definition ARNはリビジョン番号を含まない形で出力する
     template.hasOutput("JobDefinitionArnOutput", {
+      Value: {
+        "Fn::Join": [
+          "",
+          [
+            "arn:",
+            { Ref: "AWS::Partition" },
+            `:batch:${envConfig.region}:${envConfig.account}:job-definition/mirai-gikai-topic-analysis-worker-${envConfig.envName}`,
+          ],
+        ],
+      },
       Export: {
         Name: `MiraiGikaiTopicAnalysisJobDefinitionArn-${envConfig.envName}`,
       },
