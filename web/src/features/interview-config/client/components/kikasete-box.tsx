@@ -109,24 +109,13 @@ function KikaseteStartAction({
     "relative h-12 w-full px-6 has-[>svg]:px-6",
     !stacked && "md:w-auto md:shrink-0"
   );
-  const content = (
-    <>
-      はじめる
-      <ArrowRight aria-hidden="true" />
-    </>
-  );
-
-  if (start.kind === "unavailable") {
-    return (
-      <Button type="button" variant="kikasete" disabled className={className}>
-        {content}
-      </Button>
-    );
-  }
 
   return (
     <Button asChild variant="kikasete" className={className}>
-      <Link href={start.href as Route}>{content}</Link>
+      <Link href={start.href as Route}>
+        {start.kind === "result" ? "結果を見る" : "はじめる"}
+        <ArrowRight aria-hidden="true" />
+      </Link>
     </Button>
   );
 }

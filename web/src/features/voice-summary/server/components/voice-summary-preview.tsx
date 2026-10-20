@@ -12,7 +12,7 @@ interface VoiceSummaryPreviewProps {
     "question" | "lead" | "sourceOpinionCount"
   >;
   href: string;
-  /** ボタンの文言（デザインでは「まとめを図で見る」） */
+  /** ボタンの文言（親施策ページでは「まとめを見る」） */
   linkLabel: string;
 }
 

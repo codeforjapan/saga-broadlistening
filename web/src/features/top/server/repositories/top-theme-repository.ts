@@ -35,7 +35,8 @@ export async function findPublishedPoliciesWithThemes(): Promise<
           created_at,
           participation_mode,
           allowed_provider_keys,
-          interview_sessions ( count )
+          interview_sessions ( count ),
+          theme_voice_summaries ( status )
         )
       )
     `

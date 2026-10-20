@@ -95,6 +95,21 @@ export function getThemeCardLink(theme: {
 }
 
 /**
+ * 募集が終わったテーマの「結果を見る」の遷移先を取得。
+ *
+ * 公開中のみんなの声のまとめがあればまとめへ、なければトピック一覧へ送る。
+ * 終わったテーマの LP は公開されないので遷移先にしない（getThemeCardLink と同じ）。
+ */
+export function getInterviewResultLink(theme: {
+  slug: string;
+  hasPublishedSummary: boolean;
+}): string {
+  return theme.hasPublishedSummary
+    ? routes.interviewThemeSummary(theme.slug)
+    : routes.interviewThemeTopics(theme.slug);
+}
+
+/**
  * インタビュー情報開示ページへのリンクを取得
  */
 export function getInterviewDisclosureLink(target: InterviewTarget): string {

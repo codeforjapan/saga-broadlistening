@@ -14,6 +14,7 @@ import {
   getInterviewLPLink,
   getInterviewMessageLink,
   getInterviewReportCompleteLink,
+  getInterviewResultLink,
   getInterviewStartLink,
   getPublicReportLink,
   getThemeCardLink,
@@ -137,6 +138,20 @@ describe("getThemeCardLink", () => {
     expect(getThemeCardLink({ slug: "kosodate", isOpen: false })).toBe(
       "/interviews/kosodate/topics"
     );
+  });
+});
+
+describe("getInterviewResultLink", () => {
+  it("公開中のまとめがあれば、みんなの声のまとめへ送る", () => {
+    expect(
+      getInterviewResultLink({ slug: "kosodate", hasPublishedSummary: true })
+    ).toBe("/interviews/kosodate/summary");
+  });
+
+  it("公開中のまとめがなければ、トピック一覧へ送る", () => {
+    expect(
+      getInterviewResultLink({ slug: "kosodate", hasPublishedSummary: false })
+    ).toBe("/interviews/kosodate/topics");
   });
 });
 
