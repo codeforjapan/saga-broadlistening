@@ -38,10 +38,10 @@ export function TopPage({ themes }: TopPageProps) {
       <div
         className={cn(
           TOP_CONTENT_CLASS,
-          "flex flex-col gap-3 pt-28 pb-10 md:pt-12"
+          "flex flex-col gap-3 pt-28 pb-10 md:pt-6"
         )}
       >
-        <h1 className="text-2xl font-bold leading-normal md:text-4xl">
+        <h1 className="text-2xl font-bold leading-normal">
           {TOP_TITLE_PHRASES.map((phrase) => (
             <span key={phrase} className="inline-block">
               {phrase}

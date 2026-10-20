@@ -37,7 +37,12 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
         <div className="flex justify-between items-center h-16">
           {/* ロゴ。小さく出すためタグライン抜き。ワードマークを含むのでサービス名は併記しない */}
           <Link href={routes.home()} aria-label={`${SITE_NAME} ホーム`}>
-            <Image alt={SITE_NAME} {...logoImageProps("compact", 32)} />
+            <Image
+              alt={SITE_NAME}
+              {...logoImageProps("compact", 32)}
+              // PC では幅 95px（高さは縦横比から約 37px）。スマホは高さ 32px のまま
+              className="h-8 w-auto md:h-auto md:w-[95px]"
+            />
           </Link>
 
           {/* Navigation */}
