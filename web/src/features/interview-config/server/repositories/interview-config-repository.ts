@@ -265,7 +265,10 @@ export async function findInterviewParticipationRulesByIds(
   return data;
 }
 
-/** きかせてボックスに出すテーマの列（参加人数は完了セッションの埋め込み集計） */
+/**
+ * きかせてボックスに出すテーマの列（参加人数は完了セッションの埋め込み集計）。
+ * まとめの版は、募集終了後の「結果を見る」の遷移先を決めるために取る。
+ */
 const KIKASETE_THEME_SELECT = `
   id,
   name,
@@ -275,7 +278,8 @@ const KIKASETE_THEME_SELECT = `
   created_at,
   participation_mode,
   allowed_provider_keys,
-  interview_sessions ( count )
+  interview_sessions ( count ),
+  theme_voice_summaries ( status )
 `;
 
 /**

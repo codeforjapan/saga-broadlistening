@@ -17,6 +17,7 @@ const youthTheme = {
   participation_mode: "public" as const,
   allowed_provider_keys: [],
   interview_sessions: [{ count: 64 }],
+  theme_voice_summaries: [],
 };
 
 function source(overrides: Partial<ThemeCardSource> = {}): ThemeCardSource {
@@ -58,6 +59,7 @@ describe("toThemeCardView", () => {
         durationLabel: "約10分〜",
         participantLabel: "64人が参加",
         isOpen: true,
+        hasPublishedSummary: false,
         participationRule: {
           name: "若者支援",
           participation_mode: "public",

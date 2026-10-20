@@ -3,6 +3,7 @@ import "server-only";
 import type { InterviewParticipationView } from "../../shared/types/interview-participation-view";
 import { themeInterviewTarget } from "../../shared/types/interview-target";
 import {
+  getInterviewResultLink,
   getInterviewStartLink,
   getThemeCardLink,
 } from "../../shared/utils/interview-links";
@@ -22,9 +23,10 @@ import { getInterviewParticipationView } from "./get-interview-participation-vie
 /** KikaseteBox にそのまま渡せる形 */
 export type KikaseteBoxData = Omit<
   KikaseteInterview,
-  "participationRule" | "isOpen" | "slug"
+  "participationRule" | "isOpen" | "slug" | "hasPublishedSummary"
 > & {
-  aboutHref: string;
+  /** 「インタビューについて・みんなの声」。募集終了後は「結果を見る」と重なるので出さない */
+  aboutHref: string | null;
   start: KikaseteStart;
 };
 
@@ -39,7 +41,8 @@ export async function getKikaseteBox(
   box: KikaseteBoxData;
   participation: InterviewParticipationView;
 }> {
-  const { slug, isOpen, participationRule, ...display } = interview;
+  const { slug, isOpen, hasPublishedSummary, participationRule, ...display } =
+    interview;
   const participation = await getInterviewParticipationView(
     participationRule,
     isPreview
@@ -47,11 +50,11 @@ export async function getKikaseteBox(
   return {
     box: {
       ...display,
-      // 募集が終わったテーマは LP が公開されないので、結果（トピック一覧）へ送る
-      aboutHref: getThemeCardLink({ slug, isOpen }),
+      aboutHref: isOpen ? getThemeCardLink({ slug, isOpen }) : null,
       start: resolveKikaseteStart({
         isOpen,
         startHref: getInterviewStartLink(themeInterviewTarget(slug)),
+        resultHref: getInterviewResultLink({ slug, hasPublishedSummary }),
         participation,
       }),
     },

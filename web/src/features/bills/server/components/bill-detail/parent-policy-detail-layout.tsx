@@ -98,7 +98,7 @@ export async function ParentPolicyDetailLayout({
                 <VoiceSummaryPreview
                   summary={voiceSummary}
                   href={routes.interviewThemeSummary(interview.slug)}
-                  linkLabel="まとめを図で見る"
+                  linkLabel="まとめを見る"
                 />
               )}
               {topicContext?.analysis && (

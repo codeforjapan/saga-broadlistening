@@ -15,6 +15,7 @@ const youthTheme: KikaseteThemeSource = {
   participation_mode: "public",
   allowed_provider_keys: [],
   interview_sessions: [{ count: 64 }],
+  theme_voice_summaries: [],
 };
 
 describe("toKikaseteInterview", () => {
@@ -25,6 +26,7 @@ describe("toKikaseteInterview", () => {
       durationLabel: "約10分〜",
       participantLabel: "64人が参加",
       isOpen: true,
+      hasPublishedSummary: false,
       participationRule: {
         name: "若者支援",
         participation_mode: "public",
@@ -46,10 +48,25 @@ describe("toKikaseteInterview", () => {
     ).toBeNull();
   });
 
-  it("募集中でなければ「はじめる」を押せない状態にする", () => {
-    expect(
-      toKikaseteInterview({ ...youthTheme, status: "closed" }).isOpen
-    ).toBe(false);
+  it("募集が終わったテーマは、問いかけを終了の案内にする", () => {
+    const interview = toKikaseteInterview({
+      ...youthTheme,
+      name: "子育て支援について",
+      status: "closed",
+    });
+    expect(interview.isOpen).toBe(false);
+    expect(interview.prompt).toBe("子育て支援についての意見募集は終了しました");
+  });
+
+  it("公開中のまとめがあるかを、まとめの版の状態から判定する", () => {
+    const withSummaries = (statuses: string[]) =>
+      toKikaseteInterview({
+        ...youthTheme,
+        theme_voice_summaries: statuses.map((status) => ({ status })),
+      }).hasPublishedSummary;
+    expect(withSummaries(["archived", "published", "draft"])).toBe(true);
+    expect(withSummaries(["draft", "archived"])).toBe(false);
+    expect(withSummaries([])).toBe(false);
   });
 });
 
