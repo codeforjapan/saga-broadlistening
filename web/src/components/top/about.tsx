@@ -14,7 +14,7 @@ function ChikatServiceLines() {
     <>
       <p>
         <ChikatServiceLogo variant="mitemite" className={INLINE_LOGO_CLASS} />
-        では、市の今の取組を短くわかりやすく紹介。
+        では、市の今の取組を短くわかりやすく紹介。気になることや分からないことは、AIに質問してその場で確かめることもできます。
       </p>
       <p>
         <ChikatServiceLogo
