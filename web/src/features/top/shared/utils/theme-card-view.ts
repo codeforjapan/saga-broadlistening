@@ -17,6 +17,13 @@ export function usesThemeGrid(themeCount: number): boolean {
   return themeCount >= THEME_GRID_MIN_COUNT;
 }
 
+/** テーマが3件未満のときだけ、「準備中（ほかのテーマは今後追加予定）」を出す */
+const COMING_SOON_MAX_COUNT = 2;
+
+export function showsComingSoon(themeCount: number): boolean {
+  return themeCount <= COMING_SOON_MAX_COUNT;
+}
+
 /** toThemeCardView の入力（リポジトリの取得結果1行） */
 export type ThemeCardSource = {
   id: string;

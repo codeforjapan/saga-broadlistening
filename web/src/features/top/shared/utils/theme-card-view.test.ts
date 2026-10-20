@@ -4,6 +4,7 @@ import {
   selectTopThemeCards,
   type ThemeCardSource,
   toThemeCardView,
+  showsComingSoon,
   usesThemeGrid,
 } from "./theme-card-view";
 
@@ -183,5 +184,14 @@ describe("usesThemeGrid", () => {
     expect(usesThemeGrid(1)).toBe(false);
     expect(usesThemeGrid(3)).toBe(false);
     expect(usesThemeGrid(4)).toBe(true);
+  });
+});
+
+describe("showsComingSoon", () => {
+  it("テーマが3件未満のときだけ「準備中」を出す", () => {
+    expect(showsComingSoon(0)).toBe(true);
+    expect(showsComingSoon(2)).toBe(true);
+    expect(showsComingSoon(3)).toBe(false);
+    expect(showsComingSoon(4)).toBe(false);
   });
 });

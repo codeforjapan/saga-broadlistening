@@ -5,7 +5,10 @@ import { About } from "@/components/top/about";
 import { Badge } from "@/components/ui/badge";
 import { BillDisclaimer } from "@/features/bills/client/components/bill-detail/bill-disclaimer";
 import { cn } from "@/lib/utils";
-import { usesThemeGrid } from "../../shared/utils/theme-card-view";
+import {
+  showsComingSoon,
+  usesThemeGrid,
+} from "../../shared/utils/theme-card-view";
 import type { TopTheme } from "../loaders/get-top-themes";
 import { ThemeCard } from "./theme-card";
 
@@ -70,7 +73,8 @@ export function TopPage({ themes }: TopPageProps) {
               priority={index < (isGrid ? 2 : 1)}
             />
           ))}
-          <ComingSoonBox className={cn(isGrid && "md:col-span-2")} />
+          {/* グリッド（4件以上）では出ないので、2カラムにまたがる指定は要らない */}
+          {showsComingSoon(themes.length) && <ComingSoonBox />}
         </div>
       </div>
 
@@ -82,14 +86,9 @@ export function TopPage({ themes }: TopPageProps) {
   );
 }
 
-function ComingSoonBox({ className }: { className?: string }) {
+function ComingSoonBox() {
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-sky-200 px-4 py-6 md:flex-row md:gap-3",
-        className
-      )}
-    >
+    <div className="flex flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-sky-200 px-4 py-6 md:flex-row md:gap-3">
       <Badge className="rounded-full bg-yellow-400 px-3 text-foreground">
         準備中
       </Badge>
