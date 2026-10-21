@@ -1,8 +1,13 @@
 "use server";
 
 import "server-only";
-import { buildLoopModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/loop-mode";
+import { buildChatSystemPrompt } from "@mirai-gikai/shared/interview-prompts/chat-prompt";
+import { buildInitialSystemPrompt } from "@mirai-gikai/shared/interview-prompts/initial-prompt";
 import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
+import {
+  buildTurnTopics,
+  computeTurnState,
+} from "@mirai-gikai/shared/interview-prompts/turn-control";
 import {
   isInterviewPromptKey,
   isPromptKey,
@@ -220,32 +225,43 @@ export async function previewAiPrompt(
       );
       if (!input)
         return { success: false, error: "意見募集が見つかりません。" };
+      const topics = buildTurnTopics(input.questions);
+      const { content, key } = parsed.data;
+      if (key === "interview-persona") return { success: true, content };
+      if (key === "interview-initial-system") {
+        return {
+          success: true,
+          content: buildInitialSystemPrompt({ topics }, content),
+        };
+      }
+      if (key === "interview-chat-system") {
+        const metas = topics
+          .slice(0, parsed.data.askedQuestionCount)
+          .map((topic) => ({ questionId: topic.id, stage: "chat" as const }));
+        return {
+          success: true,
+          content: buildChatSystemPrompt(
+            {
+              bill: input.bill,
+              interviewConfig: input.interviewConfig,
+              topics,
+              turnState: computeTurnState({ topics, metas }),
+            },
+            content
+          ),
+        };
+      }
       return {
         success: true,
-        content:
-          parsed.data.key === "interview-chat-system"
-            ? buildLoopModeSystemPrompt(
-                {
-                  ...input,
-                  currentStage: "chat",
-                  askedQuestionIds: new Set(
-                    input.questions
-                      .slice(0, parsed.data.askedQuestionCount)
-                      .map((q) => q.id)
-                  ),
-                  remainingMinutes: parsed.data.remainingMinutes ?? null,
-                },
-                parsed.data.content
-              )
-            : buildSummarySystemPrompt(
-                {
-                  ...input,
-                  messages: parsed.data.conversation
-                    ? [{ role: "user", content: parsed.data.conversation }]
-                    : [],
-                },
-                parsed.data.content
-              ),
+        content: buildSummarySystemPrompt(
+          {
+            ...input,
+            messages: parsed.data.conversation
+              ? [{ role: "user", content: parsed.data.conversation }]
+              : [],
+          },
+          content
+        ),
       };
     }
     if (parsed.data.key === "top-chat-system") {

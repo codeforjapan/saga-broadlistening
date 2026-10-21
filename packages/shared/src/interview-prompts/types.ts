@@ -9,6 +9,7 @@
  * 持つ構造的サブセット型 PromptBillInput を定義している。BillWithContent は
  * 構造的にこの型を満たすため、既存呼び出し側はそのまま渡せる。
  */
+import type { PurposeType } from "./purpose-types/types";
 
 /**
  * インタビュープロンプトが参照する Bill の最小構造
@@ -16,6 +17,8 @@
 export type PromptBillInput = {
   name?: string | null;
   knowledge_source?: string | null;
+  /** この施策を担当する市の部署名（policies.department） */
+  department?: string | null;
   bill_content?: {
     title?: string | null;
     summary?: string | null;
@@ -31,6 +34,9 @@ export type InterviewConfig = {
   name?: string | null;
   /** 職員が設定したテーマの説明文（interview_configs.description）。 */
   description?: string | null;
+  purpose_type?: PurposeType | null;
+  opinion_focus?: string | null;
+  decided_matters?: string | null;
   [key: string]: unknown;
 } | null;
 
@@ -42,19 +48,6 @@ export interface InterviewQuestion {
   question: string;
   quick_replies?: string[] | null;
   follow_up_guide?: string | null;
-}
-
-/**
- * システムプロンプト構築用パラメータ（純粋関数用）
- */
-export interface InterviewPromptInput {
-  bill: PromptBillInput;
-  interviewConfig: InterviewConfig;
-  questions: InterviewQuestion[];
-  nextQuestionId?: string;
-  currentStage: InterviewStage;
-  askedQuestionIds: Set<string>;
-  remainingMinutes?: number | null;
 }
 
 /** セッションのステージ（interview_sessions.stage） */

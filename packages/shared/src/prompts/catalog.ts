@@ -1,4 +1,9 @@
-import { INTERVIEW_CHAT_TEMPLATE, INTERVIEW_SUMMARY_TEMPLATE } from "../interview-prompts/templates";
+import {
+  INTERVIEW_CHAT_TEMPLATE,
+  INTERVIEW_INITIAL_TEMPLATE,
+  INTERVIEW_PERSONA_TEMPLATE,
+  INTERVIEW_SUMMARY_TEMPLATE,
+} from "../interview-prompts/templates";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { VOICE_SUMMARY_TEMPLATE } from "../voice-summary/prompt-template";
 import { COMMON_RULES, SERVICE_OVERVIEW } from "./shared-sections";
@@ -87,15 +92,25 @@ export function isPublicPromptKey(value: string): value is PublicPromptKey {
 }
 
 export const INTERVIEW_PROMPT_CATALOG = {
+  "interview-persona": {
+    key: "interview-persona", name: "AIインタビュー・聞き手の人物像",
+    defaultContent: INTERVIEW_PERSONA_TEMPLATE,
+    requiredVariables: [],
+  },
   "interview-chat-system": {
     key: "interview-chat-system", name: "AIインタビュー・対話方針",
     defaultContent: INTERVIEW_CHAT_TEMPLATE,
-    requiredVariables: ["focusInstruction", "clarificationGuidance", "knowledgeSection", "themeDescription", "questionsText", "replyExamples", "perspectiveTechniques", "stopPolicy", "stopSigns", "stopFollowUps", "outputInstructions"],
+    requiredVariables: ["persona", "purposeSection", "focusInstruction", "themeDescription", "knowledgeSection", "questionsText", "perspectiveTechniques", "clarificationGuidance", "inquiryContact", "replyExamples", "turnState", "outputInstructions"],
+  },
+  "interview-initial-system": {
+    key: "interview-initial-system", name: "AIインタビュー・初回の発話",
+    defaultContent: INTERVIEW_INITIAL_TEMPLATE,
+    requiredVariables: ["persona", "topicCount", "firstQuestion", "firstQuestionId"],
   },
   "interview-summary-system": {
     key: "interview-summary-system", name: "AIインタビュー・要約方針",
     defaultContent: INTERVIEW_SUMMARY_TEMPLATE,
-    requiredVariables: ["summarySection", "themeDescription", "conversationLog", "reportInstructions"],
+    requiredVariables: ["persona", "summarySection", "themeDescription", "conversationLog", "summaryState", "reportInstructions"],
   },
   "voice-summary-system": {
     key: "voice-summary-system", name: "みんなの声のまとめ・生成方針",

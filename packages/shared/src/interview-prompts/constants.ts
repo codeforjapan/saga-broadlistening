@@ -41,3 +41,10 @@ export const EVALUATE_TEMPLATE_TOPICS_MAX = 6;
 
 /** 初めて聞く質問の選択肢ボタンに、コードが必ず足す選択肢 */
 export const SKIP_QUESTION_REPLY = "この質問はとばす";
+
+/** いただいた声の扱い（対話・要約の締めで共通。時期や場所は約束しない） */
+export const VOICE_USAGE_TEXT = "いただいた声は、市の施策に役立てます";
+
+/** 個別の相談・要望に応えられないことの伝え方 */
+export const NO_INDIVIDUAL_RESPONSE_TEXT =
+  "個別のご相談やご要望には、このインタビューではお応えできません";

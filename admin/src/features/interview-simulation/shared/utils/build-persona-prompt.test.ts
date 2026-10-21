@@ -106,7 +106,7 @@ describe("buildPersonaPrompt（施策に紐づかない抽象テーマ型）", (
       interviewConfig: themeConfig,
     });
 
-    expect(result).toContain("## インタビューの対象");
+    expect(result).toContain("# 参考知識");
     expect(result).toContain("佐賀市のみらい");
     // 空欄の施策情報を並べるとAIが存在しない施策を語り出すため、欄ごと出さない
     expect(result).not.toContain("- 施策名:");
