@@ -15,6 +15,7 @@ import {
   textToArray,
 } from "../../shared/types";
 import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
+import { buildPurposeTemplateQuestions } from "../../shared/utils/purpose-template-questions";
 import { toQuestionInput } from "../../shared/utils/question-input";
 import type { ConfigFormContext } from "../hooks/use-config-generation-chat";
 import { ConfigGenerationChat } from "./config-generation-chat";
@@ -70,6 +71,13 @@ export function InterviewConfigEditClient({
     InterviewQuestionInput[] | null
   >(null);
 
+  // テンプレートは保存済みの目的と、保存済みの施策の紐づけ（あれば施策型）で決める
+  const purposeTemplate = initialConfig?.purpose_type
+    ? buildPurposeTemplateQuestions(
+        initialConfig.purpose_type,
+        linkedPolicyIds.length > 0 ? "bill" : "theme"
+      )
+    : null;
   // フォームの値を取得するためのref
   const getFormValuesRef = useRef<(() => InterviewConfigFormValues) | null>(
     null
@@ -156,6 +164,7 @@ export function InterviewConfigEditClient({
             {configId ? (
               <InterviewQuestionList
                 interviewConfigId={configId}
+                purposeTemplate={purposeTemplate}
                 questions={questions}
                 aiGeneratedQuestions={aiGeneratedQuestions}
                 onAiQuestionsApplied={() => setAiGeneratedQuestions(null)}
