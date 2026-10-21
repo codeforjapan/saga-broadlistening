@@ -118,11 +118,16 @@ export type TestInterviewConfigOverrides = Partial<{
   thumbnail_url: string;
   participation_mode: Database["public"]["Enums"]["interview_participation_mode_enum"];
   allowed_provider_keys: string[];
+  purpose_type: Database["public"]["Enums"]["interview_purpose_type_enum"];
+  opinion_focus: string;
+  decided_matters: string;
 }>;
 
 export type TestInterviewSessionOverrides = Partial<{
   started_at: string;
   completed_at: string | null;
+  consented_at: string | null;
+  stage: Database["public"]["Enums"]["interview_session_stage_enum"];
   archived_at: string | null;
   rating: number;
 }>;
