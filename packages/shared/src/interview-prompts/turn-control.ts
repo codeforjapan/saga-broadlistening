@@ -8,11 +8,18 @@
 import {
   QUESTION_TURN_LIMIT_PER_TOPIC,
   QUESTION_TURNS_PER_TOPIC,
+  RESUME_MIN_SUMMARY_TURNS,
   RESUME_TOPIC_TURN_LIMIT,
   SKIP_QUESTION_REPLY,
+  SUMMARY_TURN_LIMIT,
 } from "./constants";
 import type { TurnSignals } from "./read-signals";
-import type { InterviewQuestion, InterviewStage } from "./types";
+import type {
+  InterviewQuestion,
+  InterviewStage,
+  SummaryPhase,
+  SummaryResponse,
+} from "./types";
 
 /** summary から chat に戻ったときに開く話題の ID（interview_questions には無い） */
 export const RESUME_TOPIC_ID = "resume";
@@ -119,6 +126,33 @@ export const RESUME_TOPIC: TurnTopic = {
  */
 export function countQuestionTurns(metas: AssistantTurnMeta[]): number {
   return metas.slice(1).filter((m) => m.stage !== "summary").length;
+}
+
+/** これまでの要約の段階の発話数（再開を挟んでも通算） */
+export function countSummaryTurns(metas: AssistantTurnMeta[]): number {
+  return metas.filter((m) => m.stage === "summary").length;
+}
+
+/** summary から chat に戻る再開を、すでに使ったか */
+export function hasUsedResume(metas: AssistantTurnMeta[]): boolean {
+  return metas.some((m) => m.questionId === RESUME_TOPIC_ID);
+}
+
+/**
+ * 要約の段階の場面を、セッションのステージと直前の発話から決める。
+ * このリクエストで要約に入った（セッションがまだ chat）なら初回の要約。
+ * 要約の段階では、直前の発話が要約の段階のものなら返事を受けるところ、
+ * chat の発話（終えたいと言われた直後）なら初回の要約。
+ */
+export function resolveSummaryPhase({
+  sessionStage,
+  metas,
+}: {
+  sessionStage: InterviewStage;
+  metas: AssistantTurnMeta[];
+}): SummaryPhase {
+  if (sessionStage !== "summary") return "first";
+  return metas.at(-1)?.stage === "summary" ? "reply" : "first";
 }
 
 function usedCount(metas: AssistantTurnMeta[], topicId: string): number {
@@ -299,4 +333,69 @@ export function resolveChatTurn({
     quickReplies:
       firstAsk && topic.predefined && confirmed ? buildQuickReplies(topic) : [],
   };
+}
+
+export interface SummaryState {
+  phase: SummaryPhase;
+  /** 要約の段階で使える残りの発話（今回を含む） */
+  remainingTurns: number;
+  canResume: boolean;
+  /** 今回で要約の段階を締める（残りが1回以下か、要約中に「終える」が押された） */
+  isLast: boolean;
+}
+
+export function computeSummaryState({
+  topics,
+  metas,
+  phase,
+  forceClose,
+}: {
+  /** 質問の発話の上限を決めるための話題（再開できるかの判定に使う） */
+  topics: TurnTopic[];
+  metas: AssistantTurnMeta[];
+  phase: SummaryPhase;
+  /** summary 中に「終える」ボタンが押された */
+  forceClose: boolean;
+}): SummaryState {
+  const remainingTurns = SUMMARY_TURN_LIMIT - countSummaryTurns(metas);
+  const remainingQuestionTurns =
+    computeQuestionTurnLimit(topics) - countQuestionTurns(metas);
+  return {
+    phase,
+    remainingTurns,
+    // 再開は1回まで。戻った後に質問の発話が1回は残り、
+    // 要約の段階に「再開を受ける発話・もう一度の要約・締め」が残ること
+    canResume:
+      !hasUsedResume(metas) &&
+      remainingQuestionTurns >= 1 &&
+      remainingTurns >= RESUME_MIN_SUMMARY_TURNS,
+    isLast: remainingTurns <= 1 || forceClose,
+  };
+}
+
+export interface SummaryTurnResult {
+  stage: InterviewStage;
+  /** chat に戻った（再開の話題を開いた） */
+  resumed: boolean;
+}
+
+/** summary の生成後に、次のステージを決める */
+export function resolveSummaryTurn(
+  summaryState: SummaryState,
+  response: SummaryResponse
+): SummaryTurnResult {
+  if (
+    summaryState.isLast ||
+    (summaryState.phase === "reply" && response === "agree")
+  ) {
+    return { stage: "summary_complete", resumed: false };
+  }
+  if (
+    summaryState.phase === "reply" &&
+    response === "resume" &&
+    summaryState.canResume
+  ) {
+    return { stage: "chat", resumed: true };
+  }
+  return { stage: "summary", resumed: false };
 }

@@ -19,6 +19,15 @@ export const QUESTION_TURNS_PER_TOPIC = 5;
  */
 export const QUESTION_TURN_LIMIT_PER_TOPIC = 10;
 
+/** 要約の段階でAIが発話できる上限（初回の要約・確認・締め・再開を受ける発話。再開後も通算） */
+export const SUMMARY_TURN_LIMIT = 5;
+
+/**
+ * summary から chat に戻れる、要約の段階の残りの発話数の下限
+ * （再開を受ける発話・もう一度の要約・締めの3回）
+ */
+export const RESUME_MIN_SUMMARY_TURNS = 3;
+
 /** 再開した話題の発話の上限（再開を受けた発話を含む） */
 export const RESUME_TOPIC_TURN_LIMIT = 2;
 

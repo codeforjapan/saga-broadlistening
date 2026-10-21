@@ -11,4 +11,6 @@ export const INTERVIEW_CHAT_FIELD_DESCRIPTIONS = {
     "回答者が終えたい・やめたいとはっきり言ったら true（「疲れた」だけなら false）",
   wrap_up:
     "次に聞ける話題がない最後の話題で、回答者が「ない」「特にない」と答えた、または十分に聞けたら true。それ以外は false",
+  summary_response:
+    "要約への返事の分類。初回の要約は none。よい=agree、直したい・付け足したい=revise、インタビューに戻りたい=resume、どれでもない=other",
 } as const;

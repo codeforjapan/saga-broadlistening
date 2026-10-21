@@ -1,8 +1,10 @@
 import { z } from "zod";
+import { interviewReportSchema } from "../interview-report/schema";
 import {
   INTERVIEW_CHAT_FIELD_DESCRIPTIONS,
   INTERVIEW_CHAT_TEXT_DESCRIPTION,
 } from "./chat-text-description";
+import { SUMMARY_RESPONSES } from "./types";
 
 /**
  * AIインタビューの LLM 出力スキーマ。本番（web）とシミュレータ（admin）で共通に使う。
@@ -31,3 +33,19 @@ export const interviewInitialSchema = interviewChatTextSchema.pick({
   topic_title: true,
   text: true,
 });
+
+// 要約（stage = summary）
+export const interviewChatWithReportSchema = z.object({
+  text: z.string().describe("回答者に表示する本文"),
+  summary_response: z
+    .enum(SUMMARY_RESPONSES)
+    .describe(INTERVIEW_CHAT_FIELD_DESCRIPTIONS.summary_response),
+  report: interviewReportSchema
+    .nullable()
+    .describe(
+      "インタビュー内容をまとめたレポート。resume でインタビューに戻るときは null にすること"
+    ),
+});
+export type InterviewChatWithReport = z.infer<
+  typeof interviewChatWithReportSchema
+>;
