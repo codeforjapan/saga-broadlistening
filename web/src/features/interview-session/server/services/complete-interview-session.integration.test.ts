@@ -116,11 +116,13 @@ describe("completeInterviewSession 統合テスト", () => {
     // DB 状態を検証: セッションが completed になっていること
     const { data: dbSession } = await adminClient
       .from("interview_sessions")
-      .select("completed_at")
+      .select("completed_at, stage")
       .eq("id", sessionId)
       .single();
 
     expect(dbSession?.completed_at).toBeTruthy();
+    // 提出したら要約の段階も終わったことにする
+    expect(dbSession?.stage).toBe("summary_complete");
 
     // DB 状態を検証: opinion_segments に同期されていること
     const { data: segments } = await adminClient

@@ -22,14 +22,14 @@ export async function POST(req: Request) {
   const {
     messages,
     interviewConfigId,
-    currentStage,
+    action,
     isRetry,
     previewPolicyId,
     previewToken,
   }: {
     messages: Array<{ role: string; content: string }>;
     interviewConfigId: string;
-    currentStage: "chat" | "summary" | "summary_complete";
+    action?: unknown;
     isRetry?: boolean;
     previewPolicyId?: unknown;
     previewToken?: unknown;
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     return await handleInterviewChatRequest({
       messages,
       interviewConfigId,
-      currentStage,
+      action: action === "end" ? "end" : undefined,
       isRetry,
       // 文字列以外は検証対象にしない（不正な型のトークンは未指定として扱う）
       previewPolicyId:
