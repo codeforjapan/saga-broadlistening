@@ -47,6 +47,7 @@ import {
   DEMO_OPINION_ID_DAILY,
   DEMO_OPINION_ID_WORK,
   KOSODATE_CONFIG_SLUG,
+  PURPOSE_TEMPLATE_CONFIGS,
   policies,
   SEIJI_SANKA_CONFIG_SLUG,
   tags,
@@ -206,7 +207,7 @@ async function seedDatabase() {
             ...additionalInterviewConfigs,
           ])
         )
-        .select("id, slug"),
+        .select("id, slug, purpose_type"),
     });
 
     const configIdBySlug = new Map(
@@ -256,9 +257,18 @@ async function seedDatabase() {
       query: supabase
         .from("interview_questions")
         .insert([
-          ...createInterviewQuestions(defaultConfigId),
+          ...PURPOSE_TEMPLATE_CONFIGS.flatMap(({ slug, subject }) => {
+            const config = insertedConfigs.find((c) => c.slug === slug);
+            if (!config?.purpose_type) {
+              throw new Error(`Purpose type is not set for config: ${slug}`);
+            }
+            return createInterviewQuestions(
+              config.id,
+              config.purpose_type,
+              subject
+            );
+          }),
           ...createBulkOpinionQuestions(bulkConfigId),
-          ...createInterviewQuestions(youthConfigId),
         ])
         .select("id"),
     });
