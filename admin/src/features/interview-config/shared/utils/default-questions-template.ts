@@ -2,7 +2,7 @@ import type { InterviewQuestionInput } from "../types";
 
 /**
  * クイックリプライのみを LLM で施策別に生成するスロット。
- * 質問文・フォローアップ指針は固定文言を使う。
+ * 質問文・観点は固定文言を使う。
  *
  * - topics: 関心のあるテーマ（論点）選択肢（Q1 で使う）
  * - stance: 立場・関わり方の選択肢（Q2 で使う）
@@ -13,7 +13,7 @@ export type QuickRepliesSlot = "topics" | "stance";
 export const OTHER_FREE_TEXT_OPTION = "その他（自由記述）";
 
 /**
- * 深掘り過剰を抑えるため、自由回答系の質問のフォローアップ指針に共通で付与する末尾ルール。
+ * 深掘り過剰を抑えるため、自由回答系の質問の観点に共通で付与する末尾ルール。
  * 適用先は Q4 / Q5 / Q7。Q6 は許容往復数が 5 と異なるため、本定数を参照せず
  * インラインで独自ルール（最大5往復）を記述している。
  */
@@ -29,14 +29,14 @@ export type FixedQuestionTemplate = {
 
 /**
  * クイックリプライのみ施策ごとに LLM 生成するタイプ。
- * 質問文とフォローアップ指針は固定文言。
+ * 質問文と観点は固定文言。
  */
 export type QuickRepliesSlotTemplate = {
   kind: "quick_replies_slot";
   slot: QuickRepliesSlot;
   /** 固定の質問文 */
   question: string;
-  /** 固定のフォローアップ指針 */
+  /** 固定の観点 */
   follow_up_guide: string;
   /** LLM 生成のサンプル／フォールバック用 */
   sample_quick_replies: string[];

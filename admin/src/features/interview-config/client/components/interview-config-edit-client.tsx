@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MultiSimulationView } from "@/features/interview-simulation/client/components/multi-simulation-view";
 import type { CompletedReportListItem } from "@/features/interview-simulation/shared/types";
 import { saveInterviewQuestions } from "../../server/actions/save-interview-questions";
+import { revertInterviewConfigToDraft } from "../../server/actions/upsert-interview-config";
 import {
   type InterviewConfig,
   type InterviewQuestion,
@@ -104,9 +105,15 @@ export function InterviewConfigEditClient({
         aiGeneratedQuestions
       ).catch(() => null);
       if (!result?.success) {
+        // 質問が0件のまま募集中にしないよう、下書きに戻す
+        const wasOpen = getFormValuesRef.current?.().status === "open";
+        if (wasOpen) {
+          await revertInterviewConfigToDraft(newConfigId).catch(() => null);
+        }
         toast.error(result?.error || "質問の保存に失敗しました", {
-          description:
-            "質問は保存されていないので、編集画面のAI生成から作り直してください",
+          description: wasOpen
+            ? "質問は保存されていないので、編集画面のAI生成から作り直してください（設定は下書きで保存しました）"
+            : "質問は保存されていないので、編集画面のAI生成から作り直してください",
         });
       }
     },
@@ -140,6 +147,7 @@ export function InterviewConfigEditClient({
               onAiThemesApplied={() => setAiGeneratedThemes(null)}
               getFormValuesRef={getFormValuesRef}
               onConfigCreated={handleConfigCreated}
+              pendingQuestionCount={aiGeneratedQuestions?.length ?? 0}
               initialName={initialName}
               initialSlug={initialSlug}
               policyOptions={policyOptions}
@@ -236,7 +244,7 @@ function AiQuestionsPreview({
                     </div>
                     {question.follow_up_guide && (
                       <div className="text-sm text-gray-600">
-                        <span className="font-medium">フォローアップ指針:</span>{" "}
+                        <span className="font-medium">観点:</span>{" "}
                         {question.follow_up_guide}
                       </div>
                     )}

@@ -17,6 +17,7 @@ import {
   interviewConfigSchema,
 } from "../../shared/types";
 import { prepareQuestionsForDuplication } from "../../shared/utils/prepare-questions-for-duplication";
+import { findPublishBlockReason } from "../../shared/utils/publish-requirement";
 import { toConfigRecord } from "../../shared/utils/to-config-record";
 import {
   closeInterviewConfigRecord,
@@ -31,6 +32,7 @@ import {
   replacePolicyLinksForConfig,
   unpublishReportsByConfigId,
   updateInterviewConfigRecord,
+  updateInterviewConfigStatusToDraft,
 } from "../repositories/interview-config-repository";
 
 export type InterviewConfigResult =
@@ -49,13 +51,22 @@ function buildDuplicatedSlug(originalSlug: string): string {
  * 抽象テーマ型の意見募集になる。
  */
 export async function createInterviewConfig(
-  input: InterviewConfigInput
+  input: InterviewConfigInput,
+  /** 作成の直後に登録する質問の数（AI生成で確定した、プレビュー中の質問） */
+  options?: { pendingQuestionCount?: number }
 ): Promise<InterviewConfigResult> {
   try {
     await requireAdmin();
 
     // バリデーション
     const validatedData = interviewConfigSchema.parse(input);
+    const publishBlockReason = findPublishBlockReason({
+      status: validatedData.status,
+      questionCount: options?.pendingQuestionCount ?? 0,
+    });
+    if (publishBlockReason) {
+      return { success: false, error: publishBlockReason };
+    }
     const modelId = resolveModelId(
       parseAiConfig(process.env),
       "interview",
@@ -104,6 +115,27 @@ export async function createInterviewConfig(
 }
 
 /**
+ * 作成直後の質問の登録に失敗したとき、意見募集を下書きに戻す。
+ * 質問が0件のまま募集中にしないため（募集中にする条件は findPublishBlockReason）。
+ */
+export async function revertInterviewConfigToDraft(
+  configId: string
+): Promise<InterviewConfigResult> {
+  try {
+    await requireAdmin();
+    await updateInterviewConfigStatusToDraft(configId);
+    await invalidateWebCache([WEB_CACHE_TAGS.INTERVIEW_CONFIGS]);
+    return { success: true, data: { id: configId } };
+  } catch (error) {
+    console.error("Revert interview config error:", error);
+    return {
+      success: false,
+      error: getErrorMessage(error, "下書きに戻せませんでした"),
+    };
+  }
+}
+
+/**
  * 既存のインタビュー設定を更新する。
  *
  * `input.policy_ids` を渡した場合のみ、施策との紐づけを指定された集合に揃える。
@@ -132,6 +164,17 @@ export async function updateInterviewConfig(
       throw new Error(
         "このモデルの料金が未設定です。AI_MODEL_PRICINGを設定してください。"
       );
+    }
+
+    if (validatedData.status === "open") {
+      const questions = await findInterviewQuestionsByConfigId(configId);
+      const publishBlockReason = findPublishBlockReason({
+        status: validatedData.status,
+        questionCount: questions.length,
+      });
+      if (publishBlockReason) {
+        return { success: false, error: publishBlockReason };
+      }
     }
 
     // 紐づけの更新は、募集中の重複チェックより先に行う。
@@ -221,6 +264,9 @@ export async function duplicateInterviewConfig(
         thumbnail_url: originalConfig.thumbnail_url,
         participation_mode: originalConfig.participation_mode,
         allowed_provider_keys: originalConfig.allowed_provider_keys,
+        purpose_type: originalConfig.purpose_type,
+        opinion_focus: originalConfig.opinion_focus,
+        decided_matters: originalConfig.decided_matters,
       });
       await linkPolicyToInterviewConfig(targetBillId, newConfig.id);
     } catch (error) {
