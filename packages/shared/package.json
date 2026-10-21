@@ -232,6 +232,10 @@
     "./interview-prompts/turn-state": {
       "types": "./src/interview-prompts/turn-state.ts",
       "default": "./src/interview-prompts/turn-state.ts"
+    },
+    "./interview-prompts/to-prompt-related-policies": {
+      "types": "./src/interview-prompts/to-prompt-related-policies.ts",
+      "default": "./src/interview-prompts/to-prompt-related-policies.ts"
     }
   },
   "dependencies": {

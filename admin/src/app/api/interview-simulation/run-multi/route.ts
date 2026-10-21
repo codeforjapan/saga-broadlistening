@@ -1,13 +1,18 @@
-import { after } from "next/server";
-import { flushTelemetry } from "@/lib/telemetry/register";
 import { resolveSubjectTitle } from "@mirai-gikai/shared/interview-prompts/subject-section";
+import { toPromptRelatedPolicies } from "@mirai-gikai/shared/interview-prompts/to-prompt-related-policies";
 import type {
   PromptBillInput,
   InterviewQuestion as PromptInterviewQuestion,
+  PromptRelatedPolicyInput,
 } from "@mirai-gikai/shared/interview-prompts/types";
+import { after } from "next/server";
 import type { z } from "zod";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
-import { findInterviewConfigById } from "@/features/interview-config/server/repositories/interview-config-repository";
+import {
+  findInterviewConfigById,
+  findPolicyContentsByIds,
+  findPolicyIdsByInterviewConfigId,
+} from "@/features/interview-config/server/repositories/interview-config-repository";
 import { resolveSimulationScope } from "@/features/interview-simulation/server/loaders/resolve-simulation-scope";
 import { runMultiSimulationPipeline } from "@/features/interview-simulation/server/services/run-multi-simulation-pipeline";
 import { multiSimulationRunRequestSchema } from "@/features/interview-simulation/shared/schemas";
@@ -15,6 +20,7 @@ import type { MultiSimulationProgressEvent } from "@/features/interview-simulati
 import { validatePersonaSlots } from "@/features/interview-simulation/shared/utils/validate-persona-slots";
 import { fetchBillWithContents } from "@/features/topic-analysis/server/repositories/topic-analysis-repository";
 import { verifyInternalAuth } from "@/features/topic-analysis/server/utils/trigger-next-phase";
+import { flushTelemetry } from "@/lib/telemetry/register";
 
 export const maxDuration = 300;
 
@@ -39,6 +45,21 @@ async function authenticate(request: Request): Promise<Response | null> {
   }
 }
 
+/**
+ * 本番の対話と同じく、主たる施策以外に紐づく施策の標準（normal）本文も並べる。
+ * シミュレーションは職員の確認用なので、施策の公開状態は問わない。
+ */
+async function fetchRelatedPolicies(
+  interviewConfigId: string,
+  primaryPolicyId: string
+): Promise<PromptRelatedPolicyInput[]> {
+  const policyIds = (
+    await findPolicyIdsByInterviewConfigId(interviewConfigId)
+  ).filter((id) => id !== primaryPolicyId);
+  const rows = await findPolicyContentsByIds(policyIds, "normal");
+  return toPromptRelatedPolicies(policyIds, rows);
+}
+
 /** MultiSimulationRunRequest → pipeline params */
 async function buildPipelineParams(
   params: z.output<typeof multiSimulationRunRequestSchema>
@@ -58,9 +79,12 @@ async function buildPipelineParams(
   const scope = await resolveSimulationScope(params.interviewConfigId);
 
   // 抽象テーマ型（施策なし）では施策を読まず、テーマの説明だけを材料にする
-  const billData = scope.policyId
-    ? await fetchBillWithContents(scope.policyId)
-    : null;
+  const [billData, relatedPolicies] = scope.policyId
+    ? await Promise.all([
+        fetchBillWithContents(scope.policyId),
+        fetchRelatedPolicies(params.interviewConfigId, scope.policyId),
+      ])
+    : [null, []];
   if (scope.policyId && !billData?.bill) {
     return {
       ok: false as const,
@@ -78,6 +102,7 @@ async function buildPipelineParams(
           summary: billData.billSummary,
           content: billData.billContent,
         },
+        related_policies: relatedPolicies,
       }
     : null;
 

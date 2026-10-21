@@ -111,3 +111,63 @@ describe("resolveSubjectTitle", () => {
     expect(resolveSubjectTitle(null, null)).toBe("このテーマ");
   });
 });
+
+describe("buildInterviewSubject（意見募集に複数の施策が紐づくとき）", () => {
+  const related = [
+    {
+      name: "子ども医療費の助成拡大",
+      title: "高校生まで医療費を助成",
+      summary: "助成対象を18歳まで広げます",
+      content: "通院・入院ともに自己負担をなくします。",
+    },
+    {
+      name: "放課後児童クラブの拡充",
+      title: "学童の定員を増やす",
+      summary: "待機児童を解消します",
+      content: "全校区で定員を1.5倍にします。",
+    },
+  ];
+
+  it("主たる施策に続けて、他の施策の内容もすべて載せる", () => {
+    const subject = buildInterviewSubject(
+      { ...bill, related_policies: related },
+      { name: "バス" }
+    );
+
+    expect(subject.knowledgeSection).toContain("<bill_detail>\n詳細");
+    expect(subject.knowledgeSection).toContain(
+      "# この意見募集に紐づくその他の施策"
+    );
+    expect(subject.knowledgeSection).toContain(
+      "## 関連施策1: 子ども医療費の助成拡大"
+    );
+    expect(subject.knowledgeSection).toContain(
+      "通院・入院ともに自己負担をなくします。"
+    );
+    expect(subject.knowledgeSection).toContain(
+      "## 関連施策2: 放課後児童クラブの拡充"
+    );
+    expect(subject.knowledgeSection).toContain("全校区で定員を1.5倍にします。");
+  });
+
+  it("要約プロンプトには他の施策の名前を並べる", () => {
+    const subject = buildInterviewSubject(
+      { ...bill, related_policies: related },
+      { name: "バス" }
+    );
+
+    expect(subject.summarySection).toContain(
+      "- 関連施策: 子ども医療費の助成拡大、放課後児童クラブの拡充"
+    );
+  });
+
+  it("他の施策がなければ関連施策の欄を作らない", () => {
+    const subject = buildInterviewSubject(
+      { ...bill, related_policies: [] },
+      { name: "バス" }
+    );
+
+    expect(subject.knowledgeSection).not.toContain("関連施策");
+    expect(subject.summarySection).not.toContain("関連施策");
+  });
+});

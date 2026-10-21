@@ -48,3 +48,9 @@ export const VOICE_USAGE_TEXT = "いただいた声は、市の施策に役立�
 /** 個別の相談・要望に応えられないことの伝え方 */
 export const NO_INDIVIDUAL_RESPONSE_TEXT =
   "個別のご相談やご要望には、このインタビューではお応えできません";
+
+/** プロンプトに載せる、主たる施策以外の施策の上限（紐づけの順に先頭から） */
+export const MAX_RELATED_POLICIES = 5;
+
+/** 主たる施策以外の施策の本文の上限（文字数）。超えた分は省く */
+export const RELATED_POLICY_CONTENT_MAX_CHARS = 2000;

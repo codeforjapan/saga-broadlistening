@@ -127,6 +127,32 @@ export async function findBillContentByDifficulty(
   return data;
 }
 
+/**
+ * 複数の公開済み施策を、指定難易度のコンテンツ付きで一括取得
+ */
+export async function findPublishedBillContentsByIds(
+  billIds: string[],
+  difficultyLevel: DifficultyLevelEnum
+) {
+  if (billIds.length === 0) {
+    return [];
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("policies")
+    .select("id, name, policy_contents!inner(title, summary, content)")
+    .in("id", billIds)
+    .eq("publish_status", "published")
+    .eq("policy_contents.difficulty_level", difficultyLevel);
+
+  if (error) {
+    throw new Error(`Failed to fetch policy contents: ${error.message}`);
+  }
+
+  return data;
+}
+
 // ============================================================
 // Tags (bulk)
 // ============================================================
