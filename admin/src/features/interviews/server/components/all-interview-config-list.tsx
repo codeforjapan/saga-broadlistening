@@ -117,16 +117,8 @@ function ConfigRow({
   return (
     <TableRow>
       <TableCell>
-        {/*
-          施策に紐づく設定は、プレビューとシミュレーションが使える施策配下の編集画面へ。
-          施策0件の抽象テーマ型はそれらを使えないため、テーマ単位の編集画面へ送る。
-        */}
         <Link
-          href={
-            (bill
-              ? routes.billInterviewEdit(bill.id, config.id)
-              : routes.interviewEdit(config.id)) as Route
-          }
+          href={routes.interviewEdit(config.id) as Route}
           className="font-medium hover:underline"
         >
           {config.name}

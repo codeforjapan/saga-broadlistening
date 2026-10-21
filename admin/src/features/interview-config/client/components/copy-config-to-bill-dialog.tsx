@@ -93,9 +93,7 @@ export function CopyConfigToBillDialog({
         toast.success("他施策へインタビュー設定を複製しました");
         setIsSubmitting(false);
         closeDialog();
-        router.push(
-          routes.billInterviewEdit(result.data.billId, result.data.id) as Route
-        );
+        router.push(routes.interviewEdit(result.data.id) as Route);
         return;
       }
       toast.error(result.error || "複製に失敗しました");

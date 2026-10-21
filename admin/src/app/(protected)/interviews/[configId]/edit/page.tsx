@@ -61,13 +61,7 @@ export default async function InterviewEditPage({
         </p>
       </div>
 
-      {/*
-        プレビューは施策単位で発行するため、施策配下の画面
-        （/bills/[id]/interview/...）に任せて billId は渡さない。
-        シミュレーションは施策の有無によらず使えるので simulationPolicyId で渡す。
-      */}
       <InterviewConfigEditor
-        billId={null}
         config={config}
         questions={questions}
         completedReports={completedReportsResult.reports}

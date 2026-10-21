@@ -20,6 +20,18 @@ const nextConfig: NextConfig = {
         destination: routes.publicChatPrompts(),
         permanent: true,
       },
+      // 意見募集の作成・編集は /interviews 配下の画面に一本化した。
+      // 施策ページ配下の旧URL（ブックマーク等）はそちらへ送る
+      {
+        source: "/bills/:id/interview/new",
+        destination: routes.interviewNewForPolicy(":id"),
+        permanent: true,
+      },
+      {
+        source: "/bills/:id/interview/:configId/edit",
+        destination: routes.interviewEdit(":configId"),
+        permanent: true,
+      },
     ];
   },
   turbopack: {

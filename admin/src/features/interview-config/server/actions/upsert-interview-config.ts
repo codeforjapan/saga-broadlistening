@@ -37,10 +37,6 @@ export type InterviewConfigResult =
   | { success: true; data: { id: string } }
   | { success: false; error: string };
 
-export type DuplicateInterviewConfigResult =
-  | { success: true; data: { id: string; billId: string } }
-  | { success: false; error: string };
-
 /** interview_configs.slug は NOT NULL かつ一意なため、複製時に採番する */
 function buildDuplicatedSlug(originalSlug: string): string {
   return `${originalSlug}-copy-${randomBytes(4).toString("hex")}`;
@@ -111,8 +107,7 @@ export async function createInterviewConfig(
  * 既存のインタビュー設定を更新する。
  *
  * `input.policy_ids` を渡した場合のみ、施策との紐づけを指定された集合に揃える。
- * 未指定なら紐づけには触れない（施策配下のフォームからの保存で
- * 他の施策との紐づけを失わないようにするため）。
+ * 未指定なら紐づけには触れない。
  */
 export async function updateInterviewConfig(
   configId: string,
@@ -186,7 +181,7 @@ export async function updateInterviewConfig(
 export async function duplicateInterviewConfig(
   configId: string,
   options?: { targetBillId?: string }
-): Promise<DuplicateInterviewConfigResult> {
+): Promise<InterviewConfigResult> {
   try {
     await requireAdmin();
 
@@ -257,7 +252,7 @@ export async function duplicateInterviewConfig(
     // web側のキャッシュを無効化
     await invalidateWebCache([WEB_CACHE_TAGS.INTERVIEW_CONFIGS]);
 
-    return { success: true, data: { id: newConfig.id, billId: targetBillId } };
+    return { success: true, data: { id: newConfig.id } };
   } catch (error) {
     console.error("Duplicate interview config error:", error);
     return {
