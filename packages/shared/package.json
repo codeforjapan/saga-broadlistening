@@ -196,7 +196,15 @@
       "types": "./src/voice-summary/threshold.ts",
       "default": "./src/voice-summary/threshold.ts"
     },
-    "./voice-summary/voice-summary.css": "./src/voice-summary/voice-summary.css"
+    "./voice-summary/voice-summary.css": "./src/voice-summary/voice-summary.css",
+    "./interview-prompts/purpose-types/registry": {
+      "types": "./src/interview-prompts/purpose-types/registry.ts",
+      "default": "./src/interview-prompts/purpose-types/registry.ts"
+    },
+    "./interview-prompts/purpose-types/types": {
+      "types": "./src/interview-prompts/purpose-types/types.ts",
+      "default": "./src/interview-prompts/purpose-types/types.ts"
+    }
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "^4.0.176",

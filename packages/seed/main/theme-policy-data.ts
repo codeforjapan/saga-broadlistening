@@ -221,6 +221,7 @@ export const themeInterviewConfigs: InterviewConfigInsert[] = [
     chat_model: "",
     estimated_duration: 10,
     starts_at: "2026-09-01T00:00:00+09:00",
+    purpose_type: "discover",
   },
   {
     name: "高齢者支援",
@@ -230,6 +231,7 @@ export const themeInterviewConfigs: InterviewConfigInsert[] = [
     chat_model: "",
     estimated_duration: 10,
     starts_at: "2026-09-01T00:00:00+09:00",
+    purpose_type: "understand",
   },
 ];
 
