@@ -85,8 +85,9 @@ export const configGenerationResponseSchema = z.object({
     .array(
       z.object({
         question: z.string(),
-        follow_up_guide: z.string().optional(),
-        quick_replies: z.array(z.string()).optional(),
+        // 生成スキーマ（questionProposalSchema）は null を返せるので、ここでも受け付ける
+        follow_up_guide: z.string().nullish(),
+        quick_replies: z.array(z.string()).nullish(),
       })
     )
     .optional(),

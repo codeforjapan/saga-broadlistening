@@ -27,7 +27,6 @@ interface ConfigGenerationChatProps {
   billId: string | null;
   /** 施策がないときにAIへ渡すテーマ情報を、送信時点のフォーム値から読み取る */
   getThemeContext?: () => ThemeContext;
-  configId?: string;
   existingThemes?: string[];
   existingQuestions?: InterviewQuestionInput[];
   onThemesConfirmed: (themes: string[]) => void;
@@ -37,7 +36,6 @@ interface ConfigGenerationChatProps {
 export function ConfigGenerationChat({
   billId,
   getThemeContext,
-  configId,
   existingThemes,
   existingQuestions,
   onThemesConfirmed,
@@ -63,7 +61,6 @@ export function ConfigGenerationChat({
   } = useConfigGenerationChat({
     billId,
     getThemeContext,
-    configId,
     existingThemes,
     existingQuestions,
     onThemesConfirmed,
