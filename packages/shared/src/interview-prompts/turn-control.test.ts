@@ -6,13 +6,18 @@ import {
   buildQuickReplies,
   buildTurnTopics,
   computeQuestionTurnLimit,
+  computeSummaryState,
   computeTurnState,
   countQuestionTurns,
+  countSummaryTurns,
   decideSummaryEntry,
+  hasUsedResume,
   normalizeQuestionId,
   RESUME_TOPIC,
   RESUME_TOPIC_ID,
   resolveChatTurn,
+  resolveSummaryPhase,
+  resolveSummaryTurn,
   type TurnTopic,
   topicTurnTarget,
 } from "./turn-control";
@@ -113,6 +118,7 @@ describe("発話の数え方", () => {
       ...metas(RESUME_TOPIC_ID),
     ];
     expect(countQuestionTurns(history)).toBe(3);
+    expect(countSummaryTurns(history)).toBe(3);
   });
 
   it("ステージの記録が無い古い発話は chat として数える", () => {
@@ -121,6 +127,44 @@ describe("発話の数え方", () => {
       { questionId: "q2", stage: null },
     ];
     expect(countQuestionTurns(legacy)).toBe(1);
+    expect(countSummaryTurns(legacy)).toBe(0);
+  });
+
+  it("再開の話題の発話があれば、再開は使用済み", () => {
+    expect(hasUsedResume(metas("q1", "q2"))).toBe(false);
+    expect(
+      hasUsedResume([...metas("q1"), ...summaryMetas(1, RESUME_TOPIC_ID)])
+    ).toBe(true);
+  });
+});
+
+describe("resolveSummaryPhase", () => {
+  it("このリクエストで要約に入ったら初回の要約", () => {
+    expect(
+      resolveSummaryPhase({ sessionStage: "chat", metas: metas("q1", "q2") })
+    ).toBe("first");
+    // 再開を受けた直後に要約へ戻るときも初回の要約
+    expect(
+      resolveSummaryPhase({
+        sessionStage: "chat",
+        metas: [...metas("q1"), ...summaryMetas(2, RESUME_TOPIC_ID)],
+      })
+    ).toBe("first");
+  });
+
+  it("要約の段階で、直前が要約の発話なら返事を受けるところ", () => {
+    expect(
+      resolveSummaryPhase({
+        sessionStage: "summary",
+        metas: [...metas("q1", "q2"), ...summaryMetas(1)],
+      })
+    ).toBe("reply");
+  });
+
+  it("終えたいと言われた直後（直前が chat の発話）なら初回の要約", () => {
+    expect(
+      resolveSummaryPhase({ sessionStage: "summary", metas: metas("q1", "q2") })
+    ).toBe("first");
   });
 });
 
@@ -416,5 +460,122 @@ describe("resolveChatTurn", () => {
     const state = computeTurnState({ topics, metas: metas("q1", "q2") });
     const result = resolveChatTurn({ state, rawQuestionId: "Q2" });
     expect(result.quickReplies).toEqual([]);
+  });
+});
+
+describe("要約の段階", () => {
+  it("初回の要約の後は返事を待つ", () => {
+    const state = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: metas("q1", "q2", "q3"),
+      phase: "first",
+      forceClose: false,
+    });
+    expect(state.remainingTurns).toBe(5);
+    expect(resolveSummaryTurn(state, "none")).toEqual({
+      stage: "summary",
+      resumed: false,
+    });
+  });
+
+  it("初回の要約では、agree と分類されても完了しない", () => {
+    const state = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: metas("q1", "q2", "q3"),
+      phase: "first",
+      forceClose: false,
+    });
+    expect(resolveSummaryTurn(state, "agree").stage).toBe("summary");
+  });
+
+  it("要約に同意したら完了する", () => {
+    const state = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: [...metas("q1", "q2"), ...summaryMetas(1)],
+      phase: "reply",
+      forceClose: false,
+    });
+    expect(resolveSummaryTurn(state, "agree").stage).toBe("summary_complete");
+  });
+
+  it("要約の段階の残りが3回以上あれば、1回だけインタビューに戻れる", () => {
+    const state = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: [...metas("q1", "q2"), ...summaryMetas(2)],
+      phase: "reply",
+      forceClose: false,
+    });
+    expect(state.remainingTurns).toBe(3);
+    expect(state.canResume).toBe(true);
+    expect(resolveSummaryTurn(state, "resume")).toEqual({
+      stage: "chat",
+      resumed: true,
+    });
+  });
+
+  it("要約の段階の残りが2回なら戻らない", () => {
+    const state = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: [...metas("q1", "q2"), ...summaryMetas(3)],
+      phase: "reply",
+      forceClose: false,
+    });
+    expect(state.remainingTurns).toBe(2);
+    expect(state.canResume).toBe(false);
+    expect(resolveSummaryTurn(state, "resume").stage).toBe("summary");
+  });
+
+  it("再開を使った後は戻らない", () => {
+    const state = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: [
+        ...metas("q1", "q2"),
+        ...summaryMetas(1, RESUME_TOPIC_ID),
+        ...metas(RESUME_TOPIC_ID),
+      ],
+      phase: "reply",
+      forceClose: false,
+    });
+    expect(state.canResume).toBe(false);
+  });
+
+  it("質問の発話が上限に達していれば戻らない", () => {
+    const state = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: [...afterQuestionTurns(50), ...summaryMetas(1)],
+      phase: "reply",
+      forceClose: false,
+    });
+    expect(state.canResume).toBe(false);
+
+    const oneLeft = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: [...afterQuestionTurns(24), ...summaryMetas(1)],
+      phase: "reply",
+      forceClose: false,
+    });
+    expect(oneLeft.canResume).toBe(true);
+  });
+
+  it("要約の段階の残りが1回なら、どの返事でも締める", () => {
+    const state = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: [...metas("q1", "q2"), ...summaryMetas(4)],
+      phase: "reply",
+      forceClose: false,
+    });
+    expect(state.remainingTurns).toBe(1);
+    expect(state.isLast).toBe(true);
+    expect(resolveSummaryTurn(state, "revise").stage).toBe("summary_complete");
+  });
+
+  it("要約中に「終える」が押されたら締める", () => {
+    const state = computeSummaryState({
+      topics: verifyBillTopics(),
+      metas: [...metas("q1", "q2"), ...summaryMetas(1)],
+      phase: "first",
+      forceClose: true,
+    });
+    expect(resolveSummaryTurn(state, "none").stage).toBe("summary_complete");
   });
 });

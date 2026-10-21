@@ -2,7 +2,12 @@ import { parseStructuredOutput, readSignals } from "./read-signals";
 import {
   buildQuickReplies,
   decideChatExit,
+  RESUME_TOPIC_ID,
+  RESUME_TOPIC_TITLE,
   resolveChatTurn,
+  resolveSummaryTurn,
+  type SummaryState,
+  type SummaryTurnResult,
   type TurnState,
   type TurnTopic,
 } from "./turn-control";
@@ -92,6 +97,51 @@ export function buildChatTurnRecord({
       chain_summary: toSummary,
     },
     sessionUpdate: toSummary ? { stage: "summary" } : null,
+  };
+}
+
+/**
+ * summary の生成結果から、保存するメッセージ・注入する値・次のステージを作る。
+ */
+export function buildSummaryTurnRecord({
+  rawText,
+  summaryState,
+}: {
+  rawText: string;
+  summaryState: SummaryState;
+}): TurnRecord & { result: SummaryTurnResult } {
+  const parsed = parseStructuredOutput(rawText);
+  const { summaryResponse } = readSignals(parsed);
+  const result = resolveSummaryTurn(summaryState, summaryResponse);
+  const questionId = result.resumed ? RESUME_TOPIC_ID : null;
+  const topicTitle = result.resumed ? RESUME_TOPIC_TITLE : null;
+
+  const stored = {
+    ...parsed,
+    text: displayText(parsed, rawText),
+    // インタビューに戻るときはレポートを残さない（要約の提示と取り違えないため）
+    ...(result.resumed ? { report: null } : {}),
+    question_id: questionId,
+    topic_title: topicTitle,
+    quick_replies: [],
+    stage: "summary",
+    next_stage: result.stage,
+    summary_response: summaryResponse,
+    parse_failed: parsed === null,
+  };
+
+  return {
+    result,
+    content: JSON.stringify(stored),
+    injected: {
+      resolved_question_id: questionId,
+      resolved_topic_title: topicTitle,
+      quick_replies: [],
+      next_stage: result.stage,
+      chain_summary: false,
+    },
+    // 要約の段階が続くときは書き戻さない（場面は発話の記録から決める）
+    sessionUpdate: result.stage === "summary" ? null : { stage: result.stage },
   };
 }
 

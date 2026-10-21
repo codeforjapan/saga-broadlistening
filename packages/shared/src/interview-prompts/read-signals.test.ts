@@ -11,17 +11,19 @@ describe("readSignals", () => {
       readSignals({
         end_request: true,
         wrap_up: true,
+        summary_response: "revise",
       })
     ).toEqual({
       endRequest: true,
       wrapUp: true,
+      summaryResponse: "revise",
     });
   });
 
   it("読めない項目は既定値にする", () => {
-    expect(readSignals({ end_request: "yes", wrap_up: 1 })).toEqual(
-      DEFAULT_TURN_SIGNALS
-    );
+    expect(
+      readSignals({ end_request: "yes", wrap_up: 1, summary_response: "ok" })
+    ).toEqual(DEFAULT_TURN_SIGNALS);
     expect(readSignals(null)).toEqual(DEFAULT_TURN_SIGNALS);
   });
 });

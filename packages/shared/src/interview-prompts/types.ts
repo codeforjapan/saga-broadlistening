@@ -64,3 +64,16 @@ export const INTERVIEW_STAGES = [
   "summary_complete",
 ] as const;
 export type InterviewStage = (typeof INTERVIEW_STAGES)[number];
+
+/** 要約の段階の場面。初回の要約か、要約への返事を受けたところか */
+export type SummaryPhase = "first" | "reply";
+
+/** 要約への返事の分類（LLM が summary_response に入れる値） */
+export const SUMMARY_RESPONSES = [
+  "none",
+  "agree",
+  "revise",
+  "resume",
+  "other",
+] as const;
+export type SummaryResponse = (typeof SUMMARY_RESPONSES)[number];
