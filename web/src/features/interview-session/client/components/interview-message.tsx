@@ -3,6 +3,7 @@ import { CHAT_AVATAR_SRC } from "@mirai-gikai/branding/assets";
 import Image from "next/image";
 import type { ComponentProps, ReactNode } from "react";
 import { useMemo } from "react";
+import remarkBreaks from "remark-breaks";
 import { SystemMessage } from "@/features/chat/client/components/system-message";
 import { UserMessage } from "@/features/chat/client/components/user-message";
 import { InterviewSummary } from "@/features/interview-session/client/components/interview-summary";
@@ -10,6 +11,9 @@ import { rehypeOpenLinksInNewTab } from "@/lib/markdown/rehype-open-links-in-new
 import type { InterviewReportViewData } from "../../shared/schemas";
 
 type RehypePlugins = ComponentProps<typeof SystemMessage>["rehypePlugins"];
+
+// インタビュアーの発話は、つなぎと次の質問を改行1つで区切るため、改行をそのまま表示する
+const REMARK_PLUGINS = [remarkBreaks];
 
 interface InterviewMessageProps {
   message: UIMessage;
@@ -51,6 +55,7 @@ export function InterviewMessage({
           message={message}
           isStreaming={isStreaming}
           rehypePlugins={rehypePlugins}
+          remarkPlugins={REMARK_PLUGINS}
         />
         {report && (
           <div className="mt-2">

@@ -7,11 +7,13 @@ import {
 } from "@/components/ai-elements/conversation";
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
+import type { InterviewStage } from "@/features/interview-session/shared/schemas";
 import { useInterviewChat } from "../hooks/use-interview-chat";
 import { useInterviewRating } from "../hooks/use-interview-rating";
 import { useInterviewTimer } from "../hooks/use-interview-timer";
 import { calcInterviewProgress } from "../utils/calc-interview-progress";
 import { embedBillLink } from "../utils/embed-bill-link";
+import { EndInterviewButton } from "./end-interview-button";
 import { InterviewChatInput } from "./interview-chat-input";
 import { InterviewChatSurface } from "./interview-chat-surface";
 import { InterviewErrorDisplay } from "./interview-error-display";
@@ -20,7 +22,6 @@ import { InterviewProgressBar } from "./interview-progress-bar";
 import { InterviewRatingWidget } from "./interview-rating-widget";
 import { InterviewSummaryInput } from "./interview-summary-input";
 import { QuickReplyButtons } from "./quick-reply-buttons";
-import { SkipActionPopover } from "./skip-action-popover";
 import { TimeUpPrompt } from "./time-up-prompt";
 
 interface InterviewChatClientProps {
@@ -41,6 +42,8 @@ interface InterviewChatClientProps {
   estimatedDuration?: number | null;
   sessionStartedAt?: string;
   hasRated?: boolean;
+  /** サーバーが持つセッションのステージ（interview_sessions.stage） */
+  initialStage: InterviewStage;
 }
 
 export function InterviewChatClient({
@@ -53,6 +56,7 @@ export function InterviewChatClient({
   estimatedDuration,
   sessionStartedAt,
   hasRated,
+  initialStage,
 }: InterviewChatClientProps) {
   // プレビュートークンは target が持っているので、別 prop では受け取らない
   const previewToken =
@@ -67,17 +71,18 @@ export function InterviewChatClient({
     object,
     streamingReportData,
     currentQuickReplies,
-    streamingQuickReplies,
     canRetry,
     handleSubmit,
     handleQuickReply,
     handleRetry,
     handleResumeInterview,
+    handleEnd,
   } = useInterviewChat({
     interviewConfigId,
     initialMessages,
     previewPolicyId: target.kind === "policy" ? target.policyId : undefined,
     previewToken,
+    initialStage,
   });
 
   const { remainingMinutes, isTimeUp } = useInterviewTimer({
@@ -132,15 +137,10 @@ export function InterviewChatClient({
     [dismissTimeUpIfNeeded, handleQuickReply]
   );
 
-  const handleSkipAction = (text: string) => {
-    handleSubmit({ text });
-  };
-
+  // 「終了してレポートを作成」は「終える」ボタンと同じ扱い（発言は残さない）
   const handleEndInterviewTimeUp = () => {
     setTimeUpDismissed(true);
-    handleSubmit({
-      text: "目安時間になりました。レポート作成に進みたいです。",
-    });
+    handleEnd();
   };
 
   const handleContinueInterview = () => {
@@ -157,11 +157,6 @@ export function InterviewChatClient({
 
   // メッセージ内にレポートが存在するかどうか
   const hasReport = messages.some((m) => m.report != null);
-
-  // 最後のAIメッセージのインデックスを事前計算
-  const lastAssistantIndex = messages.findLastIndex(
-    (m) => m.role === "assistant"
-  );
 
   return (
     <InterviewChatSurface className="md:px-12">
@@ -192,13 +187,6 @@ export function InterviewChatClient({
 
           {/* メッセージ一覧を表示 */}
           {messages.map((message, index) => {
-            // 最後のAIメッセージかつストリーミング中でない場合にスキップボタンを表示
-            const showSkipFooter =
-              index === lastAssistantIndex &&
-              stage === "chat" &&
-              !isLoading &&
-              !showStreamingMessage;
-
             // 最初のAIメッセージの施策名をリンクに変換（施策がある場合のみ）
             const content =
               index === 0 &&
@@ -219,14 +207,6 @@ export function InterviewChatClient({
                 openLinksInNewTab={index === 0}
                 isStreaming={false}
                 report={message.report}
-                footer={
-                  showSkipFooter ? (
-                    <SkipActionPopover
-                      onSelect={handleSkipAction}
-                      disabled={isLoading}
-                    />
-                  ) : undefined
-                }
               />
             );
           })}
@@ -258,22 +238,14 @@ export function InterviewChatClient({
             isRetrying={isLoading}
           />
 
-          {/* クイックリプライボタン */}
-          {stage === "chat" &&
-            (() => {
-              const replies = isLoading
-                ? streamingQuickReplies
-                : currentQuickReplies;
-              return (
-                replies.length > 0 && (
-                  <QuickReplyButtons
-                    replies={replies}
-                    onSelect={handleChatQuickReply}
-                    disabled={isLoading}
-                  />
-                )
-              );
-            })()}
+          {/* 選択肢ボタン（サーバーが決める）。本文のストリーミングが終わってから出す */}
+          {stage === "chat" && !isLoading && currentQuickReplies.length > 0 && (
+            <QuickReplyButtons
+              replies={currentQuickReplies}
+              onSelect={handleChatQuickReply}
+              disabled={isLoading}
+            />
+          )}
         </ConversationContent>
       </Conversation>
 
@@ -298,11 +270,21 @@ export function InterviewChatClient({
 
       {/* 入力エリア */}
       <div className="px-6 pt-2">
+        {stage !== "summary_complete" && (
+          <div className="flex justify-end pb-2">
+            <EndInterviewButton
+              isSummaryStage={stage === "summary"}
+              onEnd={handleEnd}
+              disabled={isLoading}
+            />
+          </div>
+        )}
         {(stage === "summary" || stage === "summary_complete") && (
           <InterviewSummaryInput
             sessionId={sessionId}
             target={target}
             hasReport={hasReport}
+            isComplete={stage === "summary_complete"}
             input={input}
             onInputChange={setInput}
             onSubmit={handleSubmit}
