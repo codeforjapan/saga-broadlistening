@@ -52,7 +52,15 @@ export interface InterviewPromptInput {
   interviewConfig: InterviewConfig;
   questions: InterviewQuestion[];
   nextQuestionId?: string;
-  currentStage: "chat" | "summary" | "summary_complete";
+  currentStage: InterviewStage;
   askedQuestionIds: Set<string>;
   remainingMinutes?: number | null;
 }
+
+/** セッションのステージ（interview_sessions.stage） */
+export const INTERVIEW_STAGES = [
+  "chat",
+  "summary",
+  "summary_complete",
+] as const;
+export type InterviewStage = (typeof INTERVIEW_STAGES)[number];
