@@ -16,9 +16,9 @@ import { useEffect, useState } from "react";
 import { type FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { AiModelSelect } from "@/components/ai-model-select";
+import { CheckboxGroup } from "@/components/checkbox-group";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckboxGroup } from "@/components/checkbox-group";
 import {
   Form,
   FormControl,
@@ -59,7 +59,7 @@ export type PolicyOption = { id: string; name: string };
 
 /**
  * フォームの現在値。保存時に渡す形と同じで、任意項目は null に揃えてある。
- * 読み手（AI生成からの自動作成・シミュレーション）が undefined を都度潰さずに済む。
+ * 読み手（AI生成への送信・シミュレーション）が undefined を都度潰さずに済む。
  */
 export type InterviewConfigFormValues = InterviewConfigInput & {
   description: string | null;
@@ -83,6 +83,8 @@ interface InterviewConfigFormProps {
   getFormValuesRef?: MutableRefObject<(() => InterviewConfigFormValues) | null>;
   /** 新規作成時の設定名初期値（ログインユーザー名） */
   initialName?: string | null;
+  /** 新規作成時の Slug 初期値。職員はそのまま保存しても書き換えてもよい */
+  initialSlug?: string;
   /**
    * 紐づけ先として選べる施策の一覧。渡されたときだけ紐づけ欄を出す。
    * 施策配下のフォームでは渡さず、その施策との紐づけを維持する。
@@ -101,6 +103,7 @@ export function InterviewConfigForm({
   onConfigCreated,
   getFormValuesRef,
   initialName,
+  initialSlug,
   policyOptions,
   linkedPolicyIds,
 }: InterviewConfigFormProps) {
@@ -114,7 +117,7 @@ export function InterviewConfigForm({
     resolver: zodResolver(interviewConfigSchema),
     defaultValues: {
       name: config?.name || initialName || generateDefaultConfigName(),
-      slug: config?.slug || "",
+      slug: config?.slug || initialSlug || "",
       status: config?.status || "draft",
       description: config?.description ?? "",
       chat_model: config?.chat_model || null,
@@ -127,7 +130,7 @@ export function InterviewConfigForm({
   });
 
   // 親コンポーネントからフォーム値を読み取れるようにする。
-  // AI生成からの自動作成もこの値をそのまま保存するため、一部だけ返さないこと
+  // AI生成への送信やシミュレーションもこの値を読むため、一部だけ返さないこと
   useEffect(() => {
     if (getFormValuesRef) {
       getFormValuesRef.current = () => {
@@ -149,7 +152,9 @@ export function InterviewConfigForm({
         shouldDirty: true,
       });
       onAiThemesApplied?.();
-      toast.success(`AIが${aiGeneratedThemes.length}件のテーマを設定しました`);
+      toast.success(
+        `AIが${aiGeneratedThemes.length}件のテーマを説明欄に反映しました（保存すると確定します）`
+      );
     }
   }, [aiGeneratedThemes, form, onAiThemesApplied]);
 
