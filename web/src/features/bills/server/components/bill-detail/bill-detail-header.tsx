@@ -15,8 +15,6 @@ import type { BillWithContent } from "../../../shared/types";
 
 interface BillDetailHeaderProps {
   bill: BillWithContent;
-  /** 見出し。省略時は本文のタイトル（親施策ページでは施策名を出す） */
-  title?: string;
   /** 施策名の下に置く要素（親施策ページのきかせてボックス） */
   children?: ReactNode;
   hasInterviewConfig?: boolean;
@@ -28,13 +26,12 @@ interface BillDetailHeaderProps {
 
 export async function BillDetailHeader({
   bill,
-  title,
   children,
   hasInterviewConfig,
   opinionCount,
   topicCount,
 }: BillDetailHeaderProps) {
-  const displayTitle = title ?? bill.bill_content?.title;
+  const displayTitle = bill.bill_content?.title;
   const displaySummary = bill.bill_content?.summary;
 
   const { shareUrl, shareMessage, thumbnailUrl } = await getBillShareData(bill);

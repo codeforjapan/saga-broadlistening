@@ -66,7 +66,7 @@ export async function ParentPolicyDetailLayout({
           "自分が使える制度はどれ？",
         ]}
       >
-        <BillDetailHeader bill={bill} title={bill.name}>
+        <BillDetailHeader bill={bill}>
           {kikasete && <KikaseteBox {...kikasete} />}
         </BillDetailHeader>
         <Container>

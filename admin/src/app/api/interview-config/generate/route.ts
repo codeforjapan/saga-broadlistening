@@ -12,18 +12,19 @@ export async function POST(req: Request) {
   const body = await req.json();
   const {
     messages,
-    billId,
     themeName,
     themeDescription,
+    policyIds,
     stage,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   }: {
     messages: Array<{ role: string; content: string }>;
-    billId: string | null;
     themeName?: string | null;
     themeDescription?: string | null;
+    /** フォームで紐づけ中の施策。先頭の施策を題材にする */
+    policyIds?: string[];
     stage: Extract<
       ConfigGenerationStage,
       "default_questions" | "question_proposal" | "theme_proposal"
@@ -42,9 +43,9 @@ export async function POST(req: Request) {
   } = body;
 
   // 抽象テーマ型には施策がないため、代わりにテーマ名を手がかりにする
-  if (!billId && !themeName?.trim()) {
+  if (!policyIds?.length && !themeName?.trim()) {
     return new Response(
-      JSON.stringify({ error: "billId or themeName is required" }),
+      JSON.stringify({ error: "policyIds or themeName is required" }),
       {
         status: 400,
         headers: { "Content-Type": "application/json" },
@@ -55,9 +56,9 @@ export async function POST(req: Request) {
   try {
     return await handleConfigGeneration({
       messages,
-      billId,
       themeName,
       themeDescription,
+      policyIds,
       stage,
       existingThemes,
       existingQuestions,
