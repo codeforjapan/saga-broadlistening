@@ -6,7 +6,6 @@
  */
 export type {
   InterviewConfig,
-  InterviewPromptInput,
   InterviewQuestion,
   PromptBillInput,
 } from "@mirai-gikai/shared/interview-prompts/types";

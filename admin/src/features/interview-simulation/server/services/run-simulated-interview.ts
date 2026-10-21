@@ -3,10 +3,14 @@ import "server-only";
 import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { INTERVIEW_CHAT_TEXT_DESCRIPTION } from "@mirai-gikai/shared/interview-prompts/chat-text-description";
 import {
+  buildPublishedInitialPrompt,
   buildPublishedInterviewPrompt,
   buildPublishedSummaryPrompt,
 } from "@mirai-gikai/shared/interview-prompts/published";
-import { buildInitialTurnInstruction } from "@mirai-gikai/shared/interview-prompts/subject-section";
+import {
+  buildTurnTopics,
+  computeTurnState,
+} from "@mirai-gikai/shared/interview-prompts/turn-control";
 import type {
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
@@ -115,15 +119,18 @@ interface RunSimulatedInterviewParams {
 async function buildInterviewerSystemPromptForTurn(
   promptInputs: RunSimulatedInterviewParams["promptInputs"],
   askedQuestionIds: Set<string>,
-  remainingMinutes: number | null | undefined
+  _remainingMinutes: number | null | undefined
 ): Promise<string> {
+  // 本番と同じターン制御に切り替えるまで（#199）、聞いた質問の ID から状態を作る
+  const topics = buildTurnTopics(promptInputs.questions);
+  const metas = topics
+    .filter((topic) => askedQuestionIds.has(topic.id))
+    .map((topic) => ({ questionId: topic.id, stage: "chat" as const }));
   return buildPublishedInterviewPrompt({
     bill: promptInputs.bill,
     interviewConfig: promptInputs.interviewConfig,
-    questions: promptInputs.questions,
-    currentStage: "chat",
-    askedQuestionIds,
-    remainingMinutes,
+    topics,
+    turnState: computeTurnState({ topics, metas }),
   });
 }
 
@@ -284,14 +291,13 @@ export async function runSimulatedInterview({
 
     let interviewerOutput: z.infer<typeof simInterviewerOutputSchema>;
     try {
-      // 初回ターンは本番 generateInitialQuestion と同じ挙動にする。
-      // 「## 重要: これはインタビューの開始です…」を system prompt 末尾に付与し、
+      // 初回ターンは本番 generateInitialQuestion と同じ初回の発話のプロンプトを使い、
       // messages は渡さず prompt 直渡しで呼び出す。
       const isInitialTurn = turnIndex === 0 && transcript.length === 0;
       if (isInitialTurn && initialTurnEnhancement) {
-        const enhancedPrompt = `${interviewerSystemPromptForThisTurn}\n\n${buildInitialTurnInstruction(
-          initialTurnEnhancement
-        )}`;
+        const enhancedPrompt = await buildPublishedInitialPrompt({
+          topics: buildTurnTopics(promptInputs.questions),
+        });
         const { object } = await withTimeoutRetry(
           (attemptSignal) =>
             generateObject({

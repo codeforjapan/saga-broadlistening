@@ -1,126 +1,113 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildInitialTurnInstruction,
+  buildInterviewDesign,
   buildInterviewSubject,
+  buildQuestionsText,
+  resolveSubjectTitle,
 } from "./subject-section";
+import { buildTurnTopics } from "./turn-control";
 
 const bill = {
-  name: "学校給食の無償化",
-  knowledge_source: "財源は一般財源から充当する想定",
+  name: "市営バス路線見直し",
+  knowledge_source: "交通計画",
   bill_content: {
-    title: "給食費の負担をなくす",
-    summary: "市立小中学校の給食費を無償にします",
-    content: "対象は市立の小中学校に通う児童生徒です。",
+    title: "路線見直し案",
+    summary: "統合と増便",
+    content: "詳細",
   },
 };
 
-const config = {
-  name: "佐賀市のみらい",
-  description: "暮らしのなかで感じている変化を伺います",
-};
-
 describe("buildInterviewSubject", () => {
-  describe("施策があるとき", () => {
-    it("施策の内容と知識ソースをプロンプトに載せる", () => {
-      const subject = buildInterviewSubject(bill, config);
+  it("施策があれば資料を、なければテーマを対象にする", () => {
+    const withBill = buildInterviewSubject(bill, { name: "バス" });
+    expect(withBill.kind).toBe("bill");
+    expect(withBill.knowledgeSection).toContain("<bill_detail>\n詳細");
+    expect(withBill.clarificationGuidance).toContain("施策の資料");
 
-      expect(subject.knowledgeSection).toContain("## 施策に関する知識");
-      expect(subject.knowledgeSection).toContain("学校給食の無償化");
-      expect(subject.knowledgeSection).toContain("給食費の負担をなくす");
-      expect(subject.knowledgeSection).toContain(
-        "対象は市立の小中学校に通う児童生徒です。"
-      );
-      expect(subject.knowledgeSection).toContain(
-        "財源は一般財源から充当する想定"
-      );
-    });
-
-    it("知識ソースが未設定なら未設定と明示する", () => {
-      const subject = buildInterviewSubject(
-        { ...bill, knowledge_source: null },
-        config
-      );
-
-      expect(subject.knowledgeSection).toContain("（知識ソース未設定）");
-    });
-
-    it("施策に集中させ、施策の誤認を補足するガイダンスを渡す", () => {
-      const subject = buildInterviewSubject(bill, config);
-
-      expect(subject.focusInstruction).toBe(
-        "- 施策に関する質問のみに集中してください"
-      );
-      expect(subject.clarificationGuidance).toContain(
-        "施策内容の誤認検知と補足"
-      );
-    });
-
-    it("要約プロンプトには施策情報を載せる", () => {
-      const subject = buildInterviewSubject(bill, config);
-
-      expect(subject.summarySection).toContain("## 施策情報");
-      expect(subject.summarySection).toContain("学校給食の無償化");
-    });
-  });
-
-  describe("施策がないとき（抽象テーマ型）", () => {
-    it("対象をテーマに切り替え、施策の欄を作らない", () => {
-      const subject = buildInterviewSubject(null, config);
-
-      expect(subject.knowledgeSection).toContain("## インタビューの対象");
-      expect(subject.knowledgeSection).toContain("佐賀市のみらい");
-      expect(subject.knowledgeSection).not.toContain("施策名:");
-      expect(subject.knowledgeSection).not.toContain("<bill_detail>");
-    });
-
-    it("存在しない施策を推測して語らないよう釘を刺す", () => {
-      const subject = buildInterviewSubject(null, config);
-
-      expect(subject.knowledgeSection).toContain(
-        "存在しない制度や施策の内容を推測して語らないでください"
-      );
-    });
-
-    it("テーマに集中させ、施策の誤認ガイダンスは渡さない", () => {
-      const subject = buildInterviewSubject(null, config);
-
-      expect(subject.focusInstruction).toBe(
-        "- テーマに関する質問のみに集中してください"
-      );
-      expect(subject.clarificationGuidance).toBe("");
-    });
-
-    it("要約プロンプトにはテーマ名と説明を載せる", () => {
-      const subject = buildInterviewSubject(null, config);
-
-      expect(subject.summarySection).toContain("## インタビューの対象");
-      expect(subject.summarySection).toContain("佐賀市のみらい");
-      expect(subject.summarySection).toContain(
-        "暮らしのなかで感じている変化を伺います"
-      );
-    });
-
-    it("テーマ名が空でも未設定と明示して組み立てる", () => {
-      const subject = buildInterviewSubject(null, {
-        name: "  ",
-        description: null,
-      });
-
-      expect(subject.knowledgeSection).toContain("（テーマ名未設定）");
-      expect(subject.summarySection).toContain("（テーマ未設定）");
-    });
+    const theme = buildInterviewSubject(null, { name: "佐賀市のみらい" });
+    expect(theme.kind).toBe("theme");
+    expect(theme.knowledgeSection).toContain("テーマ「佐賀市のみらい」");
+    expect(theme.knowledgeSection).not.toContain("施策名");
+    expect(theme.clarificationGuidance).toContain("テーマの説明");
   });
 });
 
-describe("buildInitialTurnInstruction", () => {
-  it("初回質問に選択肢がない場合の空配列指定を明示する", () => {
-    const instruction = buildInitialTurnInstruction({
-      subjectTitle: "公園の改善",
-      firstQuestionId: "question-1",
-    });
-    expect(instruction).toContain(
-      "設定されていない場合も quick_replies を省略せず空配列 []"
+describe("buildInterviewSubject の案内先", () => {
+  it("施策に担当課があれば、施策紹介ページと担当課を案内する", () => {
+    expect(
+      buildInterviewSubject(
+        { ...bill, department: "交通政策部 交通政策課" },
+        { name: "バス" }
+      ).inquiryContact
+    ).toBe("施策紹介ページや交通政策部 交通政策課");
+  });
+
+  it("担当課がなければ施策紹介ページだけを案内する", () => {
+    expect(buildInterviewSubject(bill, { name: "バス" }).inquiryContact).toBe(
+      "施策紹介ページ"
     );
-    expect(instruction).toContain("question-1");
+    expect(
+      buildInterviewSubject({ ...bill, department: "  " }, { name: "バス" })
+        .inquiryContact
+    ).toBe("施策紹介ページ");
+  });
+
+  it("テーマ型は市の公式ホームページを案内する", () => {
+    expect(buildInterviewSubject(null, { name: "まち" }).inquiryContact).toBe(
+      "市の公式ホームページ"
+    );
+  });
+});
+
+describe("buildQuestionsText", () => {
+  it("[Qn] 質問／観点 の形で並べる", () => {
+    const topics = buildTurnTopics([
+      { id: "a", question: "関わりは？" },
+      { id: "b", question: "場面は？", follow_up_guide: "最近の1回" },
+    ]);
+    expect(buildQuestionsText(topics)).toBe(
+      "[Q1] 関わりは？\n[Q2] 場面は？／観点：最近の1回"
+    );
+  });
+
+  it("話題が無ければその旨を書く", () => {
+    expect(buildQuestionsText([])).toBe("（話題は設定されていません）");
+  });
+});
+
+describe("buildInterviewDesign", () => {
+  it("決まっていることは施策型だけに書く", () => {
+    const config = {
+      name: "テーマ",
+      purpose_type: "envision" as const,
+      decided_matters: "見直すこと",
+    };
+    expect(
+      buildInterviewDesign({ bill, interviewConfig: config, topics: [] })
+        .purposeSection
+    ).toContain("決まっていること（賛否を聞かない）：見直すこと");
+    expect(
+      buildInterviewDesign({ bill: null, interviewConfig: config, topics: [] })
+        .purposeSection
+    ).toContain("決まっていること（賛否を聞かない）：なし");
+  });
+
+  it("目的が未設定なら汎用の焦点を使う", () => {
+    const design = buildInterviewDesign({
+      bill: null,
+      interviewConfig: { name: "テーマ" },
+      topics: [],
+    });
+    expect(design.purposeSection).toContain("目的：市民の経験と考えを聞く");
+    expect(design.focusInstruction).toContain("暮らしの場面");
+    expect(design.replyExamples).toBe("");
+  });
+});
+
+describe("resolveSubjectTitle", () => {
+  it("施策の見出し → 施策名 → テーマ名の順に使う", () => {
+    expect(resolveSubjectTitle(bill, { name: "テーマ" })).toBe("路線見直し案");
+    expect(resolveSubjectTitle(null, { name: "テーマ" })).toBe("テーマ");
+    expect(resolveSubjectTitle(null, null)).toBe("このテーマ");
   });
 });

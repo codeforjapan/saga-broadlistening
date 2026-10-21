@@ -67,7 +67,7 @@ describe("prompt inputs", () => {
 
 it("インタビュー本文を保存し、プレビューには募集の選択を要求する", () => {
   const content =
-    "方針 {{summarySection}} {{themeDescription}} {{conversationLog}} {{reportInstructions}}";
+    "方針 {{persona}} {{summarySection}} {{themeDescription}} {{conversationLog}} {{summaryState}} {{reportInstructions}}";
   expect(
     savePromptSchema.safeParse({
       key: "interview-summary-system",

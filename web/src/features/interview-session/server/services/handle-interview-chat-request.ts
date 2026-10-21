@@ -36,7 +36,6 @@ import { InterviewSessionNotStartedError } from "../../shared/types/errors";
 import { buildSummaryModelMessages } from "../../shared/utils/build-summary-model-messages";
 import { ensureTrailingUserMessage } from "../../shared/utils/ensure-trailing-user-message";
 import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
-import { calculateLoopModeNextQuestionId } from "../../shared/utils/interview-logic/loop-mode";
 import { mergeMessagesWithIds } from "../../shared/utils/merge-messages-with-ids";
 import {
   buildInterviewSystemPrompt,
@@ -158,12 +157,6 @@ export async function handleInterviewChatRequest({
   // クライアントから受け取ったステージで判定
   const isSummaryPhase = currentStage === "summary";
 
-  // 次に聞くべき質問を特定
-  const effectiveNextQuestionId = calculateLoopModeNextQuestionId({
-    messages: dbMessages,
-    questions,
-  });
-
   // 残り目安時間を計算（estimated_durationが設定されている場合のみ）
   const remainingMinutes = interviewConfig.estimated_duration
     ? Math.max(
@@ -191,7 +184,6 @@ export async function handleInterviewChatRequest({
         bill,
         interviewConfig,
         questions,
-        nextQuestionId: effectiveNextQuestionId,
         currentStage,
         askedQuestionIds,
         remainingMinutes,

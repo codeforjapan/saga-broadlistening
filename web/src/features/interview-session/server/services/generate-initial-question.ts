@@ -1,10 +1,8 @@
 import "server-only";
 
 import { propagateAttributes } from "@langfuse/tracing";
-import {
-  buildInitialTurnInstruction,
-  resolveSubjectTitle,
-} from "@mirai-gikai/shared/interview-prompts/subject-section";
+import { buildPublishedInitialPrompt } from "@mirai-gikai/shared/interview-prompts/published";
+import { buildTurnTopics } from "@mirai-gikai/shared/interview-prompts/turn-control";
 import { generateText, type LanguageModel, Output } from "ai";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import {
@@ -19,7 +17,6 @@ import { interviewChatTextSchema } from "../../shared/schemas";
 import type { InterviewMessage } from "../../shared/types";
 import { overrideInitialTopicTitle } from "../../shared/utils/override-initial-topic-title";
 import { createInterviewMessage } from "../repositories/interview-session-repository";
-import { buildInterviewSystemPrompt } from "../utils/build-interview-system-prompt";
 
 const INITIAL_QUESTION_FUNCTION_ID = "interview-initial-question";
 
@@ -50,23 +47,10 @@ export async function generateInitialQuestion({
   try {
     const questions = await getInterviewQuestions(interviewConfig.id);
 
-    // プロンプトを構築（初期質問なので currentStage は chat、askedQuestionIds は空）
-    const systemPrompt = await buildInterviewSystemPrompt({
-      bill,
-      interviewConfig,
-      questions,
-      currentStage: "chat",
-      askedQuestionIds: new Set(),
+    // 初回の発話のプロンプト（全体像と最初の質問）。本番とシミュレータで同じものを使う
+    const enhancedSystemPrompt = await buildPublishedInitialPrompt({
+      topics: buildTurnTopics(questions),
     });
-
-    // インタビュー開始の指示を追加（最初の質問にはクイックリプライとquestion_idを含める）
-    // 冒頭の指示はシミュレータと同じ実装を使う（片方だけ直して挙動がずれるのを防ぐ）
-    const enhancedSystemPrompt = `${systemPrompt}\n\n${buildInitialTurnInstruction(
-      {
-        subjectTitle: resolveSubjectTitle(bill, interviewConfig),
-        firstQuestionId: questions[0]?.id ?? null,
-      }
-    )}`;
 
     // 日次コスト制限チェック（fail-closed: エラー時も生成をブロック）
     try {
