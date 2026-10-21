@@ -36,14 +36,22 @@ export const publishPromptSchema = z.object({
   expectedRevision: revisionSchema,
 });
 
+/**
+ * プレビューに意見募集の選択が要るか。インタビューのプロンプトは意見募集の質問から組み立てるが、
+ * 人物像は変数を持たないのでそのまま見せる
+ */
+export function previewNeedsInterviewConfig(key: string): boolean {
+  return isInterviewPromptKey(key) && key !== "interview-persona";
+}
+
 export const previewPromptSchema = z
   .object({
     key: keySchema,
     content: z.string(),
     billId: z.uuid().optional(),
     interviewConfigId: z.uuid().optional(),
-    remainingMinutes: z.number().min(0).max(240).optional(),
-    askedQuestionCount: z.number().int().min(0).max(1000).default(0),
+    // 初回の発話で最初の話題を聞くので、聞き終えた話題は1つから
+    askedQuestionCount: z.number().int().min(1).max(1000).default(1),
     conversation: z.string().max(20000).default(""),
   })
   .superRefine((value, context) => {
@@ -51,7 +59,7 @@ export const previewPromptSchema = z
     for (const message of validatePromptTemplate(value.key, value.content)) {
       context.addIssue({ code: "custom", path: ["content"], message });
     }
-    if (isInterviewPromptKey(value.key) && !value.interviewConfigId) {
+    if (previewNeedsInterviewConfig(value.key) && !value.interviewConfigId) {
       context.addIssue({
         code: "custom",
         path: ["interviewConfigId"],

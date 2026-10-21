@@ -1,6 +1,7 @@
 import { PUBLIC_PROMPT_CATALOG } from "@mirai-gikai/shared/prompts/catalog";
 import { describe, expect, it } from "vitest";
 import {
+  previewNeedsInterviewConfig,
   previewPromptSchema,
   publishPromptSchema,
   savePromptSchema,
@@ -87,4 +88,19 @@ it("インタビュー本文を保存し、プレビューには募集の選択�
       interviewConfigId: "00000000-0000-4000-8000-000000000001",
     }).success
   ).toBe(true);
+});
+
+it("人物像は意見募集を選ばなくてもプレビューできる", () => {
+  expect(
+    previewPromptSchema.safeParse({
+      key: "interview-persona",
+      content: "# 人物像\n落ち着いた聞き手です。",
+    }).success
+  ).toBe(true);
+});
+
+it("プレビューに意見募集が要るのは、人物像以外のインタビューのプロンプトだけ", () => {
+  expect(previewNeedsInterviewConfig("interview-chat-system")).toBe(true);
+  expect(previewNeedsInterviewConfig("interview-persona")).toBe(false);
+  expect(previewNeedsInterviewConfig("top-chat-system")).toBe(false);
 });
