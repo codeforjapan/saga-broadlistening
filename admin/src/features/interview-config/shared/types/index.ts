@@ -3,7 +3,10 @@ import {
   PARTICIPATION_MODE_LABELS,
   VALID_PARTICIPATION_MODES,
 } from "@mirai-gikai/shared/interview-participation/participation-mode";
-import { PURPOSE_TYPES } from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
+import {
+  PURPOSE_TYPES,
+  type PurposeType,
+} from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
 import type { Database } from "@mirai-gikai/supabase";
 import { z } from "zod";
 import { isValidChatModel } from "../utils/chat-model-options";
@@ -111,3 +114,13 @@ export type InterviewQuestionsInput = z.infer<
 >;
 
 export { arrayToText, textToArray } from "../utils/array-text-conversion";
+
+/**
+ * AI設定生成に渡す、職員がフォームで入力済みの設計。
+ * 送信時点のフォーム値なので、未保存の入力も含む。空にした値は null
+ */
+export type InterviewDesignInput = {
+  purposeType: PurposeType | null;
+  opinionFocus: string | null;
+  decidedMatters: string | null;
+};

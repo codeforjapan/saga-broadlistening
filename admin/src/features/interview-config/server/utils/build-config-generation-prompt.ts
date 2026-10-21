@@ -1,6 +1,8 @@
 import "server-only";
 
+import { purposeDisplayName } from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
 import type { ConfigGenerationStage } from "../../shared/schemas";
+import type { InterviewDesignInput } from "../../shared/types";
 import { DEFAULT_QUESTIONS_TEMPLATE } from "../../shared/utils/default-questions-template";
 
 interface ExistingQuestion {
@@ -21,11 +23,14 @@ export type PromptSubject =
       billSummary: string;
       billContent: string;
       knowledgeSource?: string;
+      /** 職員が書いたテーマの説明（施策があっても添える） */
+      description?: string;
     }
   | { kind: "theme"; themeName: string; themeDescription?: string };
 
 interface BuildPromptParams {
   subject: PromptSubject;
+  design?: InterviewDesignInput;
   stage: ConfigGenerationStage;
   existingThemes?: string[];
   existingQuestions?: ExistingQuestion[];
@@ -38,15 +43,36 @@ export function getSubjectLabel(subject: PromptSubject): string {
 }
 
 /**
- * 観点の深掘り量のルール。
- * 施策型は意見形成に要る分だけ聞けばよいが、テーマ型は日常のエピソードそのものを集めたい。
- * テーマ型にも「1往復まで」を入れると、回答者が話し始めたところで次の質問に移ってしまう。
+ * 質問の書き直しで守るルール。
+ *
+ * 深掘りの回数や続け方は AI インタビューの実行時に決まる（話題ごとの発話の上限はコードが持つ）ため、
+ * 質問や観点には回数（「1往復まで」など）を書かせない。
+ *
+ * 質問の構成は目的の有無で分ける。
+ * - 目的あり: 目的別テンプレートは、場面の後に理由（わかる）・影響（見つける）・
+ *   望む未来（描く）などを別の話題として聞く設計なので、並びを崩させない。
+ * - 目的なし: 理由や望む状態は実行時のAIが場面の話題の中で深掘りする（インタビュー本番の
+ *   「聞き方の原則」）。独立した質問にすると「なぜ」を決まった質問として聞いたり、
+ *   深掘りで聞いたことを聞き直したりするため、作らせない。
  */
-function buildFollowUpGuideRule(subject: PromptSubject): string {
-  if (subject.kind === "theme") {
-    return "- 観点では深掘りを1往復に絞らない: テーマ型では日常の具体的なエピソードや気持ちそのものが集めたい情報のため、「2〜3往復まで深掘りしてよい」方針にし、何を聞き出すか（きっかけ・具体的な出来事・そのときの気持ち・暮らしへの影響など）を書くこと。観点を並べる場合は「1往復につき1つずつ聞く」と明記すること。「分からない」「特にない」が続いたら次の質問に進む旨も含めること。";
-  }
-  return "- 観点は深掘り過剰を避ける: 連鎖的な深掘りを指示せず、「1往復までの追加確認に留める」「回答を受け止めたら次の質問に進む」方針を含めること。";
+export function buildQuestionRewriteRules(
+  design: InterviewDesignInput | undefined,
+  subject: PromptSubject
+): string {
+  const structureRules = design?.purposeType
+    ? `- **目的「${purposeDisplayName(design.purposeType, subject.kind)}」の質問の並びを保つ**。この目的の質問は、場面の後に理由・影響・望む未来などを別の話題として聞く設計になっている。質問の追加・削除・統合・並べ替えはせず、文言・観点・選択肢だけを整える（管理者から明示の要望があれば従う）`
+    : `- **話題の流れは 関わり → 場面 → 影響・受け止め（どちらか、または両方）→ 言い足し にする**。影響は「その場面で暮らしに何が起きたか（困ったこと・変わったこと・負担）」、受け止めは「施策やテーマへの評価」を聞く
+- **深掘りにあたる質問は作らない**。場面の答えの理由、望む状態（どうなっていたらよいか）、してほしいこと（要望や解決策）、前の答えの続き（「その場面で」「そのとき」で始まる問いなど）は、インタビュー本番のAIが話題の中で深掘りする。言い換えて別の質問にするのも同じ
+- 既存の質問にこうした質問があれば削除してよい（質問の数は減ってよい）。残す質問の順番は変えない
+- 削除した質問の中身は、場面の質問の観点にまとめる。観点は2つまでなので、入りきらない分は落とす（本番のAIが会話の中で補う）`;
+
+  return `${structureRules}
+- **「なぜ」で理由を問う質問文を書かない**。理由に触れたいときは「そう感じたきっかけ」「何が大事か」のように書く
+- **1つの質問には必ず1つの問いだけを含めること**（1問1論点）。複数の論点を1つの質問文に詰め込まない
+- **質問文に答えの候補を書かない**（「交通や子育てなど」のような例示は書かない）。範囲の指定（「この1か月で」「1つ」）はよい
+- **「決まっていること」の賛否を聞かない**
+- 観点（follow_up_guide）は「聞けたら話が豊かになる観点」を**2つまで**。満たすべき条件や手順として書かない
+- **質問・観点に回数（「1往復まで」「2〜3回深掘り」など）を書かない**。深掘りの量は実行時に決まる`;
 }
 
 /** 題材の説明セクション（施策情報 or テーマ情報） */
@@ -62,24 +88,58 @@ ${description ? `- テーマの説明:\n${description}` : "- テーマの説明:
 質問は作らないでください。`;
   }
 
+  const description = subject.description?.trim();
   return `## 施策情報
 - 施策名: ${subject.billName}
 - タイトル: ${subject.billTitle}
 - 要約: ${subject.billSummary}
 - 詳細内容:
-${subject.billContent}`;
+${subject.billContent}${description ? `\n- テーマの説明:\n${description}` : ""}`;
+}
+
+/**
+ * 職員が入力済みの設計を並べるセクション。何も入力されていなければ出さない。
+ * テーマの説明は題材のセクションに載せるので、ここには含めない。
+ * 「決まっていること」は施策がある意見募集でだけ使う（インタビュー本番と同じ扱い）。
+ */
+export function buildDesignSection(
+  design: InterviewDesignInput | undefined,
+  subject: PromptSubject
+): string {
+  if (!design) return "";
+
+  const opinionFocus = design.opinionFocus?.trim();
+  const decidedMatters =
+    subject.kind === "bill" ? design.decidedMatters?.trim() : undefined;
+
+  const lines = [
+    design.purposeType &&
+      `- 目的: ${purposeDisplayName(design.purposeType, subject.kind)}`,
+    opinionFocus && `- 市がこれから決めること: ${opinionFocus}`,
+    decidedMatters && `- 決まっていること（賛否を聞かない）: ${decidedMatters}`,
+  ].filter(Boolean);
+
+  if (lines.length === 0) return "";
+
+  return `
+
+## 意見募集の設計（管理者が入力済み）
+${lines.join("\n")}
+
+この設計を前提に提案してください。設計と食い違う論点や質問は作らないでください。`;
 }
 
 export function buildConfigGenerationPrompt(params: BuildPromptParams): string {
   const {
     subject,
+    design,
     stage,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   } = params;
 
-  const subjectSection = buildSubjectSection(subject);
+  const subjectSection = `${buildSubjectSection(subject)}${buildDesignSection(design, subject)}`;
 
   const knowledgeSource =
     subject.kind === "bill" ? subject.knowledgeSource : undefined;
@@ -160,16 +220,15 @@ ${knowledgeSection}${existingQuestionsSection}
 管理者の要望に沿って、インタビュー質問をブラッシュアップしてください。
 
 ## 質問提案のガイドライン
-- **1つの質問には必ず1つの問いだけを含めること**。複数の論点を1つの質問文に詰め込まない。
+${buildQuestionRewriteRules(design, subject)}
 - 自由回答を促す開かれた質問にする
-- 各質問にクイックリプライ（3〜5個）を用意するのが望ましい
+- 事実を聞く質問・受け止めの質問にはクイックリプライ（3〜5個）を用意する
 - **クイックリプライに括弧書きの補足（例: 「データ消失（障害・ランサム等）」）は使わない**。選択肢は単一の短い語句（20文字以内目安）のみ。補足が必要なら観点側に記載する。
-${buildFollowUpGuideRule(subject)}
 - ナレッジソースがある場合は、その情報も踏まえた質問にする
 
 ## 各質問に含めるフィールド
 - question: 質問文（1つの問いに絞り、分かりやすく端的に）
-- follow_up_guide: 観点（任意、回答後の深掘り方法や注意点など）
+- follow_up_guide: 観点（任意、聞けたら話が豊かになる観点を2つまで）
 - quick_replies: クイックリプライの選択肢（任意、3〜5個）
 
 ## 出力形式

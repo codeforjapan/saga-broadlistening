@@ -6,7 +6,11 @@ import {
   type ConfigGenerationStage,
   configGenerationResponseSchema,
 } from "../../shared/schemas";
-import { type InterviewQuestionInput, textToArray } from "../../shared/types";
+import {
+  type InterviewDesignInput,
+  type InterviewQuestionInput,
+  textToArray,
+} from "../../shared/types";
 import { buildQuestionsFromTemplate } from "../../shared/utils/default-questions-template";
 import { toProposedQuestions } from "../../shared/utils/question-input";
 
@@ -38,12 +42,15 @@ export type ConfigFormContext = {
   themeDescription: string | null;
   /** フォームで紐づけ中の施策。先頭の施策を題材にする */
   policyIds: string[];
+  /** フォームで入力済みの目的・意見がほしい点・決まっていること */
+  design: InterviewDesignInput;
 };
 
 const EMPTY_FORM_CONTEXT: ConfigFormContext = {
   themeName: null,
   themeDescription: null,
   policyIds: [],
+  design: { purposeType: null, opinionFocus: null, decidedMatters: null },
 };
 
 /** サーバー側に送る stage（クライアント内部の確定状態は送らない） */

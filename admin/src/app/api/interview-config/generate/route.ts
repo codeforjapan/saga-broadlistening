@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { handleConfigGeneration } from "@/features/interview-config/server/services/handle-config-generation";
 import type { ConfigGenerationStage } from "@/features/interview-config/shared/schemas";
+import type { InterviewDesignInput } from "@/features/interview-config/shared/types";
 
 export async function POST(req: Request) {
   try {
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
     themeName,
     themeDescription,
     policyIds,
+    design,
     stage,
     existingThemes,
     existingQuestions,
@@ -25,6 +27,8 @@ export async function POST(req: Request) {
     themeDescription?: string | null;
     /** フォームで紐づけ中の施策。先頭の施策を題材にする */
     policyIds?: string[];
+    /** フォームで入力済みの目的・意見がほしい点・決まっていること */
+    design?: InterviewDesignInput;
     stage: Extract<
       ConfigGenerationStage,
       "default_questions" | "question_proposal" | "theme_proposal"
@@ -59,6 +63,7 @@ export async function POST(req: Request) {
       themeName,
       themeDescription,
       policyIds,
+      design,
       stage,
       existingThemes,
       existingQuestions,

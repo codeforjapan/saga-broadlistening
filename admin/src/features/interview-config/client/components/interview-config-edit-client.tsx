@@ -95,6 +95,17 @@ export function InterviewConfigEditClient({
         ? formValues.description
         : (initialConfig?.description ?? null),
       policyIds: formValues ? (formValues.policy_ids ?? []) : linkedPolicyIds,
+      design: formValues
+        ? {
+            purposeType: formValues.purpose_type ?? null,
+            opinionFocus: formValues.opinion_focus ?? null,
+            decidedMatters: formValues.decided_matters ?? null,
+          }
+        : {
+            purposeType: initialConfig?.purpose_type ?? null,
+            opinionFocus: initialConfig?.opinion_focus ?? null,
+            decidedMatters: initialConfig?.decided_matters ?? null,
+          },
     };
   }, [initialConfig, linkedPolicyIds]);
 

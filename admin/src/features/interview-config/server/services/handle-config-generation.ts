@@ -11,6 +11,7 @@ import {
   questionProposalSchema,
   themeProposalSchema,
 } from "../../shared/schemas";
+import type { InterviewDesignInput } from "../../shared/types";
 import {
   buildConfigGenerationPrompt,
   getSubjectLabel,
@@ -27,13 +28,15 @@ interface HandleConfigGenerationParams {
   messages: Array<{ role: string; content: string }>;
   /** 施策がないときに題材にするテーマ名 */
   themeName?: string | null;
-  /** 施策がないときに題材にするテーマの説明 */
+  /** 職員が書いたテーマの説明。施策があってもなくても題材に添える */
   themeDescription?: string | null;
   /**
-   * フォームで紐づけ中の施策。先頭の施策を題材にする（フォームの順）。
-   * 空なら施策なしとしてテーマを題材にする
+   * フォームで紐づけ中の施策。先頭の施策を題材にする（インタビュー本番も紐づく施策を
+   * 主たる題材にするため）。空なら施策なしとしてテーマを題材にする
    */
   policyIds?: string[];
+  /** フォームで入力済みの設計 */
+  design?: InterviewDesignInput;
   stage: ConfigGenerationStage;
   existingThemes?: string[];
   existingQuestions?: ExistingQuestion[];
@@ -45,6 +48,7 @@ export async function handleConfigGeneration({
   themeName,
   themeDescription,
   policyIds,
+  design,
   stage,
   existingThemes,
   existingQuestions,
@@ -58,6 +62,7 @@ export async function handleConfigGeneration({
 
   const systemPrompt = buildConfigGenerationPrompt({
     subject,
+    design,
     stage,
     existingThemes,
     existingQuestions,
@@ -126,7 +131,8 @@ export async function handleConfigGeneration({
 /**
  * 生成の題材を読み込む。
  *
- * 施策IDがあれば施策とその「ふつう」難易度のコンテンツを、なければテーマ名を使う。
+ * 施策があれば施策とその「ふつう」難易度のコンテンツを、なければテーマ名を使う。
+ * テーマの説明はどちらの場合も添える。
  */
 async function loadPromptSubject(
   policyId: string | null,
@@ -161,6 +167,7 @@ async function loadPromptSubject(
 
   return {
     kind: "bill",
+    description: themeDescription?.trim() || undefined,
     billName: bill.name,
     billTitle: normalContent?.title || "",
     billSummary: normalContent?.summary || "",
