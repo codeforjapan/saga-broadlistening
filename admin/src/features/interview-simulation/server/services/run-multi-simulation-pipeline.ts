@@ -54,8 +54,6 @@ interface RunMultiSimulationParams {
   personaSlots: PersonaSlotInput[];
   /** 全スロット共通の改善版 config */
   improvedPromptInputs: ImprovedPromptInputs;
-  /** 初回ターン enhanced prompt で名乗る対象名（施策名 or テーマ名） */
-  subjectTitle: string;
   interviewerModel?: LanguageModel;
   intervieweeModel?: LanguageModel;
   personaModel?: LanguageModel;
@@ -241,13 +239,6 @@ export async function runMultiSimulationPipeline(
             interviewConfig: params.improvedPromptInputs.interviewConfig,
             questions: params.improvedPromptInputs.questions,
           },
-          initialTurnEnhancement: {
-            subjectTitle: params.subjectTitle,
-            firstQuestionId:
-              params.improvedPromptInputs.questions[0]?.id ?? null,
-          },
-          estimatedDurationMinutes:
-            params.improvedPromptInputs.estimatedDurationMinutes,
           onTurnComplete: emit
             ? (turnIndex, turn) =>
                 emit({ type: "turn", personaIndex, turnIndex, turn })
