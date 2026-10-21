@@ -19,46 +19,47 @@ interface ChatMessage {
 }
 
 interface UseConfigGenerationChatProps {
-  /** 施策配下から開いたときの施策ID。テーマ単独では null */
-  billId: string | null;
   /**
-   * 施策がないときにAIへ渡すテーマの情報を、送信時点のフォーム値から読み取る。
-   * 職員がテーマ名・説明を書き換えた直後でも最新の内容で生成するため、
+   * AIへ渡すフォームの値を、送信時点で読み取る。
+   * 職員がフォームを書き換えた直後でも最新の内容で生成するため、
    * 値ではなく取得関数を受け取る（呼び出し側で useCallback すること）。
    */
-  getThemeContext?: () => ThemeContext;
+  getFormContext?: () => ConfigFormContext;
   existingThemes?: string[];
   existingQuestions?: InterviewQuestionInput[];
   onThemesConfirmed: (themes: string[]) => void;
   onQuestionsConfirmed: (questions: InterviewQuestionInput[]) => void;
 }
 
-/** AIに渡すテーマの情報。施策に紐づく意見募集では使われない */
-export type ThemeContext = {
+/** AIに渡す、左のフォームの送信時点の値 */
+export type ConfigFormContext = {
+  /** 施策がないときに題材にするテーマ名 */
   themeName: string | null;
   themeDescription: string | null;
+  /** フォームで紐づけ中の施策。先頭の施策を題材にする */
+  policyIds: string[];
 };
 
-const EMPTY_THEME_CONTEXT: ThemeContext = {
+const EMPTY_FORM_CONTEXT: ConfigFormContext = {
   themeName: null,
   themeDescription: null,
+  policyIds: [],
 };
 
 /** サーバー側に送る stage（クライアント内部の確定状態は送らない） */
 type ServerStage = "default_questions" | "question_proposal" | "theme_proposal";
 
 export function useConfigGenerationChat({
-  billId,
-  getThemeContext,
+  getFormContext,
   existingThemes,
   existingQuestions,
   onThemesConfirmed,
   onQuestionsConfirmed,
 }: UseConfigGenerationChatProps) {
-  /** 送信時点のテーマ情報。施策配下では使われないので空になる */
-  const getThemeContextOrEmpty = useCallback(
-    () => getThemeContext?.() ?? EMPTY_THEME_CONTEXT,
-    [getThemeContext]
+  /** 送信時点のフォームの値 */
+  const getFormContextOrEmpty = useCallback(
+    () => getFormContext?.() ?? EMPTY_FORM_CONTEXT,
+    [getFormContext]
   );
 
   /**
@@ -66,9 +67,9 @@ export function useConfigGenerationChat({
    * 確定したテーマは保存前でも説明欄に入っているので、保存済みの値より優先する。
    */
   const getCurrentThemes = useCallback((): string[] | undefined => {
-    const themes = textToArray(getThemeContextOrEmpty().themeDescription);
+    const themes = textToArray(getFormContextOrEmpty().themeDescription);
     return themes.length > 0 ? themes : undefined;
-  }, [getThemeContextOrEmpty]);
+  }, [getFormContextOrEmpty]);
 
   const hasExistingThemes = (existingThemes?.length ?? 0) > 0;
   const hasExistingQuestions = (existingQuestions?.length ?? 0) > 0;
@@ -207,8 +208,7 @@ export function useConfigGenerationChat({
 
       submit({
         messages: apiMessages,
-        billId,
-        ...getThemeContextOrEmpty(),
+        ...getFormContextOrEmpty(),
         stage: serverStage,
         existingThemes:
           serverStage === "theme_proposal" ? getCurrentThemes() : undefined,
@@ -222,8 +222,7 @@ export function useConfigGenerationChat({
     },
     [
       messages,
-      billId,
-      getThemeContextOrEmpty,
+      getFormContextOrEmpty,
       stage,
       isLoading,
       submit,
@@ -268,24 +267,24 @@ export function useConfigGenerationChat({
     }
 
     // 新規: テンプレ + LLMでQ1/Q2を生成
+    const formContext = getFormContextOrEmpty();
     setMessages([
       {
         id: "greeting",
         role: "assistant",
-        content: billId
-          ? "インタビュー設定アシスタントです。施策内容を分析して、デフォルトの質問セットを準備します。"
-          : "インタビュー設定アシスタントです。テーマの内容を分析して、デフォルトの質問セットを準備します。",
+        content:
+          formContext.policyIds.length > 0
+            ? "インタビュー設定アシスタントです。施策内容を分析して、デフォルトの質問セットを準備します。"
+            : "インタビュー設定アシスタントです。テーマの内容を分析して、デフォルトの質問セットを準備します。",
       },
     ]);
     submit({
       messages: [],
-      billId,
-      ...getThemeContextOrEmpty(),
+      ...formContext,
       stage: "default_questions",
     });
   }, [
-    billId,
-    getThemeContextOrEmpty,
+    getFormContextOrEmpty,
     submit,
     hasExistingThemes,
     hasExistingQuestions,
@@ -313,16 +312,14 @@ export function useConfigGenerationChat({
 
       submit({
         messages: [],
-        billId,
-        ...getThemeContextOrEmpty(),
+        ...getFormContextOrEmpty(),
         stage: "theme_proposal",
         confirmedQuestions: questions,
         existingThemes: getCurrentThemes(),
       });
     },
     [
-      billId,
-      getThemeContextOrEmpty,
+      getFormContextOrEmpty,
       isLoading,
       stop,
       submit,
@@ -382,16 +379,14 @@ export function useConfigGenerationChat({
 
     submit({
       messages: [],
-      billId,
-      ...getThemeContextOrEmpty(),
+      ...getFormContextOrEmpty(),
       stage: "theme_proposal",
       confirmedQuestions:
         questionsToUse.length > 0 ? questionsToUse : undefined,
       existingThemes: getCurrentThemes(),
     });
   }, [
-    billId,
-    getThemeContextOrEmpty,
+    getFormContextOrEmpty,
     isLoading,
     stop,
     submit,

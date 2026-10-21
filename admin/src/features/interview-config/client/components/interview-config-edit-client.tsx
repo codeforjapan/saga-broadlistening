@@ -15,7 +15,7 @@ import {
 } from "../../shared/types";
 import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
 import { toQuestionInput } from "../../shared/utils/question-input";
-import type { ThemeContext } from "../hooks/use-config-generation-chat";
+import type { ConfigFormContext } from "../hooks/use-config-generation-chat";
 import { ConfigGenerationChat } from "./config-generation-chat";
 import {
   InterviewConfigForm,
@@ -26,11 +26,6 @@ import { InterviewQuestionList } from "./interview-question-list";
 
 interface InterviewConfigEditClientProps {
   modelGroups: ChatModelGroup[];
-  /**
-   * 施策配下の画面から開いたときの施策ID。
-   * テーマ単独の画面（抽象テーマ型を含む）では null。
-   */
-  billId: string | null;
   config: InterviewConfig | null;
   questions: InterviewQuestion[];
   completedReports: CompletedReportListItem[];
@@ -41,10 +36,10 @@ interface InterviewConfigEditClientProps {
   initialName?: string | null;
   /** 新規作成時の Slug 初期値 */
   initialSlug?: string;
-  /** 紐づけ先として選べる施策。渡されたときだけフォームに紐づけ欄を出す */
-  policyOptions?: PolicyOption[];
-  /** 現在紐づいている施策のID一覧 */
-  linkedPolicyIds?: string[];
+  /** 紐づけ先として選べる施策 */
+  policyOptions: PolicyOption[];
+  /** 現在紐づいている施策のID一覧。新規作成では、施策のページから来たときにその施策が入る */
+  linkedPolicyIds: string[];
   /**
    * ペルソナ素材を施策全体から選べるか。抽象テーマ型では false になり、
    * この意見募集自身の完了インタビューだけが候補になる。
@@ -53,7 +48,6 @@ interface InterviewConfigEditClientProps {
 }
 
 export function InterviewConfigEditClient({
-  billId,
   modelGroups,
   config: initialConfig,
   questions,
@@ -82,17 +76,18 @@ export function InterviewConfigEditClient({
   // 質問一覧の現在値を取得するための ref（シミュレーション機能で使用）
   const getQuestionsRef = useRef<(() => InterviewQuestionInput[]) | null>(null);
 
-  // AIに渡すテーマ情報。生成のたびにフォームの最新値を読み直す。
+  // AIに渡すフォームの値。生成のたびにフォームの最新値を読み直す。
   // フォームで空欄にした値は保存済みの値に戻さない（initialConfig はフォームが未接続のときだけ使う）
-  const getThemeContext = useCallback((): ThemeContext => {
+  const getFormContext = useCallback((): ConfigFormContext => {
     const formValues = getFormValuesRef.current?.();
     return {
       themeName: formValues ? formValues.name : (initialConfig?.name ?? null),
       themeDescription: formValues
         ? formValues.description
         : (initialConfig?.description ?? null),
+      policyIds: formValues ? (formValues.policy_ids ?? []) : linkedPolicyIds,
     };
-  }, [initialConfig]);
+  }, [initialConfig, linkedPolicyIds]);
 
   // 確定した質問・テーマは左ペインに反映するだけで、DBへの保存は保存ボタンに任せる。
   // 確定のたびに裏で設定を作るとフォームが保存済みの値で作り直され、
@@ -140,7 +135,6 @@ export function InterviewConfigEditClient({
           <div className="space-y-6">
             <InterviewConfigForm
               modelGroups={modelGroups}
-              billId={billId}
               config={initialConfig}
               aiGeneratedThemes={aiGeneratedThemes}
               onAiThemesApplied={() => setAiGeneratedThemes(null)}
@@ -170,8 +164,8 @@ export function InterviewConfigEditClient({
           {/* 右カラム: AI 設定生成チャット */}
           <div>
             <ConfigGenerationChat
-              billId={billId}
-              getThemeContext={getThemeContext}
+              hasLinkedPolicy={linkedPolicyIds.length > 0}
+              getFormContext={getFormContext}
               existingThemes={
                 initialConfig?.description
                   ? textToArray(initialConfig.description)

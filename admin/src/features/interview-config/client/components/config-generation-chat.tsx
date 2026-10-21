@@ -18,15 +18,18 @@ import { Input } from "@/components/ui/input";
 import type { InterviewQuestionInput } from "../../shared/types";
 import { buildQuestionsFromTemplate } from "../../shared/utils/default-questions-template";
 import {
-  type ThemeContext,
+  type ConfigFormContext,
   useConfigGenerationChat,
 } from "../hooks/use-config-generation-chat";
 
 interface ConfigGenerationChatProps {
-  /** 施策配下から開いたときの施策ID。テーマ単独では null */
-  billId: string | null;
-  /** 施策がないときにAIへ渡すテーマ情報を、送信時点のフォーム値から読み取る */
-  getThemeContext?: () => ThemeContext;
+  /**
+   * 開いた時点で施策が紐づいているか。紐づいていれば施策内容を材料に自動で生成を始める。
+   * AIが題材にする施策は、送信時点のフォームの値で決まる
+   */
+  hasLinkedPolicy: boolean;
+  /** AIへ渡すフォームの値を、送信時点で読み取る */
+  getFormContext?: () => ConfigFormContext;
   existingThemes?: string[];
   existingQuestions?: InterviewQuestionInput[];
   onThemesConfirmed: (themes: string[]) => void;
@@ -34,8 +37,8 @@ interface ConfigGenerationChatProps {
 }
 
 export function ConfigGenerationChat({
-  billId,
-  getThemeContext,
+  hasLinkedPolicy,
+  getFormContext,
   existingThemes,
   existingQuestions,
   onThemesConfirmed,
@@ -59,8 +62,7 @@ export function ConfigGenerationChat({
     switchToQuestions,
     skipToThemes,
   } = useConfigGenerationChat({
-    billId,
-    getThemeContext,
+    getFormContext,
     existingThemes,
     existingQuestions,
     onThemesConfirmed,
@@ -72,7 +74,7 @@ export function ConfigGenerationChat({
 
   // 施策があれば施策内容を材料に自動で生成を始められる。
   // 施策に紐づかないテーマは、職員がテーマ名を入力するまで材料がないため自動起動しない
-  const canAutoStart = billId !== null;
+  const canAutoStart = hasLinkedPolicy;
 
   useEffect(() => {
     if (canAutoStart && !hasStartedRef.current) {
@@ -85,7 +87,7 @@ export function ConfigGenerationChat({
   // テーマ名の有無はボタンの disabled ではなく押した時点で判定する
   const [startError, setStartError] = useState<string | null>(null);
   const handleManualStart = () => {
-    if (!getThemeContext?.().themeName?.trim()) {
+    if (!getFormContext?.().themeName?.trim()) {
       setStartError("テーマ名（設定名）を入力してから生成をはじめてください。");
       return;
     }
@@ -133,7 +135,7 @@ export function ConfigGenerationChat({
           AIで設定を生成
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          {billId
+          {hasLinkedPolicy
             ? "施策内容に合わせて質問とテーマを提案します"
             : "テーマ名と説明に合わせて質問とテーマを提案します"}
         </p>

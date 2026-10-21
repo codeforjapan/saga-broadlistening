@@ -25,12 +25,15 @@ interface ExistingQuestion {
 
 interface HandleConfigGenerationParams {
   messages: Array<{ role: string; content: string }>;
-  /** 施策配下から呼ばれたときの施策ID。抽象テーマ型では null */
-  billId: string | null;
   /** 施策がないときに題材にするテーマ名 */
   themeName?: string | null;
   /** 施策がないときに題材にするテーマの説明 */
   themeDescription?: string | null;
+  /**
+   * フォームで紐づけ中の施策。先頭の施策を題材にする（フォームの順）。
+   * 空なら施策なしとしてテーマを題材にする
+   */
+  policyIds?: string[];
   stage: ConfigGenerationStage;
   existingThemes?: string[];
   existingQuestions?: ExistingQuestion[];
@@ -39,15 +42,19 @@ interface HandleConfigGenerationParams {
 
 export async function handleConfigGeneration({
   messages,
-  billId,
   themeName,
   themeDescription,
+  policyIds,
   stage,
   existingThemes,
   existingQuestions,
   confirmedQuestions,
 }: HandleConfigGenerationParams) {
-  const subject = await loadPromptSubject(billId, themeName, themeDescription);
+  const subject = await loadPromptSubject(
+    policyIds?.[0] ?? null,
+    themeName,
+    themeDescription
+  );
 
   const systemPrompt = buildConfigGenerationPrompt({
     subject,
@@ -122,11 +129,11 @@ export async function handleConfigGeneration({
  * 施策IDがあれば施策とその「ふつう」難易度のコンテンツを、なければテーマ名を使う。
  */
 async function loadPromptSubject(
-  billId: string | null,
+  policyId: string | null,
   themeName: string | null | undefined,
   themeDescription: string | null | undefined
 ): Promise<PromptSubject> {
-  if (!billId) {
+  if (!policyId) {
     const trimmed = themeName?.trim();
     if (!trimmed) {
       throw new Error("Neither bill nor theme name is available");
@@ -139,8 +146,8 @@ async function loadPromptSubject(
   }
 
   const [bill, billContents] = await Promise.all([
-    getBillById(billId),
-    getBillContents(billId),
+    getBillById(policyId),
+    getBillContents(policyId),
   ]);
 
   if (!bill) {
