@@ -1,4 +1,5 @@
 import {
+  InterviewAlreadyCompletedError,
   InterviewParticipationDeniedError,
   InterviewSessionNotStartedError,
 } from "@/features/interview-session/shared/types/errors";
@@ -14,7 +15,10 @@ export function chatErrorToResponse(error: unknown): Response {
     return textResponse(error.message, 403);
   }
 
-  if (error instanceof InterviewSessionNotStartedError) {
+  if (
+    error instanceof InterviewSessionNotStartedError ||
+    error instanceof InterviewAlreadyCompletedError
+  ) {
     return textResponse(error.message, 409);
   }
 

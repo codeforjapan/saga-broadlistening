@@ -1,14 +1,24 @@
 import type { ContentRichnessResult } from "@mirai-gikai/shared/content-richness/schemas";
-import { INTERVIEW_CHAT_TEXT_DESCRIPTION } from "@mirai-gikai/shared/interview-prompts/chat-text-description";
+import {
+  interviewChatTextSchema,
+  interviewChatWithReportSchema,
+  interviewInitialSchema,
+} from "@mirai-gikai/shared/interview-prompts/output-schemas";
+import { SUMMARY_RESPONSES } from "@mirai-gikai/shared/interview-prompts/types";
 import {
   type InterviewReportData,
   interviewReportSchema,
 } from "@mirai-gikai/shared/interview-report/schema";
 import { z } from "zod";
 
-// 意見スキーマ・レポートスキーマは web/admin 共通のため @mirai-gikai/shared に集約。
-// 既存の web 内 import を壊さないよう re-export する。
-export { interviewReportSchema };
+// 意見スキーマ・レポートスキーマ・LLM の出力スキーマは web/admin 共通のため
+// @mirai-gikai/shared に集約。既存の web 内 import を壊さないよう re-export する。
+export {
+  interviewChatTextSchema,
+  interviewChatWithReportSchema,
+  interviewInitialSchema,
+  interviewReportSchema,
+};
 export type { InterviewReportData };
 
 export type InterviewContentRichness = ContentRichnessResult;
@@ -27,45 +37,29 @@ export const interviewStageSchema = z.enum([
 ]);
 export type InterviewStage = z.infer<typeof interviewStageSchema>;
 
-// 通常チャット用スキーマ（LLM出力用 - next_stageを含む）
-export const interviewChatTextSchema = z.object({
-  text: z.string().describe(INTERVIEW_CHAT_TEXT_DESCRIPTION),
-  quick_replies: z.array(z.string()).nullable(),
-  question_id: z.string().nullable(),
-  topic_title: z.string().nullable(),
-  next_stage: interviewStageSchema.describe(
-    "インタビューのステージ遷移判定。chat=インタビュー継続、summary=要約フェーズへ移行"
-  ),
-});
-
-export type InterviewChatText = z.infer<typeof interviewChatTextSchema>;
-
-// summaryフェーズ用スキーマ（LLM出力用 - next_stageを含む）
-// chat遷移時はreportをnullにする（OpenAI structured outputはoptionalを許容しないためnullableを使用）
-export const interviewChatWithReportSchema = z.object({
-  text: z.string(),
-  report: interviewReportSchema
-    .nullable()
-    .describe(
-      "インタビュー内容をまとめたレポート。next_stageがchatの場合はnullにすること"
-    ),
-  next_stage: interviewStageSchema.describe(
-    "ステージ遷移判定。summary=レポート修正継続、summary_complete=レポート完了、chat=インタビュー再開"
-  ),
-});
-
-export type InterviewChatWithReport = z.infer<
-  typeof interviewChatWithReportSchema
->;
-
-// クライアント側で使う統一スキーマ（両方のレスポンスを受け取れる）
+/**
+ * クライアント側で使う統一スキーマ（対話・要約どちらのレスポンスも受け取れる）。
+ * next_stage・quick_replies・resolved_question_id・chain_summary は、
+ * LLM の出力を読み切った後にサーバーがストリームの末尾へ注入する。
+ */
 export const interviewChatResponseSchema = z.object({
   text: z.string(),
   report: interviewReportSchema.optional().nullable(),
-  quick_replies: z.array(z.string()).optional().nullable(),
   question_id: z.string().optional().nullable(),
   topic_title: z.string().optional().nullable(),
+  summary_response: z.enum(SUMMARY_RESPONSES).optional(),
+  end_request: z.boolean().optional(),
+  wrap_up: z.boolean().optional(),
+  /** サーバーが決めた question_id（interview_questions.id） */
+  resolved_question_id: z.string().optional().nullable(),
+  /** サーバーが決めた話題名 */
+  resolved_topic_title: z.string().optional().nullable(),
+  /** 初めて聞く質問の選択肢ボタン */
+  quick_replies: z.array(z.string()).optional().nullable(),
+  /** サーバーが決めた次のステージ */
   next_stage: interviewStageSchema.optional(),
+  /** true なら、続けて初回の要約を取りにいく（end_request・最後の話題の wrap_up を受けたとき） */
+  chain_summary: z.boolean().optional(),
 });
 
 export type InterviewChatResponse = z.infer<typeof interviewChatResponseSchema>;
