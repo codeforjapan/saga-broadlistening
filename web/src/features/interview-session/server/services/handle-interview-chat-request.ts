@@ -215,12 +215,15 @@ export async function handleInterviewChatRequest({
     });
   }
 
-  // summary: 場面は発話の記録から決める。「終える」ボタンが要約の段階で押されたら締める
+  // summary: 場面は発話の記録から決める。「終える」ボタンで締めるのは、要約を見せた後
+  // （返事を受けるところ）だけ。要約に入った直後の生成が失敗して「終える」が再送されても、
+  // 要約を見せないまま締めないため
+  const phase = resolveSummaryPhase({ sessionStage: session.stage, metas });
   const summaryState = computeSummaryState({
     topics,
     metas,
-    phase: resolveSummaryPhase({ sessionStage: session.stage, metas }),
-    forceClose: endButton && session.stage === "summary",
+    phase,
+    forceClose: endButton && phase === "reply",
   });
   const [systemPrompt] = await Promise.all([
     buildSummarySystemPrompt({

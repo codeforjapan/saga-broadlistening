@@ -714,6 +714,26 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       expect(await readStage()).toBe("summary_complete");
     });
 
+    it("要約に入った直後に「終える」が再送されても、要約を見せずに締めない", async () => {
+      // 前回の「終える」でステージは summary になったが、要約の生成に失敗した状態
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "assistant", content: "関わりはありますか？" }],
+        interviewConfigId: config.id,
+        action: "end",
+        userId: testUser.id,
+        deps: {
+          ...baseDeps({
+            session: { ...session, stage: "summary" },
+            history: chatHistory([questionIds[0]]),
+          }),
+          summaryModel: createStreamMock([validSummaryResponse]),
+        },
+      });
+
+      const body = JSON.parse(await consumeResponseStream(response));
+      expect(body.next_stage).toBe("summary");
+    });
+
     it("最後の話題で wrap_up が返ったら要約へ進め、保存内容と注入した値がそろう", async () => {
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "特にないです" }],
