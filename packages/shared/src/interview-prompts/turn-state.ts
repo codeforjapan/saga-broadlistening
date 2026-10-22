@@ -46,7 +46,11 @@ function topicTurnLine(state: TurnState): string {
 /**
  * 「いまの状況」節。コードが毎ターン作り、回答者には見せない。
  */
-export function renderTurnState(state: TurnState): string {
+export function renderTurnState(
+  state: TurnState,
+  /** 直前の回答が選択肢ボタンなら、その文言 */
+  selectedQuickReply: string | null = null
+): string {
   const { current, candidates, left } = state;
   const lines = [
     "# いまの状況（システムから。回答者には見せない）",
@@ -54,6 +58,11 @@ export function renderTurnState(state: TurnState): string {
   ];
   if (current) {
     lines.push(`- いまの話題：${current.label}「${current.question}」`, topicTurnLine(state));
+  }
+  if (selectedQuickReply) {
+    lines.push(
+      `- 直前の回答：選択肢ボタン「${selectedQuickReply}」を押した答え。言い終えた答えとして受け止める（文が途中で切れているとみなして続きを促さない）`
+    );
   }
   if (left >= 1) {
     lines.push(

@@ -55,6 +55,16 @@ describe("renderTurnState", () => {
     );
   });
 
+  it("直前の回答が選択肢ボタンなら、言い終えた答えとして扱うよう書く", () => {
+    expect(renderTurnState(stateAfter("q1"), "自分の暮らしで")).toContain(
+      "- 直前の回答：選択肢ボタン「自分の暮らしで」を押した答え。言い終えた答えとして受け止める（文が途中で切れているとみなして続きを促さない）"
+    );
+  });
+
+  it("直前の回答が選択肢ボタンでなければ、その行を出さない", () => {
+    expect(renderTurnState(stateAfter("q1"))).not.toContain("直前の回答");
+  });
+
   it("話題の発話の上限を使い切ったら次の話題へ移るよう指示する", () => {
     const text = renderTurnState(
       stateAfter("q1", "q2", ...Array<string>(45).fill(""), "q2")

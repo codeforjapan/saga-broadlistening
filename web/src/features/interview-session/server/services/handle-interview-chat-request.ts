@@ -1,7 +1,10 @@
 import "server-only";
 
 import { propagateAttributes } from "@langfuse/tracing";
-import { collectAssistantTurnMetas } from "@mirai-gikai/shared/interview-prompts/assistant-message";
+import {
+  collectAssistantTurnMetas,
+  findSelectedQuickReply,
+} from "@mirai-gikai/shared/interview-prompts/assistant-message";
 import {
   buildTurnTopics,
   computeSummaryState,
@@ -201,6 +204,8 @@ export async function handleInterviewChatRequest({
         interviewConfig,
         topics,
         turnState: state,
+        // dbMessages には今回の回答まで保存済み
+        selectedQuickReply: findSelectedQuickReply(dbMessages),
       });
       logger.debug("System Prompt:", systemPrompt);
       return generateStreamingResponse({
