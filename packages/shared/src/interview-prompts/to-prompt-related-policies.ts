@@ -40,14 +40,15 @@ export function toPromptRelatedPolicies(
         name: row.name,
         title: content.title,
         summary: content.summary,
-        content: truncateContent(content.content),
+        content: truncatePolicyContent(content.content),
       },
     ];
   });
   return policies.slice(0, MAX_RELATED_POLICIES);
 }
 
-function truncateContent(content: string | null): string | null {
+/** 施策の本文を上限の文字数で切り詰める。超えた分は省いたと分かるように書く */
+export function truncatePolicyContent(content: string | null): string | null {
   if (!content || content.length <= RELATED_POLICY_CONTENT_MAX_CHARS) {
     return content;
   }

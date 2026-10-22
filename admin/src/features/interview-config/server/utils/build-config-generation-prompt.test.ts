@@ -1,17 +1,23 @@
+import { RELATED_POLICY_CONTENT_MAX_CHARS } from "@mirai-gikai/shared/interview-prompts/constants";
 import { purposeDisplayName } from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
 import { describe, expect, it } from "vitest";
 import {
   buildConfigGenerationPrompt,
   buildDesignSection,
   buildQuestionRewriteRules,
+  getSubjectLabel,
 } from "./build-config-generation-prompt";
 
-const billSubject = {
-  kind: "bill" as const,
+const testPolicy = {
   billName: "テスト施策",
   billTitle: "テストタイトル",
   billSummary: "テスト要約",
   billContent: "テスト内容の詳細",
+};
+
+const billSubject = {
+  kind: "bill" as const,
+  policies: [testPolicy],
 };
 
 const baseParams = {
@@ -33,6 +39,88 @@ describe("buildConfigGenerationPrompt", () => {
       expect(result).toContain("タイトル: テストタイトル");
       expect(result).toContain("要約: テスト要約");
       expect(result).toContain("テスト内容の詳細");
+    });
+
+    it("施策が1つなら、紐づく施策の数や共通化の指示は書かない", () => {
+      const result = buildConfigGenerationPrompt(baseParams);
+      expect(result).not.toContain("つの施策が紐づいています");
+      expect(result).not.toContain("### 施策1");
+    });
+  });
+
+  describe("施策が複数あるとき", () => {
+    const otherPolicy = {
+      billName: "別の施策",
+      billTitle: "別のタイトル",
+      billSummary: "別の要約",
+      billContent: "別の内容",
+    };
+    const multiParams = {
+      ...baseParams,
+      subject: {
+        kind: "bill" as const,
+        policies: [otherPolicy, testPolicy],
+        themeName: "テストの意見募集",
+      },
+    };
+
+    it("どの施策も同じ形で、並び順のとおりに載せる", () => {
+      const result = buildConfigGenerationPrompt(multiParams);
+      expect(result).toContain("### 施策1\n- 施策名: 別の施策");
+      expect(result).toContain("### 施策2\n- 施策名: テスト施策");
+    });
+
+    it("意見募集の名前を軸に添え、すべての施策に共通する質問にさせる", () => {
+      const result = buildConfigGenerationPrompt(multiParams);
+      expect(result).toContain("次の2つの施策が紐づいています");
+      expect(result).toContain("質問はすべての施策に共通して使える内容に");
+      expect(result).toContain("- 意見募集の名前: テストの意見募集");
+    });
+
+    it("どれか1つの施策に寄せないよう、題材を全体として呼ぶ", () => {
+      expect(getSubjectLabel(multiParams.subject)).toBe(
+        "意見募集に紐づく施策全体"
+      );
+      expect(getSubjectLabel(billSubject)).toBe("施策");
+    });
+
+    it("本文は上限の文字数で切り詰める（施策が1つなら切り詰めない）", () => {
+      const longContent = "あ".repeat(RELATED_POLICY_CONTENT_MAX_CHARS + 10);
+      const multi = buildConfigGenerationPrompt({
+        ...multiParams,
+        subject: {
+          ...multiParams.subject,
+          policies: [{ ...otherPolicy, billContent: longContent }, testPolicy],
+        },
+      });
+      expect(multi).toContain("…（以下略）");
+      expect(multi).not.toContain(longContent);
+
+      const single = buildConfigGenerationPrompt({
+        ...baseParams,
+        subject: {
+          ...billSubject,
+          policies: [{ ...testPolicy, billContent: longContent }],
+        },
+      });
+      expect(single).toContain(longContent);
+    });
+
+    it("ナレッジソースは、ある施策の分だけ施策名を付けて並べる", () => {
+      const result = buildConfigGenerationPrompt({
+        ...multiParams,
+        subject: {
+          ...multiParams.subject,
+          policies: [
+            { ...otherPolicy, knowledgeSource: "別の仮説" },
+            { ...testPolicy, knowledgeSource: "  " },
+          ],
+        },
+      });
+      expect(result).toContain(
+        "## ナレッジソース（チームの仮説や補足情報）\n### 別の施策\n別の仮説\n"
+      );
+      expect(result).not.toContain("### テスト施策");
     });
   });
 
@@ -123,7 +211,10 @@ describe("buildConfigGenerationPrompt", () => {
     it("ナレッジソースありの場合、ナレッジセクションを含む", () => {
       const result = buildConfigGenerationPrompt({
         ...baseParams,
-        subject: { ...billSubject, knowledgeSource: "チームの仮説内容" },
+        subject: {
+          ...billSubject,
+          policies: [{ ...testPolicy, knowledgeSource: "チームの仮説内容" }],
+        },
       });
       expect(result).toContain("ナレッジソース");
       expect(result).toContain("チームの仮説内容");
@@ -132,7 +223,10 @@ describe("buildConfigGenerationPrompt", () => {
     it("ナレッジソースが空白のみの場合、ナレッジソースセクションヘッダーを含まない", () => {
       const result = buildConfigGenerationPrompt({
         ...baseParams,
-        subject: { ...billSubject, knowledgeSource: "   " },
+        subject: {
+          ...billSubject,
+          policies: [{ ...testPolicy, knowledgeSource: "   " }],
+        },
       });
       expect(result).not.toContain(
         "## ナレッジソース（チームの仮説や補足情報）"
@@ -165,6 +259,7 @@ describe("buildConfigGenerationPrompt", () => {
       });
       expect(result).toContain("「なぜ」で理由を問う質問文を書かない");
       expect(result).toContain("質問文に答えの候補を書かない");
+      expect(result).toContain("例を並べたり括弧で補ったりしない");
       expect(result).toContain("「決まっていること」の賛否を聞かない");
       expect(result).toContain("**2つまで**");
       expect(result).toContain(
@@ -212,7 +307,10 @@ describe("buildConfigGenerationPrompt", () => {
     it("ナレッジソースありの場合、ナレッジセクションを含む", () => {
       const result = buildConfigGenerationPrompt({
         ...questionParams,
-        subject: { ...billSubject, knowledgeSource: "補足情報" },
+        subject: {
+          ...billSubject,
+          policies: [{ ...testPolicy, knowledgeSource: "補足情報" }],
+        },
       });
       expect(result).toContain("ナレッジソース");
       expect(result).toContain("補足情報");

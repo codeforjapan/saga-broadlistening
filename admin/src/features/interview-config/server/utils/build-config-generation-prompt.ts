@@ -1,6 +1,7 @@
 import "server-only";
 
 import { purposeDisplayName } from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
+import { truncatePolicyContent } from "@mirai-gikai/shared/interview-prompts/to-prompt-related-policies";
 import type { ConfigGenerationStage } from "../../shared/schemas";
 import type { InterviewDesignInput } from "../../shared/types";
 import { DEFAULT_QUESTIONS_TEMPLATE } from "../../shared/utils/default-questions-template";
@@ -11,18 +12,29 @@ interface ExistingQuestion {
   quick_replies?: string[] | null;
 }
 
+/** 題材にする施策1件の情報 */
+export interface PromptPolicy {
+  billName: string;
+  billTitle: string;
+  billSummary: string;
+  billContent: string;
+  knowledgeSource?: string;
+}
+
 /**
  * 生成の題材。施策があれば施策情報を、なければテーマ名だけを手がかりにする。
  * 抽象テーマ型（施策に紐づかない意見募集）では bill 側が丸ごと存在しない。
+ *
+ * 紐づく施策が複数あるときは、どれも同じ重みで渡す。質問は、どの施策のページから
+ * 参加した人にも同じものを使うため（フォームの施策の並びは名前順で、主従の意味がない）。
  */
 export type PromptSubject =
   | {
       kind: "bill";
-      billName: string;
-      billTitle: string;
-      billSummary: string;
-      billContent: string;
-      knowledgeSource?: string;
+      /** 紐づく施策（1件以上） */
+      policies: PromptPolicy[];
+      /** 意見募集の名前。施策が複数あるとき、題材の軸として添える */
+      themeName?: string;
       /** 職員が書いたテーマの説明（施策があっても添える） */
       description?: string;
     }
@@ -37,9 +49,13 @@ interface BuildPromptParams {
   confirmedQuestions?: ExistingQuestion[];
 }
 
-/** プロンプト内で題材を指す語。施策の有無で「施策」「テーマ」を使い分ける */
+/**
+ * プロンプト内で題材を指す語。施策の有無で「施策」「テーマ」を使い分ける。
+ * 施策が複数なら、どれか1つに寄せないよう全体を指す
+ */
 export function getSubjectLabel(subject: PromptSubject): string {
-  return subject.kind === "bill" ? "施策" : "テーマ";
+  if (subject.kind === "theme") return "テーマ";
+  return subject.policies.length > 1 ? "意見募集に紐づく施策全体" : "施策";
 }
 
 /**
@@ -69,7 +85,7 @@ export function buildQuestionRewriteRules(
   return `${structureRules}
 - **「なぜ」で理由を問う質問文を書かない**。理由に触れたいときは「そう感じたきっかけ」「何が大事か」のように書く
 - **1つの質問には必ず1つの問いだけを含めること**（1問1論点）。複数の論点を1つの質問文に詰め込まない
-- **質問文に答えの候補を書かない**（「交通や子育てなど」のような例示は書かない）。範囲の指定（「この1か月で」「1つ」）はよい
+- **質問文に答えの候補を書かない**。「交通や子育てなど」「（健康・介護・移動など）」のように、例を並べたり括弧で補ったりしない。範囲は期間や数（「この1か月で」「1つ」）でだけ示す
 - **「決まっていること」の賛否を聞かない**
 - 観点（follow_up_guide）は「聞けたら話が豊かになる観点」を**2つまで**。満たすべき条件や手順として書かない
 - **質問・観点に回数（「1往復まで」「2〜3回深掘り」など）を書かない**。深掘りの量は実行時に決まる`;
@@ -89,12 +105,52 @@ ${description ? `- テーマの説明:\n${description}` : "- テーマの説明:
   }
 
   const description = subject.description?.trim();
+  const descriptionLine = description
+    ? `\n- テーマの説明:\n${description}`
+    : "";
+  const [only, ...rest] = subject.policies;
+  if (only && rest.length === 0) {
+    return `## 施策情報
+${buildPolicyLines(only)}${descriptionLine}`;
+  }
+
+  const themeName = subject.themeName?.trim();
+  // 施策が複数なら、プロンプトが長くなりすぎないよう本文を切り詰める（インタビュー本番の関連施策と同じ上限）
+  const policyBlocks = subject.policies
+    .map(
+      (p, i) =>
+        `### 施策${i + 1}\n${buildPolicyLines({ ...p, billContent: truncatePolicyContent(p.billContent) ?? "" })}`
+    )
+    .join("\n\n");
   return `## 施策情報
-- 施策名: ${subject.billName}
-- タイトル: ${subject.billTitle}
-- 要約: ${subject.billSummary}
+この意見募集には、次の${subject.policies.length}つの施策が紐づいています。どの施策のページから参加した人にも同じ質問を使うので、質問はすべての施策に共通して使える内容にしてください。特定の施策だけに当てはまる質問は作らないでください。${themeName ? `\n- 意見募集の名前: ${themeName}` : ""}${descriptionLine}
+
+${policyBlocks}`;
+}
+
+function buildPolicyLines(policy: PromptPolicy): string {
+  return `- 施策名: ${policy.billName}
+- タイトル: ${policy.billTitle}
+- 要約: ${policy.billSummary}
 - 詳細内容:
-${subject.billContent}${description ? `\n- テーマの説明:\n${description}` : ""}`;
+${policy.billContent}`;
+}
+
+/** 施策のナレッジソース。施策が複数あるときは、施策名の見出しを付けて並べる */
+function buildKnowledgeSection(subject: PromptSubject): string {
+  if (subject.kind !== "bill") return "";
+  const sources = subject.policies.flatMap((p) =>
+    p.knowledgeSource?.trim()
+      ? [{ name: p.billName, text: p.knowledgeSource }]
+      : []
+  );
+  if (sources.length === 0) return "";
+  // 施策が1つなら、従来どおり見出しを付けずにそのまま載せる
+  const body =
+    subject.policies.length === 1
+      ? (sources[0]?.text ?? "")
+      : sources.map((s) => `### ${s.name}\n${s.text.trim()}`).join("\n\n");
+  return `\n## ナレッジソース（チームの仮説や補足情報）\n${body}\n`;
 }
 
 /**
@@ -141,11 +197,7 @@ export function buildConfigGenerationPrompt(params: BuildPromptParams): string {
 
   const subjectSection = `${buildSubjectSection(subject)}${buildDesignSection(design, subject)}`;
 
-  const knowledgeSource =
-    subject.kind === "bill" ? subject.knowledgeSource : undefined;
-  const knowledgeSection = knowledgeSource?.trim()
-    ? `\n## ナレッジソース（チームの仮説や補足情報）\n${knowledgeSource}\n`
-    : "";
+  const knowledgeSection = buildKnowledgeSection(subject);
 
   const subjectLabel = getSubjectLabel(subject);
 

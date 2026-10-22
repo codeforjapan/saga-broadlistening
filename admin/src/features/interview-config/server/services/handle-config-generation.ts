@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getAiModel } from "@mirai-gikai/shared/ai/registry";
+import { MAX_RELATED_POLICIES } from "@mirai-gikai/shared/interview-prompts/constants";
 import { convertToModelMessages, Output, streamText } from "ai";
 import { getBillById } from "@/features/bills-edit/server/loaders/get-bill-by-id";
 import { getBillContents } from "@/features/bills-edit/server/loaders/get-bill-contents";
@@ -15,6 +16,7 @@ import type { InterviewDesignInput } from "../../shared/types";
 import {
   buildConfigGenerationPrompt,
   getSubjectLabel,
+  type PromptPolicy,
   type PromptSubject,
 } from "../utils/build-config-generation-prompt";
 
@@ -31,8 +33,8 @@ interface HandleConfigGenerationParams {
   /** 職員が書いたテーマの説明。施策があってもなくても題材に添える */
   themeDescription?: string | null;
   /**
-   * フォームで紐づけ中の施策。先頭の施策を題材にする（インタビュー本番も紐づく施策を
-   * 主たる題材にするため）。空なら施策なしとしてテーマを題材にする
+   * フォームで紐づけ中の施策。どれも同じ重みで題材にする（質問はどの施策から
+   * 参加した人にも同じものを使うため）。空なら施策なしとしてテーマを題材にする
    */
   policyIds?: string[];
   /** フォームで入力済みの設計 */
@@ -55,7 +57,7 @@ export async function handleConfigGeneration({
   confirmedQuestions,
 }: HandleConfigGenerationParams) {
   const subject = await loadPromptSubject(
-    policyIds?.[0] ?? null,
+    policyIds ?? [],
     themeName,
     themeDescription
   );
@@ -131,43 +133,57 @@ export async function handleConfigGeneration({
 /**
  * 生成の題材を読み込む。
  *
- * 施策があれば施策とその「ふつう」難易度のコンテンツを、なければテーマ名を使う。
- * テーマの説明はどちらの場合も添える。
+ * 施策があれば、紐づく施策（上限まで）とそれぞれの「ふつう」難易度のコンテンツを、
+ * なければテーマ名を使う。テーマの説明はどちらの場合も添える。
+ * 施策はフォームの並び順で並べ、見つからない施策は落とす。
  */
 async function loadPromptSubject(
-  policyId: string | null,
+  policyIds: string[],
   themeName: string | null | undefined,
   themeDescription: string | null | undefined
 ): Promise<PromptSubject> {
-  if (!policyId) {
-    const trimmed = themeName?.trim();
-    if (!trimmed) {
+  const trimmedThemeName = themeName?.trim() || undefined;
+  if (policyIds.length === 0) {
+    if (!trimmedThemeName) {
       throw new Error("Neither bill nor theme name is available");
     }
     return {
       kind: "theme",
-      themeName: trimmed,
+      themeName: trimmedThemeName,
       themeDescription: themeDescription ?? undefined,
     };
   }
 
+  const loaded = await Promise.all(
+    policyIds.slice(0, MAX_RELATED_POLICIES).map(loadPromptPolicy)
+  );
+  const policies = loaded.filter((p): p is PromptPolicy => p !== null);
+  if (policies.length === 0) {
+    throw new Error("Bill not found");
+  }
+
+  return {
+    kind: "bill",
+    policies,
+    themeName: trimmedThemeName,
+    description: themeDescription?.trim() || undefined,
+  };
+}
+
+async function loadPromptPolicy(
+  policyId: string
+): Promise<PromptPolicy | null> {
   const [bill, billContents] = await Promise.all([
     getBillById(policyId),
     getBillContents(policyId),
   ]);
-
-  if (!bill) {
-    throw new Error("Bill not found");
-  }
+  if (!bill) return null;
 
   // ふつう（normal）の難易度コンテンツを使用
   const normalContent = billContents.find(
     (c) => c.difficulty_level === "normal"
   );
-
   return {
-    kind: "bill",
-    description: themeDescription?.trim() || undefined,
     billName: bill.name,
     billTitle: normalContent?.title || "",
     billSummary: normalContent?.summary || "",
