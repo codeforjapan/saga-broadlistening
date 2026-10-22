@@ -85,7 +85,7 @@ describe("buildConfigGenerationPrompt", () => {
         confirmedQuestions: [
           {
             question: "質問A",
-            follow_up_guide: "フォローアップ指針A",
+            follow_up_guide: "観点A",
             quick_replies: ["選択肢1", "選択肢2"],
           },
           { question: "質問B" },
@@ -93,7 +93,7 @@ describe("buildConfigGenerationPrompt", () => {
       });
       expect(result).toContain("## 確定済みの質問");
       expect(result).toContain("1. 質問A");
-      expect(result).toContain("フォローアップ指針: フォローアップ指針A");
+      expect(result).toContain("観点: 観点A");
       expect(result).toContain("選択肢: 選択肢1, 選択肢2");
       expect(result).toContain("2. 質問B");
     });
@@ -178,7 +178,7 @@ describe("buildConfigGenerationPrompt", () => {
       });
       expect(result).toContain("## 現在設定されている質問");
       expect(result).toContain("1. 既存質問1");
-      expect(result).toContain("フォローアップ指針: 既存フォローアップ");
+      expect(result).toContain("観点: 既存フォローアップ");
       expect(result).toContain("選択肢: 選択肢1");
       expect(result).toContain("ブラッシュアップ");
     });
@@ -186,7 +186,7 @@ describe("buildConfigGenerationPrompt", () => {
     it("各質問フィールドの説明を含む", () => {
       const result = buildConfigGenerationPrompt(questionParams);
       expect(result).toContain("question: 質問文");
-      expect(result).toContain("follow_up_guide: フォローアップ指針");
+      expect(result).toContain("follow_up_guide: 観点");
       expect(result).toContain("quick_replies: クイックリプライの選択肢");
     });
 

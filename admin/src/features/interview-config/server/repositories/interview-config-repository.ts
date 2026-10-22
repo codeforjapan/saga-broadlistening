@@ -2,7 +2,11 @@ import "server-only";
 
 import type { InterviewParticipationRule } from "@mirai-gikai/shared/interview-participation/participation-mode";
 import { createAdminClient, type Database } from "@mirai-gikai/supabase";
-import type { InterviewConfig, InterviewQuestion } from "../../shared/types";
+import type {
+  InterviewConfig,
+  InterviewConfigInsert,
+  InterviewQuestion,
+} from "../../shared/types";
 
 // Epic #54 で interview_configs から bill_id が外れ、施策とは
 // policies_interview_configs による多対多になった。bill という名前の
@@ -242,6 +246,14 @@ async function findInterviewConfigIdsByPolicyIds(
   return [...new Set(data.map((row) => row.interview_config_id))];
 }
 
+/** 目的・意見がほしい点・決まっていること（AIインタビューの設計に使う項目） */
+type InterviewDesignFields = Partial<
+  Pick<
+    InterviewConfigInsert,
+    "purpose_type" | "opinion_focus" | "decided_matters"
+  >
+>;
+
 export async function createInterviewConfigRecord(
   params: InterviewParticipationRule & {
     name: string;
@@ -251,7 +263,7 @@ export async function createInterviewConfigRecord(
     chat_model: string;
     estimated_duration: number | null;
     thumbnail_url?: string | null;
-  }
+  } & InterviewDesignFields
 ): Promise<{ id: string }> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -267,6 +279,21 @@ export async function createInterviewConfigRecord(
   return data;
 }
 
+/** 意見募集を下書きに戻す */
+export async function updateInterviewConfigStatusToDraft(
+  configId: string
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("interview_configs")
+    .update({ status: "draft", updated_at: new Date().toISOString() })
+    .eq("id", configId);
+
+  if (error) {
+    throw new Error(`Failed to revert interview config: ${error.message}`);
+  }
+}
+
 export async function updateInterviewConfigRecord(
   configId: string,
   params: InterviewParticipationRule & {
@@ -278,7 +305,7 @@ export async function updateInterviewConfigRecord(
     estimated_duration: number | null;
     thumbnail_url?: string | null;
     updated_at: string;
-  }
+  } & InterviewDesignFields
 ): Promise<{ id: string }> {
   const supabase = createAdminClient();
   const { data, error } = await supabase

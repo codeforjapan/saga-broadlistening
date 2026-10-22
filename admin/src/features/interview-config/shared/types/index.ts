@@ -3,6 +3,7 @@ import {
   PARTICIPATION_MODE_LABELS,
   VALID_PARTICIPATION_MODES,
 } from "@mirai-gikai/shared/interview-participation/participation-mode";
+import { PURPOSE_TYPES } from "@mirai-gikai/shared/interview-prompts/purpose-types/types";
 import type { Database } from "@mirai-gikai/supabase";
 import { z } from "zod";
 import { isValidChatModel } from "../utils/chat-model-options";
@@ -65,6 +66,18 @@ export const interviewConfigSchema = z
      */
     participation_mode: z.enum(VALID_PARTICIPATION_MODES),
     allowed_provider_keys: z.array(z.enum(EXTERNAL_IDENTITY_PROVIDER_KEYS)),
+    /** インタビューの目的（内部の5型）。null は目的未設定（汎用の聞き方） */
+    purpose_type: z.enum(PURPOSE_TYPES).nullable().optional(),
+    opinion_focus: z
+      .string()
+      .max(60, "意見がほしい点は60文字以内で入力してください")
+      .nullable()
+      .optional(),
+    decided_matters: z
+      .string()
+      .max(40, "決まっていることは40文字以内で入力してください")
+      .nullable()
+      .optional(),
   })
   .refine(
     (config) =>
@@ -83,7 +96,7 @@ export const interviewQuestionSchema = z.object({
     .max(1000, "質問文は1000文字以内で入力してください"),
   follow_up_guide: z
     .string()
-    .max(2000, "フォローアップ指針は2000文字以内で入力してください")
+    .max(2000, "観点は2000文字以内で入力してください")
     .optional(),
   quick_replies: z.array(z.string().min(1)).optional(),
 });

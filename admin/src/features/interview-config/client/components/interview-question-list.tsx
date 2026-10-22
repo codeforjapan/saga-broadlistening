@@ -275,9 +275,7 @@ export function InterviewQuestionList({
                                   </div>
                                   {question.follow_up_guide && (
                                     <div className="text-sm text-gray-600">
-                                      <span className="font-medium">
-                                        フォローアップ指針:
-                                      </span>{" "}
+                                      <span className="font-medium">観点:</span>{" "}
                                       {question.follow_up_guide}
                                     </div>
                                   )}

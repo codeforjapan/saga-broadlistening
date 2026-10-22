@@ -421,7 +421,7 @@ function AssistantMessage({
                     </p>
                     {q.follow_up_guide && (
                       <p className="text-xs text-gray-500 ml-4">
-                        フォローアップ指針: {q.follow_up_guide}
+                        観点: {q.follow_up_guide}
                       </p>
                     )}
                     {q.quick_replies && q.quick_replies.length > 0 && (
