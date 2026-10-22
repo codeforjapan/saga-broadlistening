@@ -1,7 +1,10 @@
 import "server-only";
 
 import { getAiModel } from "@mirai-gikai/shared/ai/registry";
-import { readAssistantTurnMeta } from "@mirai-gikai/shared/interview-prompts/assistant-message";
+import {
+  matchQuickReply,
+  readAssistantTurnMeta,
+} from "@mirai-gikai/shared/interview-prompts/assistant-message";
 import { SKIP_QUESTION_REPLY } from "@mirai-gikai/shared/interview-prompts/constants";
 import {
   interviewChatTextSchema,
@@ -109,6 +112,17 @@ function toSimulatedTurn(
     quick_replies:
       stored.quick_replies.length > 0 ? stored.quick_replies : null,
   };
+}
+
+/**
+ * 末尾の回答が直前の発話の選択肢ボタンなら、その文言。
+ * 本番の findSelectedQuickReply（保存した JSON から読む）と同じ判定を、シミュのターンの形で行う
+ */
+function selectedQuickReplyOf(turns: SimulatedTurn[]): string | null {
+  const answer = turns.at(-1);
+  if (answer?.role !== "interviewee") return null;
+  const question = [...turns].reverse().find((t) => t.role === "interviewer");
+  return matchQuickReply(question?.quick_replies ?? [], answer.content);
 }
 
 function asInterviewerMessages(turns: SimulatedTurn[]): ModelMessage[] {
@@ -282,6 +296,7 @@ export async function runSimulatedInterview({
           interviewConfig: promptInputs.interviewConfig,
           topics,
           turnState,
+          selectedQuickReply: selectedQuickReplyOf(transcript),
         });
         const messages = asInterviewerMessages(transcript);
         const { object } = await withTimeoutRetry(

@@ -13,6 +13,8 @@ export interface InterviewChatPromptInput {
   interviewConfig: InterviewConfig;
   topics: TurnTopic[];
   turnState: TurnState;
+  /** 直前の回答が選択肢ボタンなら、その文言（findSelectedQuickReply） */
+  selectedQuickReply?: string | null;
   /** 聞き手の人物像（interview-persona の公開版） */
   persona?: string;
 }
@@ -26,6 +28,7 @@ export function buildChatSystemPrompt(
     interviewConfig,
     topics,
     turnState,
+    selectedQuickReply = null,
     persona = INTERVIEW_PERSONA_TEMPLATE,
   }: InterviewChatPromptInput,
   template: string = INTERVIEW_CHAT_TEMPLATE
@@ -42,7 +45,7 @@ export function buildChatSystemPrompt(
     clarificationGuidance: design.clarificationGuidance,
     inquiryContact: design.inquiryContact,
     replyExamples: design.replyExamples,
-    turnState: renderTurnState(turnState),
+    turnState: renderTurnState(turnState, selectedQuickReply),
     outputInstructions: renderChatOutputInstructions(turnState),
   });
 }
