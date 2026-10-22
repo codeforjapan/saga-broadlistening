@@ -1,4 +1,5 @@
 import "server-only";
+import { toPromptRelatedPolicies } from "@mirai-gikai/shared/interview-prompts/to-prompt-related-policies";
 import { createAdminClient } from "@mirai-gikai/supabase";
 import {
   findBillById,
@@ -7,6 +8,7 @@ import {
 import {
   findInterviewConfigById,
   findInterviewQuestionsByConfigId,
+  findPolicyContentsByIds,
   findPolicyIdsByInterviewConfigId,
 } from "@/features/interview-config/server/repositories/interview-config-repository";
 
@@ -26,13 +28,15 @@ export async function findInterviewPreviewInput(configId: string) {
     findPolicyIdsByInterviewConfigId(configId),
   ]);
   if (!interviewConfig) return null;
-  const policyId = policyIds[0];
-  const [bill, contents] = policyId
+  const [policyId, ...relatedPolicyIds] = policyIds;
+  // 本番と同じく、主たる施策以外に紐づく施策の標準（normal）本文も並べる
+  const [bill, contents, relatedRows] = policyId
     ? await Promise.all([
         findBillById(policyId),
         findBillContentsByBillId(policyId),
+        findPolicyContentsByIds(relatedPolicyIds, "normal"),
       ])
-    : [null, []];
+    : [null, [], []];
   return {
     interviewConfig,
     questions,
@@ -41,6 +45,10 @@ export async function findInterviewPreviewInput(configId: string) {
           ...bill,
           bill_content:
             contents.find((item) => item.difficulty_level === "normal") ?? null,
+          related_policies: toPromptRelatedPolicies(
+            relatedPolicyIds,
+            relatedRows
+          ),
         }
       : null,
   };

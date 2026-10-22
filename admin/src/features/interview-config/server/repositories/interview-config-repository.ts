@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { InterviewParticipationRule } from "@mirai-gikai/shared/interview-participation/participation-mode";
-import { createAdminClient } from "@mirai-gikai/supabase";
+import { createAdminClient, type Database } from "@mirai-gikai/supabase";
 import type { InterviewConfig, InterviewQuestion } from "../../shared/types";
 
 // Epic #54 で interview_configs から bill_id が外れ、施策とは
@@ -85,6 +85,34 @@ export async function findPolicyIdsByInterviewConfigId(
   }
 
   return data.map((row) => row.policy_id);
+}
+
+/**
+ * 複数の施策を、指定難易度のコンテンツ付きで一括取得する（公開状態は問わない）。
+ * プロンプトに他の紐づく施策を並べるとき（シミュレータ・プロンプト管理のプレビュー）に使う
+ */
+export async function findPolicyContentsByIds(
+  policyIds: string[],
+  difficultyLevel: Database["public"]["Enums"]["difficulty_level_enum"]
+) {
+  if (policyIds.length === 0) {
+    return [];
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("policies")
+    .select("id, name, policy_contents!inner(title, summary, content)")
+    .in("id", policyIds)
+    .eq("policy_contents.difficulty_level", difficultyLevel);
+
+  if (error) {
+    throw new Error(
+      `Failed to fetch related policy contents: ${error.message}`
+    );
+  }
+
+  return data;
 }
 
 export async function linkPolicyToInterviewConfig(

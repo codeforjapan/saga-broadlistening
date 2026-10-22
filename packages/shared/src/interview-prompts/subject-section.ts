@@ -8,7 +8,45 @@ import {
 } from "./purpose-types/registry";
 import type { InterviewSubjectKind } from "./purpose-types/types";
 import type { TurnTopic } from "./turn-control";
-import type { InterviewConfig, PromptBillInput } from "./types";
+import type {
+  InterviewConfig,
+  PromptBillInput,
+  PromptRelatedPolicyInput,
+} from "./types";
+
+/**
+ * 同じ意見募集に紐づく他の施策を、主たる施策の後ろに並べるセクション。
+ *
+ * 意見募集は複数の施策に紐づけられるため、主たる施策だけを渡すと
+ * 回答者が他の施策に触れたときにAIが内容を知らずに応答してしまう。
+ */
+function buildRelatedPoliciesSection(
+  policies: PromptRelatedPolicyInput[]
+): string {
+  if (policies.length === 0) {
+    return "";
+  }
+
+  const items = policies
+    .map(
+      (policy, index) => `## 関連施策${index + 1}: ${policy.name || ""}
+- 施策タイトル: ${policy.title || ""}
+- 施策要約: ${policy.summary || ""}
+
+施策詳細:
+<related_bill_detail>
+${policy.content || ""}
+</related_bill_detail>`
+    )
+    .join("\n\n");
+
+  return `
+
+# この意見募集に紐づくその他の施策（事実の補足に使ってよい）
+この意見募集は上記の施策に加えて、以下の施策にも紐づいています。回答者が触れたときや、施策どうしの関係が意見形成に役立つときに参照してください。
+
+${items}`;
+}
 
 /**
  * インタビューの対象（施策 or テーマ）に関するプロンプトの断片を組み立てる。
@@ -48,6 +86,11 @@ export function buildInterviewSubject(
   const billContent = bill.bill_content?.content || "";
   const knowledgeSource = bill.knowledge_source || "";
   const department = bill.department?.trim();
+  const relatedPolicies = bill.related_policies ?? [];
+  const relatedPolicyNames = relatedPolicies
+    .map((policy) => policy.name)
+    .filter(Boolean)
+    .join("、");
 
   return {
     label: "施策",
@@ -65,7 +108,7 @@ ${billContent}
 知識ソース:
 <knowledge_source>
 ${knowledgeSource || "（知識ソース未設定）"}
-</knowledge_source>`,
+</knowledge_source>${buildRelatedPoliciesSection(relatedPolicies)}`,
     clarificationGuidance: BILL_CLARIFICATION_GUIDANCE,
     inquiryContact: department
       ? `施策紹介ページや${department}`
@@ -73,7 +116,7 @@ ${knowledgeSource || "（知識ソース未設定）"}
     summarySection: `# 施策情報
 - 施策名: ${billName}
 - 施策タイトル: ${billTitle}
-- 施策要約: ${billSummary}`,
+- 施策要約: ${billSummary}${relatedPolicyNames ? `\n- 関連施策: ${relatedPolicyNames}` : ""}`,
   };
 }
 
