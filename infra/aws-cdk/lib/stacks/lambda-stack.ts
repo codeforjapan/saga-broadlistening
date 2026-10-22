@@ -37,7 +37,7 @@ export class LambdaStack extends Stack {
           "../../src/handlers/bedrock-health-check/index.ts"
         ),
         handler: "handler",
-        runtime: Runtime.NODEJS_22_X,
+        runtime: Runtime.NODEJS_24_X,
         timeout: Duration.seconds(30),
         environment: {
           BEDROCK_MODEL_ID: bedrockModelId,
