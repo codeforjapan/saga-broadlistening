@@ -83,14 +83,19 @@ export function InterviewSummaryInput({
         </div>
       )}
       {hasReport && !isComplete && (
-        <InterviewChatInput
-          input={input}
-          onInputChange={onInputChange}
-          onSubmit={onSubmit}
-          placeholder="レポートの修正要望を入力する"
-          isResponding={isLoading}
-          error={error}
-        />
+        <>
+          <p className="mb-2 text-sm font-medium leading-[1.8] text-foreground">
+            こちらの内容で問題ありませんか？違和感がある箇所があれば指摘してください。
+          </p>
+          <InterviewChatInput
+            input={input}
+            onInputChange={onInputChange}
+            onSubmit={onSubmit}
+            placeholder="レポートの修正要望を入力する"
+            isResponding={isLoading}
+            error={error}
+          />
+        </>
       )}
       <InterviewPublicConsentModal
         open={isModalOpen}
