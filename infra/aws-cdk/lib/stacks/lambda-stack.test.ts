@@ -10,7 +10,7 @@ describe("LambdaStack", () => {
 
     template.hasResourceProperties("AWS::Lambda::Function", {
       FunctionName: "mirai-gikai-bedrock-health-check-stg",
-      Runtime: "nodejs22.x",
+      Runtime: "nodejs24.x",
       Environment: {
         Variables: {
           BEDROCK_MODEL_ID: envConfig.bedrockModelId,
