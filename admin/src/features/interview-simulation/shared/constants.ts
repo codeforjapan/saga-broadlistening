@@ -1,7 +1,3 @@
-/** シミュレーション 1 本あたりの最大ターン数（interviewer + interviewee の往復）。
- *  タイムマネジメントの動的更新で自然に要約遷移するのが理想で、これは安全弁。 */
-export const SIMULATION_MAX_TURNS = 20;
-
 /** 複数ペルソナ並列シミュで一度に実行できるスロット数の上限（コスト・レート制限観点） */
 export const MAX_PERSONA_SLOTS = 10;
 

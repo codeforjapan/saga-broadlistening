@@ -50,11 +50,9 @@ describe("runSimulatedInterview model injection", () => {
       interviewerModel: createModel(
         "interviewer",
         {
+          question_id: "Q1",
+          topic_title: "はじめに",
           text: "意見を聞かせてください",
-          topic_title: null,
-          question_id: null,
-          next_stage: "summary",
-          quick_replies: null,
         },
         ...(explicitSummary ? [] : [report])
       ),
@@ -64,11 +62,8 @@ describe("runSimulatedInterview model injection", () => {
         : undefined,
       traceId: "test-trace",
       kind: "improved",
-      maxTurns: 1,
-      initialTurnEnhancement: {
-        subjectTitle: "地域の安全",
-        firstQuestionId: null,
-      },
+      // 初回 → 回答 → 話題が無いので要約へ
+      maxTurns: 2,
       promptInputs: {
         bill: null,
         interviewConfig: { name: "地域の安全", description: null },

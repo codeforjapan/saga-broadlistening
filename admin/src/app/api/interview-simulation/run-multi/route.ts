@@ -1,4 +1,3 @@
-import { resolveSubjectTitle } from "@mirai-gikai/shared/interview-prompts/subject-section";
 import { toPromptRelatedPolicies } from "@mirai-gikai/shared/interview-prompts/to-prompt-related-policies";
 import type {
   PromptBillInput,
@@ -114,9 +113,13 @@ async function buildPipelineParams(
       follow_up_guide: q.follow_up_guide ?? null,
     }));
 
+  // 説明文は改善版を、目的・意見がほしい点などは保存済みの設定を使う
   const promptInterviewConfig = {
     name: config.name,
     description: params.improvedConfig.description,
+    purpose_type: config.purpose_type,
+    opinion_focus: config.opinion_focus,
+    decided_matters: config.decided_matters,
   };
 
   return {
@@ -131,8 +134,6 @@ async function buildPipelineParams(
         estimatedDurationMinutes:
           params.improvedConfig.estimatedDurationMinutes ?? null,
       },
-      // 名乗る対象名。本番の初回質問生成と同じ解決規則を使う
-      subjectTitle: resolveSubjectTitle(bill, promptInterviewConfig),
       interviewerModel: params.interviewerModel,
       intervieweeModel: params.intervieweeModel,
       personaModel: params.personaModel,
