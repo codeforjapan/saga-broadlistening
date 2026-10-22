@@ -15,14 +15,14 @@ describe("buildChatStartNotice", () => {
     ).toBeLessThanOrEqual(MAX_CHAT_START_NOTICE_LINES);
   });
 
-  it("テーマ名と所要時間、公開の可能性と個人情報の注意を伝える", () => {
+  it("聞き手がAIであること、テーマ名と所要時間、声の扱い、公開の可能性と個人情報の注意を伝える", () => {
     expect(
       plain(
         buildChatStartNotice({ themeName: "若者支援", estimatedDuration: 10 })
       )
     ).toEqual([
-      "こんにちは。「若者支援」について、約10分お話を伺います。",
-      "いただいた回答は、整理したうえで公開されることがあります。お名前や連絡先など、個人がわかる情報は書かないでください。",
+      "こんにちは。AIの聞き手が、「若者支援」について、約10分お話を伺います。",
+      "いただいた声は、市の施策に役立てます。回答は、整理したうえで公開されることがあります。お名前や連絡先など、個人がわかる情報は書かないでください。",
       "準備ができたら「はじめる」を押してください。",
     ]);
   });
@@ -44,6 +44,6 @@ describe("buildChatStartNotice", () => {
       plain(
         buildChatStartNotice({ themeName: "若者支援", estimatedDuration: null })
       )[0]
-    ).toBe("こんにちは。「若者支援」について、お話を伺います。");
+    ).toBe("こんにちは。AIの聞き手が、「若者支援」について、お話を伺います。");
   });
 });

@@ -1,3 +1,5 @@
+import { VOICE_USAGE_TEXT } from "@mirai-gikai/shared/interview-prompts/constants";
+
 /**
  * チャット冒頭の案内（#158、デザイン「4b」）。詳しい説明はきかせてページに任せ、3行以内に収める。
  * 「はじめる」を押した時点で、この内容と利用規約・プライバシーポリシーに同意したものとする。
@@ -20,7 +22,8 @@ export function buildChatStartNotice(params: {
     params.estimatedDuration === null ? "" : `約${params.estimatedDuration}分`;
   return [
     [
-      { kind: "text", text: "こんにちは。「" },
+      // 聞き手がAIであることは、最初の発話ではなくここで伝える（初回の発話は質問に字数を使う）
+      { kind: "text", text: "こんにちは。AIの聞き手が、「" },
       { kind: "theme", text: params.themeName },
       {
         kind: "text",
@@ -30,7 +33,10 @@ export function buildChatStartNotice(params: {
       },
     ],
     [
-      { kind: "text", text: "いただいた回答は、整理したうえで" },
+      {
+        kind: "text",
+        text: `${VOICE_USAGE_TEXT}。回答は、整理したうえで`,
+      },
       { kind: "strong", text: "公開されることがあります" },
       {
         kind: "text",

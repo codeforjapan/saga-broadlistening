@@ -25,6 +25,7 @@ export default function SummaryInputPreview() {
               sessionId="mock-session-001"
               target={policyInterviewTarget("mock-bill-001")}
               hasReport={false}
+              isComplete={false}
               input={input}
               onInputChange={setInput}
               onSubmit={() => {}}
@@ -45,6 +46,7 @@ export default function SummaryInputPreview() {
               sessionId="mock-session-001"
               target={policyInterviewTarget("mock-bill-001")}
               hasReport={true}
+              isComplete={false}
               input={input}
               onInputChange={setInput}
               onSubmit={() => {}}
