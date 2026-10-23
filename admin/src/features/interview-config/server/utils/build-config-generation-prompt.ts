@@ -1,6 +1,9 @@
 import "server-only";
 
+import { purposeDisplayName } from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
+import { truncatePolicyContent } from "@mirai-gikai/shared/interview-prompts/to-prompt-related-policies";
 import type { ConfigGenerationStage } from "../../shared/schemas";
+import type { InterviewDesignInput } from "../../shared/types";
 import { DEFAULT_QUESTIONS_TEMPLATE } from "../../shared/utils/default-questions-template";
 
 interface ExistingQuestion {
@@ -9,44 +12,83 @@ interface ExistingQuestion {
   quick_replies?: string[] | null;
 }
 
+/** 題材にする施策1件の情報 */
+export interface PromptPolicy {
+  billName: string;
+  billTitle: string;
+  billSummary: string;
+  billContent: string;
+  knowledgeSource?: string;
+}
+
 /**
  * 生成の題材。施策があれば施策情報を、なければテーマ名だけを手がかりにする。
  * 抽象テーマ型（施策に紐づかない意見募集）では bill 側が丸ごと存在しない。
+ *
+ * 紐づく施策が複数あるときは、どれも同じ重みで渡す。質問は、どの施策のページから
+ * 参加した人にも同じものを使うため（フォームの施策の並びは名前順で、主従の意味がない）。
  */
 export type PromptSubject =
   | {
       kind: "bill";
-      billName: string;
-      billTitle: string;
-      billSummary: string;
-      billContent: string;
-      knowledgeSource?: string;
+      /** 紐づく施策（1件以上） */
+      policies: PromptPolicy[];
+      /** 意見募集の名前。施策が複数あるとき、題材の軸として添える */
+      themeName?: string;
+      /** 職員が書いたテーマの説明（施策があっても添える） */
+      description?: string;
     }
   | { kind: "theme"; themeName: string; themeDescription?: string };
 
 interface BuildPromptParams {
   subject: PromptSubject;
+  design?: InterviewDesignInput;
   stage: ConfigGenerationStage;
   existingThemes?: string[];
   existingQuestions?: ExistingQuestion[];
   confirmedQuestions?: ExistingQuestion[];
 }
 
-/** プロンプト内で題材を指す語。施策の有無で「施策」「テーマ」を使い分ける */
+/**
+ * プロンプト内で題材を指す語。施策の有無で「施策」「テーマ」を使い分ける。
+ * 施策が複数なら、どれか1つに寄せないよう全体を指す
+ */
 export function getSubjectLabel(subject: PromptSubject): string {
-  return subject.kind === "bill" ? "施策" : "テーマ";
+  if (subject.kind === "theme") return "テーマ";
+  return subject.policies.length > 1 ? "意見募集に紐づく施策全体" : "施策";
 }
 
 /**
- * フォローアップ指針の深掘り量のルール。
- * 施策型は意見形成に要る分だけ聞けばよいが、テーマ型は日常のエピソードそのものを集めたい。
- * テーマ型にも「1往復まで」を入れると、回答者が話し始めたところで次の質問に移ってしまう。
+ * 質問の書き直しで守るルール。
+ *
+ * 深掘りの回数や続け方は AI インタビューの実行時に決まる（話題ごとの発話の上限はコードが持つ）ため、
+ * 質問や観点には回数（「1往復まで」など）を書かせない。
+ *
+ * 質問の構成は目的の有無で分ける。
+ * - 目的あり: 目的別テンプレートは、場面の後に理由（わかる）・影響（見つける）・
+ *   望む未来（描く）などを別の話題として聞く設計なので、並びを崩させない。
+ * - 目的なし: 理由や望む状態は実行時のAIが場面の話題の中で深掘りする（インタビュー本番の
+ *   「聞き方の原則」）。独立した質問にすると「なぜ」を決まった質問として聞いたり、
+ *   深掘りで聞いたことを聞き直したりするため、作らせない。
  */
-function buildFollowUpGuideRule(subject: PromptSubject): string {
-  if (subject.kind === "theme") {
-    return "- フォローアップ指針では深掘りを1往復に絞らない: テーマ型では日常の具体的なエピソードや気持ちそのものが集めたい情報のため、「2〜3往復まで深掘りしてよい」方針にし、何を聞き出すか（きっかけ・具体的な出来事・そのときの気持ち・暮らしへの影響など）を書くこと。観点を並べる場合は「1往復につき1つずつ聞く」と明記すること。「分からない」「特にない」が続いたら次の質問に進む旨も含めること。";
-  }
-  return "- フォローアップ指針は深掘り過剰を避ける: 連鎖的な深掘りを指示せず、「1往復までの追加確認に留める」「回答を受け止めたら次の質問に進む」方針を含めること。";
+export function buildQuestionRewriteRules(
+  design: InterviewDesignInput | undefined,
+  subject: PromptSubject
+): string {
+  const structureRules = design?.purposeType
+    ? `- **目的「${purposeDisplayName(design.purposeType, subject.kind)}」の質問の並びを保つ**。この目的の質問は、場面の後に理由・影響・望む未来などを別の話題として聞く設計になっている。質問の追加・削除・統合・並べ替えはせず、文言・観点・選択肢だけを整える（管理者から明示の要望があれば従う）`
+    : `- **話題の流れは 関わり → 場面 → 影響・受け止め（どちらか、または両方）→ 言い足し にする**。影響は「その場面で暮らしに何が起きたか（困ったこと・変わったこと・負担）」、受け止めは「施策やテーマへの評価」を聞く
+- **深掘りにあたる質問は作らない**。場面の答えの理由、望む状態（どうなっていたらよいか）、してほしいこと（要望や解決策）、前の答えの続き（「その場面で」「そのとき」で始まる問いなど）は、インタビュー本番のAIが話題の中で深掘りする。言い換えて別の質問にするのも同じ
+- 既存の質問にこうした質問があれば削除してよい（質問の数は減ってよい）。残す質問の順番は変えない
+- 削除した質問の中身は、場面の質問の観点にまとめる。観点は2つまでなので、入りきらない分は落とす（本番のAIが会話の中で補う）`;
+
+  return `${structureRules}
+- **「なぜ」で理由を問う質問文を書かない**。理由に触れたいときは「そう感じたきっかけ」「何が大事か」のように書く
+- **1つの質問には必ず1つの問いだけを含めること**（1問1論点）。複数の論点を1つの質問文に詰め込まない
+- **質問文に答えの候補を書かない**。「交通や子育てなど」「（健康・介護・移動など）」のように、例を並べたり括弧で補ったりしない。範囲は期間や数（「この1か月で」「1つ」）でだけ示す
+- **「決まっていること」の賛否を聞かない**
+- 観点（follow_up_guide）は「聞けたら話が豊かになる観点」を**2つまで**。満たすべき条件や手順として書かない
+- **質問・観点に回数（「1往復まで」「2〜3回深掘り」など）を書かない**。深掘りの量は実行時に決まる`;
 }
 
 /** 題材の説明セクション（施策情報 or テーマ情報） */
@@ -62,30 +104,100 @@ ${description ? `- テーマの説明:\n${description}` : "- テーマの説明:
 質問は作らないでください。`;
   }
 
+  const description = subject.description?.trim();
+  const descriptionLine = description
+    ? `\n- テーマの説明:\n${description}`
+    : "";
+  const [only, ...rest] = subject.policies;
+  if (only && rest.length === 0) {
+    return `## 施策情報
+${buildPolicyLines(only)}${descriptionLine}`;
+  }
+
+  const themeName = subject.themeName?.trim();
+  // 施策が複数なら、プロンプトが長くなりすぎないよう本文を切り詰める（インタビュー本番の関連施策と同じ上限）
+  const policyBlocks = subject.policies
+    .map(
+      (p, i) =>
+        `### 施策${i + 1}\n${buildPolicyLines({ ...p, billContent: truncatePolicyContent(p.billContent) ?? "" })}`
+    )
+    .join("\n\n");
   return `## 施策情報
-- 施策名: ${subject.billName}
-- タイトル: ${subject.billTitle}
-- 要約: ${subject.billSummary}
+この意見募集には、次の${subject.policies.length}つの施策が紐づいています。どの施策のページから参加した人にも同じ質問を使うので、質問はすべての施策に共通して使える内容にしてください。特定の施策だけに当てはまる質問は作らないでください。${themeName ? `\n- 意見募集の名前: ${themeName}` : ""}${descriptionLine}
+
+${policyBlocks}`;
+}
+
+function buildPolicyLines(policy: PromptPolicy): string {
+  return `- 施策名: ${policy.billName}
+- タイトル: ${policy.billTitle}
+- 要約: ${policy.billSummary}
 - 詳細内容:
-${subject.billContent}`;
+${policy.billContent}`;
+}
+
+/** 施策のナレッジソース。施策が複数あるときは、施策名の見出しを付けて並べる */
+function buildKnowledgeSection(subject: PromptSubject): string {
+  if (subject.kind !== "bill") return "";
+  const sources = subject.policies.flatMap((p) =>
+    p.knowledgeSource?.trim()
+      ? [{ name: p.billName, text: p.knowledgeSource }]
+      : []
+  );
+  if (sources.length === 0) return "";
+  // 施策が1つなら、従来どおり見出しを付けずにそのまま載せる
+  const body =
+    subject.policies.length === 1
+      ? (sources[0]?.text ?? "")
+      : sources.map((s) => `### ${s.name}\n${s.text.trim()}`).join("\n\n");
+  return `\n## ナレッジソース（チームの仮説や補足情報）\n${body}\n`;
+}
+
+/**
+ * 職員が入力済みの設計を並べるセクション。何も入力されていなければ出さない。
+ * テーマの説明は題材のセクションに載せるので、ここには含めない。
+ * 「決まっていること」は施策がある意見募集でだけ使う（インタビュー本番と同じ扱い）。
+ */
+export function buildDesignSection(
+  design: InterviewDesignInput | undefined,
+  subject: PromptSubject
+): string {
+  if (!design) return "";
+
+  const opinionFocus = design.opinionFocus?.trim();
+  const decidedMatters =
+    subject.kind === "bill" ? design.decidedMatters?.trim() : undefined;
+
+  const lines = [
+    design.purposeType &&
+      `- 目的: ${purposeDisplayName(design.purposeType, subject.kind)}`,
+    opinionFocus && `- 市がこれから決めること: ${opinionFocus}`,
+    decidedMatters && `- 決まっていること（賛否を聞かない）: ${decidedMatters}`,
+  ].filter(Boolean);
+
+  if (lines.length === 0) return "";
+
+  return `
+
+## 意見募集の設計（管理者が入力済み）
+${lines.join("\n")}
+
+この設計を前提に提案してください。設計と食い違う論点や質問は作らないでください。`;
 }
 
 export function buildConfigGenerationPrompt(params: BuildPromptParams): string {
   const {
     subject,
+    design,
     stage,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   } = params;
 
-  const subjectSection = buildSubjectSection(subject);
+  const subjectSection = `${buildSubjectSection(subject)}${buildDesignSection(design, subject)}`;
 
-  const knowledgeSource =
-    subject.kind === "bill" ? subject.knowledgeSource : undefined;
-  const knowledgeSection = knowledgeSource?.trim()
-    ? `\n## ナレッジソース（チームの仮説や補足情報）\n${knowledgeSource}\n`
-    : "";
+  const knowledgeSection = buildKnowledgeSection(subject);
 
   const subjectLabel = getSubjectLabel(subject);
 
@@ -113,7 +225,7 @@ ${subjectSection}
 ${knowledgeSection}
 ## あなたの役割
 この${subjectLabel}に合わせた **2種類のクイックリプライ選択肢** を生成してください。
-質問文・フォローアップ指針は固定テンプレートを使うため、あなたは選択肢配列だけ出力します。
+質問文・観点は固定テンプレートを使うため、あなたは選択肢配列だけ出力します。
 
 ## 出力する2種類
 1. \`topics\`（Q1 で使う「関心のあるテーマ／論点」の選択肢）
@@ -148,7 +260,7 @@ ${knowledgeSection}
   if (stage === "question_proposal") {
     const existingQuestionsSection =
       existingQuestions && existingQuestions.length > 0
-        ? `\n## 現在設定されている質問\n${existingQuestions.map((q, i) => `${i + 1}. ${q.question}${q.follow_up_guide ? `\n   フォローアップ指針: ${q.follow_up_guide}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n\n管理者は既存の質問のブラッシュアップを希望しています。既存質問を踏まえて改善提案をしてください。`
+        ? `\n## 現在設定されている質問\n${existingQuestions.map((q, i) => `${i + 1}. ${q.question}${q.follow_up_guide ? `\n   観点: ${q.follow_up_guide}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n\n管理者は既存の質問のブラッシュアップを希望しています。既存質問を踏まえて改善提案をしてください。`
         : "";
 
     return `${baseRole}
@@ -160,16 +272,15 @@ ${knowledgeSection}${existingQuestionsSection}
 管理者の要望に沿って、インタビュー質問をブラッシュアップしてください。
 
 ## 質問提案のガイドライン
-- **1つの質問には必ず1つの問いだけを含めること**。複数の論点を1つの質問文に詰め込まない。
+${buildQuestionRewriteRules(design, subject)}
 - 自由回答を促す開かれた質問にする
-- 各質問にクイックリプライ（3〜5個）を用意するのが望ましい
-- **クイックリプライに括弧書きの補足（例: 「データ消失（障害・ランサム等）」）は使わない**。選択肢は単一の短い語句（20文字以内目安）のみ。補足が必要ならフォローアップ指針側に記載する。
-${buildFollowUpGuideRule(subject)}
+- 事実を聞く質問・受け止めの質問にはクイックリプライ（3〜5個）を用意する
+- **クイックリプライに括弧書きの補足（例: 「データ消失（障害・ランサム等）」）は使わない**。選択肢は単一の短い語句（20文字以内目安）のみ。補足が必要なら観点側に記載する。
 - ナレッジソースがある場合は、その情報も踏まえた質問にする
 
 ## 各質問に含めるフィールド
 - question: 質問文（1つの問いに絞り、分かりやすく端的に）
-- follow_up_guide: フォローアップ指針（任意、回答後の深掘り方法や注意点など）
+- follow_up_guide: 観点（任意、聞けたら話が豊かになる観点を2つまで）
 - quick_replies: クイックリプライの選択肢（任意、3〜5個）
 
 ## 出力形式
@@ -180,7 +291,7 @@ ${buildFollowUpGuideRule(subject)}
   if (stage === "theme_proposal") {
     const confirmedQuestionsSection =
       confirmedQuestions && confirmedQuestions.length > 0
-        ? `\n## 確定済みの質問\n${confirmedQuestions.map((q, i) => `${i + 1}. ${q.question}${q.follow_up_guide ? `\n   フォローアップ指針: ${q.follow_up_guide}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n`
+        ? `\n## 確定済みの質問\n${confirmedQuestions.map((q, i) => `${i + 1}. ${q.question}${q.follow_up_guide ? `\n   観点: ${q.follow_up_guide}` : ""}${q.quick_replies?.length ? `\n   選択肢: ${q.quick_replies.join(", ")}` : ""}`).join("\n")}\n`
         : "";
 
     const existingThemesSection =

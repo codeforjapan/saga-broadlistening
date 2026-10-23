@@ -18,7 +18,7 @@ export type ConfigGenerationStage = z.infer<typeof configGenerationStageSchema>;
 
 /**
  * 初期テンプレート用: 施策ごとに Q1 / Q2 の quick_replies のみ LLM 生成する。
- * 質問文・フォローアップ指針は固定のためここでは出力しない。
+ * 質問文・観点は固定のためここでは出力しない。
  *
  * フィールド名は意味ベース（topics/stance）にして LLM の混同を防ぐ。
  */
@@ -62,7 +62,7 @@ export const questionProposalSchema = z.object({
         follow_up_guide: z
           .string()
           .nullable()
-          .describe("フォローアップ指針（深掘り方法など）"),
+          .describe("観点（深掘り方法など）"),
         quick_replies: z
           .array(z.string())
           .nullable()

@@ -19,6 +19,7 @@ function buildSession(
     rating: null,
     external_identity_id: null,
     consented_at: null,
+    stage: "summary_complete",
     interview_report: null,
     interview_messages: [],
     ...overrides,

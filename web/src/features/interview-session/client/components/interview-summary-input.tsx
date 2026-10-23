@@ -17,6 +17,8 @@ interface InterviewSummaryInputProps {
   /** 「インタビューを終了する」の戻り先を決めるための参加導線の起点 */
   target: InterviewTarget;
   hasReport: boolean;
+  /** 締めの発話まで終わった（これ以上 AI は発話しない） */
+  isComplete: boolean;
   input: string;
   onInputChange: (value: string) => void;
   onSubmit: (message: PromptInputMessage) => void;
@@ -30,6 +32,7 @@ export function InterviewSummaryInput({
   sessionId,
   target,
   hasReport,
+  isComplete,
   input,
   onInputChange,
   onSubmit,
@@ -60,7 +63,11 @@ export function InterviewSummaryInput({
               <p className="text-sm font-medium leading-[1.8] text-foreground mb-2">
                 お話しいただいた内容が短く、レポートを作成できませんでした。もう少しインタビューを続けると、レポートを作成できます。
               </p>
-              <Button onClick={() => onResume?.()}>インタビューを続ける</Button>
+              {!isComplete && (
+                <Button onClick={() => onResume?.()}>
+                  インタビューを続ける
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={endInterview}
@@ -75,15 +82,20 @@ export function InterviewSummaryInput({
           )}
         </div>
       )}
-      {hasReport && (
-        <InterviewChatInput
-          input={input}
-          onInputChange={onInputChange}
-          onSubmit={onSubmit}
-          placeholder="レポートの修正要望を入力する"
-          isResponding={isLoading}
-          error={error}
-        />
+      {hasReport && !isComplete && (
+        <>
+          <p className="mb-2 text-sm font-medium leading-[1.8] text-foreground">
+            こちらの内容で問題ありませんか？違和感がある箇所があれば指摘してください。
+          </p>
+          <InterviewChatInput
+            input={input}
+            onInputChange={onInputChange}
+            onSubmit={onSubmit}
+            placeholder="レポートの修正要望を入力する"
+            isResponding={isLoading}
+            error={error}
+          />
+        </>
       )}
       <InterviewPublicConsentModal
         open={isModalOpen}

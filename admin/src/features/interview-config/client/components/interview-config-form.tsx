@@ -8,6 +8,12 @@ import {
   PARTICIPATION_MODE_LABELS,
   VALID_PARTICIPATION_MODES,
 } from "@mirai-gikai/shared/interview-participation/participation-mode";
+import {
+  PURPOSE_OPTIONS,
+  type PurposeOptionKey,
+  resolvePurposeType,
+  toPurposeSelection,
+} from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
 import { Eye } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
@@ -19,6 +25,7 @@ import { AiModelSelect } from "@/components/ai-model-select";
 import { CheckboxGroup } from "@/components/checkbox-group";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -73,6 +80,8 @@ interface InterviewConfigFormProps {
   aiGeneratedThemes?: string[] | null;
   onAiThemesApplied?: () => void;
   onConfigCreated?: (configId: string) => Promise<void>;
+  /** 新規作成で、保存の直後に登録する質問の数（募集中にできるかの判定に使う） */
+  pendingQuestionCount?: number;
   /** 親コンポーネントがフォームの現在値を読むための ref */
   getFormValuesRef?: MutableRefObject<(() => InterviewConfigFormValues) | null>;
   /** 新規作成時の設定名初期値（ログインユーザー名） */
@@ -91,6 +100,7 @@ export function InterviewConfigForm({
   aiGeneratedThemes,
   onAiThemesApplied,
   onConfigCreated,
+  pendingQuestionCount,
   getFormValuesRef,
   initialName,
   initialSlug,
@@ -112,6 +122,9 @@ export function InterviewConfigForm({
       estimated_duration: isNew ? 10 : (config?.estimated_duration ?? null),
       thumbnail_url: config?.thumbnail_url ?? null,
       ...toParticipationFormValues(config),
+      purpose_type: config?.purpose_type ?? null,
+      opinion_focus: config?.opinion_focus ?? "",
+      decided_matters: config?.decided_matters ?? "",
       policy_ids: linkedPolicyIds,
     },
   });
@@ -127,6 +140,9 @@ export function InterviewConfigForm({
           description: values.description ?? null,
           chat_model: values.chat_model || null,
           estimated_duration: values.estimated_duration ?? null,
+          purpose_type: values.purpose_type ?? null,
+          opinion_focus: values.opinion_focus?.trim() || null,
+          decided_matters: values.decided_matters?.trim() || null,
         };
       };
     }
@@ -149,7 +165,7 @@ export function InterviewConfigForm({
     setIsSubmitting(true);
     try {
       const result = isNew
-        ? await createInterviewConfig(data)
+        ? await createInterviewConfig(data, { pendingQuestionCount })
         : await updateInterviewConfig(config.id, data);
 
       if (result.success) {
@@ -414,7 +430,7 @@ export function InterviewConfigForm({
                       />
                     </FormControl>
                     <FormDescription>
-                      設定するとインタビュー中に残り時間が表示されます。未設定の場合は時間制限なしです。
+                      インタビュー中の残り時間の表示と、目安時間を過ぎたときの案内（続けるか、終えてまとめるか）に使います。AIの進め方には影響しません。未設定の場合は表示しません。
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -437,6 +453,121 @@ export function InterviewConfigForm({
                     </FormControl>
                     <FormDescription>
                       職員が設定するテーマの説明文です。AIへの指示材料にもなります
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="purpose_type"
+                render={({ field }) => {
+                  const selection = field.value
+                    ? toPurposeSelection(field.value)
+                    : null;
+                  const option = PURPOSE_OPTIONS.find(
+                    (o) => o.key === selection?.optionKey
+                  );
+                  return (
+                    <FormItem>
+                      <FormLabel>目的</FormLabel>
+                      <Select
+                        value={selection?.optionKey ?? "unset"}
+                        onValueChange={(value) =>
+                          field.onChange(
+                            value === "unset"
+                              ? null
+                              : resolvePurposeType(
+                                  value as PurposeOptionKey,
+                                  false
+                                )
+                          )
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="目的を選択" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="unset">
+                            未設定（汎用の聞き方）
+                          </SelectItem>
+                          {PURPOSE_OPTIONS.map((o) => (
+                            <SelectItem key={o.key} value={o.key}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selection && option?.checkLabel && (
+                        <label
+                          htmlFor="purpose-check"
+                          className="flex cursor-pointer items-center gap-2 text-sm"
+                        >
+                          <Checkbox
+                            id="purpose-check"
+                            checked={selection.checked}
+                            onCheckedChange={(checked) =>
+                              field.onChange(
+                                resolvePurposeType(
+                                  selection.optionKey,
+                                  checked === true
+                                )
+                              )
+                            }
+                          />
+                          {option.checkLabel}
+                        </label>
+                      )}
+                      <FormDescription>
+                        AIの聞き方と、質問テンプレートが目的で決まります。保存後、質問一覧の「目的のテンプレートを適用」で下書きを入れられます。
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="opinion_focus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      意見がほしい点（市がこれから決めること）
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="例: どの路線をどう変えるか"
+                        maxLength={60}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormDescription>60文字まで</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="decided_matters"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>決まっていること（任意）</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="例: 2027年度に路線を見直すこと"
+                        maxLength={40}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      40文字まで。施策に紐づく意見募集のときだけ使います（AIはこの点の賛否を聞きません）
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

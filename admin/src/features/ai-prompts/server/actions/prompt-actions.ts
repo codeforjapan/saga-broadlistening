@@ -1,8 +1,15 @@
 "use server";
 
 import "server-only";
-import { buildLoopModeSystemPrompt } from "@mirai-gikai/shared/interview-prompts/loop-mode";
+import { buildChatSystemPrompt } from "@mirai-gikai/shared/interview-prompts/chat-prompt";
+import { buildInitialSystemPrompt } from "@mirai-gikai/shared/interview-prompts/initial-prompt";
+import { getPublishedInterviewPersona } from "@mirai-gikai/shared/interview-prompts/published";
 import { buildSummarySystemPrompt } from "@mirai-gikai/shared/interview-prompts/summary";
+import {
+  buildTurnTopics,
+  computeSummaryState,
+  computeTurnState,
+} from "@mirai-gikai/shared/interview-prompts/turn-control";
 import {
   isInterviewPromptKey,
   isPromptKey,
@@ -215,37 +222,66 @@ export async function previewAiPrompt(
       };
     }
     if (isInterviewPromptKey(parsed.data.key)) {
+      // 人物像は変数を持たないので、そのまま見せる
+      if (parsed.data.key === "interview-persona") {
+        return { success: true, content: parsed.data.content };
+      }
       const input = await findInterviewPreviewInput(
         parsed.data.interviewConfigId ?? ""
       );
       if (!input)
         return { success: false, error: "意見募集が見つかりません。" };
+      // 本番と同じく、公開版の人物像を先頭に入れる
+      const persona = await getPublishedInterviewPersona();
+      const topics = buildTurnTopics(input.questions);
+      const { content, key } = parsed.data;
+      if (key === "interview-initial-system") {
+        return {
+          success: true,
+          content: buildInitialSystemPrompt({ topics, persona }, content),
+        };
+      }
+      if (key === "interview-chat-system") {
+        // 先頭から指定数の話題を1回ずつ聞いた直後の状況で組み立てる
+        const metas = topics
+          .slice(0, parsed.data.askedQuestionCount)
+          .map((topic) => ({
+            questionId: topic.id,
+            stage: "chat" as const,
+          }));
+        return {
+          success: true,
+          content: buildChatSystemPrompt(
+            {
+              bill: input.bill,
+              interviewConfig: input.interviewConfig,
+              topics,
+              turnState: computeTurnState({ topics, metas }),
+              persona,
+            },
+            content
+          ),
+        };
+      }
+      // 要約方針は初回の要約の状況で組み立てる
       return {
         success: true,
-        content:
-          parsed.data.key === "interview-chat-system"
-            ? buildLoopModeSystemPrompt(
-                {
-                  ...input,
-                  currentStage: "chat",
-                  askedQuestionIds: new Set(
-                    input.questions
-                      .slice(0, parsed.data.askedQuestionCount)
-                      .map((q) => q.id)
-                  ),
-                  remainingMinutes: parsed.data.remainingMinutes ?? null,
-                },
-                parsed.data.content
-              )
-            : buildSummarySystemPrompt(
-                {
-                  ...input,
-                  messages: parsed.data.conversation
-                    ? [{ role: "user", content: parsed.data.conversation }]
-                    : [],
-                },
-                parsed.data.content
-              ),
+        content: buildSummarySystemPrompt(
+          {
+            ...input,
+            messages: parsed.data.conversation
+              ? [{ role: "user", content: parsed.data.conversation }]
+              : [],
+            summaryState: computeSummaryState({
+              topics,
+              metas: [],
+              phase: "first",
+              forceClose: false,
+            }),
+            persona,
+          },
+          content
+        ),
       };
     }
     if (parsed.data.key === "top-chat-system") {

@@ -9,21 +9,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createGenerateMock } from "@/test-utils/mock-language-model";
 import { generateInitialQuestion } from "./generate-initial-question";
 
-// interviewChatTextSchema に準拠したモックレスポンス
-// LLMのレスポンスはtopic_title: nullだが、overrideInitialTopicTitleにより「はじめに」に上書きされる
+// interviewInitialSchema に準拠したモックレスポンス
+// question_id・選択肢・話題名（「はじめに」）はコードが決めて保存する
 const llmResponse = JSON.stringify({
+  question_id: "Q1",
+  topic_title: "関わり",
   text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
-  quick_replies: ["はい", "いいえ"],
-  question_id: null,
-  topic_title: null,
-  next_stage: "chat",
-});
-const expectedResponse = JSON.stringify({
-  text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
-  quick_replies: ["はい", "いいえ"],
-  question_id: null,
-  topic_title: "はじめに",
-  next_stage: "chat",
 });
 
 describe("generateInitialQuestion 統合テスト", () => {
@@ -49,20 +40,23 @@ describe("generateInitialQuestion 統合テスト", () => {
   });
 
   it.each([
-    { quickReplies: ["はい", "いいえ"] },
-    { quickReplies: [] },
-  ])("選択肢 $quickReplies を含む初回質問がDBに保存される", async ({
+    { quickReplies: ["はい", "いいえ"] as string[] | null },
+    { quickReplies: null },
+  ])("最初の質問（選択肢 $quickReplies）の ID と選択肢を付けて保存する", async ({
     quickReplies,
   }) => {
-    const response = JSON.stringify({
-      ...JSON.parse(llmResponse),
-      quick_replies: quickReplies,
-    });
-    const expected = JSON.stringify({
-      ...JSON.parse(expectedResponse),
-      quick_replies: quickReplies,
-    });
-    const mockModel = createGenerateMock(response);
+    const { data: question, error } = await adminClient
+      .from("interview_questions")
+      .insert({
+        interview_config_id: interviewConfig.id,
+        question: "関わりはありますか？",
+        question_order: 1,
+        quick_replies: quickReplies,
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    const mockModel = createGenerateMock(llmResponse);
 
     const result = await generateInitialQuestion({
       sessionId,
@@ -75,7 +69,13 @@ describe("generateInitialQuestion 統合テスト", () => {
     // 戻り値を検証
     expect(result).not.toBeNull();
     expect(result?.role).toBe("assistant");
-    expect(result?.content).toBe(expected);
+    expect(JSON.parse(result?.content ?? "{}")).toMatchObject({
+      text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
+      question_id: question.id,
+      topic_title: "はじめに",
+      quick_replies: [...(quickReplies ?? []), "この質問はとばす"],
+      stage: "chat",
+    });
 
     // DB 状態を検証: assistantメッセージが保存されていること
     const { data: messages } = await adminClient
@@ -85,20 +85,16 @@ describe("generateInitialQuestion 統合テスト", () => {
       .order("created_at", { ascending: true });
 
     expect(messages).toHaveLength(1);
-    expect(messages?.[0].role).toBe("assistant");
-    expect(messages?.[0].content).toBe(expected);
-    expect(messages?.[0].interview_session_id).toBe(sessionId);
+    expect(messages?.[0].content).toBe(result?.content);
   });
 
   it.each([
     { name: "空テキスト", response: "  " },
     {
-      name: "quick_replies欠落",
+      name: "question_id欠落",
       response: JSON.stringify({
-        text: "こんにちは。公園の改善についてご意見を教えてください。",
-        question_id: "question-1",
         topic_title: "公園の改善",
-        next_stage: "chat",
+        text: "こんにちは。公園の改善についてご意見を教えてください。",
       }),
     },
   ])("$name は検証で拒否しDBに保存しない", async ({ response }) => {

@@ -26,7 +26,43 @@ describe("toConfigRecord", () => {
       thumbnail_url: null,
       participation_mode: "public",
       allowed_provider_keys: [],
+      purpose_type: null,
+      opinion_focus: null,
+      decided_matters: null,
     });
+  });
+
+  it("目的と意見がほしい点を、前後の空白を除いて保存する", () => {
+    expect(
+      toConfigRecord({
+        name: "市民意見",
+        slug: "citizen-voices",
+        status: "draft",
+        participation_mode: "public",
+        allowed_provider_keys: [],
+        purpose_type: "verify",
+        opinion_focus: " どの路線をどう変えるか ",
+      })
+    ).toMatchObject({
+      purpose_type: "verify",
+      opinion_focus: "どの路線をどう変えるか",
+    });
+  });
+
+  it("決まっていることは前後の空白を除き、空なら null で保存する", () => {
+    const base = {
+      name: "市民意見",
+      slug: "citizen-voices",
+      status: "draft" as const,
+      participation_mode: "public" as const,
+      allowed_provider_keys: [],
+    };
+    expect(
+      toConfigRecord({ ...base, decided_matters: " 見直すこと " })
+    ).toMatchObject({ decided_matters: "見直すこと" });
+    expect(
+      toConfigRecord({ ...base, opinion_focus: "  ", decided_matters: "" })
+    ).toMatchObject({ opinion_focus: null, decided_matters: null });
   });
 
   it("public では連携元の指定を保存しない", () => {

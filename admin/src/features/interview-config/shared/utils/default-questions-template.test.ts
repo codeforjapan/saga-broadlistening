@@ -28,7 +28,7 @@ describe("DEFAULT_QUESTIONS_TEMPLATE", () => {
     expect(slots).toEqual(["topics", "stance"]);
   });
 
-  it("Q4/Q5/Q7 のフォローアップ指針に3往復ルールが含まれる", () => {
+  it("Q4/Q5/Q7 の観点に3往復ルールが含まれる", () => {
     // index 3=Q4(評価), 4=Q5(具体化), 6=Q7(設計者へ)
     for (const i of [3, 4, 6]) {
       expect(DEFAULT_QUESTIONS_TEMPLATE[i].follow_up_guide).toContain(
@@ -161,7 +161,7 @@ describe("buildQuestionsFromTemplate", () => {
     expect(result[1].question).toBe(
       "この施策について、あなたはどんな立場・関わり方に近いですか？"
     );
-    // 固定フォローアップ指針の特徴文言
+    // 固定の観点の特徴文言
     expect(result[0].follow_up_guide).toContain("Q2に進む");
     expect(result[1].follow_up_guide).toContain("専門知識レベル");
   });

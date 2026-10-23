@@ -1,73 +1,261 @@
 import { describe, expect, it } from "vitest";
-import { buildLoopModeSystemPrompt } from "./loop-mode";
+import {
+  INTERVIEW_PROMPT_CATALOG,
+  isInterviewPromptKey,
+  isPromptKey,
+} from "../prompts/catalog";
+import { PromptProvider } from "../prompts/provider";
+import { validatePromptTemplate } from "../prompts/template";
+import { buildChatSystemPrompt } from "./chat-prompt";
+import { NO_INDIVIDUAL_RESPONSE_TEXT, VOICE_USAGE_TEXT } from "./constants";
+import { buildInitialSystemPrompt } from "./initial-prompt";
+import { getPurposeTemplateSteps } from "./purpose-types/registry";
 import { buildSummarySystemPrompt } from "./summary";
+import { buildTurnTopics, computeTurnState } from "./turn-control";
 
-const context = {
-  bill: null,
-  interviewConfig: { name: "地域交通", description: "バスについて" },
+const interviewConfig = {
+  name: "市営バスの路線見直し案について",
+  description: "バスについて",
+  purpose_type: "verify" as const,
+  opinion_focus: "どの路線をどう変えるか",
+  decided_matters: "2027年度に路線を見直すこと",
 };
+const bill = {
+  name: "市営バス路線見直し",
+  bill_content: {
+    title: "路線見直し案",
+    summary: "統合と増便",
+    content: "詳細",
+  },
+};
+const topics = buildTurnTopics(
+  getPurposeTemplateSteps("verify", "bill").map((s, i) => ({
+    id: `q${i + 1}`,
+    ...s,
+  }))
+);
 
-describe("編集した共通プロンプトの適用", () => {
-  it("対話方針を置き換えても質問ID・進捗・出力指示を埋め込む", () => {
-    const content = buildLoopModeSystemPrompt({
-      ...context,
-      questions: [{ id: "question-1", question: "利用頻度は？", follow_up_guide: "理由を聞く", quick_replies: ["毎日"] }],
-      currentStage: "chat",
-      askedQuestionIds: new Set(),
-      remainingMinutes: 2,
-    }, "短く話してください。\n{{focusInstruction}}{{clarificationGuidance}}{{knowledgeSection}}{{themeDescription}}\n{{questionsText}}\n{{replyExamples}}{{perspectiveTechniques}}{{stopPolicy}}{{stopSigns}}{{stopFollowUps}}\n{{outputInstructions}}");
-    expect(content).toContain("短く話してください。");
-    expect(content).not.toContain("あなたの責任");
-    expect(content).toContain("[ID: question-1] 利用頻度は？");
-    expect(content).toContain("フォローアップ指針: 理由を聞く");
-    expect(content).toContain("クイックリプライ: 毎日");
-    expect(content).toContain("タイムマネジメント");
-    expect(content).toContain("next_stage");
-    expect(content).not.toContain("{{outputInstructions}}");
+/** #192 より前の対話方針の公開版（必須変数が今と違う） */
+const LEGACY_CHAT_TEMPLATE = [
+  "focusInstruction",
+  "clarificationGuidance",
+  "knowledgeSection",
+  "themeDescription",
+  "questionsText",
+  "replyExamples",
+  "perspectiveTechniques",
+  "stopPolicy",
+  "stopSigns",
+  "stopFollowUps",
+  "outputInstructions",
+]
+  .map((v) => `{{${v}}}`)
+  .join("\n");
+
+describe("対話用プロンプト", () => {
+  const turnState = computeTurnState({
+    topics,
+    metas: ["q1", "q2", "q2", "q2", "q3", "q3"].map((questionId) => ({
+      questionId,
+      stage: "chat" as const,
+    })),
   });
 
-  it("要約方針を変えてもレポート形式・根拠の発言IDを保持する", () => {
-    const content = buildSummarySystemPrompt({
-      ...context,
-      messages: [{ id: "message-1", role: "user", content: "増便してほしい {{themeDescription}}" }],
-    }, "わかりやすく要約してください。\n{{summarySection}}\n{{themeDescription}}\n{{conversationLog}}\n{{reportInstructions}}");
-    expect(content).toContain("わかりやすく要約してください。");
-    expect(content).toContain("user [msg_id:message-1]: 増便してほしい {{themeDescription}}");
-    expect(content).toContain("source_message_id");
-    expect(content).toContain("summary_complete");
-    expect(content).not.toContain("{{reportInstructions}}");
+  it("設定・話題・いまの状況を埋め込む", () => {
+    const prompt = buildChatSystemPrompt({
+      bill,
+      interviewConfig,
+      topics,
+      turnState,
+    });
+    expect(prompt).toContain("# 人物像");
+    expect(prompt).toContain(
+      "- 目的：市の案や施策への受け止めを聞く（まだ始まっていない案）"
+    );
+    expect(prompt).toContain(
+      "- 決まっていること（賛否を聞かない）：2027年度に路線を見直すこと"
+    );
+    expect(prompt).toContain(
+      `- ${VOICE_USAGE_TEXT}（結果の扱いを聞かれたら、この意味で伝える。結果を知らせる時期や場所は約束しない）`
+    );
+    expect(prompt).toContain(
+      "[Q3] この案で、その場面はどう変わりそうですか？／観点：案のどの部分が関わるか"
+    );
+    expect(prompt).toContain(
+      "- いまの話題：Q3「この案で、その場面はどう変わりそうですか？」"
+    );
+    expect(prompt).toContain(
+      "- この話題の発話：これまで2回（目安5回。十分に聞けていなければ、目安を超えて続けてよい）。上限まで：あと43回（今回を含む）"
+    );
+    expect(prompt).toContain(
+      "- 次に聞ける話題：\n  - Q4「ここまでを踏まえて、この案を全体としてどう受け止めていますか？」（選択肢ボタンはシステムが出す）"
+    );
+    expect(prompt).toContain(
+      "- 最後に聞く話題：Q5（ほかの話題をすべて聞き終えてから）"
+    );
+    expect(prompt).toContain(
+      "- question_id：いまの話題を続けるなら Q3、次の話題に移るなら Q4。"
+    );
+    expect(prompt).toContain(`「${NO_INDIVIDUAL_RESPONSE_TEXT}」`);
+    expect(prompt).toContain(
+      "資料にないことは「その点はこのインタビューではお答えできません。施策紹介ページで確認できます」と伝える。"
+    );
+    expect(prompt).not.toContain("personal_request");
+    expect(prompt).not.toContain("off_topic");
+    expect(prompt).not.toMatch(/\{\{[A-Za-z]+\}\}/);
+    // 選択肢の文言は LLM に渡さない
+    expect(prompt).not.toContain("どちらかといえば賛成");
+  });
+
+  it("話題の発話の上限を使い切ったら次の話題に移るよう指示する", () => {
+    const exhausted = computeTurnState({
+      topics,
+      // 全体の残りが、残りの話題（Q3〜Q5）の数まで減った
+      metas: ["q1", "q2", ...Array<null>(45).fill(null), "q2"].map(
+        (questionId) => ({
+          questionId,
+          stage: "chat" as const,
+        })
+      ),
+    });
+    const prompt = buildChatSystemPrompt({
+      bill,
+      interviewConfig,
+      topics,
+      turnState: exhausted,
+    });
+    expect(prompt).toContain("- 今回は次の話題に移る");
+    expect(prompt).toContain(
+      "- question_id：今回は 選んだ話題の ID（Q3・Q4 のどれか）"
+    );
+  });
+
+  it("編集した対話方針でも変数を埋め込む", () => {
+    const template = Object.keys(
+      Object.fromEntries(
+        INTERVIEW_PROMPT_CATALOG["interview-chat-system"].requiredVariables.map(
+          (v) => [v, v]
+        )
+      )
+    )
+      .map((v) => `{{${v}}}`)
+      .join("\n");
+    const prompt = buildChatSystemPrompt(
+      { bill, interviewConfig, topics, turnState, persona: "短く話す聞き手" },
+      `独自の方針\n${template}`
+    );
+    expect(prompt).toContain("独自の方針");
+    expect(prompt).toContain("短く話す聞き手");
+    expect(prompt).toContain("[Q1] ");
   });
 });
 
-import { INTERVIEW_PROMPT_CATALOG, isInterviewPromptKey, isPromptKey } from "../prompts/catalog";
-import { PromptProvider } from "../prompts/provider";
-import { validatePromptTemplate } from "../prompts/template";
+describe("初回の発話", () => {
+  it("全体像と最初の質問を埋め込む", () => {
+    const prompt = buildInitialSystemPrompt({ topics });
+    expect(prompt).toContain(
+      "「全部で5つうかがいます。途中でやめても大丈夫です。」"
+    );
+    // 「いくつか」とぼかさず、話題の数を数字で言わせる
+    expect(prompt).toContain(
+      "話題の数は数字のまま入れ、「いくつか」「少し」などとぼかさない"
+    );
+    expect(prompt).toContain(
+      "「この案は、あなたの暮らしや仕事に関わりがありますか？」"
+    );
+    expect(prompt).toContain("question_id は Q1");
+  });
+});
+
+describe("要約用プロンプト", () => {
+  it("要約の状況・締めの文言・根拠の発言IDを埋め込む", () => {
+    const prompt = buildSummarySystemPrompt({
+      bill,
+      interviewConfig,
+      messages: [
+        {
+          id: "message-1",
+          role: "user",
+          content: "増便してほしい {{themeDescription}}",
+        },
+      ],
+      summaryState: {
+        phase: "reply",
+        remainingTurns: 5,
+        canResume: true,
+        isLast: false,
+      },
+    });
+    expect(prompt).toContain("- 場面：返事を受けたところ");
+    expect(prompt).toContain("- インタビューに戻れるか：はい");
+    expect(prompt).toContain(`「${VOICE_USAGE_TEXT}」`);
+    expect(prompt).toContain(
+      "user [msg_id:message-1]: 増便してほしい {{themeDescription}}"
+    );
+    expect(prompt).toContain("source_message_id");
+    expect(prompt).not.toContain("topic_depth");
+    expect(prompt).not.toContain("next_stage");
+  });
+});
 
 describe("共通プロンプトの出力契約と取得失敗", () => {
-  it.each(["interview-chat-system", "interview-summary-system", "voice-summary-system"] as const)("%s の必須変数の削除・重複を拒否する", (key) => {
+  it.each(
+    Object.keys(
+      INTERVIEW_PROMPT_CATALOG
+    ) as (keyof typeof INTERVIEW_PROMPT_CATALOG)[]
+  )("%s の必須変数の削除・重複を拒否する", (key) => {
     const definition = INTERVIEW_PROMPT_CATALOG[key];
     expect(validatePromptTemplate(key, definition.defaultContent)).toEqual([]);
     for (const variable of definition.requiredVariables) {
       const token = `{{${variable}}}`;
-      expect(validatePromptTemplate(key, definition.defaultContent.replace(token, ""))).not.toEqual([]);
-      expect(validatePromptTemplate(key, definition.defaultContent + token)).not.toEqual([]);
+      expect(
+        validatePromptTemplate(
+          key,
+          definition.defaultContent.replace(token, "")
+        )
+      ).not.toEqual([]);
+      expect(
+        validatePromptTemplate(key, definition.defaultContent + token)
+      ).not.toEqual([]);
     }
   });
 
-  it.each(["missing", "invalid", "error"])("%s の場合は初期文面へ退避する", async (mode) => {
-    const provider = new PromptProvider({ findPublishedPrompt: async () => {
-      if (mode === "error") throw new Error("unavailable");
-      return mode === "invalid" ? { content: "出力契約を欠いた文面" } : null;
-    } });
+  it("人物像には変数を書けない", () => {
+    expect(
+      validatePromptTemplate("interview-persona", "あなたは{{name}}です")
+    ).not.toEqual([]);
+  });
+
+  it.each([
+    "missing",
+    "invalid",
+    "error",
+  ])("%s の場合は初期文面へ退避する", async (mode) => {
+    const provider = new PromptProvider({
+      findPublishedPrompt: async () => {
+        if (mode === "error") throw new Error("unavailable");
+        return mode === "invalid" ? { content: "出力契約を欠いた文面" } : null;
+      },
+    });
     const template = await provider.getTemplate("interview-chat-system");
-    const prompt = buildLoopModeSystemPrompt({ ...context, questions: [], currentStage: "chat", askedQuestionIds: new Set() }, template.content);
-    expect(prompt).toContain("next_stage");
-    expect(prompt).toContain("バスについて");
+    expect(template.content).toContain("{{turnState}}");
+    expect(JSON.parse(template.metadata).source).toBe("source-code");
+  });
+
+  it("旧変数（stopPolicy など）を使う以前の公開版は、初期文面へ退避する", async () => {
+    const provider = new PromptProvider({
+      findPublishedPrompt: async () => ({ content: LEGACY_CHAT_TEMPLATE }),
+    });
+    const template = await provider.getTemplate("interview-chat-system");
+    expect(template.content).toBe(
+      INTERVIEW_PROMPT_CATALOG["interview-chat-system"].defaultContent
+    );
     expect(JSON.parse(template.metadata).source).toBe("source-code");
   });
 
   it("カタログに登録したインタビュープロンプトだけを識別する", () => {
-    expect(isInterviewPromptKey("interview-summary-system")).toBe(true);
+    expect(isInterviewPromptKey("interview-persona")).toBe(true);
+    expect(isInterviewPromptKey("interview-initial-system")).toBe(true);
     expect(isInterviewPromptKey("top-chat-system")).toBe(false);
     expect(isPromptKey("top-chat-system")).toBe(true);
     expect(isPromptKey("toString")).toBe(false);

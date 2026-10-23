@@ -11,6 +11,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config-admin";
 import { createStreamMock } from "@/test-utils/mock-language-model";
 import type { InterviewSession } from "../../shared/types";
+import {
+  InterviewAlreadyCompletedError,
+  InterviewSessionNotStartedError,
+} from "../../shared/types/errors";
 import { findInterviewMessagesBySessionId } from "../repositories/interview-session-repository";
 import { handleInterviewChatRequest } from "./handle-interview-chat-request";
 
@@ -73,16 +77,23 @@ async function consumeResponseStream(response: Response): Promise<string> {
 
 // interviewChatTextSchema に準拠したモックレスポンス
 const validChatResponse = JSON.stringify({
+  question_id: "Q2",
+  topic_title: "ふだんの場面",
   text: "施策についてのご意見をお聞かせください。",
-  quick_replies: ["賛成です", "反対です"],
-  question_id: null,
-  topic_title: null,
-  next_stage: "chat",
+  end_request: false,
+});
+
+const endRequestChatResponse = JSON.stringify({
+  question_id: "Q1",
+  topic_title: "関わり",
+  text: "わかりました。ここまでのお話をまとめますね。",
+  end_request: true,
 });
 
 // interviewChatWithReportSchema に準拠したモックレスポンス
 const validSummaryResponse = JSON.stringify({
   text: "インタビューのまとめです。ご協力ありがとうございました。",
+  summary_response: "none",
   report: {
     summary: "テスト施策への意見",
     final_text: "子育て世帯への支援をもっと手厚くしてほしいと考えています。",
@@ -103,8 +114,12 @@ const validSummaryResponse = JSON.stringify({
       reasoning: "明確な意見表明があり、具体的な理由も述べられている",
     },
   },
-  next_stage: "summary_complete",
 });
+
+/** 保存された assistant メッセージの JSON を読む */
+function parseStored(content: string): Record<string, unknown> {
+  return JSON.parse(content) as Record<string, unknown>;
+}
 
 describe("handleInterviewChatRequest 統合テスト", () => {
   let testUser: TestUser;
@@ -135,7 +150,6 @@ describe("handleInterviewChatRequest 統合テスト", () => {
         handleInterviewChatRequest({
           messages: [{ role: "user", content: "こんにちは" }],
           interviewConfigId: config.id,
-          currentStage: "chat",
           userId: testUser.id,
           deps: {
             chatModel: mockModel,
@@ -153,6 +167,32 @@ describe("handleInterviewChatRequest 統合テスト", () => {
   });
 
   describe("chatフェーズ", () => {
+    let questionIds: string[];
+
+    beforeEach(async () => {
+      const { data, error } = await adminClient
+        .from("interview_questions")
+        .insert([
+          {
+            interview_config_id: config.id,
+            question: "関わりはありますか？",
+            question_order: 1,
+            quick_replies: null,
+          },
+          {
+            interview_config_id: config.id,
+            question: "ふだんの場面を教えてください",
+            question_order: 2,
+            quick_replies: ["思い出せない"],
+          },
+        ])
+        .select("id, question_order");
+      if (error) throw error;
+      questionIds = data
+        .sort((a, b) => a.question_order - b.question_order)
+        .map((q) => q.id);
+    });
+
     it("ユーザーメッセージとassistantメッセージがDBに保存される", async () => {
       const mockModel = createStreamMock([validChatResponse]);
 
@@ -161,7 +201,6 @@ describe("handleInterviewChatRequest 統合テスト", () => {
           { role: "user", content: "この施策についてどう思いますか？" },
         ],
         interviewConfigId: config.id,
-        currentStage: "chat",
         userId: testUser.id,
         deps: {
           chatModel: mockModel,
@@ -189,7 +228,85 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       expect(messages[0].role).toBe("user");
       expect(messages[0].content).toBe("この施策についてどう思いますか？");
       expect(messages[1].role).toBe("assistant");
-      expect(messages[1].content).toBe(validChatResponse);
+      // question_id は Q番号から質問のIDに読み替え、初めて聞く質問には選択肢を付けて保存する
+      expect(parseStored(messages[1].content)).toMatchObject({
+        text: "施策についてのご意見をお聞かせください。",
+        question_id: questionIds[1],
+        stage: "chat",
+        next_stage: "chat",
+        quick_replies: ["思い出せない", "この質問はとばす"],
+      });
+    });
+
+    it("最初の話題の発話の上限を使い切ったら、次の話題に進めて選択肢ボタンを注入する", async () => {
+      const mockModel = createStreamMock([validChatResponse]);
+      // 話題ごとの発話の上限（5回）まで Q1 で発話した履歴
+      const askedOnFirstTopic = Array.from({ length: 5 }, (_, i) => ({
+        id: `m${i + 1}`,
+        interview_session_id: sessionId,
+        role: "assistant" as const,
+        content: JSON.stringify({
+          text: "関わりは？",
+          question_id: questionIds[0],
+        }),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }));
+
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "user", content: "あります" }],
+        interviewConfigId: config.id,
+        userId: testUser.id,
+        deps: {
+          chatModel: mockModel,
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+            isPreview: false,
+          }),
+          getSession: async () => session,
+          getMessages: async () => askedOnFirstTopic,
+        },
+      });
+
+      const body = JSON.parse(await consumeResponseStream(response));
+      expect(body.resolved_question_id).toBe(questionIds[1]);
+      expect(body.next_stage).toBe("chat");
+      expect(body.quick_replies).toEqual(["思い出せない", "この質問はとばす"]);
+    });
+
+    it("終えたいと言われたら要約へ進め、続けて要約を取りにいくよう知らせる", async () => {
+      const mockModel = createStreamMock([endRequestChatResponse]);
+
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "user", content: "もうやめたいです" }],
+        interviewConfigId: config.id,
+        userId: testUser.id,
+        deps: {
+          chatModel: mockModel,
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+            isPreview: false,
+          }),
+          getSession: async () => session,
+          getMessages: async () => [],
+        },
+      });
+
+      const body = JSON.parse(await consumeResponseStream(response));
+      expect(body.next_stage).toBe("summary");
+      expect(body.chain_summary).toBe(true);
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const { data: updated } = await adminClient
+        .from("interview_sessions")
+        .select("stage")
+        .eq("id", sessionId)
+        .single();
+      expect(updated).toEqual({ stage: "summary" });
     });
 
     it("空白のみのユーザーメッセージはDBに保存されない", async () => {
@@ -198,7 +315,6 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "   " }],
         interviewConfigId: config.id,
-        currentStage: "chat",
         userId: testUser.id,
         deps: {
           chatModel: mockModel,
@@ -239,7 +355,6 @@ describe("handleInterviewChatRequest 統合テスト", () => {
           { role: "user", content: "この施策についてどう思いますか？" },
         ],
         interviewConfigId: config.id,
-        currentStage: "chat",
         isRetry: true,
         userId: testUser.id,
         deps: {
@@ -268,13 +383,18 @@ describe("handleInterviewChatRequest 統合テスト", () => {
   });
 
   describe("summaryフェーズ", () => {
+    let summarySession: InterviewSession;
+
+    beforeEach(() => {
+      summarySession = { ...session, stage: "summary" };
+    });
+
     it("ユーザーメッセージとassistantメッセージがDBに保存される", async () => {
       const mockModel = createStreamMock([validSummaryResponse]);
 
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "まとめてください" }],
         interviewConfigId: config.id,
-        currentStage: "summary",
         userId: testUser.id,
         deps: {
           summaryModel: mockModel,
@@ -284,7 +404,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             policyId: null,
             isPreview: false,
           }),
-          getSession: async () => session,
+          getSession: async () => summarySession,
           getMessages: async () => [],
         },
       });
@@ -300,7 +420,11 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       expect(messages[0].role).toBe("user");
       expect(messages[0].content).toBe("まとめてください");
       expect(messages[1].role).toBe("assistant");
-      expect(messages[1].content).toBe(validSummaryResponse);
+      expect(parseStored(messages[1].content)).toMatchObject({
+        stage: "summary",
+        next_stage: "summary",
+        summary_response: "none",
+      });
     });
 
     it("chat→summary 自動遷移（末尾が assistant）でもモデルへは user メッセージで終わる列を渡す", async () => {
@@ -315,7 +439,6 @@ describe("handleInterviewChatRequest 統合テスト", () => {
           { role: "assistant", content: "最後の質問です。他にありますか？" },
         ],
         interviewConfigId: config.id,
-        currentStage: "summary",
         userId: testUser.id,
         deps: {
           summaryModel: model,
@@ -325,7 +448,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             policyId: null,
             isPreview: false,
           }),
-          getSession: async () => session,
+          getSession: async () => summarySession,
           getMessages: async () => [],
         },
       });
@@ -347,7 +470,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       const messages = await findInterviewMessagesBySessionId(sessionId);
       expect(messages).toHaveLength(1);
       expect(messages[0].role).toBe("assistant");
-      expect(messages[0].content).toBe(validSummaryResponse);
+      expect(parseStored(messages[0].content).stage).toBe("summary");
     });
 
     it("レポート修正依頼（末尾が user）では末尾の user メッセージのみをモデルへ渡す", async () => {
@@ -361,7 +484,6 @@ describe("handleInterviewChatRequest 統合テスト", () => {
           { role: "user", content: "もっと簡潔にしてください" },
         ],
         interviewConfigId: config.id,
-        currentStage: "summary",
         userId: testUser.id,
         deps: {
           summaryModel: model,
@@ -371,7 +493,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             policyId: null,
             isPreview: false,
           }),
-          getSession: async () => session,
+          getSession: async () => summarySession,
           getMessages: async () => [],
         },
       });
@@ -414,7 +536,6 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "まとめてください" }],
         interviewConfigId: config.id,
-        currentStage: "summary",
         userId: testUser.id,
         deps: {
           summaryModel: summaryMock,
@@ -425,7 +546,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
             policyId: null,
             isPreview: false,
           }),
-          getSession: async () => session,
+          getSession: async () => summarySession,
           getMessages: async () => [],
         },
       });
@@ -437,7 +558,241 @@ describe("handleInterviewChatRequest 統合テスト", () => {
 
       // summaryModel の出力が保存されていること
       expect(messages).toHaveLength(2);
-      expect(messages[1].content).toBe(validSummaryResponse);
+      expect(parseStored(messages[1].content).text).toBe(
+        "インタビューのまとめです。ご協力ありがとうございました。"
+      );
+    });
+  });
+
+  describe("ステージ制御", () => {
+    let questionIds: string[];
+
+    beforeEach(async () => {
+      const { data, error } = await adminClient
+        .from("interview_questions")
+        .insert([
+          {
+            interview_config_id: config.id,
+            question: "関わりはありますか？",
+            question_order: 1,
+          },
+          {
+            interview_config_id: config.id,
+            question: "ほかに伝えたいことはありますか？",
+            question_order: 2,
+            quick_replies: ["特にない"],
+          },
+        ])
+        .select("id, question_order");
+      if (error) throw error;
+      questionIds = data
+        .sort((a, b) => a.question_order - b.question_order)
+        .map((q) => q.id);
+    });
+
+    /** chat ステージの assistant 発話の履歴 */
+    function chatHistory(ids: (string | null)[]) {
+      return ids.map((questionId, i) => ({
+        id: `m${i + 1}`,
+        interview_session_id: sessionId,
+        role: "assistant" as const,
+        content: JSON.stringify({
+          text: "質問",
+          question_id: questionId,
+          stage: "chat",
+        }),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }));
+    }
+
+    function baseDeps(overrides: {
+      session?: InterviewSession | null;
+      history?: ReturnType<typeof chatHistory>;
+    }) {
+      return {
+        resolveContext: async () => ({
+          interviewConfig: config,
+          bill: null,
+          policyId: null,
+          isPreview: false,
+        }),
+        getSession: async () =>
+          overrides.session === undefined ? session : overrides.session,
+        getMessages: async () => overrides.history ?? [],
+      };
+    }
+
+    async function readStage() {
+      const { data } = await adminClient
+        .from("interview_sessions")
+        .select("stage")
+        .eq("id", sessionId)
+        .single();
+      return data?.stage;
+    }
+
+    it("質問の発話が上限に達したら、生成前に要約へ入る", async () => {
+      // 質問2つ × 10 = 20回。最初の発話を除いて20回使い切った履歴
+      const history = chatHistory([
+        questionIds[0],
+        ...Array<string>(20).fill(questionIds[0]),
+      ]);
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "user", content: "はい" }],
+        interviewConfigId: config.id,
+        userId: testUser.id,
+        deps: {
+          ...baseDeps({ history }),
+          summaryModel: createStreamMock([validSummaryResponse]),
+        },
+      });
+
+      const body = JSON.parse(await consumeResponseStream(response));
+      expect(body.next_stage).toBe("summary");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(await readStage()).toBe("summary");
+    });
+
+    it("対話中に「終える」を押すと、発言を保存せずに要約へ入る", async () => {
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "assistant", content: "関わりはありますか？" }],
+        interviewConfigId: config.id,
+        action: "end",
+        userId: testUser.id,
+        deps: {
+          ...baseDeps({ history: chatHistory([questionIds[0]]) }),
+          summaryModel: createStreamMock([validSummaryResponse]),
+        },
+      });
+
+      const body = JSON.parse(await consumeResponseStream(response));
+      expect(body.next_stage).toBe("summary");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const messages = await findInterviewMessagesBySessionId(sessionId);
+      expect(messages.map((m) => m.role)).toEqual(["assistant"]);
+      expect(parseStored(messages[0].content)).toMatchObject({
+        stage: "summary",
+        summary_response: "none",
+      });
+      expect(await readStage()).toBe("summary");
+    });
+
+    it("要約中に「終える」を押すと、締めて要約の段階を終える", async () => {
+      const summaryMessage = {
+        id: "s1",
+        interview_session_id: sessionId,
+        role: "assistant" as const,
+        content: JSON.stringify({ text: "まとめ", stage: "summary" }),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "assistant", content: "まとめ" }],
+        interviewConfigId: config.id,
+        action: "end",
+        userId: testUser.id,
+        deps: {
+          ...baseDeps({
+            session: { ...session, stage: "summary" },
+            history: [...chatHistory([questionIds[0]]), summaryMessage],
+          }),
+          summaryModel: createStreamMock([
+            JSON.stringify({
+              text: "ありがとうございました。",
+              summary_response: "other",
+              report: null,
+            }),
+          ]),
+        },
+      });
+
+      const body = JSON.parse(await consumeResponseStream(response));
+      expect(body.next_stage).toBe("summary_complete");
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      expect(await readStage()).toBe("summary_complete");
+    });
+
+    it("要約に入った直後に「終える」が再送されても、要約を見せずに締めない", async () => {
+      // 前回の「終える」でステージは summary になったが、要約の生成に失敗した状態
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "assistant", content: "関わりはありますか？" }],
+        interviewConfigId: config.id,
+        action: "end",
+        userId: testUser.id,
+        deps: {
+          ...baseDeps({
+            session: { ...session, stage: "summary" },
+            history: chatHistory([questionIds[0]]),
+          }),
+          summaryModel: createStreamMock([validSummaryResponse]),
+        },
+      });
+
+      const body = JSON.parse(await consumeResponseStream(response));
+      expect(body.next_stage).toBe("summary");
+    });
+
+    it("最後の話題で wrap_up が返ったら要約へ進め、保存内容と注入した値がそろう", async () => {
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "user", content: "特にないです" }],
+        interviewConfigId: config.id,
+        userId: testUser.id,
+        deps: {
+          ...baseDeps({
+            history: chatHistory([questionIds[0], questionIds[1]]),
+          }),
+          chatModel: createStreamMock([
+            JSON.stringify({
+              question_id: "Q2",
+              topic_title: "言い足し",
+              text: "ありがとうございます。ここまでのお話をまとめますね。",
+              end_request: false,
+              wrap_up: true,
+            }),
+          ]),
+        },
+      });
+
+      const body = JSON.parse(await consumeResponseStream(response));
+      expect(body.next_stage).toBe("summary");
+      expect(body.chain_summary).toBe(true);
+      // ストリームを読み切った時点で、保存とステージ更新は終わっている
+
+      const messages = await findInterviewMessagesBySessionId(sessionId);
+      const stored = parseStored(messages[messages.length - 1].content);
+      expect(stored.question_id).toBe(body.resolved_question_id);
+      expect(stored.topic_title).toBe(body.resolved_topic_title);
+      expect(stored.quick_replies).toEqual(body.quick_replies);
+      expect(stored.next_stage).toBe(body.next_stage);
+      expect(await readStage()).toBe("summary");
+    });
+
+    it("要約の段階を終えたセッションへの送信は拒否する", async () => {
+      await expect(
+        handleInterviewChatRequest({
+          messages: [{ role: "user", content: "追加です" }],
+          interviewConfigId: config.id,
+          userId: testUser.id,
+          deps: baseDeps({
+            session: { ...session, stage: "summary_complete" },
+          }),
+        })
+      ).rejects.toBeInstanceOf(InterviewAlreadyCompletedError);
+
+      expect(await findInterviewMessagesBySessionId(sessionId)).toHaveLength(0);
+    });
+
+    it("開始していない（セッションがない）ときは拒否し、セッションを作らない", async () => {
+      await expect(
+        handleInterviewChatRequest({
+          messages: [{ role: "user", content: "こんにちは" }],
+          interviewConfigId: config.id,
+          userId: testUser.id,
+          deps: baseDeps({ session: null }),
+        })
+      ).rejects.toBeInstanceOf(InterviewSessionNotStartedError);
     });
   });
 });

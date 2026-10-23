@@ -86,12 +86,12 @@ export function InterviewQuestionForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={followUpGuideId}>フォローアップ指針（任意）</Label>
+        <Label htmlFor={followUpGuideId}>観点（任意）</Label>
         <Textarea
           id={followUpGuideId}
           value={followUpGuide}
           onChange={(e) => setFollowUpGuide(e.target.value)}
-          placeholder="回答後の深掘り方法などの指針を入力"
+          placeholder="聞けたら話が豊かになる観点（例：いつ・どこで・誰と）。2つまでが目安です"
           className="min-h-[80px] resize-y"
         />
       </div>

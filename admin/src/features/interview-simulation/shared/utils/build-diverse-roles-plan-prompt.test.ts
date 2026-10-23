@@ -120,7 +120,7 @@ describe("buildDiverseRolesPlanPrompt（施策に紐づかない抽象テーマ�
       slotsToPlan: [{}, {}],
     });
 
-    expect(out).toContain("## インタビューの対象");
+    expect(out).toContain("# 参考知識");
     expect(out).toContain("佐賀市のみらい");
     // 空欄の施策情報を並べるとAIが存在しない施策を語り出すため、欄ごと出さない
     expect(out).not.toContain("- 施策名:");

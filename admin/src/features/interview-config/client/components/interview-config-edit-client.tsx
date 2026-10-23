@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MultiSimulationView } from "@/features/interview-simulation/client/components/multi-simulation-view";
 import type { CompletedReportListItem } from "@/features/interview-simulation/shared/types";
 import { saveInterviewQuestions } from "../../server/actions/save-interview-questions";
+import { revertInterviewConfigToDraft } from "../../server/actions/upsert-interview-config";
 import {
   type InterviewConfig,
   type InterviewQuestion,
@@ -14,6 +15,7 @@ import {
   textToArray,
 } from "../../shared/types";
 import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
+import { buildPurposeTemplateQuestions } from "../../shared/utils/purpose-template-questions";
 import { toQuestionInput } from "../../shared/utils/question-input";
 import type { ConfigFormContext } from "../hooks/use-config-generation-chat";
 import { ConfigGenerationChat } from "./config-generation-chat";
@@ -69,6 +71,13 @@ export function InterviewConfigEditClient({
     InterviewQuestionInput[] | null
   >(null);
 
+  // テンプレートは保存済みの目的と、保存済みの施策の紐づけ（あれば施策型）で決める
+  const purposeTemplate = initialConfig?.purpose_type
+    ? buildPurposeTemplateQuestions(
+        initialConfig.purpose_type,
+        linkedPolicyIds.length > 0 ? "bill" : "theme"
+      )
+    : null;
   // フォームの値を取得するためのref
   const getFormValuesRef = useRef<(() => InterviewConfigFormValues) | null>(
     null
@@ -86,6 +95,17 @@ export function InterviewConfigEditClient({
         ? formValues.description
         : (initialConfig?.description ?? null),
       policyIds: formValues ? (formValues.policy_ids ?? []) : linkedPolicyIds,
+      design: formValues
+        ? {
+            purposeType: formValues.purpose_type ?? null,
+            opinionFocus: formValues.opinion_focus ?? null,
+            decidedMatters: formValues.decided_matters ?? null,
+          }
+        : {
+            purposeType: initialConfig?.purpose_type ?? null,
+            opinionFocus: initialConfig?.opinion_focus ?? null,
+            decidedMatters: initialConfig?.decided_matters ?? null,
+          },
     };
   }, [initialConfig, linkedPolicyIds]);
 
@@ -104,9 +124,15 @@ export function InterviewConfigEditClient({
         aiGeneratedQuestions
       ).catch(() => null);
       if (!result?.success) {
+        // 質問が0件のまま募集中にしないよう、下書きに戻す
+        const wasOpen = getFormValuesRef.current?.().status === "open";
+        if (wasOpen) {
+          await revertInterviewConfigToDraft(newConfigId).catch(() => null);
+        }
         toast.error(result?.error || "質問の保存に失敗しました", {
-          description:
-            "質問は保存されていないので、編集画面のAI生成から作り直してください",
+          description: wasOpen
+            ? "質問は保存されていないので、編集画面のAI生成から作り直してください（設定は下書きで保存しました）"
+            : "質問は保存されていないので、編集画面のAI生成から作り直してください",
         });
       }
     },
@@ -140,6 +166,7 @@ export function InterviewConfigEditClient({
               onAiThemesApplied={() => setAiGeneratedThemes(null)}
               getFormValuesRef={getFormValuesRef}
               onConfigCreated={handleConfigCreated}
+              pendingQuestionCount={aiGeneratedQuestions?.length ?? 0}
               initialName={initialName}
               initialSlug={initialSlug}
               policyOptions={policyOptions}
@@ -148,6 +175,7 @@ export function InterviewConfigEditClient({
             {configId ? (
               <InterviewQuestionList
                 interviewConfigId={configId}
+                purposeTemplate={purposeTemplate}
                 questions={questions}
                 aiGeneratedQuestions={aiGeneratedQuestions}
                 onAiQuestionsApplied={() => setAiGeneratedQuestions(null)}
@@ -236,7 +264,7 @@ function AiQuestionsPreview({
                     </div>
                     {question.follow_up_guide && (
                       <div className="text-sm text-gray-600">
-                        <span className="font-medium">フォローアップ指針:</span>{" "}
+                        <span className="font-medium">観点:</span>{" "}
                         {question.follow_up_guide}
                       </div>
                     )}

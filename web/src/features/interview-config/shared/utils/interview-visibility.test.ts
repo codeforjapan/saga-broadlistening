@@ -4,6 +4,7 @@ import {
   isLinkedPolicy,
   isOpenInterview,
   selectPrimaryPolicyId,
+  selectRelatedPolicyIds,
   toLinkedPolicies,
 } from "./interview-visibility";
 
@@ -95,5 +96,33 @@ describe("isOpenInterview", () => {
   it("募集終了・下書きは false（結果は見せても参加導線は出さない）", () => {
     expect(isOpenInterview("closed")).toBe(false);
     expect(isOpenInterview("draft")).toBe(false);
+  });
+});
+
+describe("selectRelatedPolicyIds", () => {
+  const policies = [
+    { id: "policy-1", isPublished: false },
+    { id: "policy-2", isPublished: true },
+    { id: "policy-3", isPublished: true },
+    { id: "policy-4", isPublished: true },
+  ];
+
+  it("主たる施策と未公開の施策を除き、渡された順に返す", () => {
+    expect(selectRelatedPolicyIds(policies, "policy-2")).toEqual([
+      "policy-3",
+      "policy-4",
+    ]);
+  });
+
+  it("主たる施策が未公開（プレビュー）でも、公開済みの施策はすべて返す", () => {
+    expect(selectRelatedPolicyIds(policies, "policy-1")).toEqual([
+      "policy-2",
+      "policy-3",
+      "policy-4",
+    ]);
+  });
+
+  it("紐付けがなければ空配列を返す", () => {
+    expect(selectRelatedPolicyIds([], null)).toEqual([]);
   });
 });

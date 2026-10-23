@@ -229,6 +229,9 @@ importers:
 
   packages/seed:
     dependencies:
+      '@mirai-gikai/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@mirai-gikai/supabase':
         specifier: workspace:*
         version: link:../supabase
