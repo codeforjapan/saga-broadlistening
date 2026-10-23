@@ -10,18 +10,26 @@ import {
   Square,
 } from "lucide-react";
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { InterviewQuestionInput } from "../../shared/types";
 import { buildQuestionsFromTemplate } from "../../shared/utils/default-questions-template";
-import { useConfigGenerationChat } from "../hooks/use-config-generation-chat";
+import {
+  type ConfigFormContext,
+  useConfigGenerationChat,
+} from "../hooks/use-config-generation-chat";
 
 interface ConfigGenerationChatProps {
-  billId: string;
-  configId?: string;
+  /**
+   * 開いた時点で施策が紐づいているか。紐づいていれば施策内容を材料に自動で生成を始める。
+   * AIが題材にする施策は、送信時点のフォームの値で決まる
+   */
+  hasLinkedPolicy: boolean;
+  /** AIへ渡すフォームの値を、送信時点で読み取る */
+  getFormContext?: () => ConfigFormContext;
   existingThemes?: string[];
   existingQuestions?: InterviewQuestionInput[];
   onThemesConfirmed: (themes: string[]) => void;
@@ -29,8 +37,8 @@ interface ConfigGenerationChatProps {
 }
 
 export function ConfigGenerationChat({
-  billId,
-  configId,
+  hasLinkedPolicy,
+  getFormContext,
   existingThemes,
   existingQuestions,
   onThemesConfirmed,
@@ -54,8 +62,7 @@ export function ConfigGenerationChat({
     switchToQuestions,
     skipToThemes,
   } = useConfigGenerationChat({
-    billId,
-    configId,
+    getFormContext,
     existingThemes,
     existingQuestions,
     onThemesConfirmed,
@@ -65,13 +72,29 @@ export function ConfigGenerationChat({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const hasStartedRef = useRef(false);
 
-  // マウント時にAI生成を自動実行
+  // 施策があれば施策内容を材料に自動で生成を始められる。
+  // 施策に紐づかないテーマは、職員がテーマ名を入力するまで材料がないため自動起動しない
+  const canAutoStart = hasLinkedPolicy;
+
   useEffect(() => {
-    if (!hasStartedRef.current) {
+    if (canAutoStart && !hasStartedRef.current) {
       hasStartedRef.current = true;
       startGeneration();
     }
-  }, [startGeneration]);
+  }, [canAutoStart, startGeneration]);
+
+  // フォームは別コンポーネントで管理しており値の変化で再描画されないため、
+  // テーマ名の有無はボタンの disabled ではなく押した時点で判定する
+  const [startError, setStartError] = useState<string | null>(null);
+  const handleManualStart = () => {
+    if (!getFormContext?.().themeName?.trim()) {
+      setStartError("テーマ名（設定名）を入力してから生成をはじめてください。");
+      return;
+    }
+    setStartError(null);
+    hasStartedRef.current = true;
+    startGeneration();
+  };
 
   // 新しいメッセージでチャットコンテナ内のみ自動スクロール
   // biome-ignore lint/correctness/useExhaustiveDependencies: messagesとobjectの変化でスクロールをトリガーする
@@ -112,7 +135,9 @@ export function ConfigGenerationChat({
           AIで設定を生成
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          法案内容に合わせて質問とテーマを提案します
+          {hasLinkedPolicy
+            ? "施策内容に合わせて質問とテーマを提案します"
+            : "テーマ名と説明に合わせて質問とテーマを提案します"}
         </p>
         {/* ステージステッパー（クリックで切替可能） */}
         <div className="flex items-center gap-1 pt-2">
@@ -137,6 +162,22 @@ export function ConfigGenerationChat({
         ref={scrollContainerRef}
         className="flex-1 overflow-y-auto space-y-4 pb-2"
       >
+        {/* 施策に紐づかないテーマは、材料になるテーマ名が入るまで生成を待つ */}
+        {!canAutoStart && messages.length === 0 && !isLoading && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              左のフォームにテーマ名と説明を入力してから生成をはじめてください。入力内容をもとに質問とテーマを提案します。
+            </p>
+            <Button onClick={handleManualStart} className="w-full">
+              <Sparkles className="mr-2 h-4 w-4" />
+              生成をはじめる
+            </Button>
+            {startError && (
+              <p className="text-sm text-system-warning">{startError}</p>
+            )}
+          </div>
+        )}
+
         {messages.map((message) => (
           <div key={message.id}>
             {message.role === "assistant" ? (
@@ -169,7 +210,7 @@ export function ConfigGenerationChat({
         )}
 
         {error && (
-          <div className="text-sm text-red-600 bg-red-50 p-3 rounded">
+          <div className="text-sm text-system-warning bg-yellow-400/20 p-3 rounded">
             エラーが発生しました。もう一度お試しください。
           </div>
         )}
@@ -380,7 +421,7 @@ function AssistantMessage({
                     </p>
                     {q.follow_up_guide && (
                       <p className="text-xs text-gray-500 ml-4">
-                        フォローアップ指針: {q.follow_up_guide}
+                        観点: {q.follow_up_guide}
                       </p>
                     )}
                     {q.quick_replies && q.quick_replies.length > 0 && (

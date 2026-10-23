@@ -7,7 +7,7 @@ export async function DifficultyInfoCard() {
   return (
     <div className="relative overflow-hidden rounded-xl bg-white p-6 my-10 h-38 flex flex-col justify-center">
       <div className="relative z-1 flex flex-col gap-0">
-        <p className="text-base font-medium leading-[1.875em] text-gray-800">
+        <p className="text-base font-medium leading-[1.875em] text-foreground">
           説明の詳しさを
           <br className="pc:hidden" />
           いつでも切り替えられます

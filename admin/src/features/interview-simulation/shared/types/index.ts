@@ -1,6 +1,5 @@
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
-import type { AiModel } from "@/lib/ai/models";
 import type { PromptKind } from "../constants";
+
 import type {
   IntervieweeSatisfaction,
   OverallEvaluation,
@@ -19,11 +18,9 @@ export interface CompletedReportListItem {
   reportId: string;
   /** このレポートが属する config ID。UI で「現在の config のみ」フィルタに使う */
   configId: string;
-  /** config 名。法案全体から選ぶとき、どの config のインタビューか判別する */
+  /** config 名。施策全体から選ぶとき、どの config のインタビューか判別する */
   configName: string | null;
   roleTitle: string | null;
-  role: string | null;
-  stance: string | null;
   summary: string | null;
   totalContentRichness: number | null;
   completedAt: string | null;
@@ -36,10 +33,9 @@ export interface OriginalInterviewSnapshot {
   reportId: string;
   sessionId: string;
   configId: string;
-  billId: string;
+  /** 意見募集に紐づく施策ID一覧。抽象テーマ型では空 */
+  policyIds: string[];
   summary: string | null;
-  stance: "for" | "against" | "neutral" | null;
-  role: string | null;
   roleTitle: string | null;
   roleDescription: string | null;
   opinions: Array<{
@@ -66,9 +62,9 @@ export interface SimulationRun {
   /** 実行に用いたインタビュアー側 system prompt（A案: 全文をそのまま編集可能） */
   interviewerSystemPrompt: string;
   /** インタビュアーモデル */
-  interviewerModel: AiModel;
+  interviewerModel: string;
   /** インタビュイーモデル */
-  intervieweeModel: AiModel;
+  intervieweeModel: string;
   transcript: SimulatedTurn[];
   metrics: SimulationMetrics;
   stopReason:
@@ -112,9 +108,9 @@ export interface SimulationMetrics {
  * 本番の「編集した config を保存せずにテストする」ユースケース向け。
  */
 export interface TransientConfigSnapshot {
-  mode: InterviewMode;
-  themes: string[] | null;
-  /** インタビュー目安時間（分）。本番の「## タイムマネジメント」セクションに反映される */
+  /** 職員が設定したテーマの説明文（interview_configs.description） */
+  description: string | null;
+  /** インタビュー目安時間（分） */
   estimatedDurationMinutes: number | null;
   questions: Array<{
     /** 既存質問ならその id、未保存の新規質問ならクライアント側の一時 UUID */
@@ -122,8 +118,6 @@ export interface TransientConfigSnapshot {
     question: string;
     quick_replies: string[] | null;
     follow_up_guide: string | null;
-    /** 対象者条件（任意）。targeted モード時にのみ意味を持つ */
-    target_audience?: string | null;
   }>;
 }
 
@@ -148,15 +142,18 @@ export type PersonaSlotInput =
  * 複数ペルソナシミュ API (/api/interview-simulation/run-multi) のリクエストボディ
  */
 export interface MultiSimulationRunRequest {
-  /** 対象法案 ID（全スロット共通） */
-  billId: string;
+  /**
+   * 対象の意見募集ID（全スロット共通）。
+   * ペルソナ素材に使える範囲はサーバー側でこのIDから決めるため、施策IDは受け取らない。
+   */
+  interviewConfigId: string;
   /** 各スロットのペルソナ定義（1〜MAX_PERSONA_SLOTS） */
   personaSlots: PersonaSlotInput[];
   /** 改善版 = 編集中 config スナップショット（全スロット共通） */
   improvedConfig: TransientConfigSnapshot;
-  interviewerModel: AiModel;
-  intervieweeModel: AiModel;
-  personaModel: AiModel;
+  interviewerModel: string;
+  intervieweeModel: string;
+  personaModel: string;
 }
 
 /**
@@ -166,7 +163,7 @@ export interface PersonaSimulationResult {
   personaIndex: number;
   personaSource: PersonaSlotInput;
   persona: PersonaCharacterSheet;
-  personaModel: AiModel;
+  personaModel: string;
   /** report ソースのスロットのみ。bill ソースでは null */
   original: OriginalInterviewSnapshot | null;
   run: SimulationRun;

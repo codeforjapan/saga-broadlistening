@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
+import { PolicyDetail } from "@/features/bills/server/components/bill-detail/policy-detail";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
-import { BillDetailLayout } from "@/features/bills/server/components/bill-detail/bill-detail-layout";
 import { env } from "@/lib/env";
 import { routes } from "@/lib/routes";
 
@@ -20,12 +20,12 @@ export async function generateMetadata({
 
   if (!bill) {
     return {
-      title: "議案が見つかりません",
+      title: "施策が見つかりません",
     };
   }
 
   // bill_contentのsummaryがあればそれを使用、なければデフォルト値を使用
-  const description = bill.bill_content?.summary || "議案の詳細情報";
+  const description = bill.bill_content?.summary || "施策の詳細情報";
   const defaultOgpUrl = new URL("/ogp.jpg", env.webUrl).toString();
 
   // シェア用OGP画像（share_thumbnail_url > thumbnail_url > デフォルト）
@@ -43,7 +43,7 @@ export async function generateMetadata({
       title: bill.name,
       description: description,
       type: "article",
-      publishedTime: bill.submitted_date ?? undefined,
+      publishedTime: bill.published_at ?? undefined,
       modifiedTime: bill.updated_at,
       images: [
         {
@@ -73,7 +73,7 @@ export default async function BillDetailPage({ params }: BillDetailPageProps) {
   }
 
   return (
-    <BillDetailLayout
+    <PolicyDetail
       bill={billWithContent}
       currentDifficulty={currentDifficulty}
     />

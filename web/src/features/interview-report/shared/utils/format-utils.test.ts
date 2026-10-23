@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatAnsweredAt,
-  formatRoleDescriptionLines,
-  parseOpinions,
-} from "./format-utils";
+import { formatAnsweredAt, formatRoleDescriptionLines } from "./format-utils";
 
 describe("formatAnsweredAt", () => {
   it("null・不正な値は空文字", () => {
@@ -70,47 +66,5 @@ describe("formatRoleDescriptionLines", () => {
 
   it("filters whitespace-only lines", () => {
     expect(formatRoleDescriptionLines("A\n   \nB")).toEqual(["・A", "・B"]);
-  });
-});
-
-describe("parseOpinions", () => {
-  it("returns empty array for null", () => {
-    expect(parseOpinions(null)).toEqual([]);
-  });
-
-  it("returns empty array for undefined", () => {
-    expect(parseOpinions(undefined)).toEqual([]);
-  });
-
-  it("returns empty array for a string", () => {
-    expect(parseOpinions("not an array")).toEqual([]);
-  });
-
-  it("returns empty array for a number", () => {
-    expect(parseOpinions(42)).toEqual([]);
-  });
-
-  it("returns empty array for an object", () => {
-    expect(parseOpinions({ title: "test" })).toEqual([]);
-  });
-
-  it("returns the array as-is when it is an array", () => {
-    const opinions = [
-      { title: "Title 1", content: "Content 1" },
-      { title: "Title 2", content: "Content 2" },
-    ];
-    expect(parseOpinions(opinions)).toEqual(opinions);
-  });
-
-  it("returns empty array for an empty array", () => {
-    expect(parseOpinions([])).toEqual([]);
-  });
-
-  it("preserves source_message_id when present", () => {
-    const opinions = [
-      { title: "Title", content: "Content", source_message_id: "msg-123" },
-      { title: "Title 2", content: "Content 2", source_message_id: null },
-    ];
-    expect(parseOpinions(opinions)).toEqual(opinions);
   });
 });

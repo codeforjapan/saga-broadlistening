@@ -29,4 +29,4 @@ jobs:
       context_env: prd
       pr_number: ${{ github.event.pull_request.number }}
     secrets:
-      role_arn: ${{ secrets.AWS_CDK_PRD_DEPLOY_ROLE_ARN }}
+      role_arn: ${{ secrets.AWS_CDK_DEPLOY_ROLE_ARN }}

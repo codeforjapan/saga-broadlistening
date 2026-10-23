@@ -27,11 +27,11 @@ const _getCachedBills = unstable_cache(
     ]);
 
     const billsWithContent: BillWithContent[] = data.map((item) => {
-      const { bill_contents, ...bill } = item;
+      const { policy_contents, ...bill } = item;
       return {
         ...bill,
-        bill_content: Array.isArray(bill_contents)
-          ? bill_contents[0]
+        bill_content: Array.isArray(policy_contents)
+          ? policy_contents[0]
           : undefined,
         tags: tagsByBillId.get(item.id) ?? [],
         hasPublicInterview: interviewBillIds.has(item.id),

@@ -21,16 +21,17 @@ interface BulkPublishResult {
 export async function bulkPublishReportsAction(
   params: BulkPublishParams
 ): Promise<BulkPublishResult> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   try {
     await verifyConfigBelongsToBill(params.configId, params.billId);
     const supabase = createAdminClient();
 
-    const { data, error } = await supabase.rpc("bulk_publish_reports", {
+    const { data, error } = await supabase.rpc("bulk_publish_opinions", {
       p_config_id: params.configId,
       p_max_moderation_score: params.maxModerationScore,
       p_min_content_richness: params.minContentRichness,
+      p_reviewed_by: admin.id,
     });
 
     if (error) {
@@ -60,11 +61,14 @@ export async function countBulkPublishTargetsAction(
     await verifyConfigBelongsToBill(params.configId, params.billId);
     const supabase = createAdminClient();
 
-    const { data, error } = await supabase.rpc("count_bulk_publish_targets", {
-      p_config_id: params.configId,
-      p_max_moderation_score: params.maxModerationScore,
-      p_min_content_richness: params.minContentRichness,
-    });
+    const { data, error } = await supabase.rpc(
+      "count_bulk_publish_opinion_targets",
+      {
+        p_config_id: params.configId,
+        p_max_moderation_score: params.maxModerationScore,
+        p_min_content_richness: params.minContentRichness,
+      }
+    );
 
     if (error) {
       throw new Error(`Failed to count target reports: ${error.message}`);

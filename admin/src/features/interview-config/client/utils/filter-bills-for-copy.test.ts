@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { filterBillsForCopy } from "./filter-bills-for-copy";
 
 const bills = [
-  { id: "a", name: "デジタル社会形成基本法案" },
-  { id: "b", name: "労働基準法改正案" },
-  { id: "c", name: "ALPS処理水関連法案" },
+  { id: "a", name: "デジタル社会形成基本施策" },
+  { id: "b", name: "労働環境改善施策" },
+  { id: "c", name: "ALPS処理水関連施策" },
   { id: "d", name: "Energy Policy Act" },
 ];
 

@@ -1,13 +1,18 @@
 import "server-only";
 
+import type { OpinionReviewStatus } from "@mirai-gikai/shared/report-publication/review-status";
+
 import { createAdminClient, type Database } from "@mirai-gikai/supabase";
 import type {
   InterviewMessage,
-  InterviewOpinionInsert,
   InterviewReport,
   InterviewReportInsert,
   InterviewSession,
+  InterviewSessionUpdate,
 } from "../../shared/types";
+
+// Epic #54 で interview_report → opinions に再定義された。
+// 関数名（*InterviewReport）の改名は Epic #8 完了後のフォローアップ。
 
 // ========================================
 // Interview Sessions
@@ -15,6 +20,11 @@ import type {
 
 /**
  * アクティブ（未完了・未アーカイブ）なインタビューセッションを取得
+ *
+ * 判定対象は「最新の未アーカイブセッション」のみで、それが完了済みなら null を返す。
+ * 完了済みセッションを飛び越えて古い未完了セッションを拾うと、LP の
+ * findLatestNonArchivedSession（最新の未アーカイブセッション）による表示と食い違い、
+ * 「もう一度新たに回答する」を押したのに過去の途中経過から再開されてしまう。
  */
 export async function findActiveInterviewSession(
   interviewConfigId: string,
@@ -26,7 +36,6 @@ export async function findActiveInterviewSession(
     .select("*")
     .eq("interview_config_id", interviewConfigId)
     .eq("user_id", userId)
-    .is("completed_at", null)
     .is("archived_at", null)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -38,17 +47,24 @@ export async function findActiveInterviewSession(
     );
   }
 
+  if (!data || data.completed_at !== null) {
+    return null;
+  }
+
   return data;
 }
 
 /**
- * セッションIDからインタビューセッション（interview_configs付き）を取得
+ * セッションIDからインタビューセッション（紐づく施策ID付き）を取得
+ *
+ * 施策と意見募集は多対多になったため、施策IDは
+ * interview_configs → policies_interview_configs 経由で引く。
  */
 export async function findInterviewSessionWithConfigById(sessionId: string) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .select("*, interview_configs(bill_id)")
+    .select("*, interview_configs(policies_interview_configs(policy_id))")
     .eq("id", sessionId)
     .single();
 
@@ -69,7 +85,7 @@ export async function findLatestNonArchivedSession(
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_sessions")
-    .select("id, completed_at, interview_report(id)")
+    .select("id, completed_at, opinions(id)")
     .eq("interview_config_id", interviewConfigId)
     .eq("user_id", userId)
     .is("archived_at", null)
@@ -105,11 +121,36 @@ export async function findSessionOwnerById(sessionId: string) {
 }
 
 /**
+ * 会話を進める操作の認可に必要な情報（所有者・テーマの参加条件・紐づく施策）を取得。
+ * 参加条件を見ない所有者確認（findSessionOwnerById）とは分け、結合のコストを限定する
+ */
+export async function findSessionAccessInfoById(sessionId: string) {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("interview_sessions")
+    .select(
+      "user_id, interview_configs!inner(participation_mode, allowed_provider_keys, policies_interview_configs(policy_id))"
+    )
+    .eq("id", sessionId)
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to fetch session access info: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
  * 新しいインタビューセッションを作成
  */
 export async function createInterviewSessionRecord(params: {
   interviewConfigId: string;
   userId: string;
+  /** 回答時に紐付いていた外部ID。参加条件に関係なく、あれば記録する */
+  externalIdentityId: string | null;
+  /** チャット冒頭の案内に同意した日時（#158） */
+  consentedAt: string;
 }): Promise<InterviewSession> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -117,7 +158,9 @@ export async function createInterviewSessionRecord(params: {
     .insert({
       interview_config_id: params.interviewConfigId,
       user_id: params.userId,
+      external_identity_id: params.externalIdentityId,
       started_at: new Date().toISOString(),
+      consented_at: params.consentedAt,
     })
     .select()
     .single();
@@ -127,6 +170,28 @@ export async function createInterviewSessionRecord(params: {
   }
 
   return data;
+}
+
+/**
+ * 外部IDが未記録のセッションに外部IDを後から記録する。
+ * 既に記録済みのセッションは上書きしない（回答時点の紐付きを保つ）。
+ */
+export async function updateInterviewSessionExternalIdentity(
+  sessionId: string,
+  externalIdentityId: string
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("interview_sessions")
+    .update({ external_identity_id: externalIdentityId })
+    .eq("id", sessionId)
+    .is("external_identity_id", null);
+
+  if (error) {
+    throw new Error(
+      `Failed to attach external identity to session: ${error.message}`
+    );
+  }
 }
 
 /**
@@ -147,15 +212,40 @@ export async function updateInterviewSessionArchived(
 }
 
 /**
+ * セッションのステージ（chat / summary / summary_complete）を更新する。
+ * ステージはサーバーがターンごとに決める。
+ */
+export async function updateInterviewSessionStage(
+  sessionId: string,
+  update: Pick<InterviewSessionUpdate, "stage">
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("interview_sessions")
+    .update(update)
+    .eq("id", sessionId);
+
+  if (error) {
+    throw new Error(
+      `Failed to update interview session stage: ${error.message}`
+    );
+  }
+}
+
+/**
  * セッションを完了
  */
 export async function updateInterviewSessionCompleted(
   sessionId: string
 ): Promise<void> {
   const supabase = createAdminClient();
+  // 提出したら要約の段階も終わる。ステージと提出をそろえる
   const { error } = await supabase
     .from("interview_sessions")
-    .update({ completed_at: new Date().toISOString() })
+    .update({
+      completed_at: new Date().toISOString(),
+      stage: "summary_complete",
+    })
     .eq("id", sessionId);
 
   if (error) {
@@ -230,6 +320,27 @@ export async function createInterviewMessage(params: {
 
   if (error) {
     throw new Error(`Failed to save interview message: ${error.message}`);
+  }
+
+  return data;
+}
+
+/**
+ * 最初の質問（AI の初回発話）を保存する。セッションごとに 1 件だけで、
+ * すでに保存されていれば何もせず保存済みの 1 件を返す（生成中の再読み込みで二重に保存しない）
+ */
+export async function insertInitialInterviewMessage(params: {
+  sessionId: string;
+  content: string;
+}): Promise<InterviewMessage> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc(
+    "insert_initial_interview_message",
+    { p_session_id: params.sessionId, p_content: params.content }
+  );
+
+  if (error) {
+    throw new Error(`Failed to save initial question: ${error.message}`);
   }
 
   return data;
@@ -321,12 +432,38 @@ export async function insertInterviewRatingFeedbacks(
 /**
  * インタビューレポートをUPSERT
  */
+/**
+ * セッションに紐づく既存の意見の公開状態だけを引く（未作成なら null）。
+ * 再完了時に、職員が非公開にした判断（hidden）を上書きしないために使う。
+ */
+export async function findOpinionPublicationStateBySessionId(
+  sessionId: string
+): Promise<{
+  is_public_by_admin: boolean;
+  review_status: OpinionReviewStatus;
+} | null> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("opinions")
+    .select("is_public_by_admin, review_status")
+    .eq("interview_session_id", sessionId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Failed to fetch opinion publication state: ${error.message}`
+    );
+  }
+
+  return data;
+}
+
 export async function upsertInterviewReport(
   params: InterviewReportInsert
 ): Promise<InterviewReport> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_report")
+    .from("opinions")
     .upsert(params, { onConflict: "interview_session_id" })
     .select()
     .single();
@@ -336,39 +473,4 @@ export async function upsertInterviewReport(
   }
 
   return data;
-}
-
-/**
- * レポートの意見を interview_opinion（正規化プロジェクション）へ同期する。
- *
- * opinion_id(UUID) を安定させるため delete+insert ではなく
- * ON CONFLICT (interview_report_id, opinion_index) DO UPDATE で upsert する（§3.1）。
- * 意見数が減った再生成では、新配列長以降の opinion_index を持つ行のみ削除する。
- */
-export async function syncInterviewOpinions(
-  reportId: string,
-  rows: InterviewOpinionInsert[]
-): Promise<void> {
-  const supabase = createAdminClient();
-
-  if (rows.length > 0) {
-    const { error } = await supabase
-      .from("interview_opinion")
-      .upsert(rows, { onConflict: "interview_report_id,opinion_index" });
-    if (error) {
-      throw new Error(`Failed to upsert interview opinions: ${error.message}`);
-    }
-  }
-
-  // 意見数が縮んだ（または0になった）場合に末尾の古い行を削除
-  const { error: deleteError } = await supabase
-    .from("interview_opinion")
-    .delete()
-    .eq("interview_report_id", reportId)
-    .gte("opinion_index", rows.length);
-  if (deleteError) {
-    throw new Error(
-      `Failed to prune stale interview opinions: ${deleteError.message}`
-    );
-  }
 }

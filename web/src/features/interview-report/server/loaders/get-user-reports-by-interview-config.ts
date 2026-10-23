@@ -34,8 +34,6 @@ export async function getUserReportsByInterviewConfig(
 
   const reports: ReportCardData[] = rawReports.map((r) => ({
     id: r.id,
-    stance: r.stance,
-    role: r.role,
     role_title: r.role_title,
     summary: r.summary,
     created_at: r.created_at,

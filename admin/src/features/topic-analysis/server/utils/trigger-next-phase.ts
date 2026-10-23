@@ -11,7 +11,8 @@ import { env } from "@/lib/env";
 export async function triggerNextPhase(
   phase: 1 | 2 | 3,
   versionId: string,
-  billId: string
+  billId: string,
+  configId: string
 ): Promise<void> {
   const baseUrl = env.adminUrl;
   const secret = process.env.REVALIDATE_SECRET;
@@ -32,7 +33,7 @@ export async function triggerNextPhase(
       "Content-Type": "application/json",
       Authorization: `Bearer ${secret}`,
     },
-    body: JSON.stringify({ versionId, billId }),
+    body: JSON.stringify({ versionId, billId, configId }),
   });
 
   if (!response.ok) {

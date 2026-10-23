@@ -9,7 +9,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { routes } from "@/lib/routes";
 import {
   Form,
   FormControl,
@@ -22,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { routes } from "@/lib/routes";
 
 import { updateBillContents } from "../../server/actions/update-bill-contents";
 import type { Bill } from "../../shared/types";
@@ -82,7 +82,7 @@ export function BillContentsEditForm({
     const result = await updateBillContents(bill.id, data);
 
     if (result.success) {
-      toast.success("議案コンテンツを更新しました");
+      toast.success("施策コンテンツを更新しました");
     } else {
       setError(result.error);
       toast.error("更新に失敗しました");
@@ -94,7 +94,7 @@ export function BillContentsEditForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>議案コンテンツ編集</CardTitle>
+        <CardTitle>施策コンテンツ編集</CardTitle>
         <p className="text-sm text-gray-600">{bill.name}</p>
       </CardHeader>
       <CardContent>
@@ -176,7 +176,7 @@ export function BillContentsEditForm({
             </Tabs>
 
             {error && (
-              <div className="rounded-md bg-red-50 p-4 text-sm text-red-800">
+              <div className="rounded-md bg-yellow-400/20 p-4 text-sm text-system-warning">
                 {error}
               </div>
             )}

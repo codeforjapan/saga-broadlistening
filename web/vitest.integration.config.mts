@@ -3,6 +3,10 @@ import { defineConfig } from "vitest/config";
 import { coverageExclude } from "./vitest.shared";
 
 export default defineConfig({
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
   test: {
     globals: true,
     include: ["src/**/*.integration.test.ts"],

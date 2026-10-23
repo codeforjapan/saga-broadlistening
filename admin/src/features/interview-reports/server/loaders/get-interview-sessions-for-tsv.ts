@@ -36,7 +36,7 @@ async function fetchAllSessions(
   return fetchAllPaginated(async (from, to) => {
     const { data, error } = await supabase
       .from("interview_sessions")
-      .select("*, interview_report(*)")
+      .select("*, interview_report:opinions(*)")
       .eq("interview_config_id", configId)
       .order("started_at", { ascending: true })
       .range(from, to);

@@ -1,7 +1,7 @@
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
-import { TOPIC_MODEL } from "../shared/constants";
 import { topicMergeSchema } from "../shared/schemas";
-import type { BillContext, TopicDraft } from "../shared/types";
+import type { InterviewConfigContext, TopicDraft } from "../shared/types";
 import { withRetry } from "../utils/concurrency";
 import { joinSummaryPoints } from "../utils/join-summary-points";
 import { toInlineText } from "../utils/to-inline-text";
@@ -10,7 +10,7 @@ import { buildMergePrompt } from "./prompts";
 /** Phase2: トピック候補を単一マージコールで統合（Reduce・§4.2）。 */
 export async function mergeTopics(
   candidates: TopicDraft[],
-  bill: BillContext
+  context: InterviewConfigContext
 ): Promise<TopicDraft[]> {
   if (candidates.length === 0) return [];
 
@@ -21,9 +21,9 @@ export async function mergeTopics(
   const { object } = await withRetry(
     () =>
       generateObject({
-        model: TOPIC_MODEL,
+        ...getAiModel("topicAnalysis"),
         schema: topicMergeSchema,
-        prompt: buildMergePrompt(bill, candidatesText),
+        prompt: buildMergePrompt(context, candidatesText),
         experimental_telemetry: {
           isEnabled: true,
           functionId: "user-topic-analysis-merge",

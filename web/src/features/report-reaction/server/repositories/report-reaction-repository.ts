@@ -1,23 +1,24 @@
 import "server-only";
 
-import { createAdminClient } from "@mirai-gikai/supabase";
 import { isPublicReportVisible } from "@mirai-gikai/shared/report-publication/auto-publish";
-import { countPublicReportsByBillId } from "@/features/interview-report/server/repositories/interview-report-repository";
+import { createAdminClient } from "@mirai-gikai/supabase";
+import { countPublicOpinionsByInterviewConfigId } from "@/features/interview-report/server/repositories/interview-report-repository";
 import type { ReactionCounts, ReactionType } from "../../shared/types";
 
+// Epic #54 で report_reactions → opinion_reactions（interview_report_id → opinion_id）に
+// 再定義された。ファイル名・関数名（*Report*）の改名は Epic #8 完了後のフォローアップ。
+
 /**
- * レポートが公開されているか確認する
- * ユーザー/管理者の公開設定と公開済み件数の表示ゲートを満たす場合のみ公開
+ * 意見が公開されているか確認する
+ * review_status（公開状態の正本）と公開済み件数の表示ゲートを満たす場合のみ公開
  */
 export async function getReportPublicStatus(
   reportId: string
 ): Promise<boolean> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_report")
-    .select(
-      "is_public_by_admin, is_public_by_user, interview_sessions!inner(interview_configs!inner(bill_id))"
-    )
+    .from("opinions")
+    .select("review_status, interview_sessions!inner(interview_config_id)")
     .eq("id", reportId)
     .single();
 
@@ -25,24 +26,21 @@ export async function getReportPublicStatus(
     return false;
   }
 
-  const session = data.interview_sessions as {
-    interview_configs: { bill_id: string } | null;
-  } | null;
-  const billId = session?.interview_configs?.bill_id;
-  if (!billId) {
+  const interviewConfigId = data.interview_sessions?.interview_config_id;
+  if (!interviewConfigId) {
     return false;
   }
 
-  const publicReportCount = await countPublicReportsByBillId(billId);
+  const publicOpinionCount =
+    await countPublicOpinionsByInterviewConfigId(interviewConfigId);
   return isPublicReportVisible({
-    isPublicByAdmin: data.is_public_by_admin,
-    isPublicByUser: data.is_public_by_user,
-    publicReportCount,
+    reviewStatus: data.review_status,
+    publicReportCount: publicOpinionCount,
   });
 }
 
 /**
- * レポートIDからリアクション数をSQL COUNTで集計して返す
+ * 意見IDからリアクション数をSQL COUNTで集計して返す
  */
 export async function findReactionCountsByReportId(
   reportId: string
@@ -50,14 +48,14 @@ export async function findReactionCountsByReportId(
   const supabase = createAdminClient();
   const [helpfulResult, hmmResult] = await Promise.all([
     supabase
-      .from("report_reactions")
+      .from("opinion_reactions")
       .select("*", { count: "exact", head: true })
-      .eq("interview_report_id", reportId)
+      .eq("opinion_id", reportId)
       .eq("reaction_type", "helpful"),
     supabase
-      .from("report_reactions")
+      .from("opinion_reactions")
       .select("*", { count: "exact", head: true })
-      .eq("interview_report_id", reportId)
+      .eq("opinion_id", reportId)
       .eq("reaction_type", "hmm"),
   ]);
 
@@ -85,9 +83,9 @@ export async function findUserReaction(
 ): Promise<ReactionType | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("report_reactions")
+    .from("opinion_reactions")
     .select("reaction_type")
-    .eq("interview_report_id", reportId)
+    .eq("opinion_id", reportId)
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -107,13 +105,13 @@ export async function upsertReaction(
   reactionType: ReactionType
 ): Promise<void> {
   const supabase = createAdminClient();
-  const { error } = await supabase.from("report_reactions").upsert(
+  const { error } = await supabase.from("opinion_reactions").upsert(
     {
-      interview_report_id: reportId,
+      opinion_id: reportId,
       user_id: userId,
       reaction_type: reactionType,
     },
-    { onConflict: "interview_report_id,user_id" }
+    { onConflict: "opinion_id,user_id" }
   );
 
   if (error) {
@@ -130,9 +128,9 @@ export async function deleteReaction(
 ): Promise<void> {
   const supabase = createAdminClient();
   const { error } = await supabase
-    .from("report_reactions")
+    .from("opinion_reactions")
     .delete()
-    .eq("interview_report_id", reportId)
+    .eq("opinion_id", reportId)
     .eq("user_id", userId);
 
   if (error) {
@@ -141,7 +139,7 @@ export async function deleteReaction(
 }
 
 /**
- * 複数レポートのリアクション数をDB側で集約して一括取得
+ * 複数意見のリアクション数をDB側で集約して一括取得
  * RPC関数でGROUP BY集計を行い、転送量を最小化する
  */
 export async function findReactionCountsByReportIds(
@@ -151,8 +149,8 @@ export async function findReactionCountsByReportIds(
   if (reportIds.length === 0) return countsMap;
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc("count_reactions_by_report_ids", {
-    report_ids: reportIds,
+  const { data, error } = await supabase.rpc("count_reactions_by_opinion_ids", {
+    opinion_ids: reportIds,
   });
 
   if (error) {
@@ -160,19 +158,19 @@ export async function findReactionCountsByReportIds(
   }
 
   for (const row of data) {
-    const counts = countsMap.get(row.interview_report_id) ?? {
+    const counts = countsMap.get(row.opinion_id) ?? {
       helpful: 0,
       hmm: 0,
     };
     counts[row.reaction_type as ReactionType] = Number(row.cnt);
-    countsMap.set(row.interview_report_id, counts);
+    countsMap.set(row.opinion_id, counts);
   }
 
   return countsMap;
 }
 
 /**
- * 複数レポートに対するユーザーのリアクションを一括取得
+ * 複数意見に対するユーザーのリアクションを一括取得
  */
 export async function findUserReactionsByReportIds(
   reportIds: string[],
@@ -183,9 +181,9 @@ export async function findUserReactionsByReportIds(
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("report_reactions")
-    .select("interview_report_id, reaction_type")
-    .in("interview_report_id", reportIds)
+    .from("opinion_reactions")
+    .select("opinion_id, reaction_type")
+    .in("opinion_id", reportIds)
     .eq("user_id", userId);
 
   if (error) {
@@ -193,10 +191,7 @@ export async function findUserReactionsByReportIds(
   }
 
   for (const row of data) {
-    reactionsMap.set(
-      row.interview_report_id,
-      row.reaction_type as ReactionType
-    );
+    reactionsMap.set(row.opinion_id, row.reaction_type as ReactionType);
   }
 
   return reactionsMap;

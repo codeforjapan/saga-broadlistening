@@ -1,58 +1,67 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   adminClient,
-  createTestUser,
   cleanupTestUser,
   createTestInterviewData,
-  cleanupTestBill,
+  createTestUser,
   type TestUser,
 } from "@test-utils/utils";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createGenerateMock } from "@/test-utils/mock-language-model";
 import { generateInitialQuestion } from "./generate-initial-question";
 
-// interviewChatTextSchema に準拠したモックレスポンス
-// LLMのレスポンスはtopic_title: nullだが、overrideInitialTopicTitleにより「はじめに」に上書きされる
+// interviewInitialSchema に準拠したモックレスポンス
+// question_id・選択肢・話題名（「はじめに」）はコードが決めて保存する
 const llmResponse = JSON.stringify({
+  question_id: "Q1",
+  topic_title: "関わり",
   text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
-  quick_replies: ["はい", "いいえ"],
-  question_id: null,
-  topic_title: null,
-  next_stage: "chat",
-});
-const expectedResponse = JSON.stringify({
-  text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
-  quick_replies: ["はい", "いいえ"],
-  question_id: null,
-  topic_title: "はじめに",
-  next_stage: "chat",
 });
 
 describe("generateInitialQuestion 統合テスト", () => {
   let testUser: TestUser;
   let sessionId: string;
-  let billId: string;
-  let interviewConfigId: string;
+  let cleanupInterviewData: () => Promise<void>;
+  // 施策なし（抽象テーマ型）でも初期質問を生成できることを兼ねて bill: null で呼ぶ
+  let interviewConfig: Awaited<
+    ReturnType<typeof createTestInterviewData>
+  >["config"];
 
   beforeEach(async () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.bill.id;
-    interviewConfigId = data.config.id;
+    cleanupInterviewData = data.cleanup;
+    interviewConfig = data.config;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId);
+    await cleanupInterviewData();
     await cleanupTestUser(testUser.id);
   });
 
-  it("LLMが生成したテキストがassistantメッセージとしてDBに保存される", async () => {
+  it.each([
+    { quickReplies: ["はい", "いいえ"] as string[] | null },
+    { quickReplies: null },
+  ])("最初の質問（選択肢 $quickReplies）の ID と選択肢を付けて保存する", async ({
+    quickReplies,
+  }) => {
+    const { data: question, error } = await adminClient
+      .from("interview_questions")
+      .insert({
+        interview_config_id: interviewConfig.id,
+        question: "関わりはありますか？",
+        question_order: 1,
+        quick_replies: quickReplies,
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
     const mockModel = createGenerateMock(llmResponse);
 
     const result = await generateInitialQuestion({
       sessionId,
-      billId,
-      interviewConfigId,
+      interviewConfig,
+      bill: null,
       userId: testUser.id,
       deps: { model: mockModel },
     });
@@ -60,7 +69,13 @@ describe("generateInitialQuestion 統合テスト", () => {
     // 戻り値を検証
     expect(result).not.toBeNull();
     expect(result?.role).toBe("assistant");
-    expect(result?.content).toBe(expectedResponse);
+    expect(JSON.parse(result?.content ?? "{}")).toMatchObject({
+      text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
+      question_id: question.id,
+      topic_title: "はじめに",
+      quick_replies: [...(quickReplies ?? []), "この質問はとばす"],
+      stage: "chat",
+    });
 
     // DB 状態を検証: assistantメッセージが保存されていること
     const { data: messages } = await adminClient
@@ -70,18 +85,25 @@ describe("generateInitialQuestion 統合テスト", () => {
       .order("created_at", { ascending: true });
 
     expect(messages).toHaveLength(1);
-    expect(messages?.[0].role).toBe("assistant");
-    expect(messages?.[0].content).toBe(expectedResponse);
-    expect(messages?.[0].interview_session_id).toBe(sessionId);
+    expect(messages?.[0].content).toBe(result?.content);
   });
 
-  it("LLMが空テキストを返した場合はnullを返しDBに保存されない", async () => {
-    const mockModel = createGenerateMock("  "); // 空白のみ
+  it.each([
+    { name: "空テキスト", response: "  " },
+    {
+      name: "question_id欠落",
+      response: JSON.stringify({
+        topic_title: "公園の改善",
+        text: "こんにちは。公園の改善についてご意見を教えてください。",
+      }),
+    },
+  ])("$name は検証で拒否しDBに保存しない", async ({ response }) => {
+    const mockModel = createGenerateMock(response);
 
     const result = await generateInitialQuestion({
       sessionId,
-      billId,
-      interviewConfigId,
+      interviewConfig,
+      bill: null,
       userId: testUser.id,
       deps: { model: mockModel },
     });
@@ -96,22 +118,5 @@ describe("generateInitialQuestion 統合テスト", () => {
       .eq("interview_session_id", sessionId);
 
     expect(messages).toHaveLength(0);
-  });
-
-  it("interview_configが存在しないbillIdの場合はnullを返す", async () => {
-    // 存在しないbillId
-    const nonExistentBillId = "00000000-0000-0000-0000-000000000000";
-    const mockModel = createGenerateMock(llmResponse);
-
-    const result = await generateInitialQuestion({
-      sessionId,
-      billId: nonExistentBillId,
-      interviewConfigId,
-      userId: testUser.id,
-      deps: { model: mockModel },
-    });
-
-    // interview_config が見つからないためnullが返ること
-    expect(result).toBeNull();
   });
 });

@@ -2,6 +2,7 @@
  * 環境変数の設定
  * アプリケーション全体で使用する環境変数を一元管理
  */
+import { resolveLangfuseBaseUrl } from "@mirai-gikai/shared/telemetry/langfuse-base-url";
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
   throw new Error("環境変数 NEXT_PUBLIC_SUPABASE_URL が設定されていません");
@@ -55,6 +56,9 @@ if (
 }
 
 export const env = {
+  externalIdentityGuideUrls: {
+    saga_super_app: process.env.SAGA_SUPER_APP_GUIDE_URL,
+  },
   webUrl: process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000",
   adminUrl: process.env.ADMIN_URL || "http://localhost:3001",
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -66,7 +70,7 @@ export const env = {
   langfuse: {
     publicKey: process.env.LANGFUSE_PUBLIC_KEY,
     secretKey: process.env.LANGFUSE_SECRET_KEY,
-    baseUrl: process.env.LANGFUSE_BASE_URL || "https://cloud.langfuse.com",
+    baseUrl: resolveLangfuseBaseUrl(process.env.LANGFUSE_BASE_URL),
     promptLabel: process.env.LANGFUSE_PROMPT_LABEL || "production",
   },
   chat: {

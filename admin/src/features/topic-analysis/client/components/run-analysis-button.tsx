@@ -118,7 +118,7 @@ export function RunAnalysisButton({
       const response = await fetch("/api/topic-analysis/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billId }),
+        body: JSON.stringify({ billId, configId }),
       });
 
       const data = await response.json();

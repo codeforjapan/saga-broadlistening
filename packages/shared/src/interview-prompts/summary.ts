@@ -1,22 +1,46 @@
 import { buildContentRichnessInstructions } from "../content-richness/content-richness-instructions";
+import { OPINION_TAG_CRITERIA } from "../interview-report/opinion-tags-schema";
+import { renderPromptTemplate } from "../prompts/template";
+import { buildInterviewSubject } from "./subject-section";
+import {
+  INTERVIEW_PERSONA_TEMPLATE,
+  INTERVIEW_SUMMARY_TEMPLATE,
+} from "./templates";
+import type { SummaryState } from "./turn-control";
+import { renderSummaryState } from "./turn-state";
 import type { InterviewConfig, PromptBillInput } from "./types";
+
+/** 要約の状況を渡さないとき（初回の要約として扱う） */
+const DEFAULT_SUMMARY_STATE: SummaryState = {
+  phase: "first",
+  remainingTurns: 3,
+  canResume: false,
+  isLast: false,
+};
 
 /**
  * 要約用システムプロンプトを構築（summaryフェーズ用）
  */
-export function buildSummarySystemPrompt({
-  bill,
-  interviewConfig,
-  messages,
-}: {
-  bill: PromptBillInput;
-  interviewConfig: InterviewConfig;
-  messages: Array<{ role: string; content: string; id?: string }>;
-}): string {
-  const billName = bill?.name || "";
-  const billTitle = bill?.bill_content?.title || "";
-  const billSummary = bill?.bill_content?.summary || "";
-  const themes = interviewConfig?.themes || [];
+export function buildSummarySystemPrompt(
+  {
+    bill,
+    interviewConfig,
+    messages,
+    summaryState = DEFAULT_SUMMARY_STATE,
+    persona = INTERVIEW_PERSONA_TEMPLATE,
+  }: {
+    bill: PromptBillInput;
+    interviewConfig: InterviewConfig;
+    messages: Array<{ role: string; content: string; id?: string }>;
+    /** 要約の状況。レポートだけを作り直す用途（再抽出など）では省略する */
+    summaryState?: SummaryState;
+    /** 聞き手の人物像（interview-persona の公開版） */
+    persona?: string;
+  },
+  template: string = INTERVIEW_SUMMARY_TEMPLATE
+): string {
+  const themeDescription = interviewConfig?.description || "";
+  const subject = buildInterviewSubject(bill, interviewConfig);
 
   // 会話履歴を {role}: {content} のフォーマットで連結
   // userでidあり → `user [msg_id:UUID]: 内容`
@@ -29,26 +53,7 @@ export function buildSummarySystemPrompt({
     })
     .join("\n");
 
-  return `あなたは半構造化デプスインタビューを実施する熟練のインタビュアーです。
-
-## 法案情報
-- 法案名: ${billName}
-- 法案タイトル: ${billTitle}
-- 法案要約: ${billSummary}
-
-## インタビューテーマ
-${themes.length > 0 ? themes.map((t) => `- ${t}`).join("\n") : "（テーマ未設定）"}
-
-## あなたの役割
-以下の会話履歴を読み、インタビュー内容を要約してレポート案を生成してください。
-
-## 会話履歴
-${conversationLog}
-
-## 留意点
-要約をすること、また要約の内容が問題ないかの確認に徹して、質問は一切しないでください。ただし、ユーザーがインタビューの再開を希望した場合（next_stage を "chat" にする場合）は例外として、次の質問を1つ提示してください。
-
-## レポート（reportフィールド）に含めるべき内容
+  const reportInstructions = `# レポート（reportフィールド）に含めるべき内容
 
 ### 1. summary（主張の要約）
 - ユーザーの主張を100文字程度でまとめる（SNSのタイムラインに流れるような読みやすい長さ）
@@ -57,54 +62,53 @@ ${conversationLog}
 - 「〜すべき」「〜しなければならない」などの強い表現は使わず、「〜してほしい」「〜だと思う」「〜が大事」のような日常的な言い回しにする
 - 抽象的な表現は避け、具体的で気持ちが伝わる内容にする
 
-### 2. stance（賛否）
-- for: 賛成
-- against: 反対
-- neutral: 期待と懸念の両方がある
+### 2. final_text（提出する意見の本文）
+- 市民が最終確認・修正したうえでそのまま提出できる、完成した意見文にする
+- 対話でユーザーが述べた内容だけを根拠にし、本人の言葉遣いを活かして300文字程度でまとめる
+- summary が一覧カード向けの短い要約なのに対し、こちらが提出物の本体になる
+- インタビュアーの発言・提示情報を本人の意見として書かない
 
-### 3. role（立場・属性）
-- ログ内に根拠のある立場のみを用いること（発言に根拠のない立場を推測で付与しない）。複数の立場が読み取れる場合は、その人の意見の説得力・具体性を最もよく説明する立場を優先してよい（例: 法案に関連する職務経験があればそれを活かす）
-- ただし**過去の経歴と現在の立場は区別する**こと（過去の職歴を現職のように扱わない。詳細は role_title / role_description 参照）
-- インタビュイーの立場タイプを以下の4つから**必ず1つ選択すること**:
-  - subject_expert: 専門的な有識者
-  - work_related: 業務に関係
-  - daily_life_affected: 暮らしに影響
-  - general_citizen: 一般的な関心
-
-### 4. role_description（立場の詳細説明）
+### 3. role_description（立場の詳細説明）
 - 立場・属性の詳細説明（例：「10年間アジア航路を担当しており、フォワーダーとして豊富な実務経験を持つ」）
 - ログ内の本人発言のみを根拠にする。発言に根拠があれば具体的な経歴・専門性を積極的に書いてよい
 - ただし**過去の経歴は「元〜」「〜した経験がある」のように、現在の立場と誤読されない表現にする**（現職と過去職を区別する）
 
-### 5. role_title（立場の短縮タイトル）
+### 4. role_title（立場の短縮タイトル）
 - role_descriptionを10文字以内で端的に表現したタイトル
 - 例：「物流業者」「主婦」「教師」「IT企業経営者」など。発言に根拠のある具体的な立場を端的に表す
 - **過去の経歴を現在の職業のように表記しない（過去の職歴なら「元〜」を付ける。例:「元復興関係職員」）**
 - **重要**: 必ず10文字以内にすること
 
-### 6. opinions（具体的な主張）
+### 5. opinions（具体的な主張）
 - 最大3件まで
-- **並び順**: 議案を検討する人（政策担当者・議案を理解したい人）にとって示唆として有益な順に並べること。具体性・建設性・独自性が高く、議論の論点を理解する助けになる主張を先頭に置く。配列の先頭ほど有益・重要な主張とする
+- **並び順**: 施策を検討する人（施策担当者・施策を理解したい人）にとって示唆として有益な順に並べること。具体性・建設性・独自性が高く、議論の論点を理解する助けになる主張を先頭に置く。配列の先頭ほど有益・重要な主張とする
 - **ユーザー発言のみを根拠にする**: インタビュアー（assistant）の発言・言い換え・確認質問・提示した制度情報や数字を、ユーザーの意見として記載しない。インタビュアーによる要約や解釈は、ユーザーが明示的に同意した場合を除き根拠にしない
 - **解釈の格上げをしない**: ユーザーが語った観察・経験談を、本人が明言していない要望・賛成・結論に変換しない（例:「人手が足りないと感じた」という経験談を、本人が言っていない「人員を増やす案に賛成」に変換しない）。本人が明示的に述べていない解釈を断定形で書かない
 - 各主張には title（40文字以内）と content（120文字以内）を含める。title・content とも上記の制約（ユーザー発言のみ・格上げ禁止）に従う
 - 各主張のsource_message_id には、根拠となるユーザー発言の msg_id を指定する（該当なしの場合はnull）
 - 各主張の contextual_quote には、**source_message_id が指すユーザー発言からの逐語引用のみ**を入れる。言い換え・要約・複数発言の結合・語句の補完をしない。文脈が必要な場合のみ先頭に「（○○について）」を付けてよいが、引用本体は原文ママとする。**個人名などの固有名詞は含めない**（公開表示に使うため）。固有名詞を含む等で適切な逐語引用が切り出せなければnull
-- 各主張の bill_sentiment には、その主張が法案に対して示すものが「期待」か「懸念」かを入れる。どちらでもなければnull
 - 各主張の richness には、その主張の情報充実度を 0-100 の整数で評価して入れる。論点の明確さ・具体性（事例や数値）・影響への言及・提案の広がりを総合する。**content だけでなく contextual_quote（引用文）も含めて評価し、文脈の伴う具体的な引用ほど高くする**（引用が無い・曖昧なら低めにする）
+- 各主張の concern には次の基準でタグを入れる: ${OPINION_TAG_CRITERIA.concern}
+- 各主張の proposal には次の基準でタグを入れる:
+${OPINION_TAG_CRITERIA.proposal}
+- 各主張の reasoning_types には次の基準でタグを入れる:
+${OPINION_TAG_CRITERIA.reasoningTypes}
 - **重要**: 元の対話ログに書かれていないことは記載しない
 
-### 7. ${buildContentRichnessInstructions()}
+### 6. ${buildContentRichnessInstructions()}
 
-## ステージ遷移判定（next_stageフィールド）
-レスポンスの \`next_stage\` フィールドで、ステージ遷移を判定してください。
-- レポートを提示し、ユーザーの確認を待つ場合: next_stage を "summary" にし、reportフィールドにレポートを含めてください
-- ユーザーがレポート内容に同意し、完了すべきと判断した場合: next_stage を "summary_complete" にし、reportフィールドに最終版レポートを含めてください
-- ユーザーが明確にインタビューの再開や追加の質問への回答を希望した場合: next_stage を "chat" にし、**reportフィールドは省略してください**。テキストでは「承知いたしました。インタビューを続けましょう。」と簡潔に伝えた後、**必ず会話履歴とインタビューテーマを踏まえて次の質問を1つ提示してください**。質問なしで終わらないでください。レポートの内容には一切言及しないでください
+### 意見（opinions）の追加ルール
+- 受け止めの選択は、理由・条件と一緒に1件にまとめる
+- 「わからない」だけの話題から意見を作らない
+- 提案は原文のまま残す。繊細な情報は一般化する
+`;
 
-## 注意事項
-- インタビュイーが時間を割いてくれたことに感謝してください
-- ユーザーの意見を正確に反映してください
-- 偏見や先入観を持たず、中立な立場で要約してください
-- 対話ログにないことは絶対に記載しないでください`;
+  return renderPromptTemplate("interview-summary-system", template, {
+    persona,
+    summarySection: subject.summarySection,
+    themeDescription: themeDescription || "（テーマ未設定）",
+    conversationLog,
+    summaryState: renderSummaryState(summaryState),
+    reportInstructions,
+  });
 }

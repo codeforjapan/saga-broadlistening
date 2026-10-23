@@ -1,11 +1,18 @@
 import "server-only";
 
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
-import { createAdminClient } from "@mirai-gikai/supabase";
-import type { InterviewConfig, InterviewQuestion } from "../../shared/types";
+import type { InterviewParticipationRule } from "@mirai-gikai/shared/interview-participation/participation-mode";
+import { createAdminClient, type Database } from "@mirai-gikai/supabase";
+import type {
+  InterviewConfig,
+  InterviewConfigInsert,
+  InterviewQuestion,
+} from "../../shared/types";
 
+// Epic #54 で interview_configs から bill_id が外れ、施策とは
+// policies_interview_configs による多対多になった。bill という名前の
+// 改名は Epic #8 完了後のフォローアップで行う。
 export type InterviewConfigWithBill = InterviewConfig & {
-  bill: { id: string; name: string };
+  bill: { id: string; name: string } | null;
 };
 
 export async function findAllInterviewConfigs(): Promise<
@@ -14,33 +21,38 @@ export async function findAllInterviewConfigs(): Promise<
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_configs")
-    .select("*, bill:bills!inner(id, name)")
-    .is("deleted_at", null)
+    .select("*, policies_interview_configs(policies(id, name))")
     .order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(`Failed to fetch interview configs: ${error.message}`);
   }
 
-  return data as InterviewConfigWithBill[];
+  // 1つの意見募集に複数の施策が紐づく場合、既存 UI は最初の1件だけを表示する
+  return data.map(({ policies_interview_configs, ...config }) => ({
+    ...config,
+    bill: policies_interview_configs[0]?.policies ?? null,
+  }));
 }
 
-export async function findInterviewConfigsByBillId(
-  billId: string
+export async function findInterviewConfigsByPolicyId(
+  policyId: string
 ): Promise<InterviewConfig[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_configs")
-    .select("*")
-    .eq("bill_id", billId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    .from("policies_interview_configs")
+    .select("interview_configs!inner(*)")
+    .eq("policy_id", policyId)
+    .order("created_at", {
+      ascending: false,
+      referencedTable: "interview_configs",
+    });
 
   if (error) {
     throw new Error(`Failed to fetch interview configs: ${error.message}`);
   }
 
-  return data;
+  return data.map((row) => row.interview_configs);
 }
 
 export async function findInterviewConfigById(
@@ -63,21 +75,112 @@ export async function findInterviewConfigById(
   return data;
 }
 
-export async function findInterviewConfigBillId(
+export async function findPolicyIdsByInterviewConfigId(
   configId: string
-): Promise<{ bill_id: string }> {
+): Promise<string[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
-    .from("interview_configs")
-    .select("bill_id")
-    .eq("id", configId)
-    .single();
+    .from("policies_interview_configs")
+    .select("policy_id")
+    .eq("interview_config_id", configId);
 
   if (error) {
-    throw new Error(`Failed to fetch interview config: ${error.message}`);
+    throw new Error(`Failed to fetch linked policies: ${error.message}`);
+  }
+
+  return data.map((row) => row.policy_id);
+}
+
+/**
+ * 複数の施策を、指定難易度のコンテンツ付きで一括取得する（公開状態は問わない）。
+ * プロンプトに他の紐づく施策を並べるとき（シミュレータ・プロンプト管理のプレビュー）に使う
+ */
+export async function findPolicyContentsByIds(
+  policyIds: string[],
+  difficultyLevel: Database["public"]["Enums"]["difficulty_level_enum"]
+) {
+  if (policyIds.length === 0) {
+    return [];
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("policies")
+    .select("id, name, policy_contents!inner(title, summary, content)")
+    .in("id", policyIds)
+    .eq("policy_contents.difficulty_level", difficultyLevel);
+
+  if (error) {
+    throw new Error(
+      `Failed to fetch related policy contents: ${error.message}`
+    );
   }
 
   return data;
+}
+
+export async function linkPolicyToInterviewConfig(
+  policyId: string,
+  configId: string
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("policies_interview_configs")
+    .upsert(
+      { policy_id: policyId, interview_config_id: configId },
+      { onConflict: "policy_id,interview_config_id" }
+    );
+
+  if (error) {
+    throw new Error(`Failed to link policy to config: ${error.message}`);
+  }
+}
+
+/**
+ * 意見募集に紐づく施策を、指定された集合そのものに置き換える。
+ *
+ * 追加分の upsert と、外された分の delete をそれぞれ1回の往復で済ませる。
+ * 空配列を渡すと紐付けをすべて外し、抽象テーマ型（施策0件）にできる。
+ */
+export async function replacePolicyLinksForConfig(
+  configId: string,
+  policyIds: string[]
+): Promise<void> {
+  const supabase = createAdminClient();
+
+  if (policyIds.length > 0) {
+    const { error } = await supabase.from("policies_interview_configs").upsert(
+      policyIds.map((policyId) => ({
+        policy_id: policyId,
+        interview_config_id: configId,
+      })),
+      { onConflict: "policy_id,interview_config_id" }
+    );
+
+    if (error) {
+      throw new Error(`Failed to link policies to config: ${error.message}`);
+    }
+  }
+
+  // 残すべき施策以外の紐付けを外す
+  let deleteQuery = supabase
+    .from("policies_interview_configs")
+    .delete()
+    .eq("interview_config_id", configId);
+
+  if (policyIds.length > 0) {
+    deleteQuery = deleteQuery.not(
+      "policy_id",
+      "in",
+      `(${policyIds.join(",")})`
+    );
+  }
+
+  const { error: deleteError } = await deleteQuery;
+
+  if (deleteError) {
+    throw new Error(`Failed to unlink policies: ${deleteError.message}`);
+  }
 }
 
 export async function findInterviewQuestionsByConfigId(
@@ -97,36 +200,71 @@ export async function findInterviewQuestionsByConfigId(
   return data;
 }
 
-export async function closeOtherPublicConfigs(
-  billId: string,
+/**
+ * 指定した施策群に紐づく他の募集中（open）の意見募集をまとめて終了する。
+ * 施策ごとに往復せず、1回の select + 1回の update で完了させる。
+ */
+export async function closeOtherOpenConfigs(
+  policyIds: string[],
   excludeConfigId?: string
 ): Promise<void> {
+  if (policyIds.length === 0) return;
+
+  const configIds = await findInterviewConfigIdsByPolicyIds(policyIds);
+  const targetIds = excludeConfigId
+    ? configIds.filter((id) => id !== excludeConfigId)
+    : configIds;
+
+  if (targetIds.length === 0) return;
+
   const supabase = createAdminClient();
-  const query = supabase
+  const { error } = await supabase
     .from("interview_configs")
     .update({ status: "closed", updated_at: new Date().toISOString() })
-    .eq("bill_id", billId)
-    .eq("status", "public");
+    .in("id", targetIds)
+    .eq("status", "open");
 
-  if (excludeConfigId) {
-    query.neq("id", excludeConfigId);
-  }
-
-  const { error } = await query;
   if (error) {
     throw new Error(`Failed to close interview configs: ${error.message}`);
   }
 }
 
-export async function createInterviewConfigRecord(params: {
-  bill_id: string;
-  name: string;
-  status: "public" | "closed";
-  mode: InterviewMode;
-  themes: string[] | null;
-  chat_model: string | null;
-  estimated_duration: number | null;
-}): Promise<{ id: string }> {
+async function findInterviewConfigIdsByPolicyIds(
+  policyIds: string[]
+): Promise<string[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("policies_interview_configs")
+    .select("interview_config_id")
+    .in("policy_id", policyIds);
+
+  if (error) {
+    throw new Error(`Failed to fetch interview configs: ${error.message}`);
+  }
+
+  // 複数施策に同じ意見募集が紐づき得るので重複を除く。
+  return [...new Set(data.map((row) => row.interview_config_id))];
+}
+
+/** 目的・意見がほしい点・決まっていること（AIインタビューの設計に使う項目） */
+type InterviewDesignFields = Partial<
+  Pick<
+    InterviewConfigInsert,
+    "purpose_type" | "opinion_focus" | "decided_matters"
+  >
+>;
+
+export async function createInterviewConfigRecord(
+  params: InterviewParticipationRule & {
+    name: string;
+    slug: string;
+    status: "draft" | "open" | "closed";
+    description: string | null;
+    chat_model: string;
+    estimated_duration: number | null;
+    thumbnail_url?: string | null;
+  } & InterviewDesignFields
+): Promise<{ id: string }> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("interview_configs")
@@ -141,17 +279,33 @@ export async function createInterviewConfigRecord(params: {
   return data;
 }
 
+/** 意見募集を下書きに戻す */
+export async function updateInterviewConfigStatusToDraft(
+  configId: string
+): Promise<void> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("interview_configs")
+    .update({ status: "draft", updated_at: new Date().toISOString() })
+    .eq("id", configId);
+
+  if (error) {
+    throw new Error(`Failed to revert interview config: ${error.message}`);
+  }
+}
+
 export async function updateInterviewConfigRecord(
   configId: string,
-  params: {
+  params: InterviewParticipationRule & {
     name: string;
-    status: "public" | "closed";
-    mode: InterviewMode;
-    themes: string[] | null;
-    chat_model: string | null;
+    slug: string;
+    status: "draft" | "open" | "closed";
+    description: string | null;
+    chat_model: string;
     estimated_duration: number | null;
+    thumbnail_url?: string | null;
     updated_at: string;
-  }
+  } & InterviewDesignFields
 ): Promise<{ id: string }> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -211,31 +365,30 @@ export async function deleteInterviewConfigRecord(
 }
 
 /**
- * インタビュー設定を論理削除する（deleted_atを設定）
- * 紐づく質問・セッション・レポートは保持され、一覧・公開取得から除外される。
- * 同時に status を closed にし、status="public" を見る公開判定
- * （法案一覧の「AIインタビュー受付中」バッジ等）からも除外されるようにする。
+ * インタビュー設定を終了状態にする（旧 deleted_at による論理削除の置き換え）。
+ * 紐づく質問・セッション・意見は保持され、status="open" を見る公開判定
+ * （施策一覧の「AIインタビュー受付中」バッジ等）から除外される。
  */
-export async function softDeleteInterviewConfigRecord(
+export async function closeInterviewConfigRecord(
   configId: string
 ): Promise<void> {
   const supabase = createAdminClient();
   const now = new Date().toISOString();
   const { error } = await supabase
     .from("interview_configs")
-    .update({ deleted_at: now, status: "closed", updated_at: now })
-    .eq("id", configId)
-    .is("deleted_at", null);
+    .update({ status: "closed", updated_at: now })
+    .eq("id", configId);
 
   if (error) {
-    throw new Error(`Failed to delete interview config: ${error.message}`);
+    throw new Error(`Failed to close interview config: ${error.message}`);
   }
 }
 
 /**
- * 論理削除した設定に紐づくレポートを公開停止する（is_public_by_admin=false）。
- * 公開レポートの全取得経路（個別ページ・公開一覧・各 RPC）が
- * is_public_by_admin=true でゲートしているため、これにより一括で公開対象から除外される。
+ * 終了した意見募集に紐づく意見を公開停止する（review_status='hidden'）。
+ * 公開意見の全取得経路（個別ページ・公開一覧・各 RPC）が
+ * review_status='published' でゲートしているため、これにより一括で
+ * 公開対象から除外される。
  *
  * セッション数が PostgREST の行数上限（既定1000件）を超える設定でも漏れなく
  * 更新できるよう、DB側の UPDATE で一括処理する RPC を利用する。
@@ -244,7 +397,7 @@ export async function unpublishReportsByConfigId(
   configId: string
 ): Promise<void> {
   const supabase = createAdminClient();
-  const { error } = await supabase.rpc("unpublish_reports_by_config_id", {
+  const { error } = await supabase.rpc("unpublish_opinions_by_config_id", {
     p_config_id: configId,
   });
 

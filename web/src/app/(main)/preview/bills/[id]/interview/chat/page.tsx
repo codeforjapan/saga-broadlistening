@@ -2,12 +2,16 @@ import { AlertTriangle } from "lucide-react";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+
 import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
 import { getInterviewConfigAdmin } from "@/features/interview-config/server/loaders/get-interview-config-admin";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
+import { InterviewChatStart } from "@/features/interview-session/client/components/interview-chat-start";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
+import { InterviewChatSession } from "@/features/interview-session/server/components/interview-chat-session";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 import { env } from "@/lib/env";
 
@@ -22,7 +26,7 @@ interface InterviewPreviewChatPageProps {
 
 function PreviewBanner() {
   return (
-    <div className="sticky top-0 z-50 bg-yellow-50 border-b border-yellow-200">
+    <div className="sticky top-0 z-50 bg-yellow-400/20 border-b border-yellow-400">
       <div className="max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-yellow-800">
@@ -57,7 +61,7 @@ export default async function InterviewPreviewChatPage({
     notFound();
   }
 
-  // 法案と非公開設定を取得（管理者用ローダーで非公開法案も取得可能にする）
+  // 施策と非公開設定を取得（管理者用ローダーで非公開施策も取得可能にする）
   const [bill, interviewConfig] = await Promise.all([
     getBillByIdAdmin(billId),
     getInterviewConfigAdmin(billId),
@@ -67,33 +71,45 @@ export default async function InterviewPreviewChatPage({
     notFound();
   }
 
-  // ループモードの場合のみ質問数を取得（プログレスバー用）
-  const questions =
-    interviewConfig.mode === "loop"
-      ? await getInterviewQuestions(interviewConfig.id)
-      : [];
+  // 質問数を取得（プログレスバー用）
+  const questions = await getInterviewQuestions(interviewConfig.id);
 
   // インタビューチャットの初期化処理
   try {
-    const { session, messages } = await initializeInterviewChat(
-      billId,
-      interviewConfig.id
-    );
+    // プレビューは職員の確認用なので、テーマの参加条件は問わない
+    const chat = await initializeInterviewChat(interviewConfig, bill, {
+      isPreview: true,
+    });
+    const target = policyInterviewTarget(billId, token);
 
+    if (chat.kind === "start") {
+      return (
+        <>
+          <PreviewBanner />
+          <InterviewChatStart
+            target={target}
+            interviewConfig={interviewConfig}
+            themeHref={getBillDetailLink(billId, token)}
+          />
+        </>
+      );
+    }
+
+    const { session, messages } = chat;
     return (
       <>
         <PreviewBanner />
-        <InterviewChatClient
-          billId={billId}
-          billTitle={bill.bill_content?.title ?? bill.name}
+        <InterviewChatSession
+          target={policyInterviewTarget(billId, token)}
+          interviewConfigId={interviewConfig.id}
+          bill={{ id: bill.id, title: bill.bill_content?.title ?? bill.name }}
           sessionId={session.id}
           initialMessages={messages}
-          mode={interviewConfig.mode}
           totalQuestions={questions.length}
           estimatedDuration={interviewConfig.estimated_duration}
           sessionStartedAt={session.started_at}
           hasRated={session.rating != null}
-          previewToken={token}
+          initialStage={session.stage}
         />
       </>
     );
@@ -102,7 +118,9 @@ export default async function InterviewPreviewChatPage({
     return (
       <>
         <PreviewBanner />
-        <InterviewSessionErrorView billId={billId} previewToken={token} />
+        <InterviewSessionErrorView
+          target={policyInterviewTarget(billId, token)}
+        />
       </>
     );
   }

@@ -1,45 +1,64 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  extractBillIdFromPath,
+  getPageLayout,
   isInterviewPage,
   isInterviewSection,
-  isMainPage,
 } from "./page-layout-utils";
 
-describe("isMainPage", () => {
-  it("returns true for the top page", () => {
-    expect(isMainPage("/")).toBe(true);
+describe("getPageLayout", () => {
+  it("TOPは全幅で、スマホでは難易度切り替えをメニューへ移す", () => {
+    expect(getPageLayout("/")).toEqual({
+      showDifficultySelector: true,
+      difficultyInMobileMenu: true,
+      chatSidebar: false,
+      fullBleed: true,
+    });
   });
 
-  it("returns true for a bill detail page", () => {
-    expect(isMainPage("/bills/abc-123")).toBe(true);
+  it("施策詳細ページは右に常設チャットを置く", () => {
+    expect(getPageLayout("/bills/abc-123")).toEqual({
+      showDifficultySelector: true,
+      difficultyInMobileMenu: false,
+      chatSidebar: true,
+      fullBleed: false,
+    });
   });
 
-  it("returns false for a bill sub-page", () => {
-    expect(isMainPage("/bills/abc-123/interview")).toBe(false);
-  });
-
-  it("returns false for an unrelated path", () => {
-    expect(isMainPage("/about")).toBe(false);
-  });
-
-  it("returns false for the bills list page", () => {
-    expect(isMainPage("/bills")).toBe(false);
-    expect(isMainPage("/bills/")).toBe(false);
+  it.each([
+    "/bills/abc-123/interview",
+    "/about",
+    "/bills",
+    "/bills/",
+    "/interviews/wakamono-shien",
+  ])("%s は既定のレイアウト", (pathname) => {
+    expect(getPageLayout(pathname)).toEqual({
+      showDifficultySelector: false,
+      difficultyInMobileMenu: false,
+      chatSidebar: false,
+      fullBleed: false,
+    });
   });
 });
 
 describe("isInterviewPage", () => {
-  it("returns true for an interview chat page", () => {
+  it("returns true for the bill-scoped interview chat page", () => {
     expect(isInterviewPage("/bills/abc-123/interview/chat")).toBe(true);
   });
 
-  it("returns false for an interview page without /chat", () => {
+  it("returns true for the standalone theme chat page", () => {
+    expect(isInterviewPage("/interviews/saga-no-mirai/chat")).toBe(true);
+  });
+
+  it("returns false for the interview LP page", () => {
     expect(isInterviewPage("/bills/abc-123/interview")).toBe(false);
   });
 
-  it("returns false for a bill detail page", () => {
+  it("returns false for the standalone theme LP page", () => {
+    expect(isInterviewPage("/interviews/saga-no-mirai")).toBe(false);
+  });
+
+  it("returns false for the bill detail page", () => {
     expect(isInterviewPage("/bills/abc-123")).toBe(false);
   });
 
@@ -49,15 +68,27 @@ describe("isInterviewPage", () => {
 });
 
 describe("isInterviewSection", () => {
-  it("returns true for the interview LP page", () => {
+  it("returns true for the bill-scoped interview LP page", () => {
     expect(isInterviewSection("/bills/abc-123/interview")).toBe(true);
   });
 
-  it("returns true for the interview chat page", () => {
+  it("returns true for the bill-scoped interview chat page", () => {
     expect(isInterviewSection("/bills/abc-123/interview/chat")).toBe(true);
   });
 
-  it("returns false for a bill detail page", () => {
+  it("returns true for the standalone theme LP page", () => {
+    expect(isInterviewSection("/interviews/saga-no-mirai")).toBe(true);
+  });
+
+  it("returns true for the standalone theme chat page", () => {
+    expect(isInterviewSection("/interviews/saga-no-mirai/chat")).toBe(true);
+  });
+
+  it("returns false for the theme list page itself", () => {
+    expect(isInterviewSection("/interviews")).toBe(false);
+  });
+
+  it("returns false for the bill detail page", () => {
     expect(isInterviewSection("/bills/abc-123")).toBe(false);
   });
 
@@ -65,27 +96,7 @@ describe("isInterviewSection", () => {
     expect(isInterviewSection("/")).toBe(false);
   });
 
-  it("returns false for unrelated paths", () => {
+  it("returns false for an unrelated page", () => {
     expect(isInterviewSection("/about")).toBe(false);
-  });
-});
-
-describe("extractBillIdFromPath", () => {
-  it("extracts bill ID from a bill detail path", () => {
-    expect(extractBillIdFromPath("/bills/abc-123")).toBe("abc-123");
-  });
-
-  it("extracts bill ID from a bill sub-path", () => {
-    expect(extractBillIdFromPath("/bills/abc-123/interview/chat")).toBe(
-      "abc-123"
-    );
-  });
-
-  it("returns null when path does not contain /bills/", () => {
-    expect(extractBillIdFromPath("/about")).toBeNull();
-  });
-
-  it("returns null for the top page", () => {
-    expect(extractBillIdFromPath("/")).toBeNull();
   });
 });

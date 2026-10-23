@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { groupTagsByBillId } from "./group-tags";
 
 type BillTag = {
-  bill_id: string;
+  policy_id: string;
   tags: { id: string; label: string } | null;
 };
 
@@ -13,15 +13,15 @@ describe("groupTagsByBillId", () => {
   });
 
   it("tags=null のエントリはスキップする", () => {
-    const input: BillTag[] = [{ bill_id: "bill-1", tags: null }];
+    const input: BillTag[] = [{ policy_id: "bill-1", tags: null }];
     const result = groupTagsByBillId(input);
     expect(result.size).toBe(0);
   });
 
-  it("単一のbill_idに複数タグをグループ化する", () => {
+  it("単一のpolicy_idに複数タグをグループ化する", () => {
     const input: BillTag[] = [
-      { bill_id: "bill-1", tags: { id: "t1", label: "経済" } },
-      { bill_id: "bill-1", tags: { id: "t2", label: "外交" } },
+      { policy_id: "bill-1", tags: { id: "t1", label: "経済" } },
+      { policy_id: "bill-1", tags: { id: "t2", label: "外交" } },
     ];
     const result = groupTagsByBillId(input);
     expect(result.size).toBe(1);
@@ -31,11 +31,11 @@ describe("groupTagsByBillId", () => {
     ]);
   });
 
-  it("複数のbill_idに対してそれぞれタグをグループ化する", () => {
+  it("複数のpolicy_idに対してそれぞれタグをグループ化する", () => {
     const input: BillTag[] = [
-      { bill_id: "bill-1", tags: { id: "t1", label: "経済" } },
-      { bill_id: "bill-2", tags: { id: "t2", label: "外交" } },
-      { bill_id: "bill-1", tags: { id: "t3", label: "福祉" } },
+      { policy_id: "bill-1", tags: { id: "t1", label: "経済" } },
+      { policy_id: "bill-2", tags: { id: "t2", label: "外交" } },
+      { policy_id: "bill-1", tags: { id: "t3", label: "福祉" } },
     ];
     const result = groupTagsByBillId(input);
     expect(result.size).toBe(2);
@@ -48,10 +48,10 @@ describe("groupTagsByBillId", () => {
 
   it("tags=null が混在していても有効なタグだけグループ化する", () => {
     const input: BillTag[] = [
-      { bill_id: "bill-1", tags: { id: "t1", label: "経済" } },
-      { bill_id: "bill-1", tags: null },
-      { bill_id: "bill-2", tags: null },
-      { bill_id: "bill-2", tags: { id: "t2", label: "外交" } },
+      { policy_id: "bill-1", tags: { id: "t1", label: "経済" } },
+      { policy_id: "bill-1", tags: null },
+      { policy_id: "bill-2", tags: null },
+      { policy_id: "bill-2", tags: { id: "t2", label: "外交" } },
     ];
     const result = groupTagsByBillId(input);
     expect(result.size).toBe(2);

@@ -3,19 +3,27 @@ import {
   DIFFICULTY_COOKIE_NAME,
   DIFFICULTY_COOKIE_OPTIONS,
   type DifficultyLevelEnum,
-  VALID_DIFFICULTY_LEVELS,
 } from "./features/bill-difficulty/shared/types";
+import { isDifficultyLevel } from "./features/bill-difficulty/shared/utils/is-difficulty-level";
 import {
   createUnauthorizedResponse,
   getBasicAuthConfig,
-  isPageSpeedInsights,
   validateBasicAuth,
 } from "./lib/basic-auth";
 import { updateSupabaseSession } from "./lib/supabase/middleware";
 
+/**
+ * 開発用プレビュー（/dev 配下）のルートか判定する。
+ * 単純な startsWith("/dev") だと /developers 等の通常ページまで
+ * 巻き込むため、完全一致か "/dev/" 配下のみを対象にする。
+ */
+export function isDevRoute(pathname: string): boolean {
+  return pathname === "/dev" || pathname.startsWith("/dev/");
+}
+
 export async function middleware(request: NextRequest) {
   // /dev routes: 本番では404、開発ではauthスキップ
-  if (request.nextUrl.pathname.startsWith("/dev")) {
+  if (isDevRoute(request.nextUrl.pathname)) {
     if (process.env.NODE_ENV !== "development") {
       return NextResponse.rewrite(new URL("/not-found", request.url));
     }
@@ -38,11 +46,6 @@ export async function middleware(request: NextRequest) {
   // HTML ナビゲーションだけ認証（画像やJSON, css/js, fetch等は通す）
   if (!_isHtmlRequest(request)) return response;
 
-  // PageSpeed Insightsからのアクセスは認証をスキップ
-  if (isPageSpeedInsights(request)) {
-    return response;
-  }
-
   // Basic認証の検証
   if (validateBasicAuth(request, authConfig)) {
     return response;
@@ -57,8 +60,16 @@ export async function middleware(request: NextRequest) {
 export function isValidDifficultyLevel(
   value: string | null
 ): value is DifficultyLevelEnum {
-  if (!value) return false;
-  return VALID_DIFFICULTY_LEVELS.includes(value as DifficultyLevelEnum);
+  return isDifficultyLevel(value);
+}
+
+/**
+ * difficulty Cookie の付与対象パスか判定する。
+ * オープンデータAPI等も difficulty クエリを受け取るため、APIレスポンスに
+ * Set-Cookie が乗ってUIの表示設定を書き換えてしまわないよう除外する
+ */
+export function shouldApplyDifficultyCookie(pathname: string): boolean {
+  return !pathname.startsWith("/api/");
 }
 
 /**
@@ -68,6 +79,8 @@ function _applyDifficultyCookie(
   request: NextRequest,
   response: NextResponse
 ): void {
+  if (!shouldApplyDifficultyCookie(request.nextUrl.pathname)) return;
+
   const { searchParams } = new URL(request.url);
   const difficulty = searchParams.get("difficulty");
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import Image from "next/image";
 import type { ChangeEvent, RefObject } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -20,10 +21,14 @@ import {
 } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
 import type { BillWithContent } from "@/features/bills/shared/types";
+import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useViewportHeight } from "@/hooks/use-viewport-height";
+import { CHAT_PANEL_PC_MEDIA_QUERY } from "../../shared/constants";
 import {
+  CHAT_PANEL_PC_WIDTH_CLASS,
   CHAT_PANEL_RESPONSIVE_CLASSES,
   MobileChatDialog,
 } from "./mobile-chat-dialog";
@@ -33,6 +38,8 @@ import { UserMessage } from "./user-message";
 interface ChatWindowProps {
   billContext?: BillWithContent;
   hasInterviewConfig?: boolean;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
   difficultyLevel: string;
   chatState: ReturnType<typeof import("@ai-sdk/react").useChat>;
   isOpen: boolean;
@@ -49,7 +56,14 @@ interface ChatWindowProps {
   disableAutoFocus?: boolean;
   returnFocusRef: RefObject<HTMLElement | null>;
   sessionId: string;
+  /** 施策ページのサンプル質問。省略時は「この施策のポイントは？」など */
+  sampleQuestions?: string[];
 }
+
+const DEFAULT_BILL_SAMPLE_QUESTIONS = [
+  "この施策のポイントは？",
+  "この施策は私にどんな影響がある？",
+];
 
 /**
  * Conversation内部で使用するコンポーネント
@@ -58,21 +72,27 @@ interface ChatWindowProps {
 function ChatMessages({
   billContext,
   hasInterviewConfig,
+  interviewParticipation,
+  interviewTarget,
   difficultyLevel,
   messages,
   sendMessage,
   status,
   pageContext,
   sessionId,
+  sampleQuestions = DEFAULT_BILL_SAMPLE_QUESTIONS,
 }: {
   billContext?: BillWithContent;
   hasInterviewConfig?: boolean;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
   difficultyLevel: string;
   messages: ChatWindowProps["chatState"]["messages"];
   sendMessage: ChatWindowProps["chatState"]["sendMessage"];
   status: ChatWindowProps["chatState"]["status"];
   pageContext?: ChatWindowProps["pageContext"];
   sessionId: string;
+  sampleQuestions?: string[];
 }) {
   const { scrollToBottom } = useStickToBottomContext();
   const userMessageLength = messages.filter((x) => x.role === "user").length;
@@ -90,11 +110,11 @@ function ChatMessages({
       <div className="flex flex-col gap-4">
         {/* 初期メッセージ */}
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-bold leading-[1.8] text-mirai-text">
-            国会や法案について、気になることをAIに質問してください。
+          <p className="text-sm font-bold leading-[1.8] text-foreground">
+            佐賀市の施策について、気になることをAIに質問してください。
           </p>
           {billContext && (
-            <p className="text-sm font-bold leading-[1.8] text-mirai-text">
+            <p className="text-sm font-bold leading-[1.8] text-foreground">
               本文中のテキストを選択すると簡単にAIに質問できます
             </p>
           )}
@@ -103,11 +123,11 @@ function ChatMessages({
         {/* サンプル質問チップ */}
         <div className="flex flex-wrap gap-3">
           {(billContext
-            ? [`この法案のポイントは？`, "この法案は私にどんな影響がある？"]
+            ? sampleQuestions
             : [
-                "みらい議会って何？",
-                "国会って何をするところ？",
-                "注目の法案について教えて",
+                `${SITE_NAME}って何？`,
+                "佐賀市はどんな施策を検討しているの？",
+                "注目の施策について教えて",
               ]
           ).map((question) => {
             return (
@@ -115,7 +135,7 @@ function ChatMessages({
                 key={question}
                 type="button"
                 disabled={isResponding}
-                className="px-3 py-1 text-xs leading-[2] text-primary-accent border border-primary rounded-2xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1 text-xs leading-[2] text-primary-accent border border-primary rounded-2xl hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => {
                   sendMessage({
                     text: question,
@@ -148,11 +168,13 @@ function ChatMessages({
             isStreaming={isStreaming}
             billId={billContext?.id}
             billName={billContext?.bill_content?.title ?? billContext?.name}
+            interviewParticipation={interviewParticipation}
+            interviewTarget={interviewTarget}
           />
         );
       })}
       {status === "submitted" && (
-        <span className="text-sm text-gray-500">考え中...</span>
+        <span className="text-sm text-muted-foreground">考え中...</span>
       )}
     </>
   );
@@ -161,6 +183,8 @@ function ChatMessages({
 export function ChatWindow({
   billContext,
   hasInterviewConfig,
+  interviewParticipation,
+  interviewTarget,
   difficultyLevel,
   chatState,
   isOpen,
@@ -169,12 +193,13 @@ export function ChatWindow({
   disableAutoFocus = false,
   returnFocusRef,
   sessionId,
+  sampleQuestions,
 }: ChatWindowProps) {
   const [input, setInput] = useState("");
   const [isMounted, setIsMounted] = useState(false);
   const { messages, sendMessage, status, error } = chatState;
   const isDesktop = useIsDesktop();
-  const isPc = useMediaQuery("(min-width: 1000px)");
+  const isPc = useMediaQuery(CHAT_PANEL_PC_MEDIA_QUERY);
   const viewportHeight = useViewportHeight();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -226,12 +251,15 @@ export function ChatWindow({
           <ChatMessages
             billContext={billContext}
             hasInterviewConfig={hasInterviewConfig}
+            interviewParticipation={interviewParticipation}
+            interviewTarget={interviewTarget}
             difficultyLevel={difficultyLevel}
             messages={messages}
             sendMessage={sendMessage}
             status={status}
             pageContext={pageContext}
             sessionId={sessionId}
+            sampleQuestions={sampleQuestions}
           />
         </ConversationContent>
         <ConversationScrollButton />
@@ -241,7 +269,7 @@ export function ChatWindow({
       <div className="px-6 pb-4 pt-2">
         <PromptInput
           onSubmit={handleSubmit}
-          className="flex items-end gap-2.5 py-2 pl-6 pr-4 bg-white rounded-[50px] border-mirai-gradient divide-y-0"
+          className="flex items-end gap-2.5 py-2 pl-6 pr-4 bg-white rounded-[50px] shadow-raised divide-y-0"
         >
           <PromptInputBody className="flex-1">
             <PromptInputTextarea
@@ -252,7 +280,7 @@ export function ChatWindow({
               rows={1}
               submitOnEnter={isDesktop}
               // min-w-0, wrap-anywhere が無いと長文で親幅を押し広げてしまう
-              className={`!min-h-0 min-w-0 wrap-anywhere text-sm font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-mirai-text-placeholder placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0`}
+              className={`!min-h-0 min-w-0 wrap-anywhere text-sm font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-muted-foreground placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0`}
             />
           </PromptInputBody>
           <Button
@@ -286,8 +314,8 @@ export function ChatWindow({
   if (isPc) {
     return createPortal(
       <section
-        aria-label="国会や法案についてAIに質問する"
-        className={`fixed inset-x-0 bottom-0 z-50 bg-white shadow-md rounded-t-2xl flex flex-col pc:h-[70vh] xl:right-[calc(calc(100%-1180px)/2)] ${CHAT_PANEL_RESPONSIVE_CLASSES}`}
+        aria-label="佐賀市の施策についてAIに質問する"
+        className={`fixed inset-x-0 bottom-0 z-50 bg-white shadow-md rounded-t-2xl flex flex-col pc:h-[70vh] xl:right-[calc(calc(100%-1180px)/2)] ${CHAT_PANEL_RESPONSIVE_CLASSES} ${CHAT_PANEL_PC_WIDTH_CLASS}`}
       >
         {chatPanelContent}
       </section>,

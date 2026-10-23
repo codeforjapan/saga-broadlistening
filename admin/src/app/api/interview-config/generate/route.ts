@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { handleConfigGeneration } from "@/features/interview-config/server/services/handle-config-generation";
 import type { ConfigGenerationStage } from "@/features/interview-config/shared/schemas";
+import type { InterviewDesignInput } from "@/features/interview-config/shared/types";
 
 export async function POST(req: Request) {
   try {
@@ -12,14 +13,22 @@ export async function POST(req: Request) {
   const body = await req.json();
   const {
     messages,
-    billId,
+    themeName,
+    themeDescription,
+    policyIds,
+    design,
     stage,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   }: {
     messages: Array<{ role: string; content: string }>;
-    billId: string;
+    themeName?: string | null;
+    themeDescription?: string | null;
+    /** フォームで紐づけ中の施策。先頭の施策を題材にする */
+    policyIds?: string[];
+    /** フォームで入力済みの目的・意見がほしい点・決まっていること */
+    design?: InterviewDesignInput;
     stage: Extract<
       ConfigGenerationStage,
       "default_questions" | "question_proposal" | "theme_proposal"
@@ -37,17 +46,24 @@ export async function POST(req: Request) {
     }>;
   } = body;
 
-  if (!billId) {
-    return new Response(JSON.stringify({ error: "billId is required" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+  // 抽象テーマ型には施策がないため、代わりにテーマ名を手がかりにする
+  if (!policyIds?.length && !themeName?.trim()) {
+    return new Response(
+      JSON.stringify({ error: "policyIds or themeName is required" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
   try {
     return await handleConfigGeneration({
       messages,
-      billId,
+      themeName,
+      themeDescription,
+      policyIds,
+      design,
       stage,
       existingThemes,
       existingQuestions,

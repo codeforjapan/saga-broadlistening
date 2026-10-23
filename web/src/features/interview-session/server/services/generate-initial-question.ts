@@ -1,25 +1,30 @@
 import "server-only";
 
-import { Output, generateText, type LanguageModel } from "ai";
-import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
+import { propagateAttributes } from "@langfuse/tracing";
+import { buildPublishedInitialPrompt } from "@mirai-gikai/shared/interview-prompts/published";
+import { buildTurnTopics } from "@mirai-gikai/shared/interview-prompts/turn-control";
+import { buildInitialTurnContent } from "@mirai-gikai/shared/interview-prompts/turn-records";
+import { generateText, type LanguageModel, Output } from "ai";
+import type { BillWithContent } from "@/features/bills/shared/types";
 import {
   isWithinDailyCostLimit,
   recordChatUsage,
 } from "@/features/chat/server/services/cost-tracker";
-import { getInterviewConfigAdmin } from "@/features/interview-config/server/loaders/get-interview-config-admin";
+import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { DEFAULT_INTERVIEW_CHAT_MODEL } from "@/lib/ai/models";
+import { getMeteredAiModel } from "@/lib/ai/get-metered-ai-model";
 import { env } from "@/lib/env";
-import { interviewChatTextSchema } from "../../shared/schemas";
+import { interviewInitialSchema } from "../../shared/schemas";
 import type { InterviewMessage } from "../../shared/types";
-import { overrideInitialTopicTitle } from "../../shared/utils/override-initial-topic-title";
-import { createInterviewMessage } from "../repositories/interview-session-repository";
-import { buildInterviewSystemPrompt } from "../utils/build-interview-system-prompt";
+import { insertInitialInterviewMessage } from "../repositories/interview-session-repository";
+
+const INITIAL_QUESTION_FUNCTION_ID = "interview-initial-question";
 
 type GenerateInitialQuestionParams = {
   sessionId: string;
-  billId: string;
-  interviewConfigId: string;
+  interviewConfig: NonNullable<InterviewConfig>;
+  /** 紐づく施策。抽象テーマ型では null */
+  bill: BillWithContent | null;
   userId: string;
   deps?: GenerateQuestionDeps;
 };
@@ -34,85 +39,79 @@ export type GenerateQuestionDeps = {
  */
 export async function generateInitialQuestion({
   sessionId,
-  billId,
-  interviewConfigId,
+  interviewConfig,
+  bill,
   userId,
   deps,
 }: GenerateInitialQuestionParams): Promise<InterviewMessage | null> {
   try {
-    // インタビュー設定と法案情報を取得
-    // どちらもサーバーサイドでの生成処理のため、常にAdmin用（非公開制限なし）を使用する
-    const [interviewConfig, bill, questions] = await Promise.all([
-      getInterviewConfigAdmin(billId),
-      getBillByIdAdmin(billId),
-      getInterviewQuestions(interviewConfigId),
+    // 日次コスト制限チェック（fail-closed: エラー時も生成をブロック）は
+    // 質問の取得と並べて走らせる
+    const [questions, isWithinLimit] = await Promise.all([
+      getInterviewQuestions(interviewConfig.id),
+      isWithinDailyCostLimit(userId, env.chat.dailyUserCostLimitUsd).catch(
+        (error) => {
+          console.error("Cost limit check error:", error);
+          return false;
+        }
+      ),
     ]);
-
-    if (!interviewConfig) {
-      throw new Error("Interview config not found");
-    }
-
-    // プロンプトを構築（初期質問なので currentStage は chat、askedQuestionIds は空）
-    const systemPrompt = buildInterviewSystemPrompt({
-      bill,
-      interviewConfig,
-      questions,
-      currentStage: "chat",
-      askedQuestionIds: new Set(),
-    });
-
-    // インタビュー開始の指示を追加（最初の質問にはクイックリプライとquestion_idを含める）
-    const firstQuestionId = questions[0]?.id;
-    const billTitle = bill?.bill_content?.title ?? bill?.name ?? "この法案";
-    const enhancedSystemPrompt = `${systemPrompt}\n\n## 重要: これはインタビューの開始です。ユーザーからのメッセージはありません。事前定義質問の最初の質問から始めてください。挨拶は温かく丁寧に（2文程度）、「${billTitle}」についてのインタビューであることを明確に伝えた上で、すぐに最初の質問をしてください。最初の質問にクイックリプライが設定されている場合は、必ず quick_replies フィールドに含めてください。${firstQuestionId ? `最初の質問は ID: ${firstQuestionId} であり、レスポンスの question_id にこの値を含めてください。` : ""}`;
-
-    // 日次コスト制限チェック（fail-closed: エラー時も生成をブロック）
-    try {
-      const isWithinLimit = await isWithinDailyCostLimit(
-        userId,
-        env.chat.dailyUserCostLimitUsd
-      );
-      if (!isWithinLimit) {
-        console.error("Daily cost limit reached for initial question");
-        return null;
-      }
-    } catch (error) {
-      console.error("Cost limit check error:", error);
+    if (!isWithinLimit) {
+      console.error("Daily cost limit reached for initial question");
       return null;
     }
 
+    // 初回は人物像＋初回指示だけで生成する（全体像1文＋最初の質問）。
+    // 本番とシミュレータで同じ組み立てを使う
+    const topics = buildTurnTopics(questions);
+    const initialPrompt = await buildPublishedInitialPrompt({ topics });
+
     // メッセージ履歴なしで最初の質問を生成（構造化出力）
     const occurredAt = new Date().toISOString();
-    const model =
-      deps?.model ?? interviewConfig.chat_model ?? DEFAULT_INTERVIEW_CHAT_MODEL;
-    const result = await generateText({
+    const {
       model,
-      prompt: enhancedSystemPrompt,
-      output: Output.object({ schema: interviewChatTextSchema }),
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: "interview-initial-question",
-        metadata: {
-          sessionId,
-          billId,
-        },
+      modelId: modelName,
+      providerOptions,
+    } = getMeteredAiModel(
+      "interview",
+      deps?.model ?? (interviewConfig.chat_model || undefined)
+    );
+    // 初回質問も以降のターンと同じセッションに束ねる
+    const result = await propagateAttributes(
+      {
+        traceName: INITIAL_QUESTION_FUNCTION_ID,
+        sessionId,
+        userId,
       },
-    });
+      () =>
+        generateText({
+          model,
+          providerOptions,
+          prompt: initialPrompt,
+          output: Output.object({ schema: interviewInitialSchema }),
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: INITIAL_QUESTION_FUNCTION_ID,
+            // 計装のメタデータは文字列しか受け付けないため、施策なしは空文字で表す
+            metadata: {
+              billId: bill?.id ?? "",
+            },
+          },
+        })
+    );
 
     // LLM利用コストを記録
-    const modelName =
-      typeof model === "string" ? model : (model.modelId ?? "unknown");
     try {
       await recordChatUsage({
         userId,
         sessionId,
-        promptName: "interview-initial-question",
+        promptName: INITIAL_QUESTION_FUNCTION_ID,
         model: modelName,
         usage: result.usage,
         occurredAt,
         metadata: {
           pageType: "interview",
-          billId,
+          billId: bill?.id ?? null,
           finishReason: result.finishReason ?? null,
           stepCount: 0,
         },
@@ -128,15 +127,15 @@ export async function generateInitialQuestion({
       return null;
     }
 
-    // 初回メッセージのtopic_titleを「はじめに」に強制上書き
-    const content = overrideInitialTopicTitle(generatedText);
-
-    // 生成した質問を保存
-    return await createInterviewMessage({
-      sessionId,
-      role: "assistant",
-      content,
+    // question_id は最初の話題、選択肢ボタンを付けて保存する
+    const content = buildInitialTurnContent({
+      rawText: generatedText,
+      firstTopic: topics[0] ?? null,
     });
+
+    // 生成した質問を保存（すでに保存済みなら、その 1 件を返す）。
+    // 生成中の再読み込みでは生成そのものは 2 回走るが、まれで初回発話 1 回分の費用なので許容する
+    return await insertInitialInterviewMessage({ sessionId, content });
   } catch (error) {
     console.error("Failed to generate initial question:", error);
     return null;

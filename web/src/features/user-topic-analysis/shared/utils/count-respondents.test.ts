@@ -2,17 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { PublicOpinion, PublicTopic } from "../types";
 import { countTopicRespondents } from "./count-respondents";
 
-function op(reportId: string): PublicOpinion {
+function op(opinionId: string): PublicOpinion {
   return {
     id: `op-${Math.random()}`,
-    interview_report_id: reportId,
-    report_public: true,
+    opinion_id: opinionId,
+    opinion_public: true,
     created_at: null,
     title: "t",
     content: "c",
-    user_category: "citizen",
     role_title: null,
-    bill_sentiment: null,
     contextual_quote: null,
     richness: null,
     source_message_id: null,
@@ -26,22 +24,17 @@ function topic(id: string, opinions: PublicOpinion[]): PublicTopic {
     title: id,
     description: "",
     opinion_count: opinions.length,
-    affected_count: 0,
-    industry_count: 0,
-    expert_count: 0,
-    citizen_count: 0,
-    sentiment: { 期待: 0, 懸念: 0 },
     opinions,
   };
 }
 
 describe("countTopicRespondents", () => {
-  it("トピック横断で出典レポートIDをユニークに数える", () => {
+  it("トピック横断で出典意見IDをユニークに数える", () => {
     const topics = [
-      topic("a", [op("r1"), op("r2"), op("r2")]),
-      topic("b", [op("r2"), op("r3")]),
+      topic("a", [op("o1"), op("o2"), op("o2")]),
+      topic("b", [op("o2"), op("o3")]),
     ];
-    // r1, r2, r3 → 3
+    // o1, o2, o3 → 3
     expect(countTopicRespondents(topics)).toBe(3);
   });
 

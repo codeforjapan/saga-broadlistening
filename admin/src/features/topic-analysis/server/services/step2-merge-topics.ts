@@ -1,7 +1,7 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
-import { TOPIC_ANALYSIS_MODEL } from "../../shared/constants";
 import { topicMergeSchema } from "../../shared/schemas";
 
 /**
@@ -17,11 +17,11 @@ export async function mergeTopics(
   const topicsList = rawTopics.map((t, i) => `${i + 1}. ${t}`).join("\n");
 
   const { object } = await generateObject({
-    model: TOPIC_ANALYSIS_MODEL,
+    ...getAiModel("topicAnalysis"),
     schema: topicMergeSchema,
-    prompt: `あなたは日本の法案に関する市民意見のトピック整理を行います。
+    prompt: `あなたは佐賀市の施策に関する市民意見のトピック整理を行います。
 
-## 法案
+## 施策
 ${billTitle}
 
 ## タスク

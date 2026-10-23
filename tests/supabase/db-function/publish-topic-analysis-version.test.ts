@@ -1,20 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { adminClient, cleanupTestBill, createTestBill } from "../utils";
+import {
+  adminClient,
+  cleanupTestInterviewConfig,
+  createTestInterviewConfig,
+} from "../utils";
 
-let billId: string;
+let configId: string;
 
 async function insertVersion(version: number): Promise<string> {
   const { data, error } = await adminClient
     .from("topic_analysis_version")
     .insert({
-      bill_id: billId,
+      interview_config_id: configId,
       version,
       status: "completed",
       trigger: "manual",
     })
     .select("id")
     .single();
-  if (error) throw new Error(`version insert failed: ${error.message}`);
+  if (error) throw new Error(`version 作成失敗: ${error.message}`);
   return data.id;
 }
 
@@ -22,22 +26,22 @@ async function publishedIds(): Promise<string[]> {
   const { data } = await adminClient
     .from("topic_analysis_version")
     .select("id")
-    .eq("bill_id", billId)
+    .eq("interview_config_id", configId)
     .eq("is_published", true);
   return (data ?? []).map((r) => r.id);
 }
 
 describe("publish_topic_analysis_version()", () => {
   beforeEach(async () => {
-    const bill = await createTestBill();
-    billId = bill.id;
+    const config = await createTestInterviewConfig();
+    configId = config.id;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId);
+    await cleanupTestInterviewConfig(configId);
   });
 
-  it("対象を公開し、同 bill の旧公開版は降ろす（公開は常に1版）", async () => {
+  it("対象を公開し、同テーマの旧公開版は降ろす（公開は常に1版）", async () => {
     const v1 = await insertVersion(1);
     const v2 = await insertVersion(2);
 
@@ -60,10 +64,10 @@ describe("publish_topic_analysis_version()", () => {
     await adminClient.rpc("publish_topic_analysis_version", {
       p_version_id: v1,
     });
-    const r = await adminClient.rpc("publish_topic_analysis_version", {
+    const { error } = await adminClient.rpc("publish_topic_analysis_version", {
       p_version_id: v1,
     });
-    expect(r.error).toBeNull();
+    expect(error).toBeNull();
     expect(await publishedIds()).toEqual([v1]);
   });
 

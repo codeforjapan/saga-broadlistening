@@ -7,12 +7,11 @@ import { routes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 
 const navigationLinks = [
-  { href: routes.bills(), label: "議案管理" },
-  { href: routes.dietSessions(), label: "国会会期管理" },
+  { href: routes.bills(), label: "施策管理" },
   { href: routes.tags(), label: "タグ管理" },
   { href: routes.interviews(), label: "インタビュー" },
-  // 全議案トピック分析(/user-topic-analysis)は隠し機能のためヘッダーに出さない（URL直アクセスのみ）。
-  { href: routes.experts(), label: "有識者" },
+  // 全施策トピック分析(/user-topic-analysis)は隠し機能のためヘッダーに出さない（URL直アクセスのみ）。
+  { href: routes.publicChatSettings(), label: "公開チャット" },
   { href: routes.admins(), label: "管理者" },
 ];
 
@@ -20,17 +19,18 @@ export function NavigationLinks() {
   const pathname = usePathname();
 
   return (
-    <nav>
+    <nav className="overflow-x-auto">
       <div className="flex space-x-8">
         {navigationLinks.map((link) => {
-          const isActive = pathname.startsWith(link.href);
+          const isActive =
+            pathname === link.href || pathname.startsWith(`${link.href}/`);
 
           return (
             <Link
               key={link.href}
               href={link.href as Route}
               className={cn(
-                "inline-flex items-center gap-2 px-1 py-4 text-sm border-b-2 transition-colors",
+                "inline-flex shrink-0 items-center gap-2 px-1 py-4 text-sm border-b-2 transition-colors",
                 isActive
                   ? "border-blue-600 text-blue-600 font-semibold"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium"

@@ -1,27 +1,5 @@
 import { createAdminClient } from "@mirai-gikai/supabase";
 
-/**
- * インタビュー設定を取得する。再抽出のプロンプト構築に使う。
- * 存在しなければ null（PGRST116）。
- */
-export async function findInterviewConfigById(configId: string) {
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("interview_configs")
-    .select("*")
-    .eq("id", configId)
-    .single();
-
-  if (error) {
-    if (error.code === "PGRST116") {
-      return null;
-    }
-    throw new Error(`Failed to fetch interview config: ${error.message}`);
-  }
-
-  return data;
-}
-
 /** インタビューセッションを取得する。存在しなければ null（呼び出し側でスキップ判定）。 */
 export async function findInterviewSessionById(sessionId: string) {
   const supabase = createAdminClient();
@@ -57,36 +35,22 @@ export async function findInterviewMessagesBySessionId(sessionId: string) {
 }
 
 /**
- * 議案と bill_contents（normal 優先）を取得し、プロンプト接地用に整形する。
+ * 意見募集（テーマ）名だけを引く。
+ * タグ付けは意見ごとに並列で走るため、テーマの説明・施策本文まで取る
+ * fetchInterviewConfigContext は使わない（使うのは name 1カラムだけ）。
  */
-export async function fetchBillWithContents(billId: string) {
+export async function findInterviewConfigNameById(
+  interviewConfigId: string
+): Promise<string | null> {
   const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("interview_configs")
+    .select("name")
+    .eq("id", interviewConfigId)
+    .maybeSingle();
 
-  const { data: bill, error: billError } = await supabase
-    .from("bills")
-    .select("*")
-    .eq("id", billId)
-    .single();
-
-  if (billError) {
-    throw new Error(`Failed to fetch bill: ${billError.message}`);
+  if (error) {
+    throw new Error(`Failed to fetch interview config name: ${error.message}`);
   }
-
-  const { data: contents, error: contentsError } = await supabase
-    .from("bill_contents")
-    .select("*")
-    .eq("bill_id", billId);
-
-  if (contentsError) {
-    throw new Error(`Failed to fetch bill contents: ${contentsError.message}`);
-  }
-
-  const normalContent = contents.find((c) => c.difficulty_level === "normal");
-
-  return {
-    bill,
-    billTitle: normalContent?.title ?? bill.name,
-    billContent: normalContent?.content ?? "",
-    billSummary: normalContent?.summary ?? "",
-  };
+  return data?.name ?? null;
 }

@@ -8,16 +8,22 @@ import {
 } from "@/components/ai-elements/reasoning";
 import { Response } from "@/components/ai-elements/response";
 import { SUGGEST_INTERVIEW_TOOL_TYPE } from "@/features/chat/shared/constants";
+import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { InterviewSuggestionBanner } from "./interview-suggestion-banner";
 
 type RehypePlugins = ComponentProps<typeof Response>["rehypePlugins"];
+type RemarkPlugins = ComponentProps<typeof Response>["remarkPlugins"];
 
 interface SystemMessageProps {
   message: UIMessage;
   isStreaming: boolean;
   billId?: string;
   billName?: string;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
   rehypePlugins?: RehypePlugins;
+  remarkPlugins?: RemarkPlugins;
 }
 
 export function SystemMessage({
@@ -25,13 +31,16 @@ export function SystemMessage({
   isStreaming,
   billId,
   billName,
+  interviewParticipation,
+  interviewTarget,
   rehypePlugins,
+  remarkPlugins,
 }: SystemMessageProps) {
   return (
     <Message from="assistant" className="justify-start py-0">
       <MessageContent
         variant="flat"
-        className="text-sm font-medium leading-[1.8] text-mirai-text"
+        className="text-sm font-medium leading-[1.8] text-foreground"
       >
         {message.parts.map((part, i: number) => {
           if (part.type === "text") {
@@ -40,9 +49,23 @@ export function SystemMessage({
                 key={`${message.id}-${i}`}
                 className="break-words"
                 rehypePlugins={rehypePlugins}
+                remarkPlugins={remarkPlugins}
               >
                 {part.text}
               </Response>
+            );
+          }
+          if (part.type === "source-url" && /^https?:\/\//.test(part.url)) {
+            return (
+              <a
+                key={`${message.id}-${i}`}
+                href={part.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block break-all text-primary underline"
+              >
+                出典: {part.title || part.url}
+              </a>
             );
           }
           if (part.type === "reasoning") {
@@ -63,6 +86,8 @@ export function SystemMessage({
                 key={`${message.id}-${i}`}
                 billId={billId}
                 billName={billName}
+                participation={interviewParticipation}
+                target={interviewTarget}
               />
             );
           }

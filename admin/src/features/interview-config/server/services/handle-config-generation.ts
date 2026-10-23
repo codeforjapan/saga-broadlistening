@@ -1,9 +1,10 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
+import { MAX_RELATED_POLICIES } from "@mirai-gikai/shared/interview-prompts/constants";
 import { convertToModelMessages, Output, streamText } from "ai";
 import { getBillById } from "@/features/bills-edit/server/loaders/get-bill-by-id";
 import { getBillContents } from "@/features/bills-edit/server/loaders/get-bill-contents";
-import { AI_MODELS } from "@/lib/ai/models";
 import { injectJsonFields } from "@/lib/stream/inject-json-fields";
 import {
   type ConfigGenerationStage,
@@ -11,7 +12,13 @@ import {
   questionProposalSchema,
   themeProposalSchema,
 } from "../../shared/schemas";
-import { buildConfigGenerationPrompt } from "../utils/build-config-generation-prompt";
+import type { InterviewDesignInput } from "../../shared/types";
+import {
+  buildConfigGenerationPrompt,
+  getSubjectLabel,
+  type PromptPolicy,
+  type PromptSubject,
+} from "../utils/build-config-generation-prompt";
 
 interface ExistingQuestion {
   question: string;
@@ -21,7 +28,17 @@ interface ExistingQuestion {
 
 interface HandleConfigGenerationParams {
   messages: Array<{ role: string; content: string }>;
-  billId: string;
+  /** 施策がないときに題材にするテーマ名 */
+  themeName?: string | null;
+  /** 職員が書いたテーマの説明。施策があってもなくても題材に添える */
+  themeDescription?: string | null;
+  /**
+   * フォームで紐づけ中の施策。どれも同じ重みで題材にする（質問はどの施策から
+   * 参加した人にも同じものを使うため）。空なら施策なしとしてテーマを題材にする
+   */
+  policyIds?: string[];
+  /** フォームで入力済みの設計 */
+  design?: InterviewDesignInput;
   stage: ConfigGenerationStage;
   existingThemes?: string[];
   existingQuestions?: ExistingQuestion[];
@@ -30,43 +47,36 @@ interface HandleConfigGenerationParams {
 
 export async function handleConfigGeneration({
   messages,
-  billId,
+  themeName,
+  themeDescription,
+  policyIds,
+  design,
   stage,
   existingThemes,
   existingQuestions,
   confirmedQuestions,
 }: HandleConfigGenerationParams) {
-  const [bill, billContents] = await Promise.all([
-    getBillById(billId),
-    getBillContents(billId),
-  ]);
-
-  if (!bill) {
-    throw new Error("Bill not found");
-  }
-
-  // ふつう（normal）の難易度コンテンツを使用
-  const normalContent = billContents.find(
-    (c) => c.difficulty_level === "normal"
+  const subject = await loadPromptSubject(
+    policyIds ?? [],
+    themeName,
+    themeDescription
   );
 
   const systemPrompt = buildConfigGenerationPrompt({
-    billName: bill.name,
-    billTitle: normalContent?.title || "",
-    billSummary: normalContent?.summary || "",
-    billContent: normalContent?.content || "",
+    subject,
+    design,
     stage,
-    knowledgeSource: bill.knowledge_source ?? undefined,
     existingThemes,
     existingQuestions,
     confirmedQuestions,
   });
 
+  const subjectLabel = getSubjectLabel(subject);
   const initialUserMessage =
     stage === "default_questions"
-      ? "法案内容を分析して、topics（Q1の論点選択肢）とstance（Q2の立場選択肢）を生成してください。"
+      ? `${subjectLabel}の内容を分析して、topics（Q1の論点選択肢）とstance（Q2の立場選択肢）を生成してください。`
       : stage === "theme_proposal"
-        ? "確定した質問と法案内容をもとに、テーマを提案してください。"
+        ? `確定した質問と${subjectLabel}の内容をもとに、テーマを提案してください。`
         : "質問を提案・ブラッシュアップしてください。";
 
   const effectiveMessages =
@@ -88,7 +98,7 @@ export async function handleConfigGeneration({
   const result =
     stage === "default_questions"
       ? streamText({
-          model: AI_MODELS.gpt5_2,
+          ...getAiModel("configGeneration"),
           system: systemPrompt,
           messages: modelMessages,
           output: Output.object({ schema: defaultQuestionsGenerationSchema }),
@@ -96,14 +106,14 @@ export async function handleConfigGeneration({
         })
       : stage === "theme_proposal"
         ? streamText({
-            model: AI_MODELS.gpt5_2,
+            ...getAiModel("configGeneration"),
             system: systemPrompt,
             messages: modelMessages,
             output: Output.object({ schema: themeProposalSchema }),
             onError,
           })
         : streamText({
-            model: AI_MODELS.gpt5_2,
+            ...getAiModel("configGeneration"),
             system: systemPrompt,
             messages: modelMessages,
             output: Output.object({ schema: questionProposalSchema }),
@@ -118,4 +128,66 @@ export async function handleConfigGeneration({
   return new Response(transformedStream, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
+}
+
+/**
+ * 生成の題材を読み込む。
+ *
+ * 施策があれば、紐づく施策（上限まで）とそれぞれの「ふつう」難易度のコンテンツを、
+ * なければテーマ名を使う。テーマの説明はどちらの場合も添える。
+ * 施策はフォームの並び順で並べ、見つからない施策は落とす。
+ */
+async function loadPromptSubject(
+  policyIds: string[],
+  themeName: string | null | undefined,
+  themeDescription: string | null | undefined
+): Promise<PromptSubject> {
+  const trimmedThemeName = themeName?.trim() || undefined;
+  if (policyIds.length === 0) {
+    if (!trimmedThemeName) {
+      throw new Error("Neither bill nor theme name is available");
+    }
+    return {
+      kind: "theme",
+      themeName: trimmedThemeName,
+      themeDescription: themeDescription ?? undefined,
+    };
+  }
+
+  const loaded = await Promise.all(
+    policyIds.slice(0, MAX_RELATED_POLICIES).map(loadPromptPolicy)
+  );
+  const policies = loaded.filter((p): p is PromptPolicy => p !== null);
+  if (policies.length === 0) {
+    throw new Error("Bill not found");
+  }
+
+  return {
+    kind: "bill",
+    policies,
+    themeName: trimmedThemeName,
+    description: themeDescription?.trim() || undefined,
+  };
+}
+
+async function loadPromptPolicy(
+  policyId: string
+): Promise<PromptPolicy | null> {
+  const [bill, billContents] = await Promise.all([
+    getBillById(policyId),
+    getBillContents(policyId),
+  ]);
+  if (!bill) return null;
+
+  // ふつう（normal）の難易度コンテンツを使用
+  const normalContent = billContents.find(
+    (c) => c.difficulty_level === "normal"
+  );
+  return {
+    billName: bill.name,
+    billTitle: normalContent?.title || "",
+    billSummary: normalContent?.summary || "",
+    billContent: normalContent?.content || "",
+    knowledgeSource: bill.knowledge_source ?? undefined,
+  };
 }

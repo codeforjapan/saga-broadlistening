@@ -1,17 +1,25 @@
+import { toPromptRelatedPolicies } from "@mirai-gikai/shared/interview-prompts/to-prompt-related-policies";
 import type {
   PromptBillInput,
   InterviewQuestion as PromptInterviewQuestion,
+  PromptRelatedPolicyInput,
 } from "@mirai-gikai/shared/interview-prompts/types";
+import { after } from "next/server";
+import type { z } from "zod";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
+import {
+  findInterviewConfigById,
+  findPolicyContentsByIds,
+  findPolicyIdsByInterviewConfigId,
+} from "@/features/interview-config/server/repositories/interview-config-repository";
+import { resolveSimulationScope } from "@/features/interview-simulation/server/loaders/resolve-simulation-scope";
 import { runMultiSimulationPipeline } from "@/features/interview-simulation/server/services/run-multi-simulation-pipeline";
 import { multiSimulationRunRequestSchema } from "@/features/interview-simulation/shared/schemas";
-import type {
-  MultiSimulationProgressEvent,
-  MultiSimulationRunRequest,
-} from "@/features/interview-simulation/shared/types";
+import type { MultiSimulationProgressEvent } from "@/features/interview-simulation/shared/types";
 import { validatePersonaSlots } from "@/features/interview-simulation/shared/utils/validate-persona-slots";
 import { fetchBillWithContents } from "@/features/topic-analysis/server/repositories/topic-analysis-repository";
 import { verifyInternalAuth } from "@/features/topic-analysis/server/utils/trigger-next-phase";
+import { flushTelemetry } from "@/lib/telemetry/register";
 
 export const maxDuration = 300;
 
@@ -36,26 +44,66 @@ async function authenticate(request: Request): Promise<Response | null> {
   }
 }
 
+/**
+ * 本番の対話と同じく、主たる施策以外に紐づく施策の標準（normal）本文も並べる。
+ * シミュレーションは職員の確認用なので、施策の公開状態は問わない。
+ */
+async function fetchRelatedPolicies(
+  interviewConfigId: string,
+  primaryPolicyId: string
+): Promise<PromptRelatedPolicyInput[]> {
+  const policyIds = (
+    await findPolicyIdsByInterviewConfigId(interviewConfigId)
+  ).filter((id) => id !== primaryPolicyId);
+  const rows = await findPolicyContentsByIds(policyIds, "normal");
+  return toPromptRelatedPolicies(policyIds, rows);
+}
+
 /** MultiSimulationRunRequest → pipeline params */
-async function buildPipelineParams(params: MultiSimulationRunRequest) {
-  const billData = await fetchBillWithContents(params.billId);
-  if (!billData.bill) {
+async function buildPipelineParams(
+  params: z.output<typeof multiSimulationRunRequestSchema>
+) {
+  const config = await findInterviewConfigById(params.interviewConfigId);
+  if (!config) {
     return {
       ok: false as const,
-      error: "対象の法案が見つかりません",
+      error: "対象の意見募集が見つかりません",
       status: 404,
     };
   }
 
-  const bill: PromptBillInput = {
-    name: billData.bill.name,
-    knowledge_source: billData.bill.knowledge_source,
-    bill_content: {
-      title: billData.billTitle,
-      summary: billData.billSummary,
-      content: billData.billContent,
-    },
-  };
+  // 範囲はサーバー側で意見募集から決める。クライアントが施策を指定できないため、
+  // 無関係な施策の資料でペルソナを作らせたり、その施策配下のレポートを
+  // 素材に使わせたりする余地がない
+  const scope = await resolveSimulationScope(params.interviewConfigId);
+
+  // 抽象テーマ型（施策なし）では施策を読まず、テーマの説明だけを材料にする
+  const [billData, relatedPolicies] = scope.policyId
+    ? await Promise.all([
+        fetchBillWithContents(scope.policyId),
+        fetchRelatedPolicies(params.interviewConfigId, scope.policyId),
+      ])
+    : [null, []];
+  if (scope.policyId && !billData?.bill) {
+    return {
+      ok: false as const,
+      error: "対象の施策が見つかりません",
+      status: 404,
+    };
+  }
+
+  const bill: PromptBillInput = billData?.bill
+    ? {
+        name: billData.bill.name,
+        knowledge_source: billData.bill.knowledge_source,
+        bill_content: {
+          title: billData.billTitle,
+          summary: billData.billSummary,
+          content: billData.billContent,
+        },
+        related_policies: relatedPolicies,
+      }
+    : null;
 
   const improvedQuestions: PromptInterviewQuestion[] =
     params.improvedConfig.questions.map((q) => ({
@@ -63,27 +111,29 @@ async function buildPipelineParams(params: MultiSimulationRunRequest) {
       question: q.question,
       quick_replies: q.quick_replies ?? null,
       follow_up_guide: q.follow_up_guide ?? null,
-      target_audience: q.target_audience ?? null,
     }));
 
-  const billTitle = billData.billTitle || billData.bill.name || "この法案";
+  // 説明文は改善版を、目的・意見がほしい点などは保存済みの設定を使う
+  const promptInterviewConfig = {
+    name: config.name,
+    description: params.improvedConfig.description,
+    purpose_type: config.purpose_type,
+    opinion_focus: config.opinion_focus,
+    decided_matters: config.decided_matters,
+  };
 
   return {
     ok: true as const,
     params: {
-      billId: params.billId,
+      scope,
       personaSlots: params.personaSlots,
       improvedPromptInputs: {
         bill,
-        interviewConfig: {
-          themes: params.improvedConfig.themes,
-        },
+        interviewConfig: promptInterviewConfig,
         questions: improvedQuestions,
-        mode: params.improvedConfig.mode,
         estimatedDurationMinutes:
           params.improvedConfig.estimatedDurationMinutes ?? null,
       },
-      billTitle,
       interviewerModel: params.interviewerModel,
       intervieweeModel: params.intervieweeModel,
       personaModel: params.personaModel,
@@ -139,6 +189,7 @@ export async function POST(request: Request) {
     );
   }
 
+  after(flushTelemetry);
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {

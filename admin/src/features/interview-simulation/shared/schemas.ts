@@ -1,7 +1,6 @@
-import { INTERVIEW_MODES } from "@mirai-gikai/shared/interview-prompts/types";
+import { isValidModelId } from "@mirai-gikai/shared/ai/validate-model-id";
 import { z } from "zod";
-import { AI_MODELS, type AiModel } from "@/lib/ai/models";
-import { MAX_PERSONA_SLOTS } from "./constants";
+import { ENV_DEFAULT_MODEL, MAX_PERSONA_SLOTS } from "./constants";
 
 /**
  * 外部入力の長さ上限（prompt injection / DoS 耐性の defensive limit）。
@@ -11,6 +10,7 @@ import { MAX_PERSONA_SLOTS } from "./constants";
 const ID_MAX = 100;
 const SHORT_TEXT_MAX = 200;
 const MEDIUM_TEXT_MAX = 2_000;
+const LONG_TEXT_MAX = 4_000;
 const SMALL_ARRAY_MAX = 20;
 const MEDIUM_ARRAY_MAX = 50;
 
@@ -36,10 +36,10 @@ export const personaSchema = z.object({
     ),
   stance: z
     .enum(["for", "against", "neutral"])
-    .describe("法案へのスタンス。元レポートと一致させる"),
+    .describe("施策へのスタンス。元レポートと一致させる"),
   knowledge_level: z
     .enum(["beginner", "intermediate", "expert"])
-    .describe("法案に関する事前知識レベル。会話の語彙から推定"),
+    .describe("施策に関する事前知識レベル。会話の語彙から推定"),
   speaking_style: z
     .string()
     .describe(
@@ -53,7 +53,7 @@ export const personaSchema = z.object({
   key_concerns: z
     .array(z.string())
     .min(1)
-    .describe("このペルソナが法案について特に気にしている論点。3〜5 件目安"),
+    .describe("このペルソナが施策について特に気にしている論点。3〜5 件目安"),
   typical_response_length: z
     .enum(["short", "medium", "long"])
     .describe(
@@ -68,7 +68,7 @@ export const personaSchema = z.object({
     .array(z.string())
     .min(1)
     .describe(
-      "このペルソナが今回の法案に関して政治家へ最終的に伝えたい核心メッセージを 3〜5 件目安の箇条書きで（1 項目ずつ簡潔に 1 文）。" +
+      "このペルソナが今回の施策に関して政治家へ最終的に伝えたい核心メッセージを 3〜5 件目安の箇条書きで（1 項目ずつ簡潔に 1 文）。" +
         "後段の満足度評価が「項目ごとに引き出せたか」を判定するため、項目は意味的に独立させる。" +
         "抽象論ではなく、スタンスの根拠＋具体的な懸念/要望を含むこと。"
     ),
@@ -175,12 +175,12 @@ export const diverseRolesPlanSchema = z.object({
         stance: z
           .enum(["for", "against", "neutral"])
           .describe(
-            "この当事者像が法案に対して取りそうな自然なスタンス。役割と矛盾しない範囲で"
+            "この当事者像が施策に対して取りそうな自然なスタンス。役割と矛盾しない範囲で"
           ),
         rationale: z
           .string()
           .describe(
-            "なぜこの当事者をインタビュー対象に選んだか、法案との接点を 1〜2 文で"
+            "なぜこの当事者をインタビュー対象に選んだか、施策との接点を 1〜2 文で"
           ),
       })
     )
@@ -205,7 +205,7 @@ export const simGeneratedReportSchema = z
     stance: z
       .enum(["for", "against", "neutral"])
       .nullable()
-      .describe("法案へのスタンス"),
+      .describe("施策へのスタンス"),
     role: z
       .enum([
         "subject_expert",
@@ -268,16 +268,13 @@ export const simulatedTurnSchema = z
 
 export type SimulatedTurn = z.infer<typeof simulatedTurnSchema>;
 
-/**
- * AI_MODELS の値のみを許可する zod スキーマ。
- * 未知のモデル ID を弾くため、値集合を runtime で検査する。
- */
-const aiModelSchema = z.custom<AiModel>(
-  (val): val is AiModel =>
-    typeof val === "string" &&
-    (Object.values(AI_MODELS) as string[]).includes(val),
-  { message: "Unknown AI model id" }
-);
+/** 接続先を明示したモデルIDを受け取り、利用許可は共通レジストリで検証する。 */
+const aiModelSchema = z
+  .union([
+    z.string().refine(isValidModelId, { message: "Invalid AI model id" }),
+    z.literal(ENV_DEFAULT_MODEL),
+  ])
+  .transform((model) => (model === ENV_DEFAULT_MODEL ? undefined : model));
 
 /**
  * 複数ペルソナシミュのリクエスト内で、各スロットを表すスキーマ。
@@ -311,18 +308,14 @@ const personaSlotInputSchema = z.discriminatedUnion("kind", [
 /** 複数ペルソナシミュ API のリクエストボディ（実行時バリデーション用） */
 export const multiSimulationRunRequestSchema = z
   .object({
-    billId: z.string().min(1).max(ID_MAX),
+    interviewConfigId: z.string().min(1).max(ID_MAX),
     personaSlots: z
       .array(personaSlotInputSchema)
       .min(1, "ペルソナを 1 件以上選択してください")
       .max(MAX_PERSONA_SLOTS, `ペルソナは最大 ${MAX_PERSONA_SLOTS} 件までです`),
     improvedConfig: z
       .object({
-        mode: z.enum(INTERVIEW_MODES),
-        themes: z
-          .array(z.string().max(MEDIUM_TEXT_MAX))
-          .max(SMALL_ARRAY_MAX)
-          .nullable(),
+        description: z.string().max(LONG_TEXT_MAX).nullable(),
         estimatedDurationMinutes: z.number().int().min(1).max(600).nullable(),
         questions: z
           .array(
@@ -335,11 +328,6 @@ export const multiSimulationRunRequestSchema = z
                   .max(SMALL_ARRAY_MAX)
                   .nullable(),
                 follow_up_guide: z.string().max(MEDIUM_TEXT_MAX).nullable(),
-                target_audience: z
-                  .string()
-                  .max(MEDIUM_TEXT_MAX)
-                  .nullable()
-                  .optional(),
               })
               .strict()
           )

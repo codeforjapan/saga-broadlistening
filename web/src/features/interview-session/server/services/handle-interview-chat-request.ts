@@ -1,5 +1,22 @@
 import "server-only";
 
+import { propagateAttributes } from "@langfuse/tracing";
+import {
+  collectAssistantTurnMetas,
+  findSelectedQuickReply,
+} from "@mirai-gikai/shared/interview-prompts/assistant-message";
+import {
+  buildTurnTopics,
+  computeSummaryState,
+  computeTurnState,
+  decideSummaryEntry,
+  resolveSummaryPhase,
+} from "@mirai-gikai/shared/interview-prompts/turn-control";
+import {
+  buildChatTurnRecord,
+  buildSummaryTurnRecord,
+  type TurnRecord,
+} from "@mirai-gikai/shared/interview-prompts/turn-records";
 import {
   convertToModelMessages,
   type LanguageModel,
@@ -7,19 +24,18 @@ import {
   Output,
   streamText,
 } from "ai";
-import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
-import type { BillWithContent } from "@/features/bills/shared/types";
 import {
   isWithinDailyCostLimit,
   recordChatUsage,
 } from "@/features/chat/server/services/cost-tracker";
 import { ChatError, ChatErrorCode } from "@/features/chat/shared/types/errors";
-import type { InterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config-admin";
-import { getInterviewConfigAdmin } from "@/features/interview-config/server/loaders/get-interview-config-admin";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { createInterviewSession } from "@/features/interview-session/server/actions/create-interview-session";
 import { getInterviewMessages } from "@/features/interview-session/server/loaders/get-interview-messages";
 import { getInterviewSession } from "@/features/interview-session/server/loaders/get-interview-session";
+import {
+  type InterviewChatContext,
+  resolveInterviewChatContext,
+} from "@/features/interview-session/server/loaders/resolve-interview-chat-context";
 import {
   interviewChatTextSchema,
   interviewChatWithReportSchema,
@@ -29,96 +45,124 @@ import type {
   InterviewMessage,
   InterviewSession,
 } from "@/features/interview-session/shared/types";
-import { DEFAULT_INTERVIEW_CHAT_MODEL } from "@/lib/ai/models";
+import { getMeteredAiModel } from "@/lib/ai/get-metered-ai-model";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { injectJsonFieldsAsync } from "@/lib/stream/inject-json-fields";
+import {
+  InterviewAlreadyCompletedError,
+  InterviewSessionNotStartedError,
+} from "../../shared/types/errors";
 import { buildSummaryModelMessages } from "../../shared/utils/build-summary-model-messages";
 import { ensureTrailingUserMessage } from "../../shared/utils/ensure-trailing-user-message";
+import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
 import { mergeMessagesWithIds } from "../../shared/utils/merge-messages-with-ids";
+import { updateInterviewSessionStage } from "../repositories/interview-session-repository";
 import {
   buildInterviewSystemPrompt,
   buildSummarySystemPrompt,
 } from "../utils/build-interview-system-prompt";
-import { collectAskedQuestionIds } from "../utils/interview-logic";
-import { bulkModeLogic } from "../utils/interview-logic/bulk-mode";
-import { loopModeLogic } from "../utils/interview-logic/loop-mode";
-import { targetedModeLogic } from "../utils/interview-logic/targeted-mode";
+import {
+  InterviewParticipationDeniedError,
+  loadExternalIdentities,
+  type ParticipationDeps,
+} from "./resolve-interview-participation";
 import { saveInterviewMessage } from "./save-interview-message";
 
-// モードロジックのマップ
-const modeLogicMap = {
-  bulk: bulkModeLogic,
-  loop: loopModeLogic,
-  targeted: targetedModeLogic,
-} as const;
-
 /** テスト時にモック注入するための外部依存 */
-export type InterviewChatDeps = {
+export type InterviewChatDeps = ParticipationDeps & {
   chatModel?: LanguageModel;
   summaryModel?: LanguageModel;
   /** テスト時に認証をバイパスするためのセッション取得関数 */
   getSession?: (configId: string) => Promise<InterviewSession | null>;
   /** テスト時に認証をバイパスするためのメッセージ取得関数 */
   getMessages?: (sessionId: string) => Promise<InterviewMessage[]>;
-  /** テスト時にcookies依存をバイパスするための法案取得関数 */
-  getBill?: (billId: string) => Promise<BillWithContent | null>;
-  /** テスト時にnext/cache依存をバイパスするためのインタビュー設定取得関数 */
-  getInterviewConfig?: (billId: string) => Promise<InterviewConfig | null>;
+  /** テスト時にnext/cache・cookies依存をバイパスするためのコンテキスト取得関数 */
+  resolveContext?: (
+    interviewConfigId: string
+  ) => Promise<InterviewChatContext | null>;
 };
 
 /**
- * インタビューチャットリクエストを処理してストリーミングレスポンスを返す
+ * インタビューチャットリクエストを処理してストリーミングレスポンスを返す。
  *
- * チャットLLM自身がnext_stageを出力するため、
- * 別途ファシリテーターLLMを呼び出す必要はない。
+ * 呼び出しは1ターン1回。ステージ（chat / summary）と話題ごとの発話の上限はサーバーが決め、
+ * LLM は本文と少数の制御フラグだけを返す。LLM の出力を読み切った後に、
+ * 次のステージ・選択肢ボタン・正規化した question_id をストリームの末尾へ注入する。
  */
 export async function handleInterviewChatRequest({
   messages,
-  billId,
-  currentStage,
+  interviewConfigId,
+  action,
   isRetry = false,
+  previewPolicyId,
+  previewToken,
   userId,
   deps,
 }: InterviewChatRequestParams & {
   userId: string;
   deps?: InterviewChatDeps;
 }) {
-  // リクエスト単位のトレースID（同一リクエスト内のLLM呼び出しをまとめる）
-  const traceId = crypto.randomUUID();
-
   // TTFB短縮のため、互いに依存しないDBアクセスは並列実行する。
   // 日次コスト制限チェック（fail-closed: エラー時もリクエストをブロック）と
-  // インタビュー設定・法案情報の取得（テスト時はdeps経由でNext.js依存をバイパス）
-  const getInterviewConfigFn =
-    deps?.getInterviewConfig ?? getInterviewConfigAdmin;
-  const getBillFn = deps?.getBill ?? getBillByIdAdmin;
-  const [isWithinLimit, interviewConfig, bill] = await Promise.all([
+  // 意見募集・施策の解決（テスト時はdeps経由でNext.js依存をバイパス）
+  // 外部IDの解決（参加判定とセッション記録に使う）も userId だけで始められる
+  const [isWithinLimit, context, identities] = await Promise.all([
     isWithinDailyCostLimit(userId, env.chat.dailyUserCostLimitUsd),
-    getInterviewConfigFn(billId),
-    getBillFn(billId),
+    deps?.resolveContext
+      ? deps.resolveContext(interviewConfigId)
+      : resolveInterviewChatContext({
+          interviewConfigId,
+          previewPolicyId,
+          previewToken,
+        }),
+    loadExternalIdentities(userId, deps),
   ]);
   if (!isWithinLimit) {
     throw new ChatError(ChatErrorCode.DAILY_COST_LIMIT_REACHED);
   }
 
-  if (!interviewConfig) {
+  if (!context) {
     throw new Error("Interview config not found");
+  }
+
+  const { interviewConfig, bill, policyId, isPreview } = context;
+
+  // 参加条件の判定（プレビューは職員の確認用なので問わない）
+  const participation = evaluateInterviewParticipation({
+    rule: interviewConfig,
+    identities,
+    isPreview,
+  });
+  if (!participation.allowed) {
+    throw new InterviewParticipationDeniedError();
   }
 
   // 最新のメッセージを取得
   const lastMessage = messages[messages.length - 1];
+  const endButton = action === "end";
 
   // 「セッション取得→ユーザーメッセージ保存→全メッセージ取得」は順序依存があるため
   // チェーンとして実行する（テスト時はdeps経由で認証をバイパス）
   const loadSessionAndMessages = async () => {
     const getSessionFn = deps?.getSession ?? getInterviewSession;
     const getMessagesFn = deps?.getMessages ?? getInterviewMessages;
-    const session =
-      (await getSessionFn(interviewConfig.id)) ??
-      (await createInterviewSession({ interviewConfigId: interviewConfig.id }));
+    // セッションは開始画面の同意と同時に作る（#158）。ここでは作らない
+    const session = await getSessionFn(interviewConfig.id);
+    if (!session) {
+      throw new InterviewSessionNotStartedError();
+    }
+    if (session.stage === "summary_complete") {
+      throw new InterviewAlreadyCompletedError();
+    }
 
-    // ユーザーメッセージを保存（保存後に取得することで dbMessages に最新を含める）
-    if (lastMessage?.role === "user" && lastMessage.content.trim()) {
+    // ユーザーメッセージを保存（保存後に取得することで dbMessages に最新を含める）。
+    // 「終える」ボタンは発言ではないので保存しない
+    if (
+      !endButton &&
+      lastMessage?.role === "user" &&
+      lastMessage.content.trim()
+    ) {
       await saveInterviewMessage({
         sessionId: session.id,
         role: "user",
@@ -137,121 +181,126 @@ export async function handleInterviewChatRequest({
     loadSessionAndMessages(),
   ]);
 
-  // モードに応じたロジックを取得（DBの設定を使用）
-  const mode = interviewConfig.mode;
-  const logic = modeLogicMap[mode] ?? bulkModeLogic;
+  const topics = buildTurnTopics(questions);
+  const metas = collectAssistantTurnMetas(dbMessages);
 
-  // 既に聞いた質問IDを収集
-  const askedQuestionIds = collectAskedQuestionIds(dbMessages);
-
-  // クライアントから受け取ったステージで判定
-  const isSummaryPhase = currentStage === "summary";
-
-  // 次に聞くべき質問を特定（モードに応じてロジックが異なる）
-  const effectiveNextQuestionId = logic.calculateNextQuestionId({
-    messages: dbMessages,
-    questions,
-  });
-
-  // 残り目安時間を計算（estimated_durationが設定されている場合のみ）
-  const remainingMinutes = interviewConfig.estimated_duration
-    ? Math.max(
-        0,
-        Math.ceil(
-          interviewConfig.estimated_duration -
-            (Date.now() - new Date(session.started_at).getTime()) / 60000
-        )
-      )
-    : null;
-
-  // summaryフェーズではメッセージにDBのIDをマージ
-  const summaryMessages = isSummaryPhase
-    ? mergeMessagesWithIds(messages, dbMessages)
-    : messages;
-
-  // システムプロンプトを構築（ステージ遷移ガイダンスを含む）
-  const systemPrompt = isSummaryPhase
-    ? buildSummarySystemPrompt({
-        bill,
-        interviewConfig,
-        messages: summaryMessages,
-      })
-    : buildInterviewSystemPrompt({
-        bill,
-        interviewConfig,
-        questions,
-        nextQuestionId: effectiveNextQuestionId,
-        currentStage,
-        askedQuestionIds,
-        remainingMinutes,
-      });
-
-  logger.debug("System Prompt:", systemPrompt);
-
-  // ストリーミングレスポンスを生成（LLMがnext_stageを直接出力）
-  return generateStreamingResponse({
-    systemPrompt,
+  const generationParams = {
     messages,
     sessionId: session.id,
     userId,
-    billId,
-    isSummaryPhase,
+    policyId,
     chatModel: deps?.chatModel,
     summaryModel: deps?.summaryModel,
     configChatModel: interviewConfig.chat_model,
-    telemetry: {
-      sessionId: session.id,
-      billId,
-      traceId,
-      stage: currentStage,
-    },
+  };
+
+  // 生成前のステージ判定。要約へ入るときは、ステージの更新とプロンプトの組み立てを並べて走らせる
+  let enteringSummary: Promise<void> | null = null;
+  if (session.stage === "chat") {
+    const state = computeTurnState({ topics, metas });
+    if (!decideSummaryEntry({ state, endButton })) {
+      const systemPrompt = await buildInterviewSystemPrompt({
+        bill,
+        interviewConfig,
+        topics,
+        turnState: state,
+        // dbMessages には今回の回答まで保存済み
+        selectedQuickReply: findSelectedQuickReply(dbMessages),
+      });
+      logger.debug("System Prompt:", systemPrompt);
+      return generateStreamingResponse({
+        ...generationParams,
+        systemPrompt,
+        isSummaryPhase: false,
+        buildRecord: (rawText) => buildChatTurnRecord({ rawText, state }),
+      });
+    }
+    enteringSummary = updateInterviewSessionStage(session.id, {
+      stage: "summary",
+    });
+  }
+
+  // summary: 場面は発話の記録から決める。「終える」ボタンで締めるのは、要約を見せた後
+  // （返事を受けるところ）だけ。要約に入った直後の生成が失敗して「終える」が再送されても、
+  // 要約を見せないまま締めないため
+  const phase = resolveSummaryPhase({ sessionStage: session.stage, metas });
+  const summaryState = computeSummaryState({
+    topics,
+    metas,
+    phase,
+    forceClose: endButton && phase === "reply",
+  });
+  const [systemPrompt] = await Promise.all([
+    buildSummarySystemPrompt({
+      bill,
+      interviewConfig,
+      messages: mergeMessagesWithIds(messages, dbMessages),
+      summaryState,
+    }),
+    enteringSummary,
+  ]);
+  logger.debug("System Prompt:", systemPrompt);
+  return generateStreamingResponse({
+    ...generationParams,
+    systemPrompt,
+    isSummaryPhase: true,
+    buildRecord: (rawText) => buildSummaryTurnRecord({ rawText, summaryState }),
   });
 }
 
 /**
- * ストリーミングレスポンスを生成
+ * ストリーミングレスポンスを生成する。
  *
- * LLMの出力スキーマにnext_stageが含まれるため、
- * 後からストリームに注入する必要はない。
+ * LLM の出力（本文と制御フラグ）はそのまま流し、読み切った後に buildRecord で
+ * 保存内容・ステージ・選択肢ボタンを決めて、ストリームの末尾へ注入する。
  */
 async function generateStreamingResponse({
   systemPrompt,
   messages,
   sessionId,
   userId,
-  billId,
+  policyId,
   isSummaryPhase,
   chatModel,
   summaryModel,
   configChatModel,
-  telemetry,
+  buildRecord,
 }: {
   systemPrompt: string;
   messages: { role: string; content: string }[];
   sessionId: string;
   userId: string;
-  billId: string;
+  /** 紐づく施策ID。抽象テーマ型では null */
+  policyId: string | null;
   isSummaryPhase: boolean;
   chatModel?: LanguageModel;
   summaryModel?: LanguageModel;
   configChatModel?: string | null;
-  telemetry?: {
-    sessionId: string;
-    billId: string;
-    traceId: string;
-    stage: string;
-  };
+  /** LLM の出力全文から、保存内容と注入する値を作る */
+  buildRecord: (rawText: string) => TurnRecord;
 }) {
-  // summaryフェーズもchatフェーズと同じモデルを使用（インタビューAIとモデルを揃える）
-  const model = isSummaryPhase
-    ? (summaryModel ?? configChatModel ?? DEFAULT_INTERVIEW_CHAT_MODEL)
-    : (chatModel ?? configChatModel ?? DEFAULT_INTERVIEW_CHAT_MODEL);
+  const {
+    model,
+    modelId: modelName,
+    providerOptions,
+  } = getMeteredAiModel(
+    isSummaryPhase ? "summary" : "interview",
+    (isSummaryPhase ? summaryModel : chatModel) ??
+      (configChatModel || undefined)
+  );
+  const stage = isSummaryPhase ? "summary" : "chat";
+  const functionId = isSummaryPhase ? "interview-summary" : "interview-chat";
 
-  const modelName =
-    typeof model === "string" ? model : (model.modelId ?? "unknown");
+  // 末尾に注入する値。onFinish で保存まで終えてから確定する
+  // どの経路（保存の完了・生成の失敗・中断）でも必ず解決し、ストリームの末尾を待たせ続けない
+  let resolveRecord: (record: TurnRecord | null) => void = () => {};
+  const recordPromise = new Promise<TurnRecord | null>((resolve) => {
+    resolveRecord = resolve;
+  });
 
   const handleError = (error: unknown) => {
     console.error("LLM generation error:", error);
+    resolveRecord(null);
     throw new Error(
       `LLM generation failed: ${error instanceof Error ? error.message : String(error)}`
     );
@@ -262,16 +311,26 @@ async function generateStreamingResponse({
     totalUsage: LanguageModelUsage;
     providerMetadata?: unknown;
   }) => {
+    let record: TurnRecord | null = null;
     try {
       if (event.text) {
-        await saveInterviewMessage({
-          sessionId,
-          role: "assistant",
-          content: event.text,
-        });
+        record = buildRecord(event.text);
+        // 保存とステージ更新を終えてからストリームを閉じる。閉じた直後に届く
+        // 次のリクエスト（続けての要約・すばやい選択肢）が古い状態を読まないため
+        await Promise.all([
+          saveInterviewMessage({
+            sessionId,
+            role: "assistant",
+            content: record.content,
+          }),
+          record.sessionUpdate &&
+            updateInterviewSessionStage(sessionId, record.sessionUpdate),
+        ]);
       }
     } catch (err) {
-      console.error("Failed to save interview message:", err);
+      console.error("Failed to save interview turn:", { sessionId, err });
+    } finally {
+      resolveRecord(record);
     }
 
     // LLM利用コストを記録
@@ -280,13 +339,13 @@ async function generateStreamingResponse({
       await recordChatUsage({
         userId,
         sessionId,
-        promptName: isSummaryPhase ? "interview-summary" : "interview-chat",
+        promptName: functionId,
         model: modelName,
         usage: event.totalUsage,
         costUsd: providerCost,
         metadata: {
           pageType: "interview",
-          billId,
+          billId: policyId,
           finishReason: null,
           stepCount: 0,
         },
@@ -311,49 +370,48 @@ async function generateStreamingResponse({
     parts: [{ type: "text" as const, text: message.content }],
   }));
 
-  const functionId = isSummaryPhase ? "interview-summary" : "interview-chat";
-
   const streamParams = {
     model,
+    providerOptions,
     system: systemPrompt,
     messages: await convertToModelMessages(uiMessages),
     onError: handleError,
+    onAbort: () => resolveRecord(null),
     onFinish: handleFinish,
-    experimental_telemetry: telemetry
-      ? {
-          isEnabled: true as const,
-          functionId,
-          metadata: {
-            langfuseTraceId: telemetry.traceId,
-            sessionId: telemetry.sessionId,
-            billId: telemetry.billId,
-            stage: telemetry.stage,
-          },
-        }
-      : undefined,
+    experimental_telemetry: {
+      isEnabled: true as const,
+      functionId,
+      // 計装のメタデータは文字列しか受け付けないため、施策なしは空文字で表す
+      metadata: { billId: policyId ?? "", stage },
+    },
   } as const;
 
   try {
-    let textStream: ReadableStream<string>;
+    // 同一インタビューの複数ターンを1セッションとして束ね、利用者も紐付ける。
+    // OTel のスパンコンテキスト経由で伝播するため、ここより内側のLLM呼び出しは
+    // すべて同じトレース属性を引き継ぐ。
+    return await propagateAttributes(
+      { traceName: functionId, sessionId, userId },
+      () => {
+        const textStream = isSummaryPhase
+          ? streamText({
+              ...streamParams,
+              output: Output.object({ schema: interviewChatWithReportSchema }),
+            }).textStream
+          : streamText({
+              ...streamParams,
+              output: Output.object({ schema: interviewChatTextSchema }),
+            }).textStream;
 
-    if (isSummaryPhase) {
-      const result = streamText({
-        ...streamParams,
-        output: Output.object({ schema: interviewChatWithReportSchema }),
-      });
-      textStream = result.textStream;
-    } else {
-      const result = streamText({
-        ...streamParams,
-        output: Output.object({ schema: interviewChatTextSchema }),
-      });
-      textStream = result.textStream;
-    }
-
-    // LLMがnext_stageを直接出力するため、ストリームをそのまま返す
-    return new Response(textStream.pipeThrough(new TextEncoderStream()), {
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    });
+        const body = injectJsonFieldsAsync(
+          textStream,
+          async () => (await recordPromise)?.injected ?? {}
+        );
+        return new Response(body, {
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        });
+      }
+    );
   } catch (error) {
     handleError(error);
     throw error;

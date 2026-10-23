@@ -13,7 +13,11 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import type { BillWithContent } from "@/features/bills/shared/types";
-import { ChatWindow } from "./chat-window";
+import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { CHAT_PANEL_PC_MEDIA_QUERY } from "../../shared/constants";
+import { LazyChatWindow, preloadChatWindow } from "./lazy-chat-window";
 
 // アニメーション定数
 const ANIMATION_DURATION = {
@@ -25,7 +29,11 @@ const ANIMATION_DURATION = {
 interface ChatButtonProps {
   billContext?: BillWithContent;
   hasInterviewConfig?: boolean;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
   difficultyLevel: string;
+  /** 施策ページのサンプル質問（親施策ページで差し替える） */
+  sampleQuestions?: string[];
   pageContext?: {
     type: "home" | "bill";
     bills?: Array<{
@@ -42,8 +50,26 @@ export interface ChatButtonRef {
 }
 
 export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
-  ({ billContext, hasInterviewConfig, difficultyLevel, pageContext }, ref) => {
+  (
+    {
+      billContext,
+      hasInterviewConfig,
+      interviewParticipation,
+      interviewTarget,
+      difficultyLevel,
+      sampleQuestions,
+      pageContext,
+    },
+    ref
+  ) => {
     const [isOpen, setIsOpen] = useState(false);
+    // 一度表示したら、閉じても画面幅が変わってもウィンドウをマウントしたままにする（入力中の内容を保つ）
+    const [hasOpened, setHasOpened] = useState(false);
+    // PC ではチャットのパネルが常設なので、開く操作を待たずに読み込む
+    const isPc = useMediaQuery(CHAT_PANEL_PC_MEDIA_QUERY);
+    useEffect(() => {
+      if (isPc) setHasOpened(true);
+    }, [isPc]);
     const [isCompact, setIsCompact] = useState(false);
     const [showText, setShowText] = useState(true);
     const [openedWithText, setOpenedWithText] = useState(false);
@@ -58,6 +84,12 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
     // biome-ignore lint/correctness/useExhaustiveDependencies: pathnameが変わるたびに新しいIDを生成するため意図的に依存配列に含めている
     const sessionId = useMemo(() => crypto.randomUUID(), [pathname]);
 
+    // 開くときは必ずここを通す（ウィンドウのマウントと開閉をそろえる）
+    const openChat = () => {
+      setHasOpened(true);
+      setIsOpen(true);
+    };
+
     useImperativeHandle(ref, () => ({
       openWithText: (selectedText: string) => {
         // AIからの返答待ち中は新しいメッセージを送信しない
@@ -70,7 +102,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
 
         const questionText = `「${selectedText}」について教えてください。`;
         setOpenedWithText(true);
-        setIsOpen(true);
+        openChat();
         chatState.sendMessage({
           text: questionText,
           metadata: {
@@ -115,7 +147,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
       <>
         <div className="fixed max-w-[460px] mx-auto left-6 right-6 bottom-4 z-50 md:bottom-8 flex justify-center pc:hidden">
           <div
-            className="relative rounded-[50px] bg-gradient-to-tr from-mirai-gradient-start to-mirai-gradient-end p-[2px] shadow-[2px_2px_2px_0px_rgba(0,0,0,0.25)] origin-center flex transition-[flex-basis] ease-in-out"
+            className="relative rounded-[50px] bg-primary p-[2px] shadow-raised origin-center flex transition-[flex-basis] ease-in-out"
             style={{
               flexBasis: isCompact ? "120px" : "100%",
               transitionDuration: `${ANIMATION_DURATION.SIZE_TRANSITION}ms`,
@@ -125,7 +157,9 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
               ref={chatTriggerRef}
               type="button"
               variant="ghost"
-              onClick={() => setIsOpen(true)}
+              onClick={openChat}
+              onPointerEnter={preloadChatWindow}
+              onFocus={preloadChatWindow}
               className={`relative bg-white rounded-[50px] hover:opacity-90 flex items-center w-full py-2 transition-all ease-in-out ${
                 isCompact
                   ? "h-[35px] px-4 justify-center gap-2.5"
@@ -134,12 +168,12 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
               style={{
                 transitionDuration: `${ANIMATION_DURATION.SIZE_TRANSITION}ms`,
               }}
-              aria-label="議案について質問する"
+              aria-label="わからないことをAIに質問する"
               aria-haspopup="dialog"
               aria-expanded={isOpen}
             >
               <span
-                className={`text-mirai-text-placeholder text-sm font-medium leading-[1.5em] tracking-[0.01em] ${
+                className={`text-muted-foreground text-sm font-medium leading-[1.5em] tracking-[0.01em] ${
                   isCompact ? "text-center" : "flex-1 text-left"
                 } ${
                   showText
@@ -157,7 +191,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
                 {isCompact ? "AIに質問" : "わからないことをAIに質問する"}
               </span>
               {!isCompact && (
-                <div className="relative w-10 h-10 rounded-[20px] bg-mirai-gradient flex items-center justify-center flex-shrink-0">
+                <div className="relative w-10 h-10 rounded-[20px] bg-primary flex items-center justify-center flex-shrink-0">
                   <Image
                     src="/icons/chat-button-icon.svg"
                     alt="チャット"
@@ -171,21 +205,26 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
           </div>
         </div>
 
-        <ChatWindow
-          billContext={billContext}
-          hasInterviewConfig={hasInterviewConfig}
-          difficultyLevel={difficultyLevel}
-          chatState={chatState}
-          isOpen={isOpen}
-          onClose={() => {
-            setIsOpen(false);
-            setOpenedWithText(false);
-          }}
-          pageContext={pageContext}
-          disableAutoFocus={openedWithText}
-          returnFocusRef={chatTriggerRef}
-          sessionId={sessionId}
-        />
+        {hasOpened && (
+          <LazyChatWindow
+            billContext={billContext}
+            hasInterviewConfig={hasInterviewConfig}
+            interviewParticipation={interviewParticipation}
+            interviewTarget={interviewTarget}
+            difficultyLevel={difficultyLevel}
+            chatState={chatState}
+            isOpen={isOpen}
+            onClose={() => {
+              setIsOpen(false);
+              setOpenedWithText(false);
+            }}
+            pageContext={pageContext}
+            sampleQuestions={sampleQuestions}
+            disableAutoFocus={openedWithText}
+            returnFocusRef={chatTriggerRef}
+            sessionId={sessionId}
+          />
+        )}
       </>
     );
   }

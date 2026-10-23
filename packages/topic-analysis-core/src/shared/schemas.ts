@@ -29,7 +29,7 @@ export const topicMergeSchema = z.object({
   topics: z
     .array(topicItemSchema)
     .describe(
-      "重複・近接を統合した議案全体の最終トピック集合。「その他」等の総括トピックは含めない"
+      "重複・近接を統合した施策全体の最終トピック集合。「その他」等の総括トピックは含めない"
     ),
 });
 
@@ -39,5 +39,32 @@ export const topicJudgeSchema = z.object({
     .array(z.number())
     .describe(
       "新規トピックとして採用する候補の番号（1始まり）の配列。既存と明確に異なり粒度も適切なものだけ。曖昧なものは含めない（採用しない）"
+    ),
+});
+
+/** グルーピング（中トピック → 大トピック）の出力 */
+export const topicGroupingSchema = z.object({
+  big_topics: z
+    .array(
+      z.object({
+        title: z
+          .string()
+          .describe(
+            "この大トピックが束ねる論点領域を表す名詞句（12-25字）。中トピックと違い主張文にはしない（配下の主張を横断する見出しなので）"
+          ),
+        description_points: z
+          .array(z.string())
+          .describe(
+            "この領域に関する意見の核心を最大3個の箇条書きで示す。各要素は簡潔な1文（40字程度）で、必ず述語で締める"
+          ),
+        member_local_ids: z
+          .array(z.string())
+          .describe(
+            "この大トピックの配下に置く中トピックのID（提示した一覧のIDをそのまま返す）"
+          ),
+      })
+    )
+    .describe(
+      "中トピックを束ねた大トピック。すべての中トピックをちょうど1つの大トピックに割り当てる"
     ),
 });

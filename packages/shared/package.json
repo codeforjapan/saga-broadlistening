@@ -16,6 +16,10 @@
       "types": "./src/stream/inject-json-fields.ts",
       "default": "./src/stream/inject-json-fields.ts"
     },
+    "./prompt-safety/untrusted-content": {
+      "types": "./src/prompt-safety/untrusted-content.ts",
+      "default": "./src/prompt-safety/untrusted-content.ts"
+    },
     "./moderation/build-prompt": {
       "types": "./src/moderation/build-moderation-prompt.ts",
       "default": "./src/moderation/build-moderation-prompt.ts"
@@ -48,25 +52,21 @@
       "types": "./src/report-publication/count-public-reports.ts",
       "default": "./src/report-publication/count-public-reports.ts"
     },
+    "./report-publication/review-status": {
+      "types": "./src/report-publication/review-status.ts",
+      "default": "./src/report-publication/review-status.ts"
+    },
     "./interview-prompts/types": {
       "types": "./src/interview-prompts/types.ts",
       "default": "./src/interview-prompts/types.ts"
     },
-    "./interview-prompts/stage-transition-guidance": {
-      "types": "./src/interview-prompts/stage-transition-guidance.ts",
-      "default": "./src/interview-prompts/stage-transition-guidance.ts"
+    "./interview-prompts/chat-text-description": {
+      "types": "./src/interview-prompts/chat-text-description.ts",
+      "default": "./src/interview-prompts/chat-text-description.ts"
     },
-    "./interview-prompts/loop-mode": {
-      "types": "./src/interview-prompts/loop-mode.ts",
-      "default": "./src/interview-prompts/loop-mode.ts"
-    },
-    "./interview-prompts/bulk-mode": {
-      "types": "./src/interview-prompts/bulk-mode.ts",
-      "default": "./src/interview-prompts/bulk-mode.ts"
-    },
-    "./interview-prompts/targeted-mode": {
-      "types": "./src/interview-prompts/targeted-mode.ts",
-      "default": "./src/interview-prompts/targeted-mode.ts"
+    "./interview-prompts/subject-section": {
+      "types": "./src/interview-prompts/subject-section.ts",
+      "default": "./src/interview-prompts/subject-section.ts"
     },
     "./interview-prompts/summary": {
       "types": "./src/interview-prompts/summary.ts",
@@ -80,6 +80,14 @@
       "types": "./src/interview-report/parse-assistant-message.ts",
       "default": "./src/interview-report/parse-assistant-message.ts"
     },
+    "./interview-report/opinion-tags": {
+      "types": "./src/interview-report/opinion-tags.ts",
+      "default": "./src/interview-report/opinion-tags.ts"
+    },
+    "./interview-report/opinion-tags-schema": {
+      "types": "./src/interview-report/opinion-tags-schema.ts",
+      "default": "./src/interview-report/opinion-tags-schema.ts"
+    },
     "./interview-report/build-opinion-rows": {
       "types": "./src/interview-report/build-opinion-rows.ts",
       "default": "./src/interview-report/build-opinion-rows.ts"
@@ -91,18 +99,174 @@
     "./interview-report/sync-opinions": {
       "types": "./src/interview-report/sync-opinions.ts",
       "default": "./src/interview-report/sync-opinions.ts"
+    },
+    "./ai/config": {
+      "types": "./src/ai/config.ts",
+      "default": "./src/ai/config.ts"
+    },
+    "./ai/registry": {
+      "types": "./src/ai/registry.ts",
+      "default": "./src/ai/registry.ts"
+    },
+    "./aws/credentials": {
+      "types": "./src/aws/credentials.ts",
+      "default": "./src/aws/credentials.ts"
+    },
+    "./ai/pricing": {
+      "types": "./src/ai/pricing.ts",
+      "default": "./src/ai/pricing.ts"
+    },
+    "./ai/validate-model-id": {
+      "types": "./src/ai/utils/is-valid-model-id.ts",
+      "default": "./src/ai/utils/is-valid-model-id.ts"
+    },
+    "./ai/public-chat-settings": {
+      "types": "./src/ai/utils/public-chat-settings.ts",
+      "default": "./src/ai/utils/public-chat-settings.ts"
+    },
+    "./ai/public-chat-settings-repository": {
+      "types": "./src/ai/public-chat-settings-repository.ts",
+      "default": "./src/ai/public-chat-settings-repository.ts"
+    },
+    "./ai/model-catalog": {
+      "types": "./src/ai/utils/model-catalog.ts",
+      "default": "./src/ai/utils/model-catalog.ts"
+    },
+    "./telemetry/register": {
+      "types": "./src/telemetry/register.ts",
+      "default": "./src/telemetry/register.ts"
+    },
+    "./telemetry/langfuse-base-url": {
+      "types": "./src/telemetry/langfuse-base-url.ts",
+      "default": "./src/telemetry/langfuse-base-url.ts"
+    },
+    "./prompts/catalog": {
+      "types": "./src/prompts/catalog.ts",
+      "default": "./src/prompts/catalog.ts"
+    },
+    "./prompts/template": {
+      "types": "./src/prompts/template.ts",
+      "default": "./src/prompts/template.ts"
+    },
+    "./prompts/repository": {
+      "types": "./src/prompts/repository.ts",
+      "default": "./src/prompts/repository.ts"
+    },
+    "./prompts/provider": {
+      "types": "./src/prompts/provider.ts",
+      "default": "./src/prompts/provider.ts"
+    },
+    "./prompts/home-chat-context": {
+      "types": "./src/prompts/home-chat-context.ts",
+      "default": "./src/prompts/home-chat-context.ts"
+    },
+    "./interview-prompts/published": {
+      "types": "./src/interview-prompts/published.ts",
+      "default": "./src/interview-prompts/published.ts"
+    },
+    "./external-identity/providers": {
+      "types": "./src/external-identity/providers.ts",
+      "default": "./src/external-identity/providers.ts"
+    },
+    "./interview-participation/participation-mode": {
+      "types": "./src/interview-participation/participation-mode.ts",
+      "default": "./src/interview-participation/participation-mode.ts"
+    },
+    "./policy/related-links": {
+      "types": "./src/policy/related-links.ts",
+      "default": "./src/policy/related-links.ts"
+    },
+    "./url/is-http-url": {
+      "types": "./src/url/is-http-url.ts",
+      "default": "./src/url/is-http-url.ts"
+    },
+    "./voice-summary/markdown": {
+      "types": "./src/voice-summary/markdown.ts",
+      "default": "./src/voice-summary/markdown.ts"
+    },
+    "./voice-summary/threshold": {
+      "types": "./src/voice-summary/threshold.ts",
+      "default": "./src/voice-summary/threshold.ts"
+    },
+    "./voice-summary/voice-summary.css": "./src/voice-summary/voice-summary.css",
+    "./interview-prompts/purpose-types/registry": {
+      "types": "./src/interview-prompts/purpose-types/registry.ts",
+      "default": "./src/interview-prompts/purpose-types/registry.ts"
+    },
+    "./interview-prompts/purpose-types/types": {
+      "types": "./src/interview-prompts/purpose-types/types.ts",
+      "default": "./src/interview-prompts/purpose-types/types.ts"
+    },
+    "./interview-prompts/constants": {
+      "types": "./src/interview-prompts/constants.ts",
+      "default": "./src/interview-prompts/constants.ts"
+    },
+    "./interview-prompts/turn-control": {
+      "types": "./src/interview-prompts/turn-control.ts",
+      "default": "./src/interview-prompts/turn-control.ts"
+    },
+    "./interview-prompts/turn-records": {
+      "types": "./src/interview-prompts/turn-records.ts",
+      "default": "./src/interview-prompts/turn-records.ts"
+    },
+    "./interview-prompts/read-signals": {
+      "types": "./src/interview-prompts/read-signals.ts",
+      "default": "./src/interview-prompts/read-signals.ts"
+    },
+    "./interview-prompts/assistant-message": {
+      "types": "./src/interview-prompts/assistant-message.ts",
+      "default": "./src/interview-prompts/assistant-message.ts"
+    },
+    "./interview-prompts/output-schemas": {
+      "types": "./src/interview-prompts/output-schemas.ts",
+      "default": "./src/interview-prompts/output-schemas.ts"
+    },
+    "./interview-prompts/chat-prompt": {
+      "types": "./src/interview-prompts/chat-prompt.ts",
+      "default": "./src/interview-prompts/chat-prompt.ts"
+    },
+    "./interview-prompts/initial-prompt": {
+      "types": "./src/interview-prompts/initial-prompt.ts",
+      "default": "./src/interview-prompts/initial-prompt.ts"
+    },
+    "./interview-prompts/turn-state": {
+      "types": "./src/interview-prompts/turn-state.ts",
+      "default": "./src/interview-prompts/turn-state.ts"
+    },
+    "./interview-prompts/to-prompt-related-policies": {
+      "types": "./src/interview-prompts/to-prompt-related-policies.ts",
+      "default": "./src/interview-prompts/to-prompt-related-policies.ts"
     }
   },
   "dependencies": {
+    "@ai-sdk/amazon-bedrock": "^4.0.176",
+    "@ai-sdk/google": "^3.0.122",
+    "@ai-sdk/openai": "^3.0.9",
+    "@aws-sdk/credential-providers": "^3.1121.0",
+    "@langfuse/otel": "^5.11.1",
+    "@mirai-gikai/branding": "workspace:*",
     "@mirai-gikai/supabase": "workspace:*",
-    "server-only": "^0.0.1"
+    "@opentelemetry/sdk-trace-node": "^2.1.0",
+    "@vercel/oidc-aws-credentials-provider": "^3.3.5",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-breaks": "^4.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "server-only": "^0.0.1",
+    "unified": "^11.0.5"
   },
   "peerDependencies": {
+    "ai": "^6.0.33",
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@langfuse/tracing": "^5.11.1",
+    "@opentelemetry/api": "^1.9.0",
+    "@types/mdast": "^4.0.4",
+    "ai": "^6.0.33",
     "typescript": "^5.6.2",
-    "vitest": "^3.2.4",
+    "vitest": "^3.2.7",
     "zod": "^4.1.12"
   }
 }

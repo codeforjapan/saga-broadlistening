@@ -1,6 +1,6 @@
 import { resolveBackfillParams } from "@mirai-gikai/topic-analysis-core/backfill-params";
 import {
-  countAllReports,
+  countAllOpinions,
   countPendingReextraction,
 } from "@mirai-gikai/topic-analysis-core/repository";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
@@ -15,7 +15,7 @@ const json = (body: unknown, status = 200) =>
     },
   });
 
-/** 進捗（未処理件数 / 全件数）を返す。UI のポーリング用。billId で議案に絞れる。 */
+/** 進捗（未処理件数 / 全件数）を返す。UI のポーリング用。interviewConfigId でテーマに絞れる。 */
 export async function GET(request: Request) {
   try {
     await requireAdmin();
@@ -23,18 +23,21 @@ export async function GET(request: Request) {
     return json({ error: "Unauthorized" }, 401);
   }
 
-  // billId の UUID 検証だけ resolveBackfillParams に委譲する（scope は status では未使用）。
-  const billIdParam = new URL(request.url).searchParams.get("billId");
-  const resolved = resolveBackfillParams({ billId: billIdParam });
+  // interviewConfigId の UUID 検証だけ resolveBackfillParams に委譲する
+  // （scope は status では未使用）。
+  const configIdParam = new URL(request.url).searchParams.get(
+    "interviewConfigId"
+  );
+  const resolved = resolveBackfillParams({ interviewConfigId: configIdParam });
   if (!resolved.ok) {
     return json({ error: resolved.error }, 400);
   }
-  const { billId } = resolved.params;
+  const { interviewConfigId } = resolved.params;
 
   try {
     const [pending, total] = await Promise.all([
-      countPendingReextraction(billId),
-      countAllReports(billId),
+      countPendingReextraction(interviewConfigId),
+      countAllOpinions(interviewConfigId),
     ]);
     return json({ pending, total, processed: total - pending });
   } catch (error) {

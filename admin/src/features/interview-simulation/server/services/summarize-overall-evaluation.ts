@@ -1,7 +1,7 @@
 import "server-only";
 
-import { generateObject } from "ai";
-import type { AiModel } from "@/lib/ai/models";
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
+import { generateObject, type LanguageModel } from "ai";
 import { LLM_MAX_ATTEMPTS, LLM_TIMEOUT_MS } from "../../shared/constants";
 import {
   type OverallEvaluation,
@@ -15,7 +15,7 @@ import { withTimeoutRetry } from "../../shared/utils/with-timeout-retry";
 
 interface SummarizeOverallEvaluationParams {
   slots: OverallEvaluationSlotInput[];
-  model: AiModel;
+  model?: LanguageModel;
   traceId: string;
   signal?: AbortSignal;
 }
@@ -40,7 +40,7 @@ export async function summarizeOverallEvaluation(
     const { object } = await withTimeoutRetry(
       (attemptSignal) =>
         generateObject({
-          model,
+          ...getAiModel("simulation", model),
           schema: overallEvaluationSchema,
           prompt,
           abortSignal: attemptSignal,

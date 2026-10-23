@@ -3,26 +3,21 @@
 import { RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { useArchiveAndNavigate } from "../hooks/use-archive-and-navigate";
 import { RestartConfirmDialog } from "./restart-confirm-dialog";
 
 interface RestartInterviewButtonProps {
   sessionId: string;
-  billId: string;
-  previewToken?: string;
+  target: InterviewTarget;
 }
 
 export function RestartInterviewButton({
   sessionId,
-  billId,
-  previewToken,
+  target,
 }: RestartInterviewButtonProps) {
   const [showConfirm, setShowConfirm] = useState(false);
-  const { execute, isLoading } = useArchiveAndNavigate(
-    sessionId,
-    billId,
-    previewToken
-  );
+  const { execute, isLoading } = useArchiveAndNavigate(sessionId, target);
 
   const handleConfirm = async () => {
     try {

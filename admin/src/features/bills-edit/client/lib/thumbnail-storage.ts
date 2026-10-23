@@ -38,7 +38,7 @@ export async function uploadThumbnail(
 
     // ファイルをアップロード
     const { data, error } = await supabase.storage
-      .from("bill-thumbnails")
+      .from("policy-thumbnails")
       .upload(fileName, file, {
         cacheControl: "3600",
         upsert: true,
@@ -51,7 +51,7 @@ export async function uploadThumbnail(
 
     // 公開URLを取得
     const { data: urlData } = supabase.storage
-      .from("bill-thumbnails")
+      .from("policy-thumbnails")
       .getPublicUrl(data.path);
 
     return { url: urlData.publicUrl };
@@ -74,7 +74,7 @@ export async function deleteThumbnail(url: string): Promise<DeleteResult> {
     }
 
     const { error } = await supabase.storage
-      .from("bill-thumbnails")
+      .from("policy-thumbnails")
       .remove([fileName]);
 
     if (error) {

@@ -1,4 +1,7 @@
+import { SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Container } from "@/components/layouts/container";
 import {
   LegalList,
   LegalPageLayout,
@@ -6,27 +9,29 @@ import {
   LegalSectionTitle,
   LegalSubSectionTitle,
 } from "@/components/layouts/legal-page-layout";
-import { Container } from "@/components/layouts/container";
+import { routes } from "@/lib/routes";
 
 export const metadata: Metadata = {
-  title: "利用規約 | みらい議会",
-  description: "みらい議会の利用規約",
+  title: `利用規約 | ${SITE_NAME}`,
+  description: `${SITE_NAME}の利用規約`,
 };
 
 export default function TermsPage() {
   return (
     <LegalPageLayout
       title="利用規約"
-      description="みらい議会をご利用いただくにあたっての基本的なルールを定めています。"
+      enLabel="Terms of Service"
+      description={`${SITE_NAME}をご利用いただくにあたっての基本的なルールを定めています。`}
       className="pt-24 md:pt-12"
     >
       <Container className="space-y-10">
         <LegalParagraph className="text-right">
-          最終更新日：2026年3月24日
+          最終更新日：2026年7月29日
         </LegalParagraph>
 
         <LegalParagraph>
-          みらい議会（以下「本サービス」といいます。）をご利用いただく場合、以下の規約に同意いただいたものとみなします。
+          {SITE_NAME}
+          （以下「本サービス」といいます。）をご利用いただく場合、以下の規約に同意いただいたものとみなします。
         </LegalParagraph>
 
         <section className="space-y-4">
@@ -68,7 +73,7 @@ export default function TermsPage() {
                 "サーバへの過剰な負荷、システムへの妨害・侵入・解析（リバースエンジニアリング等）行為。",
                 "自動化ツール、ボット等による不正操作。",
                 "AIモデルの悪用：システムプロンプト等の内部設定の推測、プロンプトインジェクション等による意図的な誤動作の誘発。",
-                "目的外利用：「みらい議会」の趣旨（国会提出法案等の関連テーマ）を著しく逸脱した応答を生成させる行為。",
+                `目的外利用：「${SITE_NAME}」の趣旨（佐賀市の施策等の関連テーマ）を著しく逸脱した応答を生成させる行為。`,
                 "なりすまし：他の人物や組織になりすまして本サービスを利用する行為。",
               ]}
             />
@@ -99,10 +104,34 @@ export default function TermsPage() {
                 id: "publish-consent",
                 content: (
                   <>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-bold text-foreground">
                       公開と同意：
                     </span>
-                    AIインタビューを通じて取得した回答ログおよびサマリーは、ユーザー本人が公開に同意した場合、当組織の運営するサービス上で公開されることがあります。
+                    AIインタビューを通じて取得した回答ログおよびサマリー（以下「インタビューデータ」といいます。）は、ユーザー本人が公開に同意した場合に限り、以下の各号の方法で公開または第三者に提供されることがあります。本人が公開に同意しなかったインタビューデータは、第三者に公開または提供されることはありません。
+                    <LegalList
+                      className="mt-2 list-none pl-0"
+                      items={[
+                        {
+                          id: "publish-on-service",
+                          content: "(1) 当組織の運営するサービス上での公開",
+                        },
+                        {
+                          id: "provide-as-open-data",
+                          content: (
+                            <>
+                              (2) インタビューデータを、別途定める「
+                              <Link
+                                href={routes.interviewDataTerms()}
+                                className="text-primary-accent underline"
+                              >
+                                {SITE_NAME}AIインタビューデータ利用規約
+                              </Link>
+                              」に同意する者であれば誰でもダウンロード可能なオープンデータとして第三者に提供すること
+                            </>
+                          ),
+                        },
+                      ]}
+                    />
                   </>
                 ),
               },
@@ -110,10 +139,10 @@ export default function TermsPage() {
                 id: "internal-analysis",
                 content: (
                   <>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-bold text-foreground">
                       内部分析利用：
                     </span>
-                    本人が公開に同意しなかったデータについても、当組織内においてサービス向上や政策検討の目的で共有・活用されるものとし、ユーザーはこれに同意するものとします。
+                    本人が公開に同意しなかったインタビューデータについても、当組織内において、サービス向上、施策立案、不正対策その他当組織サービスの運営上必要な目的で利用するものとし、ユーザーはこれに同意するものとします。この場合でも、当該データが第三者に公開または提供されることはありません。ただし、法令に基づく場合、および個人を特定できない統計情報に加工して利用・公表する場合を除きます。
                   </>
                 ),
               },
@@ -121,10 +150,10 @@ export default function TermsPage() {
                 id: "rights-attribution",
                 content: (
                   <>
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-bold text-foreground">
                       権利の帰属：
                     </span>
-                    本サービスを通じて生成された応答や対話ログに関する権利（著作権法第27条および第28条の権利を含みます。）は、当組織に帰属するか、または無償で利用（複製、加工、公表等）することを許諾したものとみなします。なお、公表については、当組織は、第1項のとおりユーザー本人が公表に同意した場合のみ実施するものとします。
+                    本サービスを通じて生成された応答や対話ログに関する権利（著作権法第27条および第28条の権利を含みます。）は、当組織に帰属すること、またはユーザーが当組織に対して無償で利用（複製、加工、公表、および本人が公開に同意した範囲におけるオープンデータとしての第三者への利用許諾を含みます。）することを許諾したものとみなします。また、ユーザーは、当組織および当組織から利用を許諾された第三者に対し、著作者人格権を行使しないものとします。なお、公表については、本条第1項のとおりユーザー本人が公表に同意した場合のみ実施するものとします。
                   </>
                 ),
               },

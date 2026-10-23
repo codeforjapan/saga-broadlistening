@@ -5,10 +5,15 @@ import {
   isSessionOwner,
 } from "@/features/interview-session/server/utils/verify-session-ownership";
 import type { InterviewReport } from "../../shared/types";
+import {
+  getReportOrigin,
+  type ReportOrigin,
+} from "../../shared/utils/public-report-display";
 import { findReportWithSessionById } from "../repositories/interview-report-repository";
 
 export type InterviewReportWithSessionInfo = InterviewReport & {
-  bill_id: string;
+  /** 意見が寄せられた対象（施策・テーマ） */
+  origin: ReportOrigin;
   session_started_at: string;
   session_completed_at: string | null;
 };
@@ -34,20 +39,15 @@ export async function getInterviewReportById(
   try {
     report = await findReportWithSessionById(reportId);
   } catch (error) {
-    console.error("Failed to fetch interview report:", error);
+    console.error("Failed to fetch opinion:", error);
     return null;
   }
 
   // セッション情報を取得
-  const session = report.interview_sessions as {
-    user_id: string;
-    started_at: string;
-    completed_at: string | null;
-    interview_configs: { bill_id: string } | null;
-  } | null;
+  const session = report.interview_sessions;
 
   if (!session) {
-    console.error("Session not found for report");
+    console.error("Session not found for opinion");
     return null;
   }
 
@@ -58,21 +58,22 @@ export async function getInterviewReportById(
     : report.is_public_by_user || isOwner;
 
   if (!isAllowed) {
-    console.error("Unauthorized access to interview report");
+    console.error("Unauthorized access to opinion");
     return null;
   }
 
-  // interview_configsからbill_idを取得
-  if (!session.interview_configs) {
-    console.error("Interview config not found for session");
+  // 意見の起点（施策・テーマ）を取得。抽象テーマ型では施策IDが null になる
+  const origin = getReportOrigin(session);
+  if (!origin) {
+    console.error("Interview config not found for interview session");
     return null;
   }
 
-  // レポートデータを返す
+  // 意見データを返す
   const { interview_sessions: _, ...reportData } = report;
   return {
     ...reportData,
-    bill_id: session.interview_configs.bill_id,
+    origin,
     session_started_at: session.started_at,
     session_completed_at: session.completed_at,
   };

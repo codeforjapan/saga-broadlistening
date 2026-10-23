@@ -1,88 +1,98 @@
-import { isPublicReportVisible } from "@mirai-gikai/shared/report-publication/auto-publish";
-import type { StanceCounts, StanceFilter } from "./stance-filter";
+import {
+  isPublicReportVisible,
+  type OpinionReviewStatus,
+} from "@mirai-gikai/shared/report-publication/auto-publish";
+import {
+  type InterviewTarget,
+  policyInterviewTarget,
+  themeInterviewTarget,
+} from "@/features/interview-config/shared/types/interview-target";
+import {
+  getBillDetailLink,
+  getThemeHomeLink,
+} from "@/features/interview-config/shared/utils/interview-links";
+import {
+  type LinkedPolicyRow,
+  selectPrimaryPolicyId,
+  toLinkedPolicies,
+} from "@/features/interview-config/shared/utils/interview-visibility";
+import { getOpinionsLink } from "@/features/user-topic-analysis/shared/utils/topic-analysis-links";
 
-export type RawPublicInterviewReport = {
+/** 公開意見一覧のカード1件（取得した行をそのまま表示に使う）。 */
+export type PublicInterviewReport = {
   id: string;
-  stance: string | null;
-  role: string | null;
   role_title: string | null;
   summary: string | null;
+  final_text: string;
   total_content_richness: number | null;
   created_at: string;
 };
 
-export type PublicInterviewReportDisplay = RawPublicInterviewReport;
-
-export type PublicReportStanceCountRow = {
-  stance: string | null;
-  count: number | string | bigint;
-};
-
+/** 意見に紐づくセッション（意見募集・施策まで辿れる形） */
 export type PublicReportSessionLike = {
   started_at: string;
   completed_at: string | null;
-  interview_configs: { bill_id: string } | null;
+  interview_config_id: string;
+  interview_configs: {
+    slug: string;
+    name: string;
+    status: string;
+    policies_interview_configs: LinkedPolicyRow[];
+  } | null;
 } | null;
+
+/**
+ * 意見がどこから寄せられたか。表示側の戻り先・見出しの出し分けに使う。
+ *
+ * 施策に紐づく意見募集なら施策、抽象テーマ型ならテーマが起点になる。
+ */
+export type ReportOrigin = {
+  /** 起点になる公開済み施策のID。抽象テーマ型では null */
+  policyId: string | null;
+  /** 起点になったテーマ。isOpen が false なら個別ページは公開されていない */
+  theme: { slug: string; name: string; isOpen: boolean };
+};
 
 type BillContentLike = { title: string };
 
-export function createEmptyStanceCounts(): StanceCounts {
-  return {
-    all: 0,
-    for: 0,
-    against: 0,
-    neutral: 0,
-  };
-}
-
-export function mapPublicInterviewReports(
-  rawReports: RawPublicInterviewReport[]
-): PublicInterviewReportDisplay[] {
-  return rawReports.map((report) => ({
-    id: report.id,
-    stance: report.stance,
-    role: report.role,
-    role_title: report.role_title,
-    summary: report.summary,
-    total_content_richness: report.total_content_richness,
-    created_at: report.created_at,
-  }));
-}
-
-export function buildStanceCounts(
-  stanceRows: PublicReportStanceCountRow[]
-): StanceCounts {
-  const stanceCounts = createEmptyStanceCounts();
-
-  for (const row of stanceRows) {
-    const key = row.stance as StanceFilter | null;
-    const count = Number(row.count);
-    if (key && key in stanceCounts && key !== "all") {
-      stanceCounts[key] = count;
-    }
-    stanceCounts.all += count;
-  }
-
-  return stanceCounts;
-}
-
+/** 1件多く取得した行から、ページ分の意見と続きの有無を切り出す。 */
 export function buildPublicReportsPage(
-  rawReports: RawPublicInterviewReport[],
+  rawReports: PublicInterviewReport[],
   pageSize: number
 ) {
   const hasMore = rawReports.length > pageSize;
   return {
-    reports: mapPublicInterviewReports(
-      hasMore ? rawReports.slice(0, pageSize) : rawReports
-    ),
+    reports: hasMore ? rawReports.slice(0, pageSize) : rawReports,
     hasMore,
   };
 }
 
-export function getBillIdFromPublicReportSession(
+/**
+ * 意見のセッションから、表示に使う起点（施策・テーマ）を取り出す。
+ *
+ * 施策と意見募集は多対多のため、公開済みの最初の1件を施策として採用する
+ * （複数施策表示の UI 対応は Epic #8 のフォローアップ）。
+ * 抽象テーマ型や、紐づく施策がまだ公開されていない場合は施策なしとして扱い、
+ * テーマだけを起点にする。
+ */
+export function getReportOrigin(
   session: PublicReportSessionLike
-) {
-  return session?.interview_configs?.bill_id ?? null;
+): ReportOrigin | null {
+  const config = session?.interview_configs;
+  if (!config) {
+    return null;
+  }
+
+  return {
+    policyId: selectPrimaryPolicyId(
+      toLinkedPolicies(config.policies_interview_configs)
+    ),
+    theme: {
+      slug: config.slug,
+      name: config.name,
+      isOpen: config.status === "open",
+    },
+  };
 }
 
 export function selectPrimaryBillContent<T extends BillContentLike>(
@@ -102,19 +112,76 @@ export function countUserMessageCharacters(
 
 export function canViewReportWithMessages({
   isOwner,
-  isPublicByAdmin,
-  isPublicByUser,
-  publicReportCount,
+  reviewStatus,
+  publicOpinionCount,
 }: {
   isOwner: boolean;
-  isPublicByAdmin: boolean;
-  isPublicByUser: boolean;
-  publicReportCount: number;
+  reviewStatus: OpinionReviewStatus;
+  publicOpinionCount: number;
 }) {
   if (isOwner) return true;
   return isPublicReportVisible({
-    isPublicByAdmin,
-    isPublicByUser,
-    publicReportCount,
+    reviewStatus,
+    publicReportCount: publicOpinionCount,
   });
+}
+
+/** 意見の見出し・戻り導線に使う対象 */
+export type ReportSubject = {
+  /** 表示名 */
+  name: string;
+  /** 遷移先 */
+  href: string;
+};
+
+/** 見出しに施策名を出すために必要な最小の施策情報 */
+export type ReportSubjectBill = {
+  name: string;
+} | null;
+
+/**
+ * 意見の起点へのリンク。
+ *
+ * 施策に紐づく意見は施策詳細へ、施策を持たない抽象テーマ型はそのテーマのページへ誘導する。
+ * ただし募集が終わったテーマの個別ページは公開されないため、その場合はテーマ一覧に送る。
+ */
+export function getReportOriginLink(origin: ReportOrigin): string {
+  if (origin.policyId) {
+    return getBillDetailLink(origin.policyId);
+  }
+
+  return getThemeHomeLink(origin.theme);
+}
+
+/**
+ * 意見の起点を、リンク組み立て用の InterviewTarget に変換する。
+ * 施策に紐づく意見は施策、施策を持たない抽象テーマ型はテーマが起点になる。
+ */
+export function getReportOriginTarget(origin: ReportOrigin): InterviewTarget {
+  return origin.policyId
+    ? policyInterviewTarget(origin.policyId)
+    : themeInterviewTarget(origin.theme.slug);
+}
+
+/**
+ * 意見が並んでいた回答一覧へのリンク。
+ * 施策配下・テーマ配下の出し分けは getOpinionsLink に委ねる。
+ */
+export function getReportOpinionsLink(origin: ReportOrigin): string {
+  return getOpinionsLink(getReportOriginTarget(origin));
+}
+
+/**
+ * 意見がどの対象について寄せられたものかを、表示用にまとめる。
+ * 施策があればその名前、なければテーマ名を見出しに使う。
+ */
+export function resolveReportSubject(
+  bill: ReportSubjectBill,
+  origin: ReportOrigin
+): ReportSubject {
+  return {
+    // 施策名（親施策なら「若者支援」）を出す。トピック一覧のパンくずと同じ呼び方にそろえる（#159）
+    name: bill ? bill.name : origin.theme.name,
+    href: getReportOriginLink(origin),
+  };
 }

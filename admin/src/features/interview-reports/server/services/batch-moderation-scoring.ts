@@ -1,10 +1,9 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { buildModerationPrompt } from "@mirai-gikai/shared/moderation/build-prompt";
 import { moderationResultSchema } from "@mirai-gikai/shared/moderation/schemas";
 import { generateObject } from "ai";
-import { DEFAULT_INTERVIEW_CHAT_MODEL } from "@/lib/ai/models";
-import { parseOpinions } from "../../shared/utils/parse-opinions";
 import {
   findInterviewMessagesBySessionId,
   findReportForModerationScoringById,
@@ -38,17 +37,20 @@ export async function runSingleModerationScoring(
     report.interview_session_id
   );
 
-  const prompt = buildModerationPrompt({
+  const { system, user } = buildModerationPrompt({
     summary: report.summary,
-    opinions: parseOpinions(report.opinions),
+    opinions: [...report.opinion_segments]
+      .sort((a, b) => a.opinion_index - b.opinion_index)
+      .map((segment) => ({ title: segment.title, content: segment.content })),
     roleDescription: report.role_description,
     messages: messages.map((m) => ({ role: m.role, content: m.content })),
   });
 
   const { object } = await generateObject({
-    model: DEFAULT_INTERVIEW_CHAT_MODEL,
+    ...getAiModel("moderation"),
     schema: moderationResultSchema,
-    prompt,
+    system,
+    messages: [{ role: "user", content: user }],
   });
 
   await updateModerationScore(reportId, {

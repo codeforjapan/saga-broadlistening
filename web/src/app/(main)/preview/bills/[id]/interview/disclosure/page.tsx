@@ -2,9 +2,10 @@ import { AlertTriangle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
+import { InterviewDisclosurePage } from "@/features/interview-config/server/components/interview-disclosure-page";
 import { getInterviewConfigAdmin } from "@/features/interview-config/server/loaders/get-interview-config-admin";
 import { loadDisclosureData } from "@/features/interview-config/server/loaders/load-disclosure-data";
-import { InterviewDisclosurePage } from "@/features/interview-config/server/components/interview-disclosure-page";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { env } from "@/lib/env";
 
 interface DisclosurePreviewPageProps {
@@ -18,7 +19,7 @@ interface DisclosurePreviewPageProps {
 
 function PreviewBanner() {
   return (
-    <div className="sticky top-0 z-50 bg-yellow-50 border-b border-yellow-200">
+    <div className="sticky top-0 z-50 bg-yellow-400/20 border-b border-yellow-400">
       <div className="max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-yellow-800">
@@ -66,7 +67,10 @@ export default async function DisclosurePreviewPage({
   return (
     <>
       <PreviewBanner />
-      <InterviewDisclosurePage {...disclosureData} previewToken={token} />
+      <InterviewDisclosurePage
+        {...disclosureData}
+        target={policyInterviewTarget(billId, token)}
+      />
     </>
   );
 }

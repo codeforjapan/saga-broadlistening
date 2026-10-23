@@ -1,7 +1,7 @@
 import type { Database } from "@mirai-gikai/supabase";
 import { unstable_cache } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
-import { findPublicInterviewConfigByBillId } from "../repositories/interview-config-repository";
+import { findOpenInterviewConfigByPolicyId } from "../repositories/interview-config-repository";
 
 export type InterviewConfig =
   Database["public"]["Tables"]["interview_configs"]["Row"];
@@ -14,13 +14,9 @@ export async function getInterviewConfig(
 
 const _getCachedInterviewConfig = unstable_cache(
   async (billId: string): Promise<InterviewConfig | null> => {
-    const { data, error } = await findPublicInterviewConfigByBillId(billId);
+    const { data, error } = await findOpenInterviewConfigByPolicyId(billId);
 
     if (error) {
-      // レコードが存在しない場合はnullを返す（エラーではない）
-      if (error.code === "PGRST116") {
-        return null;
-      }
       console.error("Failed to fetch interview config:", error);
       return null;
     }

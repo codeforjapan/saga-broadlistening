@@ -12,14 +12,29 @@ export const routes = {
   bills: () => "/bills" as const,
   billNew: () => "/bills/new" as const,
   admins: () => "/admins" as const,
+  publicChatSettings: () => "/chats" as const,
+  publicChatPrompts: () => "/chats/prompts" as const,
   tags: () => "/tags" as const,
-  dietSessions: () => "/diet-sessions" as const,
-  experts: () => "/experts" as const,
   interviews: () => "/interviews" as const,
+  interviewPrompts: () => "/interviews/prompts" as const,
+  interviewNew: () => "/interviews/new" as const,
+  /** 施策のページから作成するとき。その施策を紐づけた状態で始める */
+  interviewNewForPolicy: (policyId: string) =>
+    `/interviews/new?policyId=${policyId}` as const,
   interviewOpinionBackfill: () => "/interview-opinion-backfill" as const,
   userTopicAnalysisAll: () => "/user-topic-analysis" as const,
 
-  // ── 議案配下 ──────────────────────────────────────
+  // ── 意見募集（テーマ単位。施策に紐づかない抽象テーマ型もここで編集する） ──
+  interviewEdit: (configId: string) => `/interviews/${configId}/edit` as const,
+  interviewUserTopicAnalysis: (configId: string) =>
+    `/interviews/${configId}/user-topic-analysis` as const,
+  /** summaryId を渡すと、その版を開いた状態にする */
+  interviewVoiceSummary: (configId: string, summaryId?: string) =>
+    summaryId
+      ? (`/interviews/${configId}/voice-summary?summaryId=${summaryId}` as const)
+      : (`/interviews/${configId}/voice-summary` as const),
+
+  // ── 施策配下 ──────────────────────────────────────
   billEdit: (billId: string) => `/bills/${billId}/edit` as const,
   billContentsEdit: (billId: string) =>
     `/bills/${billId}/contents/edit` as const,
@@ -28,10 +43,6 @@ export const routes = {
 
   // インタビュー
   billInterview: (billId: string) => `/bills/${billId}/interview` as const,
-  billInterviewNew: (billId: string) =>
-    `/bills/${billId}/interview/new` as const,
-  billInterviewEdit: (billId: string, configId: string) =>
-    `/bills/${billId}/interview/${configId}/edit` as const,
 
   // レポート（インタビュー設定配下）
   billReports: (billId: string, configId: string) =>

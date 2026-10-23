@@ -28,10 +28,15 @@ const STEP_LABEL: Record<string, string> = {
   extract: "トピック抽出中",
   merge: "トピック統合中",
   assign: "意見割当中",
+  group: "トピックのグルーピング中",
   done: "完了処理中",
 };
 
-export function RunAnalysisButton({ billId }: { billId: string }) {
+export function RunAnalysisButton({
+  interviewConfigId,
+}: {
+  interviewConfigId: string;
+}) {
   const router = useRouter();
   const [isRunning, setIsRunning] = useState(false);
   const [strategy, setStrategy] = useState<AnalysisStrategy>("full");
@@ -93,7 +98,7 @@ export function RunAnalysisButton({ billId }: { billId: string }) {
       const res = await fetch("/api/user-topic-analysis/dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ billId, strategy }),
+        body: JSON.stringify({ interviewConfigId, strategy }),
       });
       if (!res.ok) throw new Error(`実行開始に失敗しました (${res.status})`);
       const data = (await res.json()) as { versionId?: string };
@@ -103,7 +108,7 @@ export function RunAnalysisButton({ billId }: { billId: string }) {
       setIsRunning(false);
       setError(e instanceof Error ? e.message : "実行開始に失敗しました");
     }
-  }, [billId, strategy, poll]);
+  }, [interviewConfigId, strategy, poll]);
 
   return (
     <div className="flex flex-col gap-2">
@@ -141,7 +146,7 @@ export function RunAnalysisButton({ billId }: { billId: string }) {
           …（完了まで数分かかります）
         </p>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-system-warning">{error}</p>}
     </div>
   );
 }
