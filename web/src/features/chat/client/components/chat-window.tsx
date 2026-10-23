@@ -26,6 +26,7 @@ import type { InterviewTarget } from "@/features/interview-config/shared/types/i
 import { useIsDesktop } from "@/hooks/use-is-desktop";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useViewportHeight } from "@/hooks/use-viewport-height";
+import { CHAT_PANEL_PC_MEDIA_QUERY } from "../../shared/constants";
 import {
   CHAT_PANEL_PC_WIDTH_CLASS,
   CHAT_PANEL_RESPONSIVE_CLASSES,
@@ -198,7 +199,7 @@ export function ChatWindow({
   const [isMounted, setIsMounted] = useState(false);
   const { messages, sendMessage, status, error } = chatState;
   const isDesktop = useIsDesktop();
-  const isPc = useMediaQuery("(min-width: 1000px)");
+  const isPc = useMediaQuery(CHAT_PANEL_PC_MEDIA_QUERY);
   const viewportHeight = useViewportHeight();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
