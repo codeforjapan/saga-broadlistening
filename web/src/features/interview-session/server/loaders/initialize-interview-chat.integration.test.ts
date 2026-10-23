@@ -174,6 +174,33 @@ describe("initializeInterviewChat 統合テスト", () => {
     expect(count).toBe(0);
   });
 
+  it("最初の質問の生成が重なっても（再読み込みなど）、最初の質問は1件だけ保存する", async () => {
+    const init = () =>
+      initializeInterviewChat(config, bill, {
+        deps: {
+          getUser: createGetUser(testUser.id),
+          model: createGenerateMock(llmResponse),
+        },
+      });
+
+    const results = await Promise.all([init(), init()]);
+    const questions = await Promise.all(
+      results.map(async (result) => {
+        if (result.kind !== "chat") throw new Error("expected chat");
+        const [question] = await result.messages;
+        return question;
+      })
+    );
+
+    // どちらの描画にも同じ最初の質問が出る
+    expect(questions[0]?.id).toBe(questions[1]?.id);
+    const { count } = await adminClient
+      .from("interview_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("interview_session_id", sessionId);
+    expect(count).toBe(1);
+  });
+
   it("外部IDが未記録の進行中セッションに、紐付いた外部IDを後から記録する", async () => {
     await createTestInterviewMessages(sessionId, 2);
     const uid = `uid-${uniqueSuffix()}`;
