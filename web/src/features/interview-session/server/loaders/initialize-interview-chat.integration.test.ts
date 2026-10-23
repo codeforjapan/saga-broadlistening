@@ -66,6 +66,8 @@ describe("initializeInterviewChat 統合テスト", () => {
     if (result.kind !== "chat") throw new Error("expected chat");
     expect(result.session.id).toBe(sessionId);
     expect(result.session.interview_config_id).toBe(interviewConfigId);
+    // 履歴があれば最初の質問は生成せず、そのまま配列で返す
+    if (!Array.isArray(result.messages)) throw new Error("expected array");
     expect(result.messages).toHaveLength(2);
     expect(result.messages[0].interview_session_id).toBe(sessionId);
   });
@@ -123,7 +125,7 @@ describe("initializeInterviewChat 統合テスト", () => {
     ).rejects.toThrow("Failed to get user: fetch failed");
   });
 
-  it("メッセージのない進行中セッションでは最初の質問を生成する", async () => {
+  it("メッセージのない進行中セッションでは、最初の質問の生成を待たずに返し、生成した質問を保存する", async () => {
     const mockModel = createGenerateMock(llmResponse);
 
     const result = await initializeInterviewChat(config, bill, {
@@ -135,14 +137,41 @@ describe("initializeInterviewChat 統合テスト", () => {
 
     if (result.kind !== "chat") throw new Error("expected chat");
     expect(result.session.id).toBe(sessionId);
-    // MockModelが生成した初期質問メッセージが含まれること
-    expect(result.messages).toHaveLength(1);
-    expect(result.messages[0].role).toBe("assistant");
-    expect(JSON.parse(result.messages[0].content)).toMatchObject({
+    // ページは生成を待たずに描画できるよう、生成中の Promise で返る（#229）
+    expect(result.messages).toBeInstanceOf(Promise);
+
+    // MockModelが生成した初期質問メッセージが返り、DBにも保存されること
+    const [question] = await result.messages;
+    expect(question?.role).toBe("assistant");
+    const { data: saved } = await adminClient
+      .from("interview_messages")
+      .select("id, content")
+      .eq("interview_session_id", sessionId);
+    expect(saved).toHaveLength(1);
+    expect(saved?.[0].id).toBe(question?.id);
+    expect(JSON.parse(saved?.[0].content ?? "")).toMatchObject({
       text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
       topic_title: "はじめに",
       stage: "chat",
     });
+  });
+
+  it("最初の質問の生成に失敗したら空の履歴を返し、何も保存しない", async () => {
+    const result = await initializeInterviewChat(config, bill, {
+      deps: {
+        getUser: createGetUser(testUser.id),
+        // 空の応答は保存せずに失敗として扱われる
+        model: createGenerateMock(""),
+      },
+    });
+
+    if (result.kind !== "chat") throw new Error("expected chat");
+    expect(await result.messages).toEqual([]);
+    const { count } = await adminClient
+      .from("interview_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("interview_session_id", sessionId);
+    expect(count).toBe(0);
   });
 
   it("外部IDが未記録の進行中セッションに、紐付いた外部IDを後から記録する", async () => {

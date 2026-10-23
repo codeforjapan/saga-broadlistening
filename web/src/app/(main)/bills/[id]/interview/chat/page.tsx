@@ -8,9 +8,9 @@ import { getInterviewConfig } from "@/features/interview-config/server/loaders/g
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
 import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
-import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
 import { InterviewChatStart } from "@/features/interview-session/client/components/interview-chat-start";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
+import { InterviewChatSession } from "@/features/interview-session/server/components/interview-chat-session";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 import { InterviewParticipationDeniedError } from "@/features/interview-session/server/services/resolve-interview-participation";
 import { routes } from "@/lib/routes";
@@ -56,7 +56,7 @@ export default async function InterviewChatPage({
 
     const { session, messages } = chat;
     return (
-      <InterviewChatClient
+      <InterviewChatSession
         target={target}
         interviewConfigId={interviewConfig.id}
         bill={{ id: bill.id, title: bill.bill_content?.title ?? bill.name }}
