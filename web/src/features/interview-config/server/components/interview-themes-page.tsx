@@ -20,7 +20,7 @@ export async function InterviewThemesPage() {
       <Container className="flex flex-col gap-12">
         <div className="flex flex-col gap-8">
           <header className="flex flex-col gap-2">
-            <p className="text-sm font-semibold tracking-[0.14em] text-primary-accent">
+            <p className="text-sm font-bold tracking-[0.14em] text-primary-accent">
               AI Interview
             </p>
             <h1 className="text-2xl font-bold sm:text-3xl">AIインタビュー</h1>

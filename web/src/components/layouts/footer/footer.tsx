@@ -44,7 +44,7 @@ function FooterPrimaryLinks() {
     <nav aria-label="主要リンク" className="w-full mb-5">
       <ul
         className="
-      flex flex-col items-center gap-3 text-[14px] font-semibold text-foreground
+      flex flex-col items-center gap-3 text-[14px] font-bold text-foreground
       md:flex-row md:justify-center md:gap-5
       "
       >
@@ -65,7 +65,7 @@ function FooterPrimaryLinks() {
 
 function FooterPolicies() {
   return (
-    <div className="flex flex-col items-center text-[12px] font-semibold text-foreground mb-5">
+    <div className="flex flex-col items-center text-[12px] font-bold text-foreground mb-5">
       <ul className="flex flex-wrap justify-center gap-x-2 gap-y-1">
         {policyLinks.map((policy, index) => (
           <li key={policy.label} className="flex items-center gap-2">
