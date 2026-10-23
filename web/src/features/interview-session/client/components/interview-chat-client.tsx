@@ -44,6 +44,8 @@ interface InterviewChatClientProps {
   hasRated?: boolean;
   /** サーバーが持つセッションのステージ（interview_sessions.stage） */
   initialStage: InterviewStage;
+  /** 最初の質問を生成中（サーバーの Suspense の待ち表示）。入力と終了を止める */
+  isPreparing?: boolean;
 }
 
 export function InterviewChatClient({
@@ -57,6 +59,7 @@ export function InterviewChatClient({
   sessionStartedAt,
   hasRated,
   initialStage,
+  isPreparing = false,
 }: InterviewChatClientProps) {
   // プレビュートークンは target が持っているので、別 prop では受け取らない
   const previewToken =
@@ -110,7 +113,11 @@ export function InterviewChatClient({
       ? remainingMinutes
       : null;
   const showTimeUpPrompt =
-    isTimeUp && !timeUpDismissed && stage === "chat" && !isLoading;
+    isTimeUp &&
+    !timeUpDismissed &&
+    stage === "chat" &&
+    !isLoading &&
+    !isPreparing;
 
   // チャット操作時にタイムアップアラートを自動非表示にする
   const dismissTimeUpIfNeeded = useCallback(() => {
@@ -172,7 +179,7 @@ export function InterviewChatClient({
       <Conversation className="min-h-0 flex-1 overflow-y-auto">
         <ConversationContent className="flex flex-col gap-4">
           {/* 初期表示メッセージ */}
-          {messages.length === 0 && !object && (
+          {messages.length === 0 && !object && !isPreparing && (
             <div className="flex flex-col gap-4">
               <p className="text-sm font-bold leading-[1.8] text-foreground">
                 {bill
@@ -226,7 +233,7 @@ export function InterviewChatClient({
           )}
 
           {/* ローディング表示 */}
-          {isLoading && !object && (
+          {(isPreparing || (isLoading && !object)) && (
             <span className="text-sm text-muted-foreground">考え中...</span>
           )}
 
@@ -275,7 +282,7 @@ export function InterviewChatClient({
             <EndInterviewButton
               isSummaryStage={stage === "summary"}
               onEnd={handleEnd}
-              disabled={isLoading}
+              disabled={isLoading || isPreparing}
             />
           </div>
         )}
@@ -301,6 +308,7 @@ export function InterviewChatClient({
             onSubmit={handleChatSubmit}
             placeholder="AIの質問に回答する"
             isResponding={isLoading}
+            disabled={isPreparing}
           />
         )}
       </div>

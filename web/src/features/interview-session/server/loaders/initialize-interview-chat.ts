@@ -15,7 +15,6 @@ import {
 } from "../repositories/interview-session-repository";
 import { requireInterviewParticipation } from "../services/resolve-interview-participation";
 import type { SessionAccessDeps } from "../services/verify-session-access";
-import { withRelatedPolicies } from "./with-related-policies";
 
 type InitializeInterviewChatDeps = SessionAccessDeps & {
   model?: LanguageModel;
@@ -35,12 +34,16 @@ export type InitializeInterviewChatResult =
   | {
       kind: "chat";
       session: InterviewSession;
-      messages: InterviewMessage[];
+      /**
+       * メッセージ履歴。空のときは最初の質問を生成中の Promise（失敗したら空配列）。
+       * ページの描画を AI の応答で止めないよう await せずに返し、Suspense の中で待つ（#229）
+       */
+      messages: InterviewMessage[] | Promise<InterviewMessage[]>;
     };
 
 /**
  * インタビューチャットの初期化処理
- * 参加条件の判定、進行中セッションの取得、メッセージ履歴取得、最初の質問生成を行う。
+ * 参加条件の判定、進行中セッションの取得、メッセージ履歴取得、最初の質問生成の開始を行う。
  * 進行中のセッションがない（初回訪問で利用者がまだいない場合も含む）ときは開始画面（kind: "start"）を返す。
  * 参加条件を満たさない場合は InterviewParticipationDeniedError を投げる
  * （呼び出し側のページは LP へ戻す）。
@@ -101,28 +104,18 @@ export async function initializeInterviewChat(
     session = { ...session, external_identity_id: externalIdentityId };
   }
 
-  // メッセージ履歴を取得
-  let messages = await findInterviewMessagesBySessionId(session.id);
+  // メッセージ履歴を取得。空なら最初の質問を生成する（初回の質問は施策を ID しか使わない）
+  const history = await findInterviewMessagesBySessionId(session.id);
+  const messages =
+    history.length > 0
+      ? history
+      : generateInitialQuestion({
+          sessionId: session.id,
+          interviewConfig,
+          bill,
+          userId: user.id,
+          deps: { model: deps?.model },
+        }).then((question) => (question ? [question] : []));
 
-  // メッセージ履歴が空の場合、最初の質問を生成
-  if (messages.length === 0) {
-    const initialQuestion = await generateInitialQuestion({
-      sessionId: session.id,
-      interviewConfig,
-      // 2問目以降（resolveInterviewChatContext）と同じく、他の紐づく施策も並べる
-      bill: await withRelatedPolicies(bill, interviewConfig.id),
-      userId: user.id,
-      deps: { model: deps?.model },
-    });
-
-    if (initialQuestion) {
-      messages = [initialQuestion];
-    }
-  }
-
-  return {
-    kind: "chat",
-    session,
-    messages,
-  };
+  return { kind: "chat", session, messages };
 }

@@ -9,9 +9,9 @@ import { getInterviewConfigAdmin } from "@/features/interview-config/server/load
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
 import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
-import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
 import { InterviewChatStart } from "@/features/interview-session/client/components/interview-chat-start";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
+import { InterviewChatSession } from "@/features/interview-session/server/components/interview-chat-session";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 import { env } from "@/lib/env";
 
@@ -99,7 +99,7 @@ export default async function InterviewPreviewChatPage({
     return (
       <>
         <PreviewBanner />
-        <InterviewChatClient
+        <InterviewChatSession
           target={policyInterviewTarget(billId, token)}
           interviewConfigId={interviewConfig.id}
           bill={{ id: bill.id, title: bill.bill_content?.title ?? bill.name }}
