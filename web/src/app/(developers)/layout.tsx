@@ -1,8 +1,8 @@
 import { GoogleAnalytics } from "@next/third-parties/google";
 import type { ReactNode } from "react";
 import { Header } from "@/components/header";
-import { AuthGate } from "@/components/layouts/auth-gate";
 import { Footer } from "@/components/layouts/footer/footer";
+import { ServerAuthGate } from "@/components/layouts/server-auth-gate";
 import { env } from "@/lib/env";
 
 /**
@@ -18,7 +18,7 @@ export default function DevelopersGroupLayout({
   return (
     <>
       <GoogleAnalytics gaId={env.analytics.gaTrackingId ?? ""} />
-      <AuthGate />
+      <ServerAuthGate />
       <Header />
       {/* デザインシステム準拠: 白を基調のキャンバスにする */}
       <main className="min-h-dvh bg-white pt-24">{children}</main>
