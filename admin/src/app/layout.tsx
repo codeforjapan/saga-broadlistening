@@ -51,10 +51,12 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="ja">
-      <body
-        className={`${notoSansJP.variable} ${zenMaruGothic.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}
-      >
+    // フォントの変数は tokens.css の @theme（:root）から参照するので、html に定義する
+    <html
+      lang="ja"
+      className={`${notoSansJP.variable} ${zenMaruGothic.variable} ${geistMono.variable}`}
+    >
+      <body className="font-sans antialiased bg-background text-foreground">
         <NextTopLoader
           color={PROGRESS_BAR_COLOR}
           initialPosition={0.08}

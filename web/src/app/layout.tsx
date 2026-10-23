@@ -103,7 +103,11 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="ja">
+    // フォントの変数は tokens.css の @theme（:root）から参照するので、html に定義する
+    <html
+      lang="ja"
+      className={`${notoSansJP.variable} ${zenMaruGothic.variable} ${notoSerifJP.variable}`}
+    >
       <head>
         {/*
           外部アプリが #uid= 付きで開いたとき、GA 等が URL を記録する前に
@@ -111,9 +115,7 @@ export default function RootLayout({
         */}
         <script dangerouslySetInnerHTML={{ __html: EARLY_CAPTURE_SCRIPT }} />
       </head>
-      <body
-        className={`${notoSansJP.variable} ${zenMaruGothic.variable} ${notoSerifJP.variable} font-sans antialiased bg-background text-foreground`}
-      >
+      <body className="font-sans antialiased bg-background text-foreground">
         <NextTopLoader showSpinner={false} color={PROGRESS_BAR_COLOR} />
         <ExternalUidCapture />
         {children}
