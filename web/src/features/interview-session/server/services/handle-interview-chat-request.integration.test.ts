@@ -244,6 +244,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       const askedOnFirstTopic = Array.from({ length: 5 }, (_, i) => ({
         id: `m${i + 1}`,
         interview_session_id: sessionId,
+        is_initial_question: false,
         role: "assistant" as const,
         content: JSON.stringify({
           text: "関わりは？",
@@ -595,6 +596,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       return ids.map((questionId, i) => ({
         id: `m${i + 1}`,
         interview_session_id: sessionId,
+        is_initial_question: false,
         role: "assistant" as const,
         content: JSON.stringify({
           text: "質問",
@@ -683,6 +685,7 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       const summaryMessage = {
         id: "s1",
         interview_session_id: sessionId,
+        is_initial_question: false,
         role: "assistant" as const,
         content: JSON.stringify({ text: "まとめ", stage: "summary" }),
         created_at: new Date().toISOString(),

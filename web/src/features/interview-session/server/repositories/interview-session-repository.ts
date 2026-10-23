@@ -325,6 +325,27 @@ export async function createInterviewMessage(params: {
   return data;
 }
 
+/**
+ * 最初の質問（AI の初回発話）を保存する。セッションごとに 1 件だけで、
+ * すでに保存されていれば何もせず保存済みの 1 件を返す（生成中の再読み込みで二重に保存しない）
+ */
+export async function insertInitialInterviewMessage(params: {
+  sessionId: string;
+  content: string;
+}): Promise<InterviewMessage> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.rpc(
+    "insert_initial_interview_message",
+    { p_session_id: params.sessionId, p_content: params.content }
+  );
+
+  if (error) {
+    throw new Error(`Failed to save initial question: ${error.message}`);
+  }
+
+  return data;
+}
+
 // ========================================
 // Interview Session Ratings
 // ========================================

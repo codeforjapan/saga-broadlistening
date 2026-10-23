@@ -59,6 +59,7 @@ describe("buildInterviewTsv", () => {
           {
             id: "m1",
             interview_session_id: "session-1",
+            is_initial_question: false,
             role: "assistant",
             content: "質問1",
             created_at: "2026-01-01T00:01:00Z",
@@ -67,6 +68,7 @@ describe("buildInterviewTsv", () => {
           {
             id: "m2",
             interview_session_id: "session-1",
+            is_initial_question: false,
             role: "user",
             content: "回答1",
             created_at: "2026-01-01T00:02:00Z",
@@ -118,6 +120,7 @@ describe("buildInterviewTsv", () => {
           {
             id: "m1",
             interview_session_id: "session-1",
+            is_initial_question: false,
             role: "user",
             content: "意見",
             created_at: "2026-01-01T00:01:00Z",
@@ -144,6 +147,7 @@ describe("buildInterviewTsv", () => {
           {
             id: "m1",
             interview_session_id: "session-1",
+            is_initial_question: false,
             role: "user",
             content: "改行\nあり\tタブも",
             created_at: "2026-01-01T00:01:00Z",
@@ -178,6 +182,7 @@ describe("buildInterviewTsv", () => {
           {
             id: "m1",
             interview_session_id: "session-1",
+            is_initial_question: false,
             role: "user",
             content: "x",
             created_at: "2026-01-01T00:01:00Z",
@@ -221,6 +226,7 @@ describe("buildInterviewTsv", () => {
           {
             id: "m1",
             interview_session_id: "session-1",
+            is_initial_question: false,
             role: "user",
             content: "=1+1",
             created_at: "2026-01-01T00:01:00Z",
@@ -229,6 +235,7 @@ describe("buildInterviewTsv", () => {
           {
             id: "m2",
             interview_session_id: "session-1",
+            is_initial_question: false,
             role: "user",
             content: "@cmd",
             created_at: "2026-01-01T00:02:00Z",
@@ -237,6 +244,7 @@ describe("buildInterviewTsv", () => {
           {
             id: "m3",
             interview_session_id: "session-1",
+            is_initial_question: false,
             role: "user",
             content: "-1",
             created_at: "2026-01-01T00:03:00Z",
@@ -245,6 +253,7 @@ describe("buildInterviewTsv", () => {
           {
             id: "m4",
             interview_session_id: "session-1",
+            is_initial_question: false,
             role: "user",
             content: "+SUM",
             created_at: "2026-01-01T00:04:00Z",

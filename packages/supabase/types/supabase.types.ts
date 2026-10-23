@@ -651,6 +651,7 @@ export type Database = {
           created_at: string
           id: string
           interview_session_id: string
+          is_initial_question: boolean
           role: Database["public"]["Enums"]["interview_role_enum"]
           updated_at: string
         }
@@ -659,6 +660,7 @@ export type Database = {
           created_at?: string
           id?: string
           interview_session_id: string
+          is_initial_question?: boolean
           role: Database["public"]["Enums"]["interview_role_enum"]
           updated_at?: string
         }
@@ -667,6 +669,7 @@ export type Database = {
           created_at?: string
           id?: string
           interview_session_id?: string
+          is_initial_question?: boolean
           role?: Database["public"]["Enums"]["interview_role_enum"]
           updated_at?: string
         }
@@ -1826,6 +1829,24 @@ export type Database = {
       increment_api_rate_limit: {
         Args: { p_key: string; p_limit: number; p_window_start: string }
         Returns: boolean
+      }
+      insert_initial_interview_message: {
+        Args: { p_content: string; p_session_id: string }
+        Returns: {
+          content: string
+          created_at: string
+          id: string
+          interview_session_id: string
+          is_initial_question: boolean
+          role: Database["public"]["Enums"]["interview_role_enum"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "interview_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       is_admin: { Args: never; Returns: boolean }
       mark_opinions_extracted: {

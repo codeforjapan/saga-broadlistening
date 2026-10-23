@@ -16,7 +16,7 @@ import { getMeteredAiModel } from "@/lib/ai/get-metered-ai-model";
 import { env } from "@/lib/env";
 import { interviewInitialSchema } from "../../shared/schemas";
 import type { InterviewMessage } from "../../shared/types";
-import { createInterviewMessage } from "../repositories/interview-session-repository";
+import { insertInitialInterviewMessage } from "../repositories/interview-session-repository";
 
 const INITIAL_QUESTION_FUNCTION_ID = "interview-initial-question";
 
@@ -133,12 +133,9 @@ export async function generateInitialQuestion({
       firstTopic: topics[0] ?? null,
     });
 
-    // 生成した質問を保存
-    return await createInterviewMessage({
-      sessionId,
-      role: "assistant",
-      content,
-    });
+    // 生成した質問を保存（すでに保存済みなら、その 1 件を返す）。
+    // 生成中の再読み込みでは生成そのものは 2 回走るが、まれで初回発話 1 回分の費用なので許容する
+    return await insertInitialInterviewMessage({ sessionId, content });
   } catch (error) {
     console.error("Failed to generate initial question:", error);
     return null;
