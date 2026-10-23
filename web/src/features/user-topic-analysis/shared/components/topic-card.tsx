@@ -3,9 +3,9 @@ import { ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { getInterviewMessageLink } from "@/features/interview-config/shared/utils/interview-links";
-import { ClampedQuote } from "../../client/components/clamped-quote";
 import type { PublicOpinion, PublicTopic } from "../types";
 import { opinionAttributionLabel } from "../utils/topic-category";
+import { TopicQuote } from "./topic-quote";
 
 /** 引用1件。messageHref があれば該当メッセージへのリンクにする。 */
 function QuoteItem({
@@ -15,9 +15,9 @@ function QuoteItem({
   opinion: PublicOpinion;
   messageHref: string | null;
 }) {
-  // 肩書を含めて最大4行に収め、省略時は末尾に「…（肩書）」を表示する。
+  // 本文は3行までで省略し、肩書を次の行に添える。
   const body = (
-    <ClampedQuote
+    <TopicQuote
       quote={opinion.contextual_quote ?? ""}
       attribution={opinionAttributionLabel(opinion)}
     />
