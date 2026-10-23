@@ -15,7 +15,9 @@ import { Button } from "@/components/ui/button";
 import type { BillWithContent } from "@/features/bills/shared/types";
 import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
-import { ChatWindow } from "./chat-window";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { CHAT_PANEL_PC_MEDIA_QUERY } from "../../shared/constants";
+import { LazyChatWindow, preloadChatWindow } from "./lazy-chat-window";
 
 // アニメーション定数
 const ANIMATION_DURATION = {
@@ -61,6 +63,13 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
     ref
   ) => {
     const [isOpen, setIsOpen] = useState(false);
+    // 一度表示したら、閉じても画面幅が変わってもウィンドウをマウントしたままにする（入力中の内容を保つ）
+    const [hasOpened, setHasOpened] = useState(false);
+    // PC ではチャットのパネルが常設なので、開く操作を待たずに読み込む
+    const isPc = useMediaQuery(CHAT_PANEL_PC_MEDIA_QUERY);
+    useEffect(() => {
+      if (isPc) setHasOpened(true);
+    }, [isPc]);
     const [isCompact, setIsCompact] = useState(false);
     const [showText, setShowText] = useState(true);
     const [openedWithText, setOpenedWithText] = useState(false);
@@ -75,6 +84,12 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
     // biome-ignore lint/correctness/useExhaustiveDependencies: pathnameが変わるたびに新しいIDを生成するため意図的に依存配列に含めている
     const sessionId = useMemo(() => crypto.randomUUID(), [pathname]);
 
+    // 開くときは必ずここを通す（ウィンドウのマウントと開閉をそろえる）
+    const openChat = () => {
+      setHasOpened(true);
+      setIsOpen(true);
+    };
+
     useImperativeHandle(ref, () => ({
       openWithText: (selectedText: string) => {
         // AIからの返答待ち中は新しいメッセージを送信しない
@@ -87,7 +102,7 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
 
         const questionText = `「${selectedText}」について教えてください。`;
         setOpenedWithText(true);
-        setIsOpen(true);
+        openChat();
         chatState.sendMessage({
           text: questionText,
           metadata: {
@@ -142,7 +157,9 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
               ref={chatTriggerRef}
               type="button"
               variant="ghost"
-              onClick={() => setIsOpen(true)}
+              onClick={openChat}
+              onPointerEnter={preloadChatWindow}
+              onFocus={preloadChatWindow}
               className={`relative bg-white rounded-[50px] hover:opacity-90 flex items-center w-full py-2 transition-all ease-in-out ${
                 isCompact
                   ? "h-[35px] px-4 justify-center gap-2.5"
@@ -188,24 +205,26 @@ export const ChatButton = forwardRef<ChatButtonRef, ChatButtonProps>(
           </div>
         </div>
 
-        <ChatWindow
-          billContext={billContext}
-          hasInterviewConfig={hasInterviewConfig}
-          interviewParticipation={interviewParticipation}
-          interviewTarget={interviewTarget}
-          difficultyLevel={difficultyLevel}
-          chatState={chatState}
-          isOpen={isOpen}
-          onClose={() => {
-            setIsOpen(false);
-            setOpenedWithText(false);
-          }}
-          pageContext={pageContext}
-          sampleQuestions={sampleQuestions}
-          disableAutoFocus={openedWithText}
-          returnFocusRef={chatTriggerRef}
-          sessionId={sessionId}
-        />
+        {hasOpened && (
+          <LazyChatWindow
+            billContext={billContext}
+            hasInterviewConfig={hasInterviewConfig}
+            interviewParticipation={interviewParticipation}
+            interviewTarget={interviewTarget}
+            difficultyLevel={difficultyLevel}
+            chatState={chatState}
+            isOpen={isOpen}
+            onClose={() => {
+              setIsOpen(false);
+              setOpenedWithText(false);
+            }}
+            pageContext={pageContext}
+            sampleQuestions={sampleQuestions}
+            disableAutoFocus={openedWithText}
+            returnFocusRef={chatTriggerRef}
+            sessionId={sessionId}
+          />
+        )}
       </>
     );
   }
