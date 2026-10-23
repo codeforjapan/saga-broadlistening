@@ -1,3 +1,4 @@
+import { AuthSessionMissingError } from "@mirai-gikai/supabase";
 import {
   adminClient,
   cleanupTestExternalIdentityByUid,
@@ -88,6 +89,38 @@ describe("initializeInterviewChat 統合テスト", () => {
       .eq("interview_config_id", interviewConfigId)
       .is("archived_at", null);
     expect(count).toBe(0);
+  });
+
+  it.each([
+    ["セッションがないエラー", new AuthSessionMissingError()],
+    ["エラーなし", null],
+  ])("初回訪問で利用者がまだいなければ（%s）、エラーにせず開始画面を返す", async (_, error) => {
+    const result = await initializeInterviewChat(config, bill, {
+      deps: {
+        getUser: async () => ({ data: { user: null }, error }),
+      },
+    });
+
+    expect(result).toEqual({ kind: "start" });
+    // 利用者がいないので、セッションは作らない（beforeEach の1件のまま）
+    const { count } = await adminClient
+      .from("interview_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("interview_config_id", interviewConfigId);
+    expect(count).toBe(1);
+  });
+
+  it("セッションがない以外の認証エラーは、従来どおりエラーにする", async () => {
+    const fetchError = new Error("fetch failed");
+    fetchError.name = "AuthRetryableFetchError";
+
+    await expect(
+      initializeInterviewChat(config, bill, {
+        deps: {
+          getUser: async () => ({ data: { user: null }, error: fetchError }),
+        },
+      })
+    ).rejects.toThrow("Failed to get user: fetch failed");
   });
 
   it("メッセージのない進行中セッションでは最初の質問を生成する", async () => {

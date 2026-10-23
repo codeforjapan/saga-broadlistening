@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { ChikatServiceLogo } from "@/components/chikat-logo";
 import { Button } from "@/components/ui/button";
+import { ensureAnonymousSupabaseUser } from "@/features/chat/client/utils/ensure-anonymous-supabase-user";
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { formatEstimatedDuration } from "@/features/interview-config/shared/utils/format-estimated-duration";
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
@@ -54,6 +55,13 @@ export function InterviewChatStart({
   const handleStart = () => {
     setError(null);
     startTransition(async () => {
+      // AuthGate の匿名ログインより先に押されても始められるよう、確立を待つ（#228）
+      if (!(await ensureAnonymousSupabaseUser())) {
+        setError(
+          "接続を確認できませんでした。ページを再読み込みしてお試しください"
+        );
+        return;
+      }
       const result = await startInterviewSession(interviewConfig.id, preview);
       if (!result.success) {
         setError(result.error);
