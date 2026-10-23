@@ -12,11 +12,12 @@ import { ExternalUidCapture } from "@/features/external-identity/client/componen
 import { EARLY_CAPTURE_SCRIPT } from "@/features/external-identity/shared/utils/early-capture-script";
 import { env } from "@/lib/env";
 
-// 本文。D-7 により基準ウェイトは 500（強調 700）
+// 本文。D-7 により基準ウェイトは 500（強調 700）。
+// 可変フォントとして 1 本で読み込む（太さごとに同じファイルの定義を並べないため）。
+// そのため 600 なども本当の太さで表示されるので、本文では 400・500・700 だけを使う
 const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
   display: "swap",
   fallback: ["system-ui", "sans-serif"],
 });
@@ -30,11 +31,10 @@ const zenMaruGothic = Zen_Maru_Gothic({
   fallback: ["system-ui", "sans-serif"],
 });
 
-// トピックの代表意見など、引用文を明朝体で表示するために使用
+// トピックの代表意見など、引用文を明朝体で表示するために使用（500・600 を使う。可変フォントとして 1 本で読み込む）
 const notoSerifJP = Noto_Serif_JP({
   variable: "--font-noto-serif-jp",
   subsets: ["latin"],
-  weight: ["500", "600"],
   display: "swap",
   fallback: ["serif"],
 });

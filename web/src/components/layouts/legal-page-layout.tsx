@@ -24,7 +24,7 @@ export function LegalPageLayout({
         <Container className="space-y-10">
           <header className="space-y-2 border-b border-border pb-6">
             {enLabel ? (
-              <p className="text-sm font-semibold tracking-[0.14em] text-primary-accent">
+              <p className="text-sm font-bold tracking-[0.14em] text-primary-accent">
                 {enLabel}
               </p>
             ) : null}
