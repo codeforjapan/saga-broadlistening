@@ -8,3 +8,8 @@ export const SUGGEST_INTERVIEW_TOOL_NAME = "suggest_interview";
  */
 export const SUGGEST_INTERVIEW_TOOL_TYPE =
   `tool-${SUGGEST_INTERVIEW_TOOL_NAME}` as const;
+
+/**
+ * チャットを PC の常設パネルとして出す画面幅（globals.css の --breakpoint-pc と同じ）
+ */
+export const CHAT_PANEL_PC_MEDIA_QUERY = "(min-width: 1000px)";
