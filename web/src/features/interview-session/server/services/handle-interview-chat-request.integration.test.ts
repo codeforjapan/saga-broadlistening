@@ -238,6 +238,44 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       });
     });
 
+    it("前処理の各段階の時間を Server-Timing で返し、本文の JSON は壊さない", async () => {
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "user", content: "あります" }],
+        interviewConfigId: config.id,
+        userId: testUser.id,
+        deps: {
+          chatModel: createStreamMock([validChatResponse]),
+          resolveContext: async () => ({
+            interviewConfig: config,
+            bill: null,
+            policyId: null,
+            isPreview: false,
+          }),
+          getSession: async () => session,
+          getMessages: async () => [],
+        },
+      });
+
+      const serverTiming = response.headers.get("Server-Timing") ?? "";
+      for (const stage of [
+        "resolve-context",
+        "get-session",
+        "save-user-message",
+        "get-messages",
+        "get-questions",
+        "load-session-and-messages",
+        "build-prompt",
+        "preprocess",
+      ]) {
+        expect(serverTiming).toMatch(new RegExp(`${stage};dur=\\d+\\.\\d`));
+      }
+
+      expect(JSON.parse(await consumeResponseStream(response))).toMatchObject({
+        text: "施策についてのご意見をお聞かせください。",
+        next_stage: "chat",
+      });
+    });
+
     it("最初の話題の発話の上限を使い切ったら、次の話題に進めて選択肢ボタンを注入する", async () => {
       const mockModel = createStreamMock([validChatResponse]);
       // 話題ごとの発話の上限（5回）まで Q1 で発話した履歴

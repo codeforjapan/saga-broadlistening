@@ -56,12 +56,17 @@ import {
 import { buildSummaryModelMessages } from "../../shared/utils/build-summary-model-messages";
 import { ensureTrailingUserMessage } from "../../shared/utils/ensure-trailing-user-message";
 import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
+import { measureChatPromptSections } from "../../shared/utils/interview-chat-timing";
 import { mergeMessagesWithIds } from "../../shared/utils/merge-messages-with-ids";
 import { updateInterviewSessionStage } from "../repositories/interview-session-repository";
 import {
   buildInterviewSystemPrompt,
   buildSummarySystemPrompt,
 } from "../utils/build-interview-system-prompt";
+import {
+  createInterviewChatTrace,
+  type InterviewChatTrace,
+} from "../utils/interview-chat-trace";
 import {
   InterviewParticipationDeniedError,
   loadExternalIdentities,
@@ -99,25 +104,37 @@ export async function handleInterviewChatRequest({
   previewToken,
   userId,
   deps,
+  trace = createInterviewChatTrace(),
 }: InterviewChatRequestParams & {
   userId: string;
   deps?: InterviewChatDeps;
+  trace?: InterviewChatTrace;
 }) {
   // TTFB短縮のため、互いに依存しないDBアクセスは並列実行する。
   // 日次コスト制限チェック（fail-closed: エラー時もリクエストをブロック）と
   // 意見募集・施策の解決（テスト時はdeps経由でNext.js依存をバイパス）
   // 外部IDの解決（参加判定とセッション記録に使う）も userId だけで始められる
-  const [isWithinLimit, context, identities] = await Promise.all([
-    isWithinDailyCostLimit(userId, env.chat.dailyUserCostLimitUsd),
-    deps?.resolveContext
-      ? deps.resolveContext(interviewConfigId)
-      : resolveInterviewChatContext({
-          interviewConfigId,
-          previewPolicyId,
-          previewToken,
-        }),
-    loadExternalIdentities(userId, deps),
-  ]);
+  const [isWithinLimit, context, identities] = await trace.measure(
+    "resolve-context",
+    () =>
+      Promise.all([
+        trace.measure("cost-check-user", () =>
+          isWithinDailyCostLimit(userId, env.chat.dailyUserCostLimitUsd)
+        ),
+        trace.measure("resolve-config-and-policy", () =>
+          deps?.resolveContext
+            ? deps.resolveContext(interviewConfigId)
+            : resolveInterviewChatContext({
+                interviewConfigId,
+                previewPolicyId,
+                previewToken,
+              })
+        ),
+        trace.measure("load-identities", () =>
+          loadExternalIdentities(userId, deps)
+        ),
+      ])
+  );
   if (!isWithinLimit) {
     throw new ChatError(ChatErrorCode.DAILY_COST_LIMIT_REACHED);
   }
@@ -148,7 +165,9 @@ export async function handleInterviewChatRequest({
     const getSessionFn = deps?.getSession ?? getInterviewSession;
     const getMessagesFn = deps?.getMessages ?? getInterviewMessages;
     // セッションは開始画面の同意と同時に作る（#158）。ここでは作らない
-    const session = await getSessionFn(interviewConfig.id);
+    const session = await trace.measure("get-session", () =>
+      getSessionFn(interviewConfig.id)
+    );
     if (!session) {
       throw new InterviewSessionNotStartedError();
     }
@@ -163,23 +182,33 @@ export async function handleInterviewChatRequest({
       lastMessage?.role === "user" &&
       lastMessage.content.trim()
     ) {
-      await saveInterviewMessage({
-        sessionId: session.id,
-        role: "user",
-        content: lastMessage.content,
-        isRetry,
-      });
+      await trace.measure("save-user-message", () =>
+        saveInterviewMessage({
+          sessionId: session.id,
+          role: "user",
+          content: lastMessage.content,
+          isRetry,
+        })
+      );
     }
 
-    const dbMessages = await getMessagesFn(session.id);
+    const dbMessages = await trace.measure("get-messages", () =>
+      getMessagesFn(session.id)
+    );
     return { session, dbMessages };
   };
 
   // 独立した事前定義質問の取得とセッション系チェーンを並列実行
-  const [questions, { session, dbMessages }] = await Promise.all([
-    getInterviewQuestions(interviewConfig.id),
-    loadSessionAndMessages(),
-  ]);
+  const [questions, { session, dbMessages }] = await trace.measure(
+    "load-session-and-messages",
+    () =>
+      Promise.all([
+        trace.measure("get-questions", () =>
+          getInterviewQuestions(interviewConfig.id)
+        ),
+        loadSessionAndMessages(),
+      ])
+  );
 
   const topics = buildTurnTopics(questions);
   const metas = collectAssistantTurnMetas(dbMessages);
@@ -192,6 +221,7 @@ export async function handleInterviewChatRequest({
     chatModel: deps?.chatModel,
     summaryModel: deps?.summaryModel,
     configChatModel: interviewConfig.chat_model,
+    trace,
   };
 
   // 生成前のステージ判定。要約へ入るときは、ステージの更新とプロンプトの組み立てを並べて走らせる
@@ -199,13 +229,19 @@ export async function handleInterviewChatRequest({
   if (session.stage === "chat") {
     const state = computeTurnState({ topics, metas });
     if (!decideSummaryEntry({ state, endButton })) {
-      const systemPrompt = await buildInterviewSystemPrompt({
-        bill,
-        interviewConfig,
-        topics,
-        turnState: state,
-        // dbMessages には今回の回答まで保存済み
-        selectedQuickReply: findSelectedQuickReply(dbMessages),
+      const systemPrompt = await trace.measure("build-prompt", () =>
+        buildInterviewSystemPrompt({
+          bill,
+          interviewConfig,
+          topics,
+          turnState: state,
+          // dbMessages には今回の回答まで保存済み
+          selectedQuickReply: findSelectedQuickReply(dbMessages),
+        })
+      );
+      trace.setPromptChars({
+        total: systemPrompt.length,
+        ...measureChatPromptSections({ bill, interviewConfig, topics }),
       });
       logger.debug("System Prompt:", systemPrompt);
       return generateStreamingResponse({
@@ -215,9 +251,9 @@ export async function handleInterviewChatRequest({
         buildRecord: (rawText) => buildChatTurnRecord({ rawText, state }),
       });
     }
-    enteringSummary = updateInterviewSessionStage(session.id, {
-      stage: "summary",
-    });
+    enteringSummary = trace.measure("enter-summary", () =>
+      updateInterviewSessionStage(session.id, { stage: "summary" })
+    );
   }
 
   // summary: 場面は発話の記録から決める。「終える」ボタンで締めるのは、要約を見せた後
@@ -231,14 +267,17 @@ export async function handleInterviewChatRequest({
     forceClose: endButton && phase === "reply",
   });
   const [systemPrompt] = await Promise.all([
-    buildSummarySystemPrompt({
-      bill,
-      interviewConfig,
-      messages: mergeMessagesWithIds(messages, dbMessages),
-      summaryState,
-    }),
+    trace.measure("build-prompt", () =>
+      buildSummarySystemPrompt({
+        bill,
+        interviewConfig,
+        messages: mergeMessagesWithIds(messages, dbMessages),
+        summaryState,
+      })
+    ),
     enteringSummary,
   ]);
+  trace.setPromptChars({ total: systemPrompt.length });
   logger.debug("System Prompt:", systemPrompt);
   return generateStreamingResponse({
     ...generationParams,
@@ -265,6 +304,7 @@ async function generateStreamingResponse({
   summaryModel,
   configChatModel,
   buildRecord,
+  trace,
 }: {
   systemPrompt: string;
   messages: { role: string; content: string }[];
@@ -278,6 +318,7 @@ async function generateStreamingResponse({
   configChatModel?: string | null;
   /** LLM の出力全文から、保存内容と注入する値を作る */
   buildRecord: (rawText: string) => TurnRecord;
+  trace: InterviewChatTrace;
 }) {
   const {
     model,
@@ -317,15 +358,18 @@ async function generateStreamingResponse({
         record = buildRecord(event.text);
         // 保存とステージ更新を終えてからストリームを閉じる。閉じた直後に届く
         // 次のリクエスト（続けての要約・すばやい選択肢）が古い状態を読まないため
-        await Promise.all([
-          saveInterviewMessage({
-            sessionId,
-            role: "assistant",
-            content: record.content,
-          }),
-          record.sessionUpdate &&
-            updateInterviewSessionStage(sessionId, record.sessionUpdate),
-        ]);
+        const { content, sessionUpdate } = record;
+        await trace.measure("persist-turn", () =>
+          Promise.all([
+            saveInterviewMessage({
+              sessionId,
+              role: "assistant",
+              content,
+            }),
+            sessionUpdate &&
+              updateInterviewSessionStage(sessionId, sessionUpdate),
+          ])
+        );
       }
     } catch (err) {
       console.error("Failed to save interview turn:", { sessionId, err });
@@ -336,20 +380,22 @@ async function generateStreamingResponse({
     // LLM利用コストを記録
     try {
       const providerCost = extractGatewayCost(event);
-      await recordChatUsage({
-        userId,
-        sessionId,
-        promptName: functionId,
-        model: modelName,
-        usage: event.totalUsage,
-        costUsd: providerCost,
-        metadata: {
-          pageType: "interview",
-          billId: policyId,
-          finishReason: null,
-          stepCount: 0,
-        },
-      });
+      await trace.measure("record-usage", () =>
+        recordChatUsage({
+          userId,
+          sessionId,
+          promptName: functionId,
+          model: modelName,
+          usage: event.totalUsage,
+          costUsd: providerCost,
+          metadata: {
+            pageType: "interview",
+            billId: policyId,
+            finishReason: null,
+            stepCount: 0,
+          },
+        })
+      );
     } catch (usageError) {
       console.error("Failed to record interview usage:", usageError);
     }
@@ -378,6 +424,11 @@ async function generateStreamingResponse({
     onError: handleError,
     onAbort: () => resolveRecord(null),
     onFinish: handleFinish,
+    // JSON ツール方式の出力はまとめて届くので、生のイベントでモデルの出力の時刻を取る
+    includeRawChunks: true,
+    onChunk: ({ chunk }: { chunk: { type: string; rawValue?: unknown } }) => {
+      if (chunk.type === "raw") trace.observeRawChunk(chunk.rawValue);
+    },
     experimental_telemetry: {
       isEnabled: true as const,
       functionId,
@@ -393,6 +444,7 @@ async function generateStreamingResponse({
     return await propagateAttributes(
       { traceName: functionId, sessionId, userId },
       () => {
+        trace.markLlmStart();
         const textStream = isSummaryPhase
           ? streamText({
               ...streamParams,
@@ -403,12 +455,17 @@ async function generateStreamingResponse({
               output: Output.object({ schema: interviewChatTextSchema }),
             }).textStream;
 
-        const body = injectJsonFieldsAsync(
-          textStream,
-          async () => (await recordPromise)?.injected ?? {}
+        const body = trace.observeResponseBody(
+          injectJsonFieldsAsync(
+            textStream,
+            async () => (await recordPromise)?.injected ?? {}
+          )
         );
         return new Response(body, {
-          headers: { "Content-Type": "text/plain; charset=utf-8" },
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Server-Timing": trace.serverTiming(),
+          },
         });
       }
     );
