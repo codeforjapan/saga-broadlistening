@@ -1,6 +1,4 @@
-import { mapRoleToCategory } from "./build-public-topic-analysis";
 import { normalizeRoleTitle } from "./normalize-role-title";
-import { normalizeStanceToSentiment } from "./normalize-stance";
 import type {
   PublicRespondentDetail,
   RawRespondentDetailRow,
@@ -15,12 +13,12 @@ function toSpeaker(role: string | null): TranscriptMessage["speaker"] | null {
 }
 
 /**
- * 公開レポートの生行＋会話メッセージから、回答者詳細の表示データを構築する純粋関数。
- * role→カテゴリ・stance→期待/懸念に正規化し、会話ログは assistant/user のみ残す。
- * フィルタ（管理者公開×ユーザー公開）は取得側で適用済み。
+ * 公開意見の生行＋会話メッセージから、回答者詳細の表示データを構築する純粋関数。
+ * role_title を表示用に正規化し、会話ログは assistant/user のみ残す。
+ * フィルタ（review_status = 'published'）は取得側で適用済み。
  */
 export function buildPublicRespondentDetail(
-  report: RawRespondentDetailRow,
+  opinion: RawRespondentDetailRow,
   messages: RawTranscriptMessageRow[]
 ): PublicRespondentDetail {
   const transcript: TranscriptMessage[] = [];
@@ -36,13 +34,12 @@ export function buildPublicRespondentDetail(
   }
 
   return {
-    id: report.id,
-    user_category: mapRoleToCategory(report.role),
-    role_title: normalizeRoleTitle(report.role_title),
-    role_description: report.role_description,
-    bill_sentiment: normalizeStanceToSentiment(report.stance),
-    summary: report.summary,
-    created_at: report.created_at,
+    id: opinion.id,
+    role_title: normalizeRoleTitle(opinion.role_title),
+    role_description: opinion.role_description,
+    summary: opinion.summary,
+    final_text: opinion.final_text,
+    created_at: opinion.created_at,
     messages: transcript,
   };
 }

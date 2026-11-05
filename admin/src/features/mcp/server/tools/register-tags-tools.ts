@@ -17,7 +17,7 @@ export function registerTagsTools(server: McpServer): void {
     {
       title: "タグ一覧を取得",
       description:
-        "adminに登録されているすべてのタグを返す。各タグの紐づき議案数(bill_count)も含む。",
+        "adminに登録されているすべてのタグを返す。各タグの紐づき施策数(bill_count)も含む。",
       inputSchema: {},
     },
     async () => {

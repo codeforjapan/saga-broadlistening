@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { registerTagsTools } from "../../admin/src/features/mcp/server/tools/register-tags-tools";
 import {
   adminClient,
-  cleanupTestBill,
+  cleanupTestPolicy,
   cleanupTestTag,
-  createTestBill,
-  createTestBillTag,
+  createTestPolicy,
+  createTestPolicyTag,
   createTestTag,
 } from "../supabase/utils";
 import { createTestRegistry, type TestMcpRegistry } from "./utils";
@@ -13,7 +13,7 @@ import { createTestRegistry, type TestMcpRegistry } from "./utils";
 describe("MCP tags tools", () => {
   let registry: TestMcpRegistry;
   const tagIds: string[] = [];
-  const billIds: string[] = [];
+  const policyIds: string[] = [];
 
   beforeEach(() => {
     registry = createTestRegistry();
@@ -21,30 +21,30 @@ describe("MCP tags tools", () => {
   });
 
   afterEach(async () => {
-    for (const id of billIds.splice(0)) await cleanupTestBill(id);
+    for (const id of policyIds.splice(0)) await cleanupTestPolicy(id);
     for (const id of tagIds.splice(0)) await cleanupTestTag(id);
   });
 
   describe("list_tags", () => {
-    it("タグ一覧と紐づく議案数(bill_count)を返す", async () => {
+    it("タグ一覧と紐づく施策数(policies_tags の count)を返す", async () => {
       const tag = await createTestTag();
       tagIds.push(tag.id);
-      const bill = await createTestBill();
-      billIds.push(bill.id);
-      await createTestBillTag(bill.id, tag.id);
+      const policy = await createTestPolicy();
+      policyIds.push(policy.id);
+      await createTestPolicyTag(policy.id, tag.id);
 
       const result =
         await registry.callTool<
           Array<{
             id: string;
             label: string;
-            bills_tags: Array<{ count: number }>;
+            policies_tags: Array<{ count: number }>;
           }>
         >("list_tags");
       const found = result.find((t) => t.id === tag.id);
       expect(found).toBeTruthy();
       expect(found?.label).toBe(tag.label);
-      expect(found?.bills_tags?.[0]?.count).toBe(1);
+      expect(found?.policies_tags?.[0]?.count).toBe(1);
     });
   });
 

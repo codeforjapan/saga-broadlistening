@@ -1,4 +1,5 @@
 import type { Database } from "@mirai-gikai/supabase";
+import { PERSISTENT_HTTP_ONLY_COOKIE_OPTIONS } from "@/lib/cookies";
 
 // 難易度レベルのEnum
 export type DifficultyLevelEnum =
@@ -26,11 +27,5 @@ export const VALID_DIFFICULTY_LEVELS: DifficultyLevelEnum[] = [
   "hard",
 ];
 
-// Cookie設定オプション
-export const DIFFICULTY_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
-  maxAge: 60 * 60 * 24 * 365, // 1年間
-  path: "/",
-};
+// Cookie設定オプション（first-party の長期 Cookie 共通設定）
+export const DIFFICULTY_COOKIE_OPTIONS = PERSISTENT_HTTP_ONLY_COOKIE_OPTIONS;

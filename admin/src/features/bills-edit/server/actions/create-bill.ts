@@ -3,13 +3,9 @@
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import { routes } from "@/lib/routes";
-import {
-  invalidateWebCache,
-  WEB_CACHE_TAGS,
-} from "@/lib/utils/cache-invalidation";
 import { getErrorMessage } from "@/lib/utils/get-error-message";
 import { type BillCreateInput, billCreateSchema } from "../../shared/types";
-import { createBillRecord } from "../repositories/bill-edit-repository";
+import { createBillWithSideEffects } from "../services/create-bill-with-side-effects";
 
 export async function createBill(input: BillCreateInput) {
   try {
@@ -19,22 +15,12 @@ export async function createBill(input: BillCreateInput) {
     // バリデーション
     const validatedData = billCreateSchema.parse(input);
 
-    const insertData = {
-      ...validatedData,
-      submitted_date: validatedData.submitted_date
-        ? `${validatedData.submitted_date}T00:00:00+09:00`
-        : null,
-    };
-
-    // Supabaseに挿入
-    await createBillRecord(insertData);
-
-    // web側のキャッシュを無効化
-    await invalidateWebCache([WEB_CACHE_TAGS.BILLS]);
+    // 親子関係の検証・挿入・web側のキャッシュ無効化
+    await createBillWithSideEffects(validatedData);
   } catch (error) {
     console.error("Create bill error:", error);
     throw new Error(
-      getErrorMessage(error, "議案の作成中にエラーが発生しました")
+      getErrorMessage(error, "施策の作成中にエラーが発生しました")
     );
   }
 

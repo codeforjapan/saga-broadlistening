@@ -6,17 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  MESSAGE_SEARCH_STANCE_FILTER_OPTIONS,
-  ROLE_FILTER_OPTIONS,
-} from "../../shared/constants";
-import type {
-  MessageSearchFilterConfig,
-  MessageSearchStanceFilter,
-  RoleFilter,
-} from "../../shared/types";
+import type { MessageSearchFilterConfig } from "../../shared/types";
 import { appendMessageSearchFilterParams } from "../../shared/utils/parse-message-search-filter-params";
-import { FilterSelect } from "./filter-select";
 
 interface MessageSearchFormProps {
   initialQuery: string;
@@ -71,25 +62,6 @@ export function MessageSearchForm({
         </Button>
       </div>
       <div className="flex flex-wrap items-center gap-4">
-        <FilterSelect
-          label="スタンス"
-          value={filters.stance}
-          options={MESSAGE_SEARCH_STANCE_FILTER_OPTIONS}
-          onChange={(stance) =>
-            setFilters({
-              ...filters,
-              stance: stance as MessageSearchStanceFilter,
-            })
-          }
-        />
-        <FilterSelect
-          label="役割"
-          value={filters.role}
-          options={ROLE_FILTER_OPTIONS}
-          onChange={(role) =>
-            setFilters({ ...filters, role: role as RoleFilter })
-          }
-        />
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
             役割名

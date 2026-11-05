@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PublicReportPage } from "@/features/interview-report/server/components/public-report-page";
 import { getPublicReportById } from "@/features/interview-report/server/loaders/get-public-report-by-id";
+import { resolveReportSubject } from "@/features/interview-report/shared/utils/public-report-display";
 import { env } from "@/lib/env";
 import { routes } from "@/lib/routes";
 
@@ -25,16 +26,10 @@ export async function generateMetadata({
     return { title: "インタビューレポート" };
   }
 
-  const billName = data.bill.bill_content?.title || data.bill.name || "法案";
-  const stanceText =
-    data.stance === "for"
-      ? "期待"
-      : data.stance === "against"
-        ? "懸念"
-        : "意見";
+  // 抽象テーマ型には施策がないため、テーマ名で代替する
+  const billName = resolveReportSubject(data.bill, data.origin).name;
 
-  const ogTitle =
-    data.summary || `${stanceText} - ${billName} インタビューレポート`;
+  const ogTitle = data.summary || `${billName} インタビューレポート`;
   const ogDescription = `${billName}に対するインタビューレポート`;
   const shareImageUrl = new URL(
     `/api/og/report?id=${reportId}`,

@@ -1,77 +1,80 @@
-import { isKnownModel } from "@mirai-gikai/shared/ai/models";
 import { describe, expect, it } from "vitest";
 import {
-  CHAT_MODEL_GROUPS,
-  CHAT_MODEL_OPTIONS,
+  getAllowedChatModelGroups,
   isValidChatModel,
 } from "./chat-model-options";
 
-describe("CHAT_MODEL_OPTIONS", () => {
-  it("全てのオプションがprovider/model形式のvalueを持つ", () => {
-    for (const option of CHAT_MODEL_OPTIONS) {
-      expect(option.value).toMatch(/^(openai|google|anthropic)\//);
-    }
-  });
-
-  // UI で選べるモデルは必ず AI_MODELS（isKnownModel）のサブセットであること。
-  // ここが崩れると、UI で選べるのに backfill dispatch が「未知のモデルID」で
-  // 400 を返す乖離が起きる。
-  it("全てのオプションが AI_MODELS に登録済み（isKnownModel=true）", () => {
-    for (const option of CHAT_MODEL_OPTIONS) {
-      expect(isKnownModel(option.value)).toBe(true);
-    }
-  });
-
-  it("全てのオプションがラベルを持つ", () => {
-    for (const option of CHAT_MODEL_OPTIONS) {
-      expect(option.label.length).toBeGreaterThan(0);
-    }
-  });
-
-  it("重複するvalueがない", () => {
-    const values = CHAT_MODEL_OPTIONS.map((opt) => opt.value);
-    expect(new Set(values).size).toBe(values.length);
-  });
-});
-
-describe("CHAT_MODEL_GROUPS", () => {
-  it("3つのプロバイダーグループが存在する", () => {
-    expect(CHAT_MODEL_GROUPS).toHaveLength(3);
-    expect(CHAT_MODEL_GROUPS.map((g) => g.provider)).toEqual([
-      "OpenAI",
-      "Google",
-      "Anthropic",
+describe("接続先ごとのモデル選択", () => {
+  it("4つのprovider groupを接続経路で区別する", () => {
+    expect(
+      getAllowedChatModelGroups(["bedrock", "gateway", "openai", "google"]).map(
+        (x) => x.provider
+      )
+    ).toEqual([
+      "Amazon Bedrock",
+      "Vercel AI Gateway",
+      "OpenAI（直接接続）",
+      "Google（直接接続）",
     ]);
   });
-
-  it("全グループのモデル数がフラット一覧と一致する", () => {
-    const groupTotal = CHAT_MODEL_GROUPS.reduce(
-      (sum, g) => sum + g.options.length,
-      0
-    );
-    expect(groupTotal).toBe(CHAT_MODEL_OPTIONS.length);
+  it("BedrockのみならGatewayの候補を含めない", () => {
+    const groups = getAllowedChatModelGroups(["bedrock"]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].options.map((x) => x.label)).toEqual([
+      "Claude Sonnet 4.6",
+      "Claude Haiku 4.5",
+      "Claude Opus 5.5",
+      "Claude Haiku 5.5",
+      "GPT OSS 120B",
+    ]);
   });
-
-  it("全モデルに推定コストが設定されている", () => {
-    for (const group of CHAT_MODEL_GROUPS) {
-      for (const option of group.options) {
-        expect(option.estimatedCost).not.toBeNull();
-        expect(option.estimatedCost).toMatch(/^~\d+円$/);
-      }
-    }
+  it("直接接続の料金が未設定ならGatewayの概算を流用しない", () => {
+    const option = getAllowedChatModelGroups(["openai", "gateway"])
+      .flatMap((x) => x.options)
+      .find((x) => x.value === "openai:gpt-5.2");
+    expect(option?.estimatedCost).toBeNull();
+  });
+  it("直接接続の料金設定からインタビューの概算を表示する", () => {
+    const groups = getAllowedChatModelGroups(["openai"], {
+      "openai:gpt-5.2": {
+        inputTokensPerMillionUsd: 2,
+        outputTokensPerMillionUsd: 10,
+      },
+    });
+    expect(
+      groups[0].options.find((x) => x.value === "openai:gpt-5.2")?.estimatedCost
+    ).toBe("~30円");
+  });
+  it("Bedrockの上書き料金も概算へ反映する", () => {
+    const groups = getAllowedChatModelGroups(["bedrock"], {
+      "bedrock:jp.anthropic.claude-sonnet-4-6": {
+        inputTokensPerMillionUsd: 0,
+        outputTokensPerMillionUsd: 0,
+      },
+    });
+    expect(groups[0].options[0].estimatedCost).toBe("~1円");
   });
 });
 
-describe("isValidChatModel", () => {
-  it("有効なモデルIDに対してtrueを返す", () => {
-    expect(isValidChatModel("openai/gpt-4o-mini")).toBe(true);
-    expect(isValidChatModel("google/gemini-3-flash")).toBe(true);
-    expect(isValidChatModel("anthropic/claude-sonnet-4.6")).toBe(true);
+describe("モデルIDの検証", () => {
+  it.each([
+    "openai/gpt-4o-mini",
+    "bedrock:jp.anthropic.claude-sonnet-4-6",
+    "google:custom",
+    "gateway:custom/new-model",
+  ])("許可リスト未指定なら既存のID検証を維持する: %s", (id) => {
+    expect(isValidChatModel(id)).toBe(true);
   });
-
-  it("無効なモデルIDに対してfalseを返す", () => {
-    expect(isValidChatModel("invalid-model")).toBe(false);
-    expect(isValidChatModel("openai/nonexistent")).toBe(false);
-    expect(isValidChatModel("")).toBe(false);
+  it.each([
+    "invalid",
+    "",
+    "openai/nonexistent",
+  ])("不正なIDを拒否する: %s", (id) => {
+    expect(isValidChatModel(id, ["gateway"])).toBe(false);
+  });
+  it("同じモデルでも接続経路が許可されていなければ拒否する", () => {
+    expect(isValidChatModel("openai:gpt-5.2", ["openai"])).toBe(true);
+    expect(isValidChatModel("openai/gpt-5.2", ["openai"])).toBe(false);
+    expect(isValidChatModel("gateway:openai/gpt-5.2", ["gateway"])).toBe(true);
   });
 });

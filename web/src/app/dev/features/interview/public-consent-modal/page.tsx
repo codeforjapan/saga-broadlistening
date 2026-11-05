@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { InterviewPublicConsentModal } from "@/features/interview-report/client/components/interview-public-consent-modal";
-import { MakePublicModal } from "@/features/interview-report/client/components/make-public-modal";
 import { MakePrivateModal } from "@/features/interview-report/client/components/make-private-modal";
+import { MakePublicModal } from "@/features/interview-report/client/components/make-public-modal";
 import { ComponentShowcase } from "../../../_components/component-showcase";
 import { PreviewSection } from "../../../_components/preview-section";
 
@@ -15,7 +15,7 @@ export default function PublicConsentModalPreview() {
 
   return (
     <>
-      <h1 className="text-3xl font-bold text-mirai-text mb-8">
+      <h1 className="text-3xl font-bold text-foreground mb-8">
         公開設定モーダル
       </h1>
 

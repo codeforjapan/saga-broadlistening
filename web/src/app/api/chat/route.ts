@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { simulateReadableStream, type UIMessage } from "ai";
 import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
 import {
@@ -6,7 +7,10 @@ import {
 } from "@/features/chat/server/services/handle-chat-request";
 import { chatErrorToResponse } from "@/features/chat/server/utils/chat-error-response";
 import { jsonResponse } from "@/lib/api/response";
-import { registerNodeTelemetry } from "@/lib/telemetry/register";
+import {
+  flushTelemetry,
+  registerNodeTelemetry,
+} from "@/lib/telemetry/register";
 
 async function _mockResponse(_req: Request) {
   const randomMessageId = Math.random().toString(36).substring(2, 10);
@@ -52,6 +56,7 @@ export async function POST(req: Request) {
   // Vercel node環境でinstrumentationが自動で起動しない問題対応
   // 明示的にtelemetryを初期化
   await registerNodeTelemetry();
+  after(flushTelemetry);
 
   const { messages }: { messages: UIMessage<ChatMessageMetadata>[] } =
     await req.json();

@@ -9,7 +9,7 @@ export type ActiveVersionRow = {
 };
 
 /**
- * 二重起動ガード（findActiveVersionByBill）が拾った pending/running の version が
+ * 二重起動ガード（findActiveVersionByInterviewConfig）が拾った pending/running の version が
  * 「実際にはもう動いていない（失効）」かどうかを判定する純粋関数。
  *
  * Cloud Run の Job 実行は受理後に worker コード到達前に死ぬことがあり、その場合

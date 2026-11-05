@@ -18,7 +18,7 @@ export async function TopicAnalysisDetailPageContent({
 }: TopicAnalysisDetailPageContentProps) {
   const detail = await getTopicAnalysisDetail(versionId);
 
-  if (!detail || detail.version.bill_id !== billId) {
+  if (!detail || detail.version.interview_config_id !== configId) {
     notFound();
   }
 

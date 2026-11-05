@@ -1,30 +1,33 @@
 "use client";
 
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
-import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MultiSimulationView } from "@/features/interview-simulation/client/components/multi-simulation-view";
 import type { CompletedReportListItem } from "@/features/interview-simulation/shared/types";
-import { routes } from "@/lib/routes";
 import { saveInterviewQuestions } from "../../server/actions/save-interview-questions";
+import { revertInterviewConfigToDraft } from "../../server/actions/upsert-interview-config";
 import {
-  createInterviewConfig,
-  updateInterviewConfig,
-} from "../../server/actions/upsert-interview-config";
-import type {
-  InterviewConfig,
-  InterviewQuestion,
-  InterviewQuestionInput,
+  type InterviewConfig,
+  type InterviewQuestion,
+  type InterviewQuestionInput,
+  textToArray,
 } from "../../shared/types";
+import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
+import { buildPurposeTemplateQuestions } from "../../shared/utils/purpose-template-questions";
+import { toQuestionInput } from "../../shared/utils/question-input";
+import type { ConfigFormContext } from "../hooks/use-config-generation-chat";
 import { ConfigGenerationChat } from "./config-generation-chat";
-import { InterviewConfigForm } from "./interview-config-form";
+import {
+  InterviewConfigForm,
+  type InterviewConfigFormValues,
+  type PolicyOption,
+} from "./interview-config-form";
 import { InterviewQuestionList } from "./interview-question-list";
 
 interface InterviewConfigEditClientProps {
-  billId: string;
+  modelGroups: ChatModelGroup[];
   config: InterviewConfig | null;
   questions: InterviewQuestion[];
   completedReports: CompletedReportListItem[];
@@ -33,21 +36,34 @@ interface InterviewConfigEditClientProps {
   /** 切り詰め上限値 */
   completedReportsLimit?: number;
   initialName?: string | null;
+  /** 新規作成時の Slug 初期値 */
+  initialSlug?: string;
+  /** 紐づけ先として選べる施策 */
+  policyOptions: PolicyOption[];
+  /** 現在紐づいている施策のID一覧。新規作成では、施策のページから来たときにその施策が入る */
+  linkedPolicyIds: string[];
+  /**
+   * ペルソナ素材を施策全体から選べるか。抽象テーマ型では false になり、
+   * この意見募集自身の完了インタビューだけが候補になる。
+   */
+  hasPolicyScope?: boolean;
 }
 
 export function InterviewConfigEditClient({
-  billId,
+  modelGroups,
   config: initialConfig,
   questions,
   completedReports,
   completedReportsTruncated = false,
   completedReportsLimit,
   initialName,
+  initialSlug,
+  policyOptions,
+  linkedPolicyIds,
+  hasPolicyScope = false,
 }: InterviewConfigEditClientProps) {
-  const router = useRouter();
-  const [configId, setConfigId] = useState<string | undefined>(
-    initialConfig?.id
-  );
+  // 保存済みの設定のID。新規作成画面では保存後に編集ページへ移るまで未定
+  const configId = initialConfig?.id;
   const [aiGeneratedThemes, setAiGeneratedThemes] = useState<string[] | null>(
     null
   );
@@ -55,122 +71,72 @@ export function InterviewConfigEditClient({
     InterviewQuestionInput[] | null
   >(null);
 
+  // テンプレートは保存済みの目的と、保存済みの施策の紐づけ（あれば施策型）で決める
+  const purposeTemplate = initialConfig?.purpose_type
+    ? buildPurposeTemplateQuestions(
+        initialConfig.purpose_type,
+        linkedPolicyIds.length > 0 ? "bill" : "theme"
+      )
+    : null;
   // フォームの値を取得するためのref
-  const getFormValuesRef = useRef<
-    | (() => {
-        name: string;
-        mode: string;
-        themes: string[];
-        chat_model: string | null;
-        estimated_duration: number | null;
-      })
-    | null
-  >(null);
+  const getFormValuesRef = useRef<(() => InterviewConfigFormValues) | null>(
+    null
+  );
   // 質問一覧の現在値を取得するための ref（シミュレーション機能で使用）
   const getQuestionsRef = useRef<(() => InterviewQuestionInput[]) | null>(null);
 
-  // 新規config 作成の race condition 対策。
-  // state (configId) は setConfigId 後の render を待つため、in-flight の
-  // 作成リクエストと作成済み ID を ref で同期的に共有する。
-  const createdConfigIdRef = useRef<string | undefined>(initialConfig?.id);
-  const createConfigPromiseRef = useRef<Promise<string | null> | null>(null);
-
-  /** 新規configを即時作成する（テーマ未確定でも質問を保存できるようにするため） */
-  const createConfigIfNeeded = useCallback(
-    async (themes: string[]): Promise<string | null> => {
-      // 既に作成済みならそれを返す
-      if (createdConfigIdRef.current) return createdConfigIdRef.current;
-      // 作成中なら同じ Promise を共有（concurrent呼び出しの重複作成防止）
-      if (createConfigPromiseRef.current) return createConfigPromiseRef.current;
-
-      const promise = (async () => {
-        try {
-          const formValues = getFormValuesRef.current?.();
-          const result = await createInterviewConfig(billId, {
-            name: formValues?.name || "AI生成設定",
-            status: "closed",
-            mode: (formValues?.mode as InterviewMode) || "loop",
-            themes,
-            chat_model: formValues?.chat_model || null,
-            estimated_duration: formValues?.estimated_duration ?? null,
-          });
-          if (!result.success) {
-            toast.error(result.error || "設定の作成に失敗しました");
-            return null;
+  // AIに渡すフォームの値。生成のたびにフォームの最新値を読み直す。
+  // フォームで空欄にした値は保存済みの値に戻さない（initialConfig はフォームが未接続のときだけ使う）
+  const getFormContext = useCallback((): ConfigFormContext => {
+    const formValues = getFormValuesRef.current?.();
+    return {
+      themeName: formValues ? formValues.name : (initialConfig?.name ?? null),
+      themeDescription: formValues
+        ? formValues.description
+        : (initialConfig?.description ?? null),
+      policyIds: formValues ? (formValues.policy_ids ?? []) : linkedPolicyIds,
+      design: formValues
+        ? {
+            purposeType: formValues.purpose_type ?? null,
+            opinionFocus: formValues.opinion_focus ?? null,
+            decidedMatters: formValues.decided_matters ?? null,
           }
-          const newConfigId = result.data.id;
-          createdConfigIdRef.current = newConfigId;
-          setConfigId(newConfigId);
-          toast.success("インタビュー設定を自動作成しました");
-          window.history.replaceState(
-            null,
-            "",
-            routes.billInterviewEdit(billId, newConfigId)
-          );
-          return newConfigId;
-        } finally {
-          // 失敗時は再試行できるように、未作成なら promise 参照を解放
-          if (!createdConfigIdRef.current) {
-            createConfigPromiseRef.current = null;
-          }
-        }
-      })();
-      createConfigPromiseRef.current = promise;
-      return promise;
-    },
-    [billId]
-  );
+        : {
+            purposeType: initialConfig?.purpose_type ?? null,
+            opinionFocus: initialConfig?.opinion_focus ?? null,
+            decidedMatters: initialConfig?.decided_matters ?? null,
+          },
+    };
+  }, [initialConfig, linkedPolicyIds]);
 
-  // 質問確定時: configがなければ先に作成してから質問を保存する（テーマ未確定でもOK）
-  const handleQuestionsConfirmed = useCallback(
-    async (confirmedQuestions: InterviewQuestionInput[]) => {
-      const targetConfigId = await createConfigIfNeeded([]);
-      if (!targetConfigId) return;
-
+  // 確定した質問・テーマは左ペインに反映するだけで、DBへの保存は保存ボタンに任せる。
+  // 確定のたびに裏で設定を作るとフォームが保存済みの値で作り直され、
+  // 入力途中の説明などが消えてしまうため。
+  // 保存済みの設定では質問一覧が反映と保存を受け持つ（一覧の編集は即時保存の作り）。
+  // 新規作成時は、設定の保存直後にプレビュー中の質問を登録する。
+  const handleConfigCreated = useCallback(
+    async (newConfigId: string) => {
+      if (!aiGeneratedQuestions || aiGeneratedQuestions.length === 0) return;
+      // 設定は作成済みで編集ページへ移るため、ここで失敗するとプレビュー中の質問は失われる。
+      // 例外も握って知らせ、遷移は止めない（止めると再保存で設定が二重に作られる）
       const result = await saveInterviewQuestions(
-        targetConfigId,
-        confirmedQuestions
-      );
-      if (result.success) {
-        setAiGeneratedQuestions(confirmedQuestions);
-        toast.success(`${confirmedQuestions.length}件の質問を保存しました`);
-        router.refresh();
-      } else {
-        toast.error(result.error || "質問の保存に失敗しました");
+        newConfigId,
+        aiGeneratedQuestions
+      ).catch(() => null);
+      if (!result?.success) {
+        // 質問が0件のまま募集中にしないよう、下書きに戻す
+        const wasOpen = getFormValuesRef.current?.().status === "open";
+        if (wasOpen) {
+          await revertInterviewConfigToDraft(newConfigId).catch(() => null);
+        }
+        toast.error(result?.error || "質問の保存に失敗しました", {
+          description: wasOpen
+            ? "質問は保存されていないので、編集画面のAI生成から作り直してください（設定は下書きで保存しました）"
+            : "質問は保存されていないので、編集画面のAI生成から作り直してください",
+        });
       }
     },
-    [createConfigIfNeeded, router]
-  );
-
-  // テーマ確定時: configがなければ作成、あれば更新
-  const handleThemesConfirmed = useCallback(
-    async (themes: string[]) => {
-      // ref を優先して参照することで、state 更新待ちの間に二重作成されるのを防ぐ
-      const targetConfigId = await createConfigIfNeeded(themes);
-      if (!targetConfigId) return;
-
-      // 既存 / 直前に作成済みだった場合はテーマを上書き更新（create は themes=[] で呼ばれる場合がある）
-      // create と同じフォールバックを使って、未入力時に name/mode が空で上書きされるのを防ぐ。
-      const formValues = getFormValuesRef.current?.();
-      const result = await updateInterviewConfig(targetConfigId, {
-        name: formValues?.name || initialConfig?.name || "AI生成設定",
-        status: initialConfig?.status || "closed",
-        mode:
-          (formValues?.mode as InterviewMode) || initialConfig?.mode || "loop",
-        themes,
-        chat_model: formValues?.chat_model ?? initialConfig?.chat_model ?? null,
-        estimated_duration:
-          formValues?.estimated_duration ??
-          initialConfig?.estimated_duration ??
-          null,
-      });
-      if (result.success) {
-        setAiGeneratedThemes(themes);
-      } else {
-        toast.error(result.error || "テーマの更新に失敗しました");
-      }
-    },
-    [createConfigIfNeeded, initialConfig]
+    [aiGeneratedQuestions]
   );
 
   return (
@@ -194,16 +160,22 @@ export function InterviewConfigEditClient({
           {/* 左カラム: フォーム */}
           <div className="space-y-6">
             <InterviewConfigForm
-              billId={billId}
+              modelGroups={modelGroups}
               config={initialConfig}
               aiGeneratedThemes={aiGeneratedThemes}
               onAiThemesApplied={() => setAiGeneratedThemes(null)}
               getFormValuesRef={getFormValuesRef}
+              onConfigCreated={handleConfigCreated}
+              pendingQuestionCount={aiGeneratedQuestions?.length ?? 0}
               initialName={initialName}
+              initialSlug={initialSlug}
+              policyOptions={policyOptions}
+              linkedPolicyIds={linkedPolicyIds}
             />
             {configId ? (
               <InterviewQuestionList
                 interviewConfigId={configId}
+                purposeTemplate={purposeTemplate}
                 questions={questions}
                 aiGeneratedQuestions={aiGeneratedQuestions}
                 onAiQuestionsApplied={() => setAiGeneratedQuestions(null)}
@@ -220,16 +192,16 @@ export function InterviewConfigEditClient({
           {/* 右カラム: AI 設定生成チャット */}
           <div>
             <ConfigGenerationChat
-              billId={billId}
-              configId={configId}
-              existingThemes={initialConfig?.themes ?? undefined}
-              existingQuestions={questions.map((q) => ({
-                question: q.question,
-                follow_up_guide: q.follow_up_guide ?? undefined,
-                quick_replies: q.quick_replies ?? undefined,
-              }))}
-              onQuestionsConfirmed={handleQuestionsConfirmed}
-              onThemesConfirmed={handleThemesConfirmed}
+              hasLinkedPolicy={linkedPolicyIds.length > 0}
+              getFormContext={getFormContext}
+              existingThemes={
+                initialConfig?.description
+                  ? textToArray(initialConfig.description)
+                  : undefined
+              }
+              existingQuestions={questions.map(toQuestionInput)}
+              onQuestionsConfirmed={setAiGeneratedQuestions}
+              onThemesConfirmed={setAiGeneratedThemes}
             />
           </div>
         </div>
@@ -242,8 +214,9 @@ export function InterviewConfigEditClient({
           className="mt-4 data-[state=inactive]:hidden"
         >
           <MultiSimulationView
-            billId={billId}
+            modelGroups={modelGroups}
             configId={configId}
+            hasPolicyScope={hasPolicyScope}
             getFormValues={() => getFormValuesRef.current?.() ?? null}
             getCurrentQuestions={() => getQuestionsRef.current?.() ?? []}
             completedReports={completedReports}
@@ -291,7 +264,7 @@ function AiQuestionsPreview({
                     </div>
                     {question.follow_up_guide && (
                       <div className="text-sm text-gray-600">
-                        <span className="font-medium">フォローアップ指針:</span>{" "}
+                        <span className="font-medium">観点:</span>{" "}
                         {question.follow_up_guide}
                       </div>
                     )}

@@ -18,6 +18,16 @@ class RubyfulClient {
   private isEnabled = false;
 
   /**
+   * ルビON状態を <html> の data 属性へ反映する。
+   * ルビはクライアント側で後から注入されるため、行間の切り替え（D-16:
+   * 本文1.8 → ルビ表示時1.9）は CSS 側でこの属性を見て行う（styles.css）
+   */
+  private syncDocumentState(enabled: boolean): void {
+    if (typeof document === "undefined") return;
+    document.documentElement.toggleAttribute("data-ruby-enabled", enabled);
+  }
+
+  /**
    * ルビ要素の表示状態を更新
    */
   private updateRubyVisibility(visible: boolean): void {
@@ -39,6 +49,7 @@ class RubyfulClient {
   show() {
     this.isEnabled = true;
     setRubyEnabledToStorage(true);
+    this.syncDocumentState(true);
     this.updateRubyVisibility(true);
   }
 
@@ -48,6 +59,7 @@ class RubyfulClient {
   hide() {
     this.isEnabled = false;
     setRubyEnabledToStorage(false);
+    this.syncDocumentState(false);
     this.updateRubyVisibility(false);
   }
 
@@ -74,6 +86,14 @@ class RubyfulClient {
    */
   getIsEnabledFromStorage(): boolean {
     return getRubyEnabledFromStorage();
+  }
+
+  /**
+   * ページ読み込み時に LocalStorage の設定を document へ反映する。
+   * トグルはページリロードを伴うため、初期反映はここで行えば十分
+   */
+  applyStoredStateToDocument(): void {
+    this.syncDocumentState(this.getIsEnabledFromStorage());
   }
 }
 

@@ -30,7 +30,7 @@ function RatingPhase({
       <p className="text-[13px] font-medium leading-none text-primary-accent text-center">
         AIインタビュー改善のためのアンケート
       </p>
-      <p className="text-[13px] font-medium leading-none text-mirai-text text-center">
+      <p className="text-[13px] font-medium leading-none text-foreground text-center">
         AIはあなたの考えを十分に引き出せていますか
       </p>
       <div className="flex justify-center">
@@ -45,8 +45,8 @@ function RatingPhase({
             <Star
               className={`size-6 ${
                 selectedRating !== null && star <= selectedRating
-                  ? "fill-mirai-star text-mirai-star"
-                  : "fill-white text-mirai-text-muted stroke-[0.5]"
+                  ? "fill-yellow-400 text-yellow-400"
+                  : "fill-white text-muted-foreground stroke-[0.5]"
               }`}
             />
           </Button>
@@ -67,7 +67,7 @@ function FeedbackPhase({
 }) {
   return (
     <>
-      <p className="text-[13px] font-medium leading-none text-mirai-text text-center">
+      <p className="text-[13px] font-medium leading-none text-foreground text-center">
         気になった点を教えてください
       </p>
       <div className="flex flex-wrap gap-2">
@@ -78,7 +78,7 @@ function FeedbackPhase({
             onClick={() => onToggleTag(tag)}
             className={`h-auto rounded-full border px-4 py-1 text-sm font-medium ${
               selectedTags.has(tag)
-                ? "border-primary bg-gradient-to-r from-mirai-gradient-start to-mirai-gradient-end text-mirai-text"
+                ? "border-primary bg-secondary text-foreground"
                 : "border-primary bg-white text-primary-accent"
             }`}
           >
@@ -103,7 +103,7 @@ function FeedbackPhase({
 
 function ThankYouPhase() {
   return (
-    <p className="text-[13px] font-medium leading-none text-mirai-text text-center">
+    <p className="text-[13px] font-medium leading-none text-foreground text-center">
       回答ありがとうございました！
     </p>
   );
@@ -189,7 +189,7 @@ export function InterviewRatingWidget({
   }, [phase, onDismiss]);
 
   return (
-    <div className="relative mx-4 rounded-xl bg-gray-100 px-6 py-4">
+    <div className="relative mx-4 rounded-xl bg-muted px-6 py-4">
       <div className="flex flex-col gap-2.5">
         {phase === "rating" && (
           <RatingPhase selectedRating={selectedRating} onRate={handleRate} />
@@ -207,7 +207,7 @@ export function InterviewRatingWidget({
         variant="ghost"
         size="icon"
         onClick={phase === "feedback" ? handleDismissToThankYou : onDismiss}
-        className="absolute right-2 top-2 h-[22px] w-[22px] p-0 text-mirai-text-close hover:bg-transparent hover:text-gray-500"
+        className="absolute right-2 top-2 h-[22px] w-[22px] p-0 text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
         aria-label="閉じる"
       >
         <X size={11} strokeWidth={2} />

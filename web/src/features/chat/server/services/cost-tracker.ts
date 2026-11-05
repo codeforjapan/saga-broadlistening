@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { LanguageModelUsage } from "ai";
+import { parseModelPricingOverrides } from "@mirai-gikai/shared/ai/pricing";
 
 import { sanitizeUsage } from "@/lib/ai/calculate-ai-cost";
 import { parseCost, resolveCostUsd } from "../../shared/utils/cost-utils";
@@ -22,6 +23,7 @@ type RecordChatUsageParams = {
   occurredAt?: string;
   metadata?: ChatUsageInsert["metadata"];
   costUsd?: number | null;
+  webSearchCalls?: number;
 };
 
 export async function recordChatUsage({
@@ -33,9 +35,16 @@ export async function recordChatUsage({
   occurredAt,
   metadata,
   costUsd,
+  webSearchCalls,
 }: RecordChatUsageParams) {
   const sanitizedUsage = sanitizeUsage(usage ?? undefined);
-  const costUsdNumber = resolveCostUsd(model, sanitizedUsage, costUsd);
+  const costUsdNumber = resolveCostUsd(
+    model,
+    sanitizedUsage,
+    costUsd,
+    parseModelPricingOverrides(process.env.AI_MODEL_PRICING),
+    webSearchCalls
+  );
   const payload: ChatUsageInsert = {
     user_id: userId,
     session_id: sessionId ?? null,

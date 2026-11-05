@@ -1,5 +1,6 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import type { Bill } from "../../shared/types";
@@ -15,19 +16,19 @@ import {
 } from "../repositories/bill-repository";
 
 /**
- * 議案を複製する
- * 元の議案とそのコンテンツを複製し、新しい議案として作成する
+ * 施策を複製する
+ * 元の施策とそのコンテンツを複製し、新しい施策として作成する
  */
 export async function duplicateBill(billId: string) {
   await requireAdmin();
 
-  // 元の議案を取得
+  // 元の施策を取得
   const originalBill = await _fetchOriginalBill(billId);
   if (!originalBill.success) {
     return originalBill;
   }
 
-  // 新しい議案を作成
+  // 新しい施策を作成
   const newBill = await _createDuplicateBill(originalBill.data);
   if (!newBill.success) {
     return newBill;
@@ -44,7 +45,7 @@ export async function duplicateBill(billId: string) {
 }
 
 /**
- * 元の議案を取得
+ * 元の施策を取得
  */
 async function _fetchOriginalBill(billId: string) {
   try {
@@ -54,16 +55,18 @@ async function _fetchOriginalBill(billId: string) {
     console.error("Error fetching original bill:", error);
     return {
       success: false as const,
-      error: "元の議案が見つかりません",
+      error: "元の施策が見つかりません",
     };
   }
 }
 
 /**
- * 複製した議案を作成
+ * 複製した施策を作成
  */
 async function _createDuplicateBill(originalBill: Bill) {
-  const insertData = prepareBillForDuplication(originalBill);
+  // policies.slug は NOT NULL かつ一意なため、複製時にランダムな接尾辞で採番する
+  const newSlug = `${originalBill.slug}-copy-${randomBytes(4).toString("hex")}`;
+  const insertData = prepareBillForDuplication(originalBill, newSlug);
 
   try {
     const data = await createBill(insertData);
@@ -72,13 +75,13 @@ async function _createDuplicateBill(originalBill: Bill) {
     console.error("Error creating new bill:", error);
     return {
       success: false as const,
-      error: "新しい議案の作成に失敗しました",
+      error: "新しい施策の作成に失敗しました",
     };
   }
 }
 
 /**
- * 議案のコンテンツを複製
+ * 施策のコンテンツを複製
  */
 async function _duplicateContents(originalBillId: string, newBillId: string) {
   try {

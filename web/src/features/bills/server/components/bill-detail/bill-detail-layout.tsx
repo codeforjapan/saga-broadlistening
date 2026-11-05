@@ -1,35 +1,64 @@
+import "server-only";
+
 import { Container } from "@/components/layouts/container";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
-import { InterviewLandingSection } from "@/features/interview-config/client/components/interview-landing-section";
+import { InterviewLandingSection } from "@/features/interview-config/server/components/interview-landing-section";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
-import { getPublicReportsByBillId } from "@/features/interview-report/server/loaders/get-public-reports-by-bill-id";
-import { BillTopicsPreviewSection } from "@/features/user-topic-analysis/server/components/bill-topics-preview-section";
-import { getPublicTopicAnalysis } from "@/features/user-topic-analysis/server/loaders/get-public-topic-analysis";
+import { getInterviewParticipationView } from "@/features/interview-config/server/loaders/get-interview-participation-view";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { TopicsPreviewSection } from "@/features/user-topic-analysis/server/components/topics-preview-section";
+import { getTopicAnalysisContext } from "@/features/user-topic-analysis/server/loaders/get-topic-analysis-context";
 import { BillDetailClient } from "../../../client/components/bill-detail/bill-detail-client";
 import { BillDisclaimer } from "../../../client/components/bill-detail/bill-disclaimer";
-import { BillStatusProgress } from "../../../client/components/bill-detail/bill-status-progress";
-import { MiraiStanceCard } from "../../../client/components/bill-detail/mirai-stance-card";
 import type { BillWithContent } from "../../../shared/types";
+import {
+  type PolicyPageKind,
+  shouldShowInterviewEntry,
+} from "../../../shared/utils/policy-hierarchy";
+import { toRelatedLinkViews } from "../../../shared/utils/related-links-view";
 import { BillShareButtons } from "../share/bill-share-buttons";
 import { BillContent } from "./bill-content";
 import { BillDetailHeader } from "./bill-detail-header";
+import { RelatedLinks } from "./related-links";
 
 interface BillDetailLayoutProps {
   bill: BillWithContent;
   currentDifficulty: DifficultyLevelEnum;
+  /** 子施策（施策紹介ページ）ではインタビュー導線を出さない（親施策ページに集約、#157） */
+  pageKind: Exclude<PolicyPageKind, "parent">;
+  isPreview: boolean;
+  previewToken?: string;
 }
 
 export async function BillDetailLayout({
   bill,
   currentDifficulty,
+  pageKind,
+  isPreview,
+  previewToken,
 }: BillDetailLayoutProps) {
-  const showMiraiStance = bill.status === "preparing" || bill.mirai_stance;
-  const [interviewConfig, publicReportsResult, topicAnalysis] =
-    await Promise.all([
-      getInterviewConfig(bill.id),
-      getPublicReportsByBillId(bill.id),
-      getPublicTopicAnalysis(bill.id),
-    ]);
+  const target = policyInterviewTarget(
+    bill.id,
+    isPreview ? previewToken : undefined
+  );
+  // 子施策ではインタビュー・トピックの導線を出さないので、取得もしない
+  const isChild = pageKind === "child";
+  const [interviewConfig, topicContext] = isChild
+    ? [null, null]
+    : await Promise.all([
+        getInterviewConfig(bill.id),
+        // トピック一覧ページと同じ経路で公開中の分析と公開意見件数を引く。
+        getTopicAnalysisContext(target),
+      ]);
+  const showInterviewEntry = shouldShowInterviewEntry({
+    pageKind,
+    hasInterviewConfig: interviewConfig != null,
+  });
+  const interviewParticipation =
+    showInterviewEntry && interviewConfig
+      ? await getInterviewParticipationView(interviewConfig, isPreview)
+      : undefined;
+  const relatedLinks = toRelatedLinkViews(bill.related_links);
 
   return (
     <div className="container mx-auto pb-8 max-w-4xl">
@@ -42,49 +71,42 @@ export async function BillDetailLayout({
       <BillDetailClient
         bill={bill}
         currentDifficulty={currentDifficulty}
-        hasInterviewConfig={interviewConfig != null}
+        hasInterviewConfig={showInterviewEntry}
+        interviewParticipation={interviewParticipation}
+        interviewTarget={target}
       >
         <BillDetailHeader
           bill={bill}
-          hasInterviewConfig={interviewConfig != null}
-          opinionCount={topicAnalysis?.total_opinions ?? 0}
-          topicCount={topicAnalysis?.topics.length ?? 0}
+          hasInterviewConfig={showInterviewEntry}
+          opinionCount={topicContext?.analysis?.total_opinions ?? 0}
+          topicCount={topicContext?.analysis?.topics.length ?? 0}
         />
         <Container>
-          {/* 議案ステータス進捗 */}
-          <div className="my-8">
-            <BillStatusProgress
-              status={bill.status}
-              originatingHouse={bill.originating_house}
-              statusNote={bill.status_note}
-            />
-          </div>
-
           <BillContent bill={bill} />
         </Container>
       </BillDetailClient>
 
       <Container>
-        {/* 法案のトピック一覧（AIインタビュー意見の整理） */}
-        <div className="my-8">
-          <BillTopicsPreviewSection
-            billId={bill.id}
-            topics={topicAnalysis?.topics ?? []}
-            publicReportCount={publicReportsResult.totalCount}
-          />
-        </div>
-
-        {interviewConfig != null && (
+        {relatedLinks.length > 0 && (
           <div className="my-8">
-            <InterviewLandingSection billId={bill.id} />
+            <RelatedLinks links={relatedLinks} />
           </div>
         )}
-        {showMiraiStance && (
+
+        {/* 施策のトピック一覧（AIインタビュー意見の整理）。子施策では親施策ページに集約する */}
+        {topicContext && (
           <div className="my-8">
-            <MiraiStanceCard
-              stance={bill.mirai_stance}
-              billStatus={bill.status}
+            <TopicsPreviewSection
+              target={target}
+              topics={topicContext.analysis?.topics ?? []}
+              publicOpinionCount={topicContext.publicOpinionCount}
             />
+          </div>
+        )}
+
+        {showInterviewEntry && (
+          <div className="my-8">
+            <InterviewLandingSection target={target} />
           </div>
         )}
         {/* シェアボタン */}

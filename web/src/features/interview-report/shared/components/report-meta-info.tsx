@@ -4,13 +4,9 @@ import { getInterviewChatLogLink } from "@/features/interview-config/shared/util
 import { ReactionButtonsInline } from "@/features/report-reaction/client/components/reaction-buttons-inline";
 import type { ReportReactionData } from "@/features/report-reaction/shared/types";
 import { formatDateTime } from "../utils/report-utils";
-import { RoleDisplay } from "./role-display";
-import { StanceDisplay } from "./stance-display";
 
 interface ReportMetaInfoProps {
   reportId: string;
-  stance?: string | null;
-  role?: string | null;
   roleTitle?: string | null;
   sessionStartedAt: string | null;
   characterCount: number;
@@ -23,8 +19,6 @@ interface ReportMetaInfoProps {
 
 export function ReportMetaInfo({
   reportId,
-  stance,
-  role,
   roleTitle,
   sessionStartedAt,
   characterCount,
@@ -34,14 +28,10 @@ export function ReportMetaInfo({
 }: ReportMetaInfoProps) {
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="flex flex-col items-center gap-3">
-        {/* スタンス */}
-        {stance && <StanceDisplay stance={stance} />}
-        {/* 役割 */}
-        {(role || roleTitle) && (
-          <RoleDisplay role={role} roleTitle={roleTitle} />
-        )}
-      </div>
+      {/* 立場 */}
+      {roleTitle && (
+        <p className="text-xs text-muted-foreground">{roleTitle}</p>
+      )}
 
       {/* 日時・時間・文字数 */}
       <div className="text-black text-center">

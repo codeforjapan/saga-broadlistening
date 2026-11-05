@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { StanceBadge } from "@/features/interview-reports/server/components/stance-badge";
 import type {
   CompletedReportListItem,
   PersonaSlotInput,
@@ -71,7 +70,6 @@ export function PersonaSlotCard({
               <span className="font-medium">
                 {report.roleTitle ?? "立場不明"}
               </span>
-              <StanceBadge stance={report.stance} />
               {report.totalContentRichness !== null && (
                 <Badge variant="outline" className="font-normal text-xs">
                   充実度 {report.totalContentRichness}

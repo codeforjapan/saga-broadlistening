@@ -28,7 +28,7 @@ export function TextSelectionTooltip({
 
   return (
     <div
-      className={`fixed z-10 bg-white border border-gray-200 rounded-md shadow-lg`}
+      className={"fixed z-10 bg-white rounded-md shadow-raised"}
       style={position}
     >
       <div className="flex items-center gap-1">

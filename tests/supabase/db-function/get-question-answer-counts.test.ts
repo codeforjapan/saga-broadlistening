@@ -1,29 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   adminClient,
-  cleanupTestBill,
   cleanupTestUser,
-  createTestBill,
+  createTestSession,
   createTestUser,
   type TestUser,
 } from "../utils";
-
-async function createTestInterviewConfig(
-  billId: string,
-  status: "public" | "closed" = "public"
-) {
-  const { data, error } = await adminClient
-    .from("interview_configs")
-    .insert({
-      bill_id: billId,
-      status,
-      name: `テスト設定 ${Date.now()}`,
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_config 作成失敗: ${error.message}`);
-  return data;
-}
+import { trackInterviewConfigs } from "./helpers";
 
 async function createTestQuestion(
   configId: string,
@@ -40,20 +23,6 @@ async function createTestQuestion(
     .select()
     .single();
   if (error) throw new Error(`interview_question 作成失敗: ${error.message}`);
-  return data;
-}
-
-async function createTestSession(configId: string, userId: string) {
-  const { data, error } = await adminClient
-    .from("interview_sessions")
-    .insert({
-      interview_config_id: configId,
-      user_id: userId,
-      started_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
-  if (error) throw new Error(`interview_session 作成失敗: ${error.message}`);
   return data;
 }
 
@@ -82,41 +51,36 @@ const iso = (offsetSec: number) =>
 
 describe("get_question_answer_counts() 関数", () => {
   let testUser: TestUser;
-  const billIds: string[] = [];
+  const configs = trackInterviewConfigs();
 
   beforeEach(async () => {
     testUser = await createTestUser();
   });
 
   afterEach(async () => {
-    for (const billId of billIds) {
-      await cleanupTestBill(billId);
-    }
-    billIds.length = 0;
+    await configs.cleanup();
     await cleanupTestUser(testUser.id);
   });
 
   it("質問ごとの提示セッション数と回答セッション数を集計する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-    const q1 = await createTestQuestion(config.id, "質問1", 1);
-    const q2 = await createTestQuestion(config.id, "質問2", 2);
+    const configId = await configs.createConfigId();
+    const q1 = await createTestQuestion(configId, "質問1", 1);
+    const q2 = await createTestQuestion(configId, "質問2", 2);
 
     // セッション1: q1提示→回答あり、q2提示→回答なし（離脱）
-    const s1 = await createTestSession(config.id, testUser.id);
+    const s1 = await createTestSession(configId, testUser.id);
     await insertMessage(s1.id, "assistant", assistantContent(q1.id), iso(0));
     await insertMessage(s1.id, "user", "回答1", iso(10));
     await insertMessage(s1.id, "assistant", assistantContent(q2.id), iso(20));
 
     // セッション2: q1提示→回答あり
-    const s2 = await createTestSession(config.id, testUser.id);
+    const s2 = await createTestSession(configId, testUser.id);
     await insertMessage(s2.id, "assistant", assistantContent(q1.id), iso(0));
     await insertMessage(s2.id, "user", "回答2", iso(10));
 
     const { data, error } = await adminClient.rpc(
       "get_question_answer_counts",
-      { p_config_id: config.id }
+      { p_config_id: configId }
     );
 
     expect(error).toBeNull();
@@ -138,12 +102,10 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("同一セッションで同じ質問が複数回提示されても1セッションと数える", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-    const q1 = await createTestQuestion(config.id, "質問1", 1);
+    const configId = await configs.createConfigId();
+    const q1 = await createTestQuestion(configId, "質問1", 1);
 
-    const s1 = await createTestSession(config.id, testUser.id);
+    const s1 = await createTestSession(configId, testUser.id);
     await insertMessage(s1.id, "assistant", assistantContent(q1.id), iso(0));
     await insertMessage(s1.id, "user", "回答", iso(10));
     await insertMessage(s1.id, "assistant", assistantContent(q1.id), iso(20));
@@ -151,7 +113,7 @@ describe("get_question_answer_counts() 関数", () => {
 
     const { data, error } = await adminClient.rpc(
       "get_question_answer_counts",
-      { p_config_id: config.id }
+      { p_config_id: configId }
     );
 
     expect(error).toBeNull();
@@ -160,12 +122,10 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("legacyのcamelCaseキー（questionId）も集計する", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-    const q1 = await createTestQuestion(config.id, "質問1", 1);
+    const configId = await configs.createConfigId();
+    const q1 = await createTestQuestion(configId, "質問1", 1);
 
-    const s1 = await createTestSession(config.id, testUser.id);
+    const s1 = await createTestSession(configId, testUser.id);
     await insertMessage(
       s1.id,
       "assistant",
@@ -176,7 +136,7 @@ describe("get_question_answer_counts() 関数", () => {
 
     const { data, error } = await adminClient.rpc(
       "get_question_answer_counts",
-      { p_config_id: config.id }
+      { p_config_id: configId }
     );
 
     expect(error).toBeNull();
@@ -185,12 +145,10 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("JSONでないメッセージや不正なquestion_idはスキップする", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-    const q1 = await createTestQuestion(config.id, "質問1", 1);
+    const configId = await configs.createConfigId();
+    const q1 = await createTestQuestion(configId, "質問1", 1);
 
-    const s1 = await createTestSession(config.id, testUser.id);
+    const s1 = await createTestSession(configId, testUser.id);
     // 非JSONのプレーンテキスト
     await insertMessage(s1.id, "assistant", "プレーンテキストの質問", iso(0));
     // JSONだがオブジェクトでない
@@ -213,7 +171,7 @@ describe("get_question_answer_counts() 関数", () => {
 
     const { data, error } = await adminClient.rpc(
       "get_question_answer_counts",
-      { p_config_id: config.id }
+      { p_config_id: configId }
     );
 
     expect(error).toBeNull();
@@ -224,15 +182,13 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("一度も提示されていない質問も0件で返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-    await createTestQuestion(config.id, "質問1", 1);
-    await createTestQuestion(config.id, "質問2", 2);
+    const configId = await configs.createConfigId();
+    await createTestQuestion(configId, "質問1", 1);
+    await createTestQuestion(configId, "質問2", 2);
 
     const { data, error } = await adminClient.rpc(
       "get_question_answer_counts",
-      { p_config_id: config.id }
+      { p_config_id: configId }
     );
 
     expect(error).toBeNull();
@@ -241,20 +197,18 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("別configのセッションは集計に含まれない", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config1 = await createTestInterviewConfig(bill.id);
-    const config2 = await createTestInterviewConfig(bill.id, "closed");
-    const q1 = await createTestQuestion(config1.id, "質問1", 1);
+    const configId1 = await configs.createConfigId();
+    const configId2 = await configs.createConfigId();
+    const q1 = await createTestQuestion(configId1, "質問1", 1);
 
     // config2のセッションがconfig1の質問IDを参照しても数えない
-    const s2 = await createTestSession(config2.id, testUser.id);
+    const s2 = await createTestSession(configId2, testUser.id);
     await insertMessage(s2.id, "assistant", assistantContent(q1.id), iso(0));
     await insertMessage(s2.id, "user", "回答", iso(10));
 
     const { data, error } = await adminClient.rpc(
       "get_question_answer_counts",
-      { p_config_id: config1.id }
+      { p_config_id: configId1 }
     );
 
     expect(error).toBeNull();
@@ -263,16 +217,14 @@ describe("get_question_answer_counts() 関数", () => {
   });
 
   it("question_orderの昇順で返す", async () => {
-    const bill = await createTestBill();
-    billIds.push(bill.id);
-    const config = await createTestInterviewConfig(bill.id);
-    await createTestQuestion(config.id, "質問B", 2);
-    await createTestQuestion(config.id, "質問A", 1);
-    await createTestQuestion(config.id, "質問C", 3);
+    const configId = await configs.createConfigId();
+    await createTestQuestion(configId, "質問B", 2);
+    await createTestQuestion(configId, "質問A", 1);
+    await createTestQuestion(configId, "質問C", 3);
 
     const { data, error } = await adminClient.rpc(
       "get_question_answer_counts",
-      { p_config_id: config.id }
+      { p_config_id: configId }
     );
 
     expect(error).toBeNull();

@@ -13,6 +13,7 @@ export {
   findPublishedAnalysis,
 } from "./public-read-repository";
 export {
-  getPublicBillRespondents,
+  getPublicRespondentDetail,
+  getPublicRespondents,
   getPublicTopicAnalysis,
 } from "./loaders";

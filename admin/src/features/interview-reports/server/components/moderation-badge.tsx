@@ -16,7 +16,7 @@ const moderationConfig: Record<string, { label: string; className: string }> = {
   },
   ng: {
     label: "NG",
-    className: "bg-red-50 text-red-700 border-red-200",
+    className: "bg-yellow-400/20 text-system-warning border-yellow-400",
   },
 };
 

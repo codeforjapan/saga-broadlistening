@@ -12,7 +12,7 @@ const app = new App();
 const envName = app.node.tryGetContext("env");
 if (!envName) {
   throw new Error(
-    'Missing required context "env". Pass it with --context env=dev|stg|prd (e.g. `cdk synth --context env=dev`).'
+    'Missing required context "env". Pass it with --context env=stg|prd (e.g. `cdk synth --context env=stg`).'
   );
 }
 
@@ -50,10 +50,17 @@ const topicAnalysisStack = new TopicAnalysisStack(
   }
 );
 
-new VercelOidcStack(app, `MiraiGikaiVercelOidcStack-${envConfig.envName}`, {
-  env,
-  envConfig,
-  bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
-  topicAnalysisJobQueueArn: topicAnalysisStack.jobQueue.jobQueueArn,
-  topicAnalysisJobDefinitionArn: topicAnalysisStack.jobDefinition.jobDefinitionArn,
-});
+const vercelOidcStack = new VercelOidcStack(
+  app,
+  `MiraiGikaiVercelOidcStack-${envConfig.envName}`,
+  {
+    env,
+    envConfig,
+    bedrockInvokeModelPolicy: bedrockStack.invokeModelPolicy,
+  }
+);
+// 旧構成ではVercelOidcStackがTopicAnalysisStackのJob Queue/Job Definition ARNを
+// Fn::ImportValueで参照していた。その参照を外したVercelOidcStackを先にデプロイしないと、
+// TopicAnalysisStack側のexport削除が「使用中」で失敗するため、デプロイ順を逆転させる。
+// stg/prdの両方で一度デプロイされた後は削除してよい。
+topicAnalysisStack.addDependency(vercelOidcStack);

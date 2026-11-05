@@ -2,10 +2,6 @@
 
 import { useMemo } from "react";
 import type { InterviewReportViewData } from "@/features/interview-session/shared/schemas";
-import {
-  formatRoleLabel,
-  stanceLabels,
-} from "../../../interview-report/shared/constants";
 
 type Props = {
   report: InterviewReportViewData;
@@ -18,7 +14,7 @@ export function InterviewSummary({ report }: Props) {
   }, [report.opinions]);
 
   return (
-    <div className="rounded-[16px] bg-mirai-light-gradient p-4 shadow-sm">
+    <div className="rounded-[16px] bg-secondary p-4 shadow-sm">
       <div className="mt-2 space-y-4 text-sm">
         {report.summary && (
           <div className="font-bold space-y-1">
@@ -26,18 +22,18 @@ export function InterviewSummary({ report }: Props) {
             <p className="whitespace-pre-wrap">{report.summary}</p>
           </div>
         )}
-        {report.stance && (
+        {report.final_text && (
           <div className="font-bold space-y-1">
-            <p className="text-primary-accent">🙋基本スタンス</p>
-            <p>{stanceLabels[report.stance] || report.stance}</p>
+            <p className="text-primary-accent">📝提出する意見</p>
+            <p className="whitespace-pre-wrap">{report.final_text}</p>
           </div>
         )}
-        {(report.role || report.role_description || report.role_title) && (
+        {(report.role_description || report.role_title) && (
           <div className="space-y-4 font-bold">
-            {(report.role || report.role_title) && (
+            {report.role_title && (
               <div className="space-y-1">
                 <p className="text-primary-accent">立場</p>
-                <p>{formatRoleLabel(report.role, report.role_title)}</p>
+                <p>{report.role_title}</p>
               </div>
             )}
             {report.role_description && (

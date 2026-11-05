@@ -17,8 +17,8 @@ export const configGenerationStageSchema = z.enum([
 export type ConfigGenerationStage = z.infer<typeof configGenerationStageSchema>;
 
 /**
- * 初期テンプレート用: 法案ごとに Q1 / Q2 の quick_replies のみ LLM 生成する。
- * 質問文・フォローアップ指針は固定のためここでは出力しない。
+ * 初期テンプレート用: 施策ごとに Q1 / Q2 の quick_replies のみ LLM 生成する。
+ * 質問文・観点は固定のためここでは出力しない。
  *
  * フィールド名は意味ベース（topics/stance）にして LLM の混同を防ぐ。
  */
@@ -27,12 +27,12 @@ export const defaultQuestionsGenerationSchema = z.object({
   topics: z
     .array(z.string())
     .describe(
-      "関心のあるテーマ（論点）の選択肢。法案固有の論点名を5件（例: 『AI利用』『罰則』『データ保護』のような論点）。立場・属性は絶対に入れない。"
+      "関心のあるテーマ（論点）の選択肢。施策固有の論点名を5件（例: 『AI利用』『罰則』『データ保護』のような論点）。立場・属性は絶対に入れない。"
     ),
   stance: z
     .array(z.string())
     .describe(
-      "立場・関わり方の選択肢。法案の影響を受けそうな立場・属性を5件（例: 『仕事で〜』『〜の利用者』『〜の保護者』のような人の属性）。論点・テーマは絶対に入れない。汎用枠として『一般市民として関心がある』を必ず含めること。"
+      "立場・関わり方の選択肢。施策の影響を受けそうな立場・属性を5件（例: 『仕事で〜』『〜の利用者』『〜の保護者』のような人の属性）。論点・テーマは絶対に入れない。汎用枠として『一般市民として関心がある』を必ず含めること。"
     ),
 });
 
@@ -62,7 +62,7 @@ export const questionProposalSchema = z.object({
         follow_up_guide: z
           .string()
           .nullable()
-          .describe("フォローアップ指針（深掘り方法など）"),
+          .describe("観点（深掘り方法など）"),
         quick_replies: z
           .array(z.string())
           .nullable()
@@ -85,8 +85,9 @@ export const configGenerationResponseSchema = z.object({
     .array(
       z.object({
         question: z.string(),
-        follow_up_guide: z.string().optional(),
-        quick_replies: z.array(z.string()).optional(),
+        // 生成スキーマ（questionProposalSchema）は null を返せるので、ここでも受け付ける
+        follow_up_guide: z.string().nullish(),
+        quick_replies: z.array(z.string()).nullish(),
       })
     )
     .optional(),

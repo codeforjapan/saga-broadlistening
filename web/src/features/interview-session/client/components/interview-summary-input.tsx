@@ -3,6 +3,10 @@
 import { useState } from "react";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Button } from "@/components/ui/button";
+import {
+  type InterviewTarget,
+  previewCredentialOf,
+} from "@/features/interview-config/shared/types/interview-target";
 import { InterviewPublicConsentModal } from "@/features/interview-report/client/components/interview-public-consent-modal";
 import { useEndInterview } from "../hooks/use-end-interview";
 import { useInterviewCompletion } from "../hooks/use-interview-completion";
@@ -10,9 +14,11 @@ import { InterviewChatInput } from "./interview-chat-input";
 
 interface InterviewSummaryInputProps {
   sessionId: string;
-  billId: string;
+  /** 「インタビューを終了する」の戻り先を決めるための参加導線の起点 */
+  target: InterviewTarget;
   hasReport: boolean;
-  previewToken?: string;
+  /** 締めの発話まで終わった（これ以上 AI は発話しない） */
+  isComplete: boolean;
   input: string;
   onInputChange: (value: string) => void;
   onSubmit: (message: PromptInputMessage) => void;
@@ -24,9 +30,9 @@ interface InterviewSummaryInputProps {
 
 export function InterviewSummaryInput({
   sessionId,
-  billId,
+  target,
   hasReport,
-  previewToken,
+  isComplete,
   input,
   onInputChange,
   onSubmit,
@@ -37,12 +43,9 @@ export function InterviewSummaryInput({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { isCompleting, completeError, handleSubmit } = useInterviewCompletion({
     sessionId,
+    preview: previewCredentialOf(target),
   });
-  const { endInterview, isEnding } = useEndInterview(
-    sessionId,
-    billId,
-    previewToken
-  );
+  const { endInterview, isEnding } = useEndInterview(sessionId, target);
 
   return (
     <>
@@ -57,10 +60,14 @@ export function InterviewSummaryInput({
             </Button>
           ) : (
             <>
-              <p className="text-sm font-medium leading-[1.8] text-mirai-text mb-2">
+              <p className="text-sm font-medium leading-[1.8] text-foreground mb-2">
                 お話しいただいた内容が短く、レポートを作成できませんでした。もう少しインタビューを続けると、レポートを作成できます。
               </p>
-              <Button onClick={() => onResume?.()}>インタビューを続ける</Button>
+              {!isComplete && (
+                <Button onClick={() => onResume?.()}>
+                  インタビューを続ける
+                </Button>
+              )}
               <Button
                 variant="outline"
                 onClick={endInterview}
@@ -75,15 +82,20 @@ export function InterviewSummaryInput({
           )}
         </div>
       )}
-      {hasReport && (
-        <InterviewChatInput
-          input={input}
-          onInputChange={onInputChange}
-          onSubmit={onSubmit}
-          placeholder="レポートの修正要望を入力する"
-          isResponding={isLoading}
-          error={error}
-        />
+      {hasReport && !isComplete && (
+        <>
+          <p className="mb-2 text-sm font-medium leading-[1.8] text-foreground">
+            こちらの内容で問題ありませんか？違和感がある箇所があれば指摘してください。
+          </p>
+          <InterviewChatInput
+            input={input}
+            onInputChange={onInputChange}
+            onSubmit={onSubmit}
+            placeholder="レポートの修正要望を入力する"
+            isResponding={isLoading}
+            error={error}
+          />
+        </>
       )}
       <InterviewPublicConsentModal
         open={isModalOpen}

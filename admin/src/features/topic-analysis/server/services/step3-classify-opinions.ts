@@ -1,11 +1,11 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import { generateObject } from "ai";
 import { z } from "zod";
 import {
   TOPIC_ANALYSIS_BATCH_SIZE,
   TOPIC_ANALYSIS_MAX_CONCURRENCY,
-  TOPIC_ANALYSIS_MODEL,
 } from "../../shared/constants";
 import type { FlatOpinion } from "../../shared/types";
 import { retryTopicAnalysisRequest } from "../utils/retry-topic-analysis-request";
@@ -29,7 +29,7 @@ const classifyBatchSchema = z.object({
 });
 
 type ClassificationResult = {
-  interview_report_id: string;
+  opinion_id: string;
   opinion_index: number;
   topic_names: string[];
 };
@@ -76,11 +76,11 @@ async function classifyBatch(
   const { object } = await retryTopicAnalysisRequest(
     () =>
       generateObject({
-        model: TOPIC_ANALYSIS_MODEL,
+        ...getAiModel("topicAnalysis"),
         schema: classifyBatchSchema,
-        prompt: `あなたは議案分析の専門家です。各意見を適切なトピックに分類してください。
+        prompt: `あなたは施策分析の専門家です。各意見を適切なトピックに分類してください。
 
-## 法案
+## 施策
 ${billTitle}
 
 ## トピック一覧
@@ -108,13 +108,13 @@ ${opinionsText}
     }
   );
 
-  // LLMが返した連番IDを元のinterview_report_id + opinion_indexにマッピング
+  // LLMが返した連番IDを元の opinion_id + opinion_index にマッピング
   return object.classifications
     .filter((c) => c.opinion_id >= 1 && c.opinion_id <= opinions.length)
     .map((c) => {
       const opinion = opinions[c.opinion_id - 1];
       return {
-        interview_report_id: opinion.interview_report_id,
+        opinion_id: opinion.opinion_id,
         opinion_index: opinion.opinion_index,
         topic_names: c.topic_names,
       };

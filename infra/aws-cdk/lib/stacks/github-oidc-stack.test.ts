@@ -4,7 +4,7 @@ import { createTestGitHubOidcStack } from "./test-support";
 
 describe("GitHubOidcStack", () => {
   it("GitHub用OIDCプロバイダーを作成する", () => {
-    const { githubOidcStack } = createTestGitHubOidcStack("Test1", "dev");
+    const { githubOidcStack } = createTestGitHubOidcStack("Test1", "stg");
 
     const template = Template.fromStack(githubOidcStack);
 
@@ -14,8 +14,39 @@ describe("GitHubOidcStack", () => {
     });
   });
 
-  it("GitHub Actionsデプロイ用IAMロールを作成し信頼条件を検証する", () => {
-    const { githubOidcStack, envConfig } = createTestGitHubOidcStack("Test2", "dev");
+  it("GitHub Actionsデプロイ用IAMロールを作成し、stg環境はdevelopブランチ/staging Environmentを信頼する", () => {
+    const { githubOidcStack, envConfig } = createTestGitHubOidcStack("Test2", "stg");
+
+    const template = Template.fromStack(githubOidcStack);
+
+    template.hasResourceProperties("AWS::IAM::Role", {
+      RoleName: `MiraiGikaiGitHubActionsDeployRole-${envConfig.envName}`,
+      AssumeRolePolicyDocument: {
+        Statement: Match.arrayWith([
+          Match.objectLike({
+            Effect: "Allow",
+            Action: "sts:AssumeRoleWithWebIdentity",
+            Condition: {
+              StringEquals: {
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+              },
+              StringLike: {
+                "token.actions.githubusercontent.com:sub": [
+                  "repo:codeforjapan/saga-broadlistening:ref:refs/heads/develop",
+                  "repo:codeforjapan/saga-broadlistening:environment:staging",
+                  "repo:codeforjapan/saga-broadlistening:pull_request",
+                  "repo:codeforjapan/saga-broadlistening:ref:refs/pull/*",
+                ],
+              },
+            },
+          }),
+        ]),
+      },
+    });
+  });
+
+  it("GitHub Actionsデプロイ用IAMロールを作成し、prd環境はmainブランチ/production Environmentを信頼する", () => {
+    const { githubOidcStack, envConfig } = createTestGitHubOidcStack("Test2b", "prd");
 
     const template = Template.fromStack(githubOidcStack);
 
@@ -96,7 +127,7 @@ describe("GitHubOidcStack", () => {
   });
 
   it("deployRoleプロパティを公開する", () => {
-    const { githubOidcStack } = createTestGitHubOidcStack("Test5", "dev");
+    const { githubOidcStack } = createTestGitHubOidcStack("Test5", "stg");
 
     expect(githubOidcStack.deployRole).toBeDefined();
   });

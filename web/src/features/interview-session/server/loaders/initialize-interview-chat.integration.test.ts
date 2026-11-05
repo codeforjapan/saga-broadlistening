@@ -1,13 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { AuthSessionMissingError } from "@mirai-gikai/supabase";
 import {
   adminClient,
-  createTestUser,
+  cleanupTestExternalIdentityByUid,
   cleanupTestUser,
   createTestInterviewData,
   createTestInterviewMessages,
-  cleanupTestBill,
+  createTestUser,
   type TestUser,
+  uniqueSuffix,
 } from "@test-utils/utils";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { resolveExternalIdentities } from "@/features/external-identity/server/services/resolve-external-identities";
 import { createGenerateMock } from "@/test-utils/mock-language-model";
 import type { GetUserFn } from "../utils/verify-session-ownership";
 import { initializeInterviewChat } from "./initialize-interview-chat";
@@ -19,39 +22,34 @@ function createGetUser(userId: string): GetUserFn {
   });
 }
 
-// interviewChatTextSchema に準拠したモックレスポンス
-// LLMのレスポンスはtopic_title: nullだが、overrideInitialTopicTitleにより「はじめに」に上書きされる
+// interviewInitialSchema に準拠したモックレスポンス
 const llmResponse = JSON.stringify({
+  question_id: "Q1",
+  topic_title: "関わり",
   text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
-  quick_replies: ["はい", "いいえ"],
-  question_id: null,
-  topic_title: null,
-  next_stage: "chat",
-});
-const expectedResponse = JSON.stringify({
-  text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
-  quick_replies: ["はい", "いいえ"],
-  question_id: null,
-  topic_title: "はじめに",
-  next_stage: "chat",
 });
 
 describe("initializeInterviewChat 統合テスト", () => {
   let testUser: TestUser;
   let sessionId: string;
-  let billId: string;
+  let cleanupInterviewData: () => Promise<void>;
+  let config: Awaited<ReturnType<typeof createTestInterviewData>>["config"];
   let interviewConfigId: string;
+  // 初期質問の生成はモデルをモックするため、施策の中身はここでは効かない。
+  // 施策なし（抽象テーマ型）でもセッション初期化が通ることを兼ねて null で呼ぶ。
+  const bill = null;
 
   beforeEach(async () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.bill.id;
+    cleanupInterviewData = data.cleanup;
+    config = data.config;
     interviewConfigId = data.config.id;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId);
+    await cleanupInterviewData();
     await cleanupTestUser(testUser.id);
   });
 
@@ -59,37 +57,178 @@ describe("initializeInterviewChat 統合テスト", () => {
     // メッセージを事前に作成してLLM呼び出しを回避する
     await createTestInterviewMessages(sessionId, 2);
 
-    const result = await initializeInterviewChat(billId, interviewConfigId, {
-      getUser: createGetUser(testUser.id),
+    const result = await initializeInterviewChat(config, bill, {
+      deps: {
+        getUser: createGetUser(testUser.id),
+      },
     });
 
+    if (result.kind !== "chat") throw new Error("expected chat");
     expect(result.session.id).toBe(sessionId);
     expect(result.session.interview_config_id).toBe(interviewConfigId);
+    // 履歴があれば最初の質問は生成せず、そのまま配列で返す
+    if (!Array.isArray(result.messages)) throw new Error("expected array");
     expect(result.messages).toHaveLength(2);
     expect(result.messages[0].interview_session_id).toBe(sessionId);
   });
 
-  it("セッションが存在しない場合は新しいセッションを作成する", async () => {
-    const mockModel = createGenerateMock(llmResponse);
-
+  it("進行中のセッションがなければ、セッションを作らずに開始画面を返す", async () => {
     // 既存セッションをアーカイブして「セッションなし」の状態にする
     await adminClient
       .from("interview_sessions")
       .update({ archived_at: new Date().toISOString() })
       .eq("id", sessionId);
 
-    const result = await initializeInterviewChat(billId, interviewConfigId, {
-      getUser: createGetUser(testUser.id),
-      model: mockModel,
+    const result = await initializeInterviewChat(config, bill, {
+      deps: { getUser: createGetUser(testUser.id) },
     });
 
-    // 新しいセッションが作成されていること
-    expect(result.session.id).not.toBe(sessionId);
-    expect(result.session.interview_config_id).toBe(interviewConfigId);
-    expect(result.session.user_id).toBe(testUser.id);
-    // MockModelが生成した初期質問メッセージが含まれること
-    expect(result.messages).toHaveLength(1);
-    expect(result.messages[0].role).toBe("assistant");
-    expect(result.messages[0].content).toBe(expectedResponse);
+    expect(result).toEqual({ kind: "start" });
+    // 同意前にはセッションを作らない（#158）
+    const { count } = await adminClient
+      .from("interview_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("interview_config_id", interviewConfigId)
+      .is("archived_at", null);
+    expect(count).toBe(0);
+  });
+
+  it.each([
+    ["セッションがないエラー", new AuthSessionMissingError()],
+    ["エラーなし", null],
+  ])("初回訪問で利用者がまだいなければ（%s）、エラーにせず開始画面を返す", async (_, error) => {
+    const result = await initializeInterviewChat(config, bill, {
+      deps: {
+        getUser: async () => ({ data: { user: null }, error }),
+      },
+    });
+
+    expect(result).toEqual({ kind: "start" });
+    // 利用者がいないので、セッションは作らない（beforeEach の1件のまま）
+    const { count } = await adminClient
+      .from("interview_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("interview_config_id", interviewConfigId);
+    expect(count).toBe(1);
+  });
+
+  it("セッションがない以外の認証エラーは、従来どおりエラーにする", async () => {
+    const fetchError = new Error("fetch failed");
+    fetchError.name = "AuthRetryableFetchError";
+
+    await expect(
+      initializeInterviewChat(config, bill, {
+        deps: {
+          getUser: async () => ({ data: { user: null }, error: fetchError }),
+        },
+      })
+    ).rejects.toThrow("Failed to get user: fetch failed");
+  });
+
+  it("メッセージのない進行中セッションでは、最初の質問の生成を待たずに返し、生成した質問を保存する", async () => {
+    const mockModel = createGenerateMock(llmResponse);
+
+    const result = await initializeInterviewChat(config, bill, {
+      deps: {
+        getUser: createGetUser(testUser.id),
+        model: mockModel,
+      },
+    });
+
+    if (result.kind !== "chat") throw new Error("expected chat");
+    expect(result.session.id).toBe(sessionId);
+    // ページは生成を待たずに描画できるよう、生成中の Promise で返る（#229）
+    expect(result.messages).toBeInstanceOf(Promise);
+
+    // MockModelが生成した初期質問メッセージが返り、DBにも保存されること
+    const [question] = await result.messages;
+    expect(question?.role).toBe("assistant");
+    const { data: saved } = await adminClient
+      .from("interview_messages")
+      .select("id, content")
+      .eq("interview_session_id", sessionId);
+    expect(saved).toHaveLength(1);
+    expect(saved?.[0].id).toBe(question?.id);
+    expect(JSON.parse(saved?.[0].content ?? "")).toMatchObject({
+      text: "こんにちは！テストインタビューを始めましょう。最初の質問です。",
+      topic_title: "はじめに",
+      stage: "chat",
+    });
+  });
+
+  it("最初の質問の生成に失敗したら空の履歴を返し、何も保存しない", async () => {
+    const result = await initializeInterviewChat(config, bill, {
+      deps: {
+        getUser: createGetUser(testUser.id),
+        // 空の応答は保存せずに失敗として扱われる
+        model: createGenerateMock(""),
+      },
+    });
+
+    if (result.kind !== "chat") throw new Error("expected chat");
+    expect(await result.messages).toEqual([]);
+    const { count } = await adminClient
+      .from("interview_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("interview_session_id", sessionId);
+    expect(count).toBe(0);
+  });
+
+  it("最初の質問の生成が重なっても（再読み込みなど）、最初の質問は1件だけ保存する", async () => {
+    const init = () =>
+      initializeInterviewChat(config, bill, {
+        deps: {
+          getUser: createGetUser(testUser.id),
+          model: createGenerateMock(llmResponse),
+        },
+      });
+
+    const results = await Promise.all([init(), init()]);
+    const questions = await Promise.all(
+      results.map(async (result) => {
+        if (result.kind !== "chat") throw new Error("expected chat");
+        const [question] = await result.messages;
+        return question;
+      })
+    );
+
+    // どちらの描画にも同じ最初の質問が出る
+    expect(questions[0]?.id).toBe(questions[1]?.id);
+    const { count } = await adminClient
+      .from("interview_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("interview_session_id", sessionId);
+    expect(count).toBe(1);
+  });
+
+  it("外部IDが未記録の進行中セッションに、紐付いた外部IDを後から記録する", async () => {
+    await createTestInterviewMessages(sessionId, 2);
+    const uid = `uid-${uniqueSuffix()}`;
+    try {
+      const identities = await resolveExternalIdentities({
+        userId: testUser.id,
+        claims: [{ providerKey: "saga_super_app", externalUid: uid }],
+      });
+
+      const result = await initializeInterviewChat(config, bill, {
+        deps: {
+          getUser: createGetUser(testUser.id),
+          getExternalIdentities: async () => identities,
+        },
+      });
+
+      if (result.kind !== "chat") throw new Error("expected chat");
+      expect(result.session.id).toBe(sessionId);
+      expect(result.session.external_identity_id).toBe(identities[0].id);
+
+      const { data } = await adminClient
+        .from("interview_sessions")
+        .select("external_identity_id")
+        .eq("id", sessionId)
+        .single();
+      expect(data?.external_identity_id).toBe(identities[0].id);
+    } finally {
+      await cleanupTestExternalIdentityByUid("saga_super_app", uid);
+    }
   });
 });

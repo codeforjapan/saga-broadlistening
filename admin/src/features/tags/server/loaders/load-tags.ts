@@ -13,7 +13,7 @@ export async function loadTags(): Promise<TagWithBillCount[]> {
       featured_priority: tag.featured_priority,
       created_at: tag.created_at,
       updated_at: tag.updated_at,
-      bill_count: tag.bills_tags?.[0]?.count ?? 0,
+      bill_count: tag.policies_tags?.[0]?.count ?? 0,
     })) || []
   );
 }

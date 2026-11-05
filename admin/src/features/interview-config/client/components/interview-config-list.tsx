@@ -48,7 +48,9 @@ import {
   duplicateInterviewConfig,
 } from "../../server/actions/upsert-interview-config";
 import type { InterviewConfig } from "../../shared/types";
-import { getModeLabel } from "../../shared/utils/get-mode-label";
+import { getStatusLabel } from "../../shared/utils/get-status-label";
+import { PARTICIPATION_MODE_FIELD_LABEL } from "@mirai-gikai/shared/interview-participation/participation-mode";
+import { ParticipationModeBadge } from "./participation-mode-badge";
 import {
   type BillOption,
   CopyConfigToBillDialog,
@@ -93,7 +95,7 @@ export function InterviewConfigList({
       const result = await duplicateInterviewConfig(configId);
       if (result.success) {
         toast.success("インタビュー設定を複製しました");
-        router.push(routes.billInterviewEdit(billId, result.data.id) as Route);
+        router.push(routes.interviewEdit(result.data.id) as Route);
       } else {
         toast.error(result.error || "複製に失敗しました");
       }
@@ -138,7 +140,7 @@ export function InterviewConfigList({
           <div className="text-sm text-gray-600">
             {configs.length}件のインタビュー設定
           </div>
-          <Link href={routes.billInterviewNew(billId) as Route}>
+          <Link href={routes.interviewNewForPolicy(billId) as Route}>
             <Button size="sm">
               <Plus className="mr-2 h-4 w-4" />
               新規作成
@@ -156,8 +158,8 @@ export function InterviewConfigList({
               <TableHeader>
                 <TableRow>
                   <TableHead>設定名</TableHead>
-                  <TableHead>モード</TableHead>
                   <TableHead>ステータス</TableHead>
+                  <TableHead>{PARTICIPATION_MODE_FIELD_LABEL}</TableHead>
                   <TableHead>セッション数</TableHead>
                   <TableHead>作成日</TableHead>
                   <TableHead>リンク</TableHead>
@@ -169,28 +171,26 @@ export function InterviewConfigList({
                   <TableRow key={config.id}>
                     <TableCell>
                       <Link
-                        href={
-                          routes.billInterviewEdit(billId, config.id) as Route
-                        }
+                        href={routes.interviewEdit(config.id) as Route}
                         className="font-medium hover:underline"
                       >
                         {config.name}
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
-                        {getModeLabel(config.mode)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
                       <Badge
                         variant={
-                          config.status === "public" ? "default" : "secondary"
+                          config.status === "open" ? "default" : "secondary"
                         }
                         className="w-16 justify-center"
                       >
-                        {config.status === "public" ? "公開" : "非公開"}
+                        {getStatusLabel(config.status)}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <ParticipationModeBadge
+                        mode={config.participation_mode}
+                      />
                     </TableCell>
                     <TableCell className="text-gray-600">
                       {sessionCounts ? (sessionCounts[config.id] ?? 0) : "-"}
@@ -231,12 +231,7 @@ export function InterviewConfigList({
                               asChild
                             >
                               <Link
-                                href={
-                                  routes.billInterviewEdit(
-                                    billId,
-                                    config.id
-                                  ) as Route
-                                }
+                                href={routes.interviewEdit(config.id) as Route}
                               >
                                 <Pencil className="h-4 w-4" />
                               </Link>
@@ -263,13 +258,13 @@ export function InterviewConfigList({
                             <Button
                               variant="ghost"
                               size="icon"
-                              aria-label="他法案へ複製"
+                              aria-label="他施策へ複製"
                               onClick={() => setCopyToBillTarget(config)}
                             >
                               <FolderInput className="h-4 w-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>他法案へ複製</TooltipContent>
+                          <TooltipContent>他施策へ複製</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -310,7 +305,7 @@ export function InterviewConfigList({
                   </p>
                 ) : (
                   deleteTargetSessionCount > 0 && (
-                    <p className="font-medium text-red-600">
+                    <p className="font-medium text-destructive">
                       この設定には{deleteTargetSessionCount}
                       件のセッションが紐づいています。
                     </p>
@@ -347,7 +342,7 @@ export function InterviewConfigList({
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting || !deleteConfirmed}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {isDeleting ? "削除中..." : "削除する"}
             </AlertDialogAction>

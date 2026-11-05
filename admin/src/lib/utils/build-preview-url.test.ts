@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildPreviewUrl } from "./build-preview-url";
 
 describe("buildPreviewUrl", () => {
-  it("議案プレビューURLを構築する", () => {
+  it("施策プレビューURLを構築する", () => {
     const url = buildPreviewUrl(
       "http://localhost:3000",
       "/preview/bills/bill-123",

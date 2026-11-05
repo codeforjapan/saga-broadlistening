@@ -20,7 +20,7 @@ function makeVersion(
 ): TopicAnalysisVersion {
   return {
     id: "ver-1",
-    bill_id: "bill-1",
+    interview_config_id: "config-1",
     version: 1,
     status: "completed",
     summary_md: null,
@@ -47,6 +47,7 @@ function makeTopic(
     representative_opinions: [],
     sort_order: 0,
     created_at: "2026-03-01T00:00:00Z",
+    updated_at: "2026-03-01T00:00:00Z",
     ...overrides,
   };
 }

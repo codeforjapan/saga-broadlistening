@@ -1,10 +1,12 @@
 import type { Database } from "@mirai-gikai/supabase";
 import { z } from "zod";
 
-// 既存の型を再利用
-export type BillContent = Database["public"]["Tables"]["bill_contents"]["Row"];
+// Epic #54 で bill_contents → policy_contents に再定義された。
+// bill という名前の改名は Epic #8 完了後のフォローアップで行う。
+export type BillContent =
+  Database["public"]["Tables"]["policy_contents"]["Row"];
 export type BillContentUpdate =
-  Database["public"]["Tables"]["bill_contents"]["Update"];
+  Database["public"]["Tables"]["policy_contents"]["Update"];
 
 // 難易度レベルの型
 export type DifficultyLevel = "normal" | "hard";

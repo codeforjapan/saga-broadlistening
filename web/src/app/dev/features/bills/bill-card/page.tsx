@@ -1,7 +1,7 @@
 import { BillCard } from "@/features/bills/client/components/bill-list/bill-card";
 import { ComponentShowcase } from "../../../_components/component-showcase";
 import { PreviewSection } from "../../../_components/preview-section";
-import { allBillStatuses, createMockBill } from "../../../_lib/mock-data";
+import { createMockBill } from "../../../_lib/mock-data";
 
 const SAMPLE_THUMBNAIL = "/img/sample-bill-thumbnail.webp";
 
@@ -16,10 +16,10 @@ export default function BillCardPreview() {
     thumbnail_url: SAMPLE_THUMBNAIL,
     bill_content: {
       id: "mock-content-featured",
-      bill_id: "mock-featured",
-      title: "注目の法案タイトル",
+      policy_id: "mock-featured",
+      title: "注目の施策タイトル",
       summary:
-        "注目フラグが立っている法案のカード表示。注目バッジが表示されます。",
+        "注目フラグが立っている施策のカード表示。注目バッジが表示されます。",
       content: "",
       difficulty_level: "normal",
       created_at: "2026-02-15T00:00:00Z",
@@ -37,11 +37,11 @@ export default function BillCardPreview() {
     thumbnail_url: SAMPLE_THUMBNAIL,
     bill_content: {
       id: "mock-content-long-title",
-      bill_id: "mock-long-title",
+      policy_id: "mock-long-title",
       title:
-        "デジタル社会の形成を図るための関係法律の整備に関する法律の一部を改正する法律案についての補足的な検討事項を含む修正案",
+        "デジタル社会の形成に向けた行政手続のオンライン化及びデータ連携基盤の整備に関する佐賀市の施策の一部見直しについての補足的な検討事項",
       summary:
-        "この法案は開発プレビュー用のサンプルデータです。法案の要約文がここに表示されます。",
+        "この施策は開発プレビュー用のサンプルデータです。施策の要約文がここに表示されます。",
       content: "",
       difficulty_level: "normal",
       created_at: "2026-02-15T00:00:00Z",
@@ -54,10 +54,10 @@ export default function BillCardPreview() {
     thumbnail_url: SAMPLE_THUMBNAIL,
     bill_content: {
       id: "mock-content-long-desc",
-      bill_id: "mock-long-desc",
-      title: "サンプル法案のタイトル",
+      policy_id: "mock-long-desc",
+      title: "サンプル施策のタイトル",
       summary:
-        "この法案はデジタル社会の形成を推進するため、行政手続のオンライン化、マイナンバーカードの利活用促進、データの標準化・連携基盤の整備、サイバーセキュリティ対策の強化、個人情報保護制度の見直し、AI技術の適正利用に関するガイドラインの策定、地方自治体のDX推進支援、デジタルデバイド解消のための施策等について、関係する複数の法律を一括して改正するものです。特に高齢者や障害者を含む全ての国民がデジタル化の恩恵を享受できる社会の実現を目指しています。",
+        "この施策はデジタル社会の形成を推進するため、行政手続のオンライン化、マイナンバーカードの利活用促進、データの標準化・連携基盤の整備、サイバーセキュリティ対策の強化、個人情報保護制度の見直し、AI技術の適正利用に関するガイドラインの策定、庁内のDX推進、デジタルデバイド解消のための取組等について、関係する複数の事業を一体的に進めるものです。特に高齢者や障害のある方を含む全ての市民がデジタル化の恩恵を享受できるまちの実現を目指しています。",
       content: "",
       difficulty_level: "normal",
       created_at: "2026-02-15T00:00:00Z",
@@ -67,9 +67,9 @@ export default function BillCardPreview() {
 
   return (
     <>
-      <h1 className="text-3xl font-bold text-mirai-text mb-8">BillCard</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-8">BillCard</h1>
 
-      <ComponentShowcase title="Default" description="基本的な法案カード">
+      <ComponentShowcase title="Default" description="基本的な施策カード">
         <PreviewSection label="通常表示">
           <BillCard bill={defaultBill} />
         </PreviewSection>
@@ -97,25 +97,6 @@ export default function BillCardPreview() {
         <PreviewSection label="長い要約文">
           <BillCard bill={longDescriptionBill} />
         </PreviewSection>
-      </ComponentShowcase>
-
-      <ComponentShowcase
-        title="All Statuses"
-        description="全法案ステータスの表示"
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {allBillStatuses.map((status) => (
-            <PreviewSection key={status} label={`status: ${status}`}>
-              <BillCard
-                bill={createMockBill({
-                  id: `mock-${status}`,
-                  status,
-                  thumbnail_url: SAMPLE_THUMBNAIL,
-                })}
-              />
-            </PreviewSection>
-          ))}
-        </div>
       </ComponentShowcase>
     </>
   );

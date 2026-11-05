@@ -29,3 +29,14 @@ export async function getChatSupabaseUser() {
   const supabase = await createChatSupabaseServerClient();
   return supabase.auth.getUser();
 }
+
+/**
+ * サーバーが描画に使う利用者のID（いなければ null）。
+ * getClaims は非対称鍵（ES256）で署名された JWT を手元で検証するので、Supabase Auth への問い合わせを増やさない。
+ * 対称鍵（HS256、ローカルの Supabase など）では getUser と同じく問い合わせる
+ */
+export async function getChatSupabaseUserId(): Promise<string | null> {
+  const supabase = await createChatSupabaseServerClient();
+  const { data } = await supabase.auth.getClaims();
+  return data?.claims.sub ?? null;
+}
