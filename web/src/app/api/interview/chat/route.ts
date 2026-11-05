@@ -6,6 +6,10 @@ import {
 import { chatErrorToResponse } from "@/features/chat/server/utils/chat-error-response";
 import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
 import { handleInterviewChatRequest } from "@/features/interview-session/server/services/handle-interview-chat-request";
+import {
+  type InterviewChatTrace,
+  runInterviewChatTrace,
+} from "@/features/interview-session/server/utils/interview-chat-trace";
 import { jsonResponse } from "@/lib/api/response";
 import {
   flushTelemetry,
@@ -13,11 +17,24 @@ import {
 } from "@/lib/telemetry/register";
 
 export async function POST(req: Request) {
+  const requestStart = performance.now();
+
   // Vercel node環境でinstrumentationが自動で起動しない問題対応
   // 明示的にtelemetryを初期化
   await registerNodeTelemetry();
-  after(flushTelemetry);
+  const telemetryInitMs = performance.now() - requestStart;
 
+  return runInterviewChatTrace(requestStart, (trace) => {
+    trace.addStage("telemetry-init", telemetryInitMs);
+    after(async () => {
+      trace.end();
+      await flushTelemetry();
+    });
+    return authorizeAndHandleChat(req, trace);
+  });
+}
+
+async function authorizeAndHandleChat(req: Request, trace: InterviewChatTrace) {
   const body = await req.json();
   const {
     messages,
@@ -38,7 +55,7 @@ export async function POST(req: Request) {
   const {
     data: { user },
     error: getUserError,
-  } = await getChatSupabaseUser();
+  } = await trace.measure("auth", getChatSupabaseUser);
 
   if (getUserError || !user) {
     return jsonResponse({ error: "Anonymous session required" }, 401);
@@ -50,8 +67,8 @@ export async function POST(req: Request) {
 
   try {
     // システム全体の予算上限チェック（日次・月次）
-    await checkSystemDailyCostLimit();
-    await checkSystemMonthlyCostLimit();
+    await trace.measure("cost-check-daily", checkSystemDailyCostLimit);
+    await trace.measure("cost-check-monthly", checkSystemMonthlyCostLimit);
 
     return await handleInterviewChatRequest({
       messages,
@@ -63,6 +80,7 @@ export async function POST(req: Request) {
         typeof previewPolicyId === "string" ? previewPolicyId : undefined,
       previewToken: typeof previewToken === "string" ? previewToken : undefined,
       userId: user.id,
+      trace,
     });
   } catch (error) {
     console.error("Interview chat request error:", error);
