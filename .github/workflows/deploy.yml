@@ -61,13 +61,13 @@ jobs:
         run: |
           supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
 
-      # マイグレーション適用（idempotent）
+      # マイグレーション適用（idempotent）。CLI 3 の db push は既定でローカルが対象なので --remote が必要
       # --yes: CI(非TTY)で確認プロンプト待ちハングを防ぐ（prod に未適用マイグレーションが
       # あると supabase db push が [Y/n] を出して stdin 待ちで停止するため。実際に本番デプロイが
       # db push で数時間ハングした）
       - name: Supabase db push
         run: |
-          supabase db push --include-all --yes
+          supabase db push --remote --password "$SUPABASE_DB_PASSWORD" --include-all --yes
           supabase config push --yes
 
       # 成功したら Vercel デプロイを開始
