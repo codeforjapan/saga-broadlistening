@@ -13,13 +13,13 @@ export type BrandImage = {
  * 環境ごとに変わる値（URL・分析ID）や秘密情報は環境変数で渡す。
  */
 export type BrandConfig = {
-  /** サービス名（ヘッダー・タイトル・シェア文言など） */
+  /** サービス名（ヘッダー・タイトル・シェア文言・PWAの名前など） */
   siteName: string;
   /** シェア文言などに使うハッシュタグ（先頭の # は含めない） */
   hashtag: string;
   /** コピーライト表記（フッター等） */
   copyright: string;
-  /** 検索エンジン・SNS向けのサイトの説明文 */
+  /** 検索エンジン・SNS・PWA（manifest）向けのサイトの説明文 */
   siteDescription: string;
   /** メタデータの keywords（サービス名は自動で先頭に付く） */
   keywords: string[];

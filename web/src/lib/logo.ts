@@ -1,4 +1,9 @@
-import { LOGO_IMAGES } from "@mirai-gikai/branding/assets";
+import { BRAND_CONFIG } from "@mirai-gikai/branding/config";
+
+const LOGO_IMAGES = {
+  full: BRAND_CONFIG.assets.logo,
+  compact: BRAND_CONFIG.assets.logoCompact,
+} as const;
 
 /**
  * サービスロゴの寸法ユーティリティ

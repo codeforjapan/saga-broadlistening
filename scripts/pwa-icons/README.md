@@ -10,7 +10,7 @@
 | `icon-dev.svg` | 開発環境（DEV バンド付き） |
 | `icon-staging.svg` | ステージング（STG バンド付き） |
 
-図形は `web/public/img/logo.svg` と同一のパスを使っています（ヘッダーのロゴとアプリアイコンの見た目を揃えるため）。**ロゴを差し替えたら、このSVG内のパスも更新して PNG を再生成してください。**
+図形は `packages/branding/src/brand.config.ts` の `assets.logo` が指すロゴ（既定は `web/public/img/logo.svg`）と同一のパスを使っています（ヘッダーのロゴとアプリアイコンの見た目を揃えるため）。**ロゴを差し替えたら、このSVG内のパスも更新して PNG を再生成してください。**
 
 色は案3-1パレットの `sky/500 #2fb0ff` → `sky/700 #0077c8`（`--primary` 系から `--primary-accent` へ）のグラデーションです。`sky/400` 単色は白背景で 2.0:1 しかなく favicon が視認できないため、暗い側に `sky/700`（4.7:1）を置いて輪郭を確保しています。
 

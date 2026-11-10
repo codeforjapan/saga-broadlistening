@@ -19,7 +19,8 @@
 - 独自のロゴを `web/public/` に置き、`packages/branding/src/brand.config.ts` の `assets.logo`・`assets.logoCompact`（SVGと実寸）・`assets.ogpLogoSrc`（PNG）にそのパスを指定してください
 - チャットのAIアバターは `assets.chatAvatarSrc` で指定します。`null` にすると汎用のデフォルトアイコン（`/icons/ai-chat.svg`）を表示します
 - 指定できるのは `web/public/` 配下のローカルパス（`/` 始まり）のみです。`packages/branding` のテストが、指定したファイルが実在するかを確認します
-- favicon やPWAアイコン（`web/public/icons/`）も独自のものに変更してください
+- favicon やPWAアイコン（`web/public/icons/`）も独自のものに変更してください。PWAアイコンの生成元は `scripts/pwa-icons/` です
+- PWA の名前・説明文・色（manifest）は `brand.config.ts` とパレットから自動で作られます
 
 ### 3. OGP 画像の変更
 
@@ -59,6 +60,8 @@
 | テーマカラー | `packages/branding/src/palette.ts` | パレット変更後 `build:css` で再生成 |
 | テーマカラー | `packages/branding/src/brand-meta.ts` | `THEME_COLOR` 等 |
 | favicon / PWA | `web/public/icons/` | 独自アイコンに差し替え |
+| favicon / PWA の生成元 | `scripts/pwa-icons/` | ロゴに合わせて SVG を更新し PNG を再生成 |
+| 文言中の自治体名 | `web/src`・`admin/src` の各画面 | 「佐賀市」が画面の文言や規約に直接書かれている。`grep -rn 佐賀市 web/src admin/src` で探して書き換える |
 | 免責文言 | フッター等 | 免責文言を追加 |
 | 施策の親子関係（任意） | admin の施策編集「親施策」 | 使わなくてよい。親施策が1件もなければ、TOP はテーマにつながる施策ごとに1枚のカードを出す |
 

@@ -12,7 +12,6 @@ export const BRAND_CONFIG = {
   copyright: "Copyright (c) Saga city. All Rights Reserved.",
   siteDescription:
     "佐賀市で今どんな施策が検討されているか、わかりやすく伝える公聴プラットフォーム",
-  /** メタデータの keywords（サービス名は自動で先頭に付く） */
   keywords: ["施策", "政治", "佐賀市", "解説", "公聴"],
   assets: {
     chatAvatarSrc: "/img/chat-avatar.svg",
@@ -22,6 +21,7 @@ export const BRAND_CONFIG = {
     ogpImage: { src: "/ogp.jpg", width: 1200, height: 630 },
   },
   links: {
+    // TODO(#15): 佐賀市側の報告フォームが用意でき次第差し替える
     report: "https://forms.gle/wJXXMt6cv2ZdiCgg6",
     sourceRepository: "https://github.com/codeforjapan/saga-broadlistening",
     forkGuidelines:

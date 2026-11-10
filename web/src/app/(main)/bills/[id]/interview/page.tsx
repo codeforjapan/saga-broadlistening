@@ -1,4 +1,4 @@
-import { OGP_IMAGE } from "@mirai-gikai/branding/assets";
+import { BRAND_CONFIG } from "@mirai-gikai/branding/config";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
@@ -31,7 +31,10 @@ export async function generateMetadata({
 
   const billName = bill.bill_content?.title ?? bill.name;
   const description = `施策についてのAIインタビュー - ${billName}`;
-  const defaultOgpUrl = new URL(OGP_IMAGE.src, env.webUrl).toString();
+  const defaultOgpUrl = new URL(
+    BRAND_CONFIG.assets.ogpImage.src,
+    env.webUrl
+  ).toString();
   const shareImageUrl =
     bill.share_thumbnail_url || bill.thumbnail_url || defaultOgpUrl;
 

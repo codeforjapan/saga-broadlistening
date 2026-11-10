@@ -1,4 +1,4 @@
-import { OGP_IMAGE } from "@mirai-gikai/branding/assets";
+import { BRAND_CONFIG } from "@mirai-gikai/branding/config";
 /**
  * テーマ（意見募集）のSNSシェア用OGP画像URLを解決する。
  * 優先順位: テーマの表示用画像 > デフォルトOGP。
@@ -8,5 +8,7 @@ export function resolveThemeShareImageUrl(
   thumbnailUrl: string | null | undefined,
   webUrl: string
 ): string {
-  return thumbnailUrl || new URL(OGP_IMAGE.src, webUrl).toString();
+  return (
+    thumbnailUrl || new URL(BRAND_CONFIG.assets.ogpImage.src, webUrl).toString()
+  );
 }

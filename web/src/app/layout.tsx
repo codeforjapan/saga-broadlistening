@@ -1,5 +1,4 @@
 import "./globals.css";
-import { OGP_IMAGE } from "@mirai-gikai/branding/assets";
 import {
   PROGRESS_BAR_COLOR,
   THEME_COLOR,
@@ -44,10 +43,11 @@ const notoSerifJP = Noto_Serif_JP({
 const isDev = process.env.NODE_ENV === "development";
 const isStaging = process.env.VERCEL_TARGET_ENV === "staging";
 const siteDescription = BRAND_CONFIG.siteDescription;
+const { ogpImage } = BRAND_CONFIG.assets;
 const ogImage = {
-  url: OGP_IMAGE.src,
-  width: OGP_IMAGE.width,
-  height: OGP_IMAGE.height,
+  url: ogpImage.src,
+  width: ogpImage.width,
+  height: ogpImage.height,
   alt: `${SITE_NAME}のOGPイメージ`,
 };
 
@@ -66,7 +66,6 @@ export const metadata: Metadata = {
       ? "/icons/pwa/icon_staging_ios.png"
       : "/icons/pwa/icon_ios.png",
   },
-  manifest: "/manifest.json",
   openGraph: {
     title: SITE_NAME,
     description: siteDescription,
