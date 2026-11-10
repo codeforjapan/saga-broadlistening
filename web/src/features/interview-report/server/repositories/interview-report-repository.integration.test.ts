@@ -14,7 +14,10 @@ import {
   type TestUser,
 } from "@test-utils/utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { updateReportPublicSetting } from "./interview-report-repository";
+import {
+  hasUserReportForInterviewConfig,
+  updateReportPublicSetting,
+} from "./interview-report-repository";
 
 type OpinionOverrides = {
   is_public_by_admin?: boolean;
@@ -147,5 +150,77 @@ describe("updateReportPublicSetting 統合テスト", () => {
     await expect(updateReportPublicSetting(randomUUID(), true)).rejects.toThrow(
       "Failed to fetch opinion for public setting:"
     );
+  });
+});
+
+describe("hasUserReportForInterviewConfig 統合テスト", () => {
+  let testUser: TestUser;
+  let otherUser: TestUser;
+  const cleanups: Array<() => Promise<void>> = [];
+
+  beforeEach(async () => {
+    // メールアドレスが時刻から作られるので、同時に作ると重複する
+    testUser = await createTestUser();
+    otherUser = await createTestUser(
+      `test-user-other-${randomUUID()}@example.com`
+    );
+  });
+
+  afterEach(async () => {
+    await cleanupAll(
+      ...cleanups.splice(0).map((cleanup) => cleanup()),
+      cleanupTestUser(testUser.id),
+      cleanupTestUser(otherUser.id)
+    );
+  });
+
+  async function createConfig() {
+    const { config, cleanup } = await createTestPolicyWithConfig();
+    cleanups.push(cleanup);
+    return config;
+  }
+
+  async function answer(configId: string, userId: string) {
+    const session = await createTestSession(configId, userId);
+    await createTestOpinion(session.id);
+  }
+
+  it("その意見募集に回答していれば true を返す", async () => {
+    const config = await createConfig();
+    await answer(config.id, testUser.id);
+
+    await expect(
+      hasUserReportForInterviewConfig(config.id, testUser.id)
+    ).resolves.toBe(true);
+  });
+
+  it("別の意見募集にだけ回答していれば false を返す", async () => {
+    const [config, otherConfig] = await Promise.all([
+      createConfig(),
+      createConfig(),
+    ]);
+    await answer(otherConfig.id, testUser.id);
+
+    await expect(
+      hasUserReportForInterviewConfig(config.id, testUser.id)
+    ).resolves.toBe(false);
+  });
+
+  it("同じ意見募集でも、ほかの利用者の回答だけなら false を返す", async () => {
+    const config = await createConfig();
+    await answer(config.id, otherUser.id);
+
+    await expect(
+      hasUserReportForInterviewConfig(config.id, testUser.id)
+    ).resolves.toBe(false);
+  });
+
+  it("セッションがあっても意見がなければ false を返す", async () => {
+    const config = await createConfig();
+    await createTestSession(config.id, testUser.id);
+
+    await expect(
+      hasUserReportForInterviewConfig(config.id, testUser.id)
+    ).resolves.toBe(false);
   });
 });

@@ -31,7 +31,7 @@ export type TopicAnalysisSubjectContext = {
   interviewConfigId: string | null;
   /** 見出し・戻り導線に使う対象（施策 or テーマ） */
   subject: TopicAnalysisSubject;
-  /** ページ下部のきかせてボックス。募集中でなければ null */
+  /** ページ下部のきかせてボックス。募集中でない、または閲覧者が回答済みなら null */
   kikasete: KikaseteBoxData | null;
 };
 

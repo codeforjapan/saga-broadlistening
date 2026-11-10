@@ -29,7 +29,8 @@ export function useInterviewTimer({
   sessionStartedAt,
 }: UseInterviewTimerProps): UseInterviewTimerResult {
   const [now, setNow] = useState(() => new Date());
-  const hasTimer = Boolean(estimatedDuration && sessionStartedAt);
+  const timerStartedAt = estimatedDuration ? sessionStartedAt : undefined;
+  const hasTimer = timerStartedAt !== undefined;
 
   useEffect(() => {
     if (!hasTimer) return;
@@ -38,10 +39,9 @@ export function useInterviewTimer({
     return () => clearInterval(interval);
   }, [hasTimer]);
 
-  const remainingMinutes =
-    hasTimer && sessionStartedAt
-      ? calcRemainingMinutes(estimatedDuration, sessionStartedAt, now)
-      : null;
+  const remainingMinutes = timerStartedAt
+    ? calcRemainingMinutes(estimatedDuration, timerStartedAt, now)
+    : null;
 
   return {
     remainingMinutes,
