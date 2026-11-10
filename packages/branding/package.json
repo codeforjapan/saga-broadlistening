@@ -29,6 +29,10 @@
     "./assets": {
       "types": "./src/assets.ts",
       "default": "./src/assets.ts"
+    },
+    "./config": {
+      "types": "./src/brand.config.ts",
+      "default": "./src/brand.config.ts"
     }
   },
   "devDependencies": {

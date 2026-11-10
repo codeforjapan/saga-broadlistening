@@ -1,3 +1,10 @@
+import { BRAND_CONFIG } from "@mirai-gikai/branding/config";
+
+const LOGO_IMAGES = {
+  full: BRAND_CONFIG.assets.logo,
+  compact: BRAND_CONFIG.assets.logoCompact,
+} as const;
+
 /**
  * サービスロゴの寸法ユーティリティ
  *
@@ -9,17 +16,8 @@
  * 高さだけを決め、幅と参照先はバリアントから導出する。
  */
 
-const LOGO_VARIANTS = {
-  /** にっこりマーク + CHIKATワードマーク + タグライン。大きく見せる箇所用 */
-  full: { src: "/img/logo.svg", viewBox: { width: 546, height: 279 } },
-  /** タグラインを外した版。ヘッダーなど小さく見せる箇所用 */
-  compact: {
-    src: "/img/logo-compact.svg",
-    viewBox: { width: 546, height: 210.4 },
-  },
-} as const;
-
-export type LogoVariant = keyof typeof LOGO_VARIANTS;
+// パスと実寸は brand.config.ts で設定する（full: タグラインあり / compact: なし）
+export type LogoVariant = keyof typeof LOGO_IMAGES;
 
 /**
  * 表示したい高さから、`next/image` に渡す src / width / height を求める。
@@ -31,10 +29,10 @@ export function logoImageProps(
   variant: LogoVariant,
   height: number
 ): { src: string; width: number; height: number } {
-  const { src, viewBox } = LOGO_VARIANTS[variant];
+  const { src, width, height: naturalHeight } = LOGO_IMAGES[variant];
   return {
     src,
-    width: Math.round((height * viewBox.width) / viewBox.height),
+    width: Math.round((height * width) / naturalHeight),
     height,
   };
 }
