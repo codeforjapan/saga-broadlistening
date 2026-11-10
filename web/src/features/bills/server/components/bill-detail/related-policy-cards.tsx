@@ -25,7 +25,7 @@ export function RelatedPolicyCards({ policies }: RelatedPolicyCardsProps) {
               className="flex h-full flex-col overflow-hidden rounded-2xl bg-white hover:bg-muted/50"
             >
               {/* 装飾の画像なので alt は空にし、施策名は見出しで読ませる */}
-              <div className="relative aspect-[3/2] w-full">
+              <div className="relative aspect-[2/1] w-full">
                 <Image
                   src={resolveInterviewThumbnail(policy.thumbnailUrl, null)}
                   alt=""

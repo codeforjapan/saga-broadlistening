@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 import { formatDateWithDots } from "@/lib/utils/date";
 import { BillDetailShareButton } from "../../../client/components/bill-detail/bill-detail-share-button";
 import { BillTag } from "../../../client/components/bill-list/bill-tag";
@@ -31,13 +32,20 @@ export async function BillDetailHeader({
   opinionCount,
   topicCount,
 }: BillDetailHeaderProps) {
-  const displayTitle = bill.bill_content?.title;
+  // 本文のタイトルがない施策でも、見出しに施策名を出す
+  const displayTitle = bill.bill_content?.title || bill.name;
   const displaySummary = bill.bill_content?.summary;
 
   const { shareUrl, shareMessage, thumbnailUrl } = await getBillShareData(bill);
 
   return (
-    <div className="mb-8 bg-white rounded-b-4xl">
+    <div
+      className={cn(
+        "mb-8 bg-white rounded-b-4xl",
+        // スマホでは固定ヘッダーにサムネイルが隠れないよう、ヘッダーの高さぶん下げる
+        bill.thumbnail_url && "mt-24 md:mt-0"
+      )}
+    >
       {bill.thumbnail_url ? (
         <div className="relative w-full h-72 md:h-80">
           <Image
@@ -54,9 +62,7 @@ export async function BillDetailHeader({
       )}
 
       <div className="px-4 pt-8 mb-3">
-        {displayTitle && (
-          <h1 className="text-2xl font-bold mb-3">{displayTitle}</h1>
-        )}
+        <h1 className="text-2xl font-bold mb-3">{displayTitle}</h1>
         <div className="flex flex-row gap-4">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
             {bill.published_at && (
@@ -80,9 +86,6 @@ export async function BillDetailHeader({
           </div>
         )}
 
-        <p className="text-sm text-muted-foreground font-medium mb-4">
-          {bill.name}
-        </p>
         {children && <div className="mb-4">{children}</div>}
 
         {opinionCount != null && opinionCount > 0 && (

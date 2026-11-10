@@ -1,5 +1,6 @@
 import "server-only";
 
+import { hasUserReport } from "@/features/interview-report/server/loaders/has-user-report";
 import type { InterviewParticipationView } from "../../shared/types/interview-participation-view";
 import { themeInterviewTarget } from "../../shared/types/interview-target";
 import {
@@ -66,6 +67,7 @@ export async function getKikaseteBox(
 /**
  * テーマ（意見募集）1件のきかせてボックス。トピック・レポート・まとめのページ下部で使う。
  * 募集中でない・公開されていないテーマでは参加導線を出さないので null。
+ * 回答歴がある利用者にも、新たに回答する導線は出さない（#247）。
  */
 export async function getKikaseteBoxByConfigId(
   configId: string
@@ -79,6 +81,6 @@ export async function getKikaseteBoxByConfigId(
     return null;
   }
   const interview = toKikaseteInterview(theme);
-  if (!interview.isOpen) return null;
+  if (!interview.isOpen || (await hasUserReport(configId))) return null;
   return (await getKikaseteBox(interview)).box;
 }

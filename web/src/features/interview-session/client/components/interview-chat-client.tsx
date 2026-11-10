@@ -88,7 +88,7 @@ export function InterviewChatClient({
     initialStage,
   });
 
-  const { remainingMinutes, isTimeUp } = useInterviewTimer({
+  const { remainingMinutes, isTimeUp, canEndInterview } = useInterviewTimer({
     estimatedDuration,
     sessionStartedAt,
   });
@@ -277,7 +277,8 @@ export function InterviewChatClient({
 
       {/* 入力エリア */}
       <div className="px-6 pt-2">
-        {stage !== "summary_complete" && (
+        {/* 対話中は目安時間の2/3が過ぎてから出す。要約中は締めるために常に出す */}
+        {(stage === "summary" || (stage === "chat" && canEndInterview)) && (
           <div className="flex justify-end pb-2">
             <EndInterviewButton
               isSummaryStage={stage === "summary"}

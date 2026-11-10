@@ -1,6 +1,4 @@
 import type { UIMessage } from "@ai-sdk/react";
-import { CHAT_AVATAR_SRC } from "@mirai-gikai/branding/assets";
-import Image from "next/image";
 import type { ComponentProps, ReactNode } from "react";
 import { useMemo } from "react";
 import remarkBreaks from "remark-breaks";
@@ -8,6 +6,7 @@ import { SystemMessage } from "@/features/chat/client/components/system-message"
 import { UserMessage } from "@/features/chat/client/components/user-message";
 import { InterviewSummary } from "@/features/interview-session/client/components/interview-summary";
 import { rehypeOpenLinksInNewTab } from "@/lib/markdown/rehype-open-links-in-new-tab";
+import { ChatAiAvatar } from "../../shared/components/chat-ai-avatar";
 import type { InterviewReportViewData } from "../../shared/schemas";
 
 type RehypePlugins = ComponentProps<typeof SystemMessage>["rehypePlugins"];
@@ -42,13 +41,7 @@ export function InterviewMessage({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex-shrink-0">
-        <Image
-          src={CHAT_AVATAR_SRC}
-          alt="AI"
-          width={36}
-          height={36}
-          className="rounded-full"
-        />
+        <ChatAiAvatar />
       </div>
       <div className="flex-1 space-y-2">
         <SystemMessage

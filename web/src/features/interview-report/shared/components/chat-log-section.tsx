@@ -1,4 +1,5 @@
-import { Bot, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
+import { ChatAiAvatar } from "@/features/interview-session/shared/components/chat-ai-avatar";
 import { getMessageDisplayText } from "../utils/get-message-display-text";
 import { splitByQuote } from "../utils/split-by-quote";
 
@@ -88,9 +89,7 @@ function ChatMessage({ message, highlightQuote }: ChatMessageProps) {
         id={`message-${message.id}`}
         className="flex flex-col items-start gap-2 scroll-mt-24"
       >
-        <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-          <Bot size={24} className="text-muted-foreground" />
-        </div>
+        <ChatAiAvatar />
         <MessageText text={displayText} quote={highlightQuote} />
       </div>
     );

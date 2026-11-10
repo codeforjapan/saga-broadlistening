@@ -1,15 +1,19 @@
 import "server-only";
 
+import { ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { PublicStatusSection } from "@/features/interview-report/client/components/public-status-section";
 import { getInterviewReportById } from "@/features/interview-report/server/loaders/get-interview-report-by-id";
 import { getInterviewMessages } from "@/features/interview-session/server/loaders/get-interview-messages";
+import { getPublishedVoiceSummary } from "@/features/voice-summary/server/loaders/get-published-voice-summary";
 import { ReportContent } from "../../shared/components/report-content";
 import { resolveReportSubject } from "../../shared/utils/public-report-display";
+import { resolveReportNextAction } from "../../shared/utils/report-next-action";
 import { countCharacters } from "../../shared/utils/report-utils";
 import { getReportOpinions } from "../loaders/get-report-opinions";
 
@@ -30,17 +34,23 @@ export async function ReportCompletePage({
 
   const { policyId } = report.origin;
 
-  // 施策・メッセージ・論点単位の意見を並列取得。
+  // 施策・メッセージ・論点単位の意見・テーマのまとめを並列取得。
   // 抽象テーマ型には施策がないので、その場合は取得しない
-  const [bill, messages, opinions] = await Promise.all([
+  const [bill, messages, opinions, voiceSummary] = await Promise.all([
     policyId ? getBillById(policyId) : null,
     getInterviewMessages(report.interview_session_id),
     getReportOpinions(reportId),
+    getPublishedVoiceSummary(report.interview_config_id),
   ]);
 
   const characterCount = countCharacters(messages);
   // 見出し直下のリンクは、施策があれば施策詳細、なければテーマのページを指す
   const subject = resolveReportSubject(bill, report.origin);
+  const nextAction = resolveReportNextAction({
+    origin: report.origin,
+    policyName: bill?.name,
+    hasPublishedSummary: voiceSummary != null,
+  });
 
   return (
     <div className="min-h-dvh bg-background">
@@ -66,6 +76,14 @@ export async function ReportCompletePage({
           <p className="text-sm text-foreground">
             いただいた声は施策検討に最大限活用します
           </p>
+
+          {/* 次の導線（まとめ → 施策 → サイトトップの順に、あるものへ） */}
+          <Button asChild className="mt-2 w-full max-w-sm">
+            <Link href={nextAction.href as Route}>
+              {nextAction.label}
+              <ChevronRight aria-hidden="true" />
+            </Link>
+          </Button>
         </div>
       </div>
 
