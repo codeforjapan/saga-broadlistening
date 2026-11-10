@@ -14,7 +14,7 @@ export function PastReportsSection({ reports }: PastReportsSectionProps) {
   return (
     <div className="flex flex-col gap-4 w-full max-w-[370px]">
       <h2 className="text-[15px] font-bold leading-[28px] text-black">
-        過去のレポート
+        自分の回答
       </h2>
       <div className="flex flex-col gap-4">
         {reports.map((report) => (

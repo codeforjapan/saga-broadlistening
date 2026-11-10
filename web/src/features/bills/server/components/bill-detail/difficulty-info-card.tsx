@@ -1,14 +1,15 @@
 import Image from "next/image";
-import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
 import { DifficultySelector } from "@/features/bill-difficulty/client/components/difficulty-selector";
+import { getDifficultyLevel } from "@/features/bill-difficulty/server/loaders/get-difficulty-level";
+import { RubyInlineToggle } from "@/lib/rubyful/ruby-inline-toggle";
 
 export async function DifficultyInfoCard() {
   const level = await getDifficultyLevel();
   return (
-    <div className="relative overflow-hidden rounded-xl bg-white p-6 my-10 h-38 flex flex-col justify-center">
-      <div className="relative z-1 flex flex-col gap-0">
+    <div className="relative overflow-hidden rounded-xl bg-white p-6 my-10 min-h-38 flex flex-col justify-center">
+      <div className="relative z-1 flex flex-col gap-2">
         <p className="text-base font-medium leading-[1.875em] text-foreground">
-          説明の詳しさを
+          説明の詳しさとふりがな表示を
           <br className="pc:hidden" />
           いつでも切り替えられます
         </p>
@@ -17,6 +18,7 @@ export async function DifficultyInfoCard() {
           labelStyle={{ fontSize: "16px" }}
           maintainScrollFromBottom
         />
+        <RubyInlineToggle labelStyle={{ fontSize: "16px" }} />
       </div>
       <div className="absolute right-6 top-6 w-[121px] h-[128px]">
         <Image

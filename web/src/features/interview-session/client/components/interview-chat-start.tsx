@@ -1,6 +1,5 @@
 "use client";
 
-import { Bot } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,8 +12,8 @@ import { formatEstimatedDuration } from "@/features/interview-config/shared/util
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
 import { startInterviewSession } from "../../server/actions/start-interview-session";
+import { ChatAiAvatar } from "../../shared/components/chat-ai-avatar";
 import { buildChatStartNotice } from "../../shared/utils/chat-start-notice";
-import { InterviewChatInput } from "./interview-chat-input";
 import { InterviewChatSurface } from "./interview-chat-surface";
 
 interface InterviewChatStartProps {
@@ -32,6 +31,7 @@ interface InterviewChatStartProps {
 /**
  * チャットの開始画面（#158、デザイン「4b」）。チャット中と同じ白い面に冒頭の案内3行を出し、
  * 「はじめる」で同意を記録してセッションを作る。作成後はページを再描画して最初の質問を出す。
+ * 案内の余白・文字・アイコンはチャット中の発話（InterviewMessage）にそろえる（#245）。
  */
 export function InterviewChatStart({
   target,
@@ -73,12 +73,9 @@ export function InterviewChatStart({
 
   return (
     // ヘッダーの「保存して中断」は、この属性があるあいだ隠す（interview-header-actions）
-    <InterviewChatSurface data-interview-chat-start="">
-      <header className="flex items-center gap-3 border-b px-6 pb-4 md:px-12">
+    <InterviewChatSurface data-interview-chat-start="" className="md:px-12">
+      <header className="flex items-center gap-3 border-b px-4 pb-4">
         <ChikatServiceLogo variant="kikasete" className="h-5" />
-        <span className="rounded-full bg-primary px-3 py-0.5 text-xs font-bold text-primary-foreground">
-          {themeName}
-        </span>
         {durationLabel && (
           <span className="ml-auto text-xs text-muted-foreground">
             {durationLabel}
@@ -86,32 +83,32 @@ export function InterviewChatStart({
         )}
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-10 md:px-12">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-kikasete-50 text-kikasete-700">
-          <Bot className="size-5" aria-hidden="true" />
-        </span>
-        <div className="flex flex-col gap-3 font-medium leading-relaxed">
-          {notice.map((line) => (
-            <p key={line.map((segment) => segment.text).join("")}>
-              {line.map((segment) => {
-                if (segment.kind === "theme") {
-                  return (
-                    <Link
-                      key={segment.text}
-                      href={themeHref as Route}
-                      className="text-kikasete-700 underline underline-offset-4"
-                    >
-                      {segment.text}
-                    </Link>
-                  );
-                }
-                if (segment.kind === "strong") {
-                  return <strong key={segment.text}>{segment.text}</strong>;
-                }
-                return <span key={segment.text}>{segment.text}</span>;
-              })}
-            </p>
-          ))}
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pt-6">
+        <div className="flex flex-col gap-1">
+          <ChatAiAvatar />
+          <div className="flex flex-col gap-3 text-sm font-medium leading-[1.8] text-foreground">
+            {notice.map((line) => (
+              <p key={line.map((segment) => segment.text).join("")}>
+                {line.map((segment) => {
+                  if (segment.kind === "theme") {
+                    return (
+                      <Link
+                        key={segment.text}
+                        href={themeHref as Route}
+                        className="text-kikasete-700 underline underline-offset-4"
+                      >
+                        {segment.text}
+                      </Link>
+                    );
+                  }
+                  if (segment.kind === "strong") {
+                    return <strong key={segment.text}>{segment.text}</strong>;
+                  }
+                  return <span key={segment.text}>{segment.text}</span>;
+                })}
+              </p>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-col gap-2 md:items-end">
@@ -158,18 +155,6 @@ export function InterviewChatStart({
             </p>
           )}
         </div>
-      </div>
-
-      {/* 入力欄はチャット中と同じ位置に出す。開始前なので入力も送信もできない */}
-      <div className="px-6 pt-2 md:px-18">
-        <InterviewChatInput
-          input=""
-          onInputChange={() => {}}
-          onSubmit={() => {}}
-          placeholder="AIの質問に回答する"
-          isResponding={false}
-          disabled
-        />
       </div>
     </InterviewChatSurface>
   );

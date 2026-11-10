@@ -194,6 +194,30 @@ export async function findUserReportsByInterviewConfigId(
 }
 
 /**
+ * 利用者がその意見募集に回答したことがあるか（件数だけ数え、行は取らない）
+ */
+export async function hasUserReportForInterviewConfig(
+  interviewConfigId: string,
+  userId: string
+): Promise<boolean> {
+  const supabase = createAdminClient();
+  const { count, error } = await supabase
+    .from("opinions")
+    .select("id, interview_sessions!inner(interview_config_id, user_id)", {
+      count: "exact",
+      head: true,
+    })
+    .eq("interview_sessions.interview_config_id", interviewConfigId)
+    .eq("interview_sessions.user_id", userId);
+
+  if (error) {
+    throw new Error(`Failed to count user opinions: ${error.message}`);
+  }
+
+  return (count ?? 0) > 0;
+}
+
+/**
  * 意見の公開設定を更新
  */
 export async function updateReportPublicSetting(

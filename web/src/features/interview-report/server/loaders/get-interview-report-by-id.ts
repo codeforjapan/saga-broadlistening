@@ -14,6 +14,8 @@ import { findReportWithSessionById } from "../repositories/interview-report-repo
 export type InterviewReportWithSessionInfo = InterviewReport & {
   /** 意見が寄せられた対象（施策・テーマ） */
   origin: ReportOrigin;
+  /** 意見を寄せた意見募集（テーマ）のID */
+  interview_config_id: string;
   session_started_at: string;
   session_completed_at: string | null;
 };
@@ -74,6 +76,7 @@ export async function getInterviewReportById(
   return {
     ...reportData,
     origin,
+    interview_config_id: session.interview_config_id,
     session_started_at: session.started_at,
     session_completed_at: session.completed_at,
   };
