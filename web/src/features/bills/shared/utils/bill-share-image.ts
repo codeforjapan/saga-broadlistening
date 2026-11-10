@@ -1,3 +1,4 @@
+import { OGP_IMAGE } from "@mirai-gikai/branding/assets";
 import type { Bill } from "../types";
 
 /**
@@ -12,6 +13,6 @@ export function resolveBillShareImageUrl(
   return (
     bill?.share_thumbnail_url ||
     bill?.thumbnail_url ||
-    new URL("/ogp.jpg", webUrl).toString()
+    new URL(OGP_IMAGE.src, webUrl).toString()
   );
 }

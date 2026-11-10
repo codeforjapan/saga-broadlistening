@@ -11,19 +11,19 @@
 - 「みらい議会」の名称を使用する場合は **「みらい議会＠地域名」** の形式にしてください
   - 例: 「みらい議会＠渋谷区」「みらい議会＠福岡市」
 - 独自のサービス名を使用する場合は、この形式に限りません
-- `packages/branding/src/site.ts` の `SITE_NAME` 等と、`web/src/app/layout.tsx` の説明文を変更してください
+- `packages/branding/src/brand.config.ts` の `siteName`・`siteDescription`・`keywords` 等を変更してください
 
 ### 2. ロゴの変更
 
 - **チームみらいのロゴは使用しないでください**
-- `web/public/img/logo.svg` および `web/public/img/ogp-logo.png` を独自のロゴに差し替えてください
+- 独自のロゴを `web/public/` に置き、`packages/branding/src/brand.config.ts` の `assets.logo`・`assets.logoCompact`（SVGと実寸）・`assets.ogpLogoSrc`（PNG）にそのパスを指定してください
+- チャットのAIアバターは `assets.chatAvatarSrc` で指定します。`null` にすると汎用のデフォルトアイコン（`/icons/ai-chat.svg`）を表示します
+- 指定できるのは `web/public/` 配下のローカルパス（`/` 始まり）のみです。`packages/branding` のテストが、指定したファイルが実在するかを確認します
 - favicon やPWAアイコン（`web/public/icons/`）も独自のものに変更してください
-- チャットのAIアバター等のアセットは環境変数 `NEXT_PUBLIC_BRAND_*` でパスを差し替えられます（`packages/branding/src/assets.ts` 参照。未設定時はデフォルト表示）。`NEXT_PUBLIC_*` はビルド時にインライン化されるため、**ビルド実行時に設定されている必要があります**（ビルド後のランタイム注入では反映されません）。また、指定できるのは `public/` 配下のローカルパス（`/img/...` 等）のみです。外部URLを使う場合は `next.config.ts` の `images.remotePatterns` への追加が必要で、未登録のままだとページがランタイムエラーになります
 
-### 3. トップ画像の変更
+### 3. OGP 画像の変更
 
-- ヒーロー画像 `web/public/img/hero_background.png` を独自の画像に差し替えてください
-- OGP 画像 `web/public/ogp.jpg` も独自のものに変更してください
+- サイト共通の OGP 画像を `web/public/` に置き、`brand.config.ts` の `assets.ogpImage` に指定してください（既定は `web/public/ogp.jpg`）
 
 ### 4. カラーテーマの変更
 
@@ -53,15 +53,11 @@
 
 | 対象 | ファイルパス | 変更内容 |
 |------|------------|----------|
-| サービス名 | `packages/branding/src/site.ts` | `SITE_NAME`, `SITE_HASHTAG`, `COPYRIGHT_TEXT` |
-| サービス説明文 | `web/src/app/layout.tsx` | `description`, `keywords` |
-| アセットパス差し替え | `.env`（`NEXT_PUBLIC_BRAND_*`） | チャットアバター等のパスを上書き |
+| サービス名・説明文 | `packages/branding/src/brand.config.ts` | `siteName`, `hashtag`, `copyright`, `siteDescription`, `keywords` |
+| ロゴ・AIアバター・OGP画像 | `packages/branding/src/brand.config.ts` | `assets`（画像は `web/public/` に置いてパスを指定） |
+| 外部リンク | `packages/branding/src/brand.config.ts` | `links`（不具合報告フォーム、ソースコードの公開先、fork ガイドライン） |
 | テーマカラー | `packages/branding/src/palette.ts` | パレット変更後 `build:css` で再生成 |
 | テーマカラー | `packages/branding/src/brand-meta.ts` | `THEME_COLOR` 等 |
-| ロゴ | `web/public/img/logo.svg` | 独自ロゴに差し替え |
-| ロゴ（OGP） | `web/public/img/ogp-logo.png` | 独自ロゴに差し替え |
-| ヒーロー画像 | `web/public/img/hero_background.png` | 独自画像に差し替え |
-| OGP 画像 | `web/public/ogp.jpg` | 独自画像に差し替え |
 | favicon / PWA | `web/public/icons/` | 独自アイコンに差し替え |
 | 免責文言 | フッター等 | 免責文言を追加 |
 | 施策の親子関係（任意） | admin の施策編集「親施策」 | 使わなくてよい。親施策が1件もなければ、TOP はテーマにつながる施策ごとに1枚のカードを出す |

@@ -1,8 +1,10 @@
 import "./globals.css";
+import { OGP_IMAGE } from "@mirai-gikai/branding/assets";
 import {
   PROGRESS_BAR_COLOR,
   THEME_COLOR,
 } from "@mirai-gikai/branding/brand-meta";
+import { BRAND_CONFIG } from "@mirai-gikai/branding/config";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Noto_Serif_JP, Zen_Maru_Gothic } from "next/font/google";
@@ -41,12 +43,11 @@ const notoSerifJP = Noto_Serif_JP({
 
 const isDev = process.env.NODE_ENV === "development";
 const isStaging = process.env.VERCEL_TARGET_ENV === "staging";
-const siteDescription =
-  "佐賀市で今どんな施策が検討されているか、わかりやすく伝える公聴プラットフォーム";
+const siteDescription = BRAND_CONFIG.siteDescription;
 const ogImage = {
-  url: "/ogp.jpg",
-  width: 1200,
-  height: 630,
+  url: OGP_IMAGE.src,
+  width: OGP_IMAGE.width,
+  height: OGP_IMAGE.height,
   alt: `${SITE_NAME}のOGPイメージ`,
 };
 
@@ -54,7 +55,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(env.webUrl),
   title: SITE_NAME,
   description: siteDescription,
-  keywords: [SITE_NAME, "施策", "政治", "佐賀市", "施策", "解説", "公聴"],
+  keywords: [SITE_NAME, ...BRAND_CONFIG.keywords],
   icons: {
     icon: isDev
       ? "/icons/pwa/icon_dev_192_v3.png"

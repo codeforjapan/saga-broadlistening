@@ -1,24 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveAssetSrc } from "./assets";
+import { describe, expect, it } from "vitest";
+import { CHAT_AVATAR_SRC, resolveAssetSrc } from "./assets";
+import { BRAND_CONFIG } from "./brand.config";
 
 describe("CHAT_AVATAR_SRC", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.resetModules();
-  });
-
-  it("環境変数未設定ならデフォルトを返す", async () => {
-    vi.stubEnv("NEXT_PUBLIC_BRAND_CHAT_AVATAR_SRC", "");
-    vi.resetModules();
-    const { CHAT_AVATAR_SRC } = await import("./assets");
-    expect(CHAT_AVATAR_SRC).toBe("/icons/ai-chat.svg");
-  });
-
-  it("環境変数が設定されていればそれを返す", async () => {
-    vi.stubEnv("NEXT_PUBLIC_BRAND_CHAT_AVATAR_SRC", "/img/city.svg");
-    vi.resetModules();
-    const { CHAT_AVATAR_SRC } = await import("./assets");
-    expect(CHAT_AVATAR_SRC).toBe("/img/city.svg");
+  it("brand.config.ts で指定したアバターを使う", () => {
+    expect(CHAT_AVATAR_SRC).toBe(
+      BRAND_CONFIG.assets.chatAvatarSrc ?? "/icons/ai-chat.svg"
+    );
   });
 });
 
@@ -26,6 +14,12 @@ describe("resolveAssetSrc", () => {
   it("override が指定されていればそれを返す", () => {
     expect(resolveAssetSrc("/img/custom.svg", "/icons/default.svg")).toBe(
       "/img/custom.svg"
+    );
+  });
+
+  it("override が null ならデフォルトを返す", () => {
+    expect(resolveAssetSrc(null, "/icons/default.svg")).toBe(
+      "/icons/default.svg"
     );
   });
 

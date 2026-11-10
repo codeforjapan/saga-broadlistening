@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { OGP_LOGO_SRC } from "@mirai-gikai/branding/assets";
 import { OG_COLORS } from "@mirai-gikai/branding/brand-meta";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { ImageResponse } from "next/og";
@@ -44,7 +45,7 @@ let cachedLogoDataUrl: string | null = null;
 async function loadLogo(): Promise<string | null> {
   if (cachedLogoDataUrl) return cachedLogoDataUrl;
   try {
-    const logoPath = join(process.cwd(), "public/img/ogp-logo.png");
+    const logoPath = join(process.cwd(), "public", OGP_LOGO_SRC);
     const buf = await readFile(logoPath);
     cachedLogoDataUrl = `data:image/png;base64,${buf.toString("base64")}`;
     return cachedLogoDataUrl;

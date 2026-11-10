@@ -1,19 +1,14 @@
 /**
- * ブランドアセットのパス設定（web / admin 共用）
- *
- * fork先の自治体は `NEXT_PUBLIC_BRAND_*` 環境変数でパスを差し替えられる。
- * 未設定の場合はデフォルトのアセットを表示する。詳細は FORK_GUIDELINES.md を参照。
- *
- * 注意: Next.js は `process.env.NEXT_PUBLIC_*` への直接参照のみを
- * ビルド時にインライン化するため、環境変数の読み取りを変数に括り出さないこと。
+ * ブランドアセットのパス（web / admin 共用）。
+ * パスは brand.config.ts で設定する。
  */
+import { BRAND_CONFIG } from "./brand.config";
 
 /** インタビューチャットのAIアバターのデフォルト画像 */
 const DEFAULT_CHAT_AVATAR_SRC = "/icons/ai-chat.svg";
 
 /**
  * 指定パスが有効ならそれを、無効・未設定ならデフォルトを返す。
- * 環境変数のインライン化の都合で env 読み取りと分離した純粋関数。
  *
  * `public/` 配下のローカルパス（`/` 始まり）のみ許可する。`//host/...` や
  * `https://...` などの外部参照は next/image の remotePatterns 検証を
@@ -21,7 +16,7 @@ const DEFAULT_CHAT_AVATAR_SRC = "/icons/ai-chat.svg";
  * 接続しうるので、デフォルトへフォールバックする。
  */
 export function resolveAssetSrc(
-  override: string | undefined,
+  override: string | null | undefined,
   defaultSrc: string
 ): string {
   const trimmed = override?.trim();
@@ -33,6 +28,18 @@ export function resolveAssetSrc(
 
 /** インタビューチャットのAIアバターとして表示する画像のパス */
 export const CHAT_AVATAR_SRC = resolveAssetSrc(
-  process.env.NEXT_PUBLIC_BRAND_CHAT_AVATAR_SRC,
+  BRAND_CONFIG.assets.chatAvatarSrc,
   DEFAULT_CHAT_AVATAR_SRC
 );
+
+/** ロゴ（full: タグラインあり / compact: タグラインなし） */
+export const LOGO_IMAGES = {
+  full: BRAND_CONFIG.assets.logo,
+  compact: BRAND_CONFIG.assets.logoCompact,
+} as const;
+
+/** 動的OGP画像に埋め込むラスター版ロゴのパス */
+export const OGP_LOGO_SRC = BRAND_CONFIG.assets.ogpLogoSrc;
+
+/** サイト共通のOGP画像 */
+export const OGP_IMAGE = BRAND_CONFIG.assets.ogpImage;
