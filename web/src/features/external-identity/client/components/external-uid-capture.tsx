@@ -1,13 +1,19 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   EXTERNAL_IDENTITY_CAPTURE_PATH,
   PENDING_UID_FRAGMENT_STORAGE_KEY,
   PENDING_UID_FRAGMENT_WINDOW_KEY,
 } from "../../shared/constants";
+import {
+  describeUidLaunch,
+  isUidLaunchDebugHost,
+  type UidLaunchDescription,
+} from "../../shared/utils/describe-uid-launch";
 import { parseUidFragment } from "../../shared/utils/uid-fragment";
+import { UidLaunchDebugBanner } from "./uid-launch-debug-banner";
 
 declare global {
   interface Window {
@@ -29,6 +35,20 @@ declare global {
 export function ExternalUidCapture() {
   const router = useRouter();
   const pathname = usePathname();
+  const [launchDescription, setLaunchDescription] =
+    useState<UidLaunchDescription | null>(null);
+
+  // 【一時的な診断用（#146）】開いたときの UID の形を develop でだけ画面に出す。
+  // 退避済みのフラグメントは下の effect が消すので、ここで先に（初回だけ）読む
+  useEffect(() => {
+    if (!isUidLaunchDebugHost(window.location.hostname)) return;
+    setLaunchDescription(
+      describeUidLaunch(
+        window[PENDING_UID_FRAGMENT_WINDOW_KEY] ?? window.location.hash,
+        window.location.search
+      )
+    );
+  }, []);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname はページ遷移ごとに再送を試みるための依存
   useEffect(() => {
@@ -61,7 +81,9 @@ export function ExternalUidCapture() {
       });
   }, [router, pathname]);
 
-  return null;
+  return launchDescription ? (
+    <UidLaunchDebugBanner description={launchDescription} />
+  ) : null;
 }
 
 /**
