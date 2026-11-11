@@ -28,11 +28,13 @@ export type ExternalUidClaim = {
 };
 
 /**
- * 佐賀市スーパーアプリの UID 形式（暫定）。
- * 正式な形式（UUID か、桁数固定か）は OPTiM と確認中のため、
- * URL で安全に扱える文字種と長さだけを検証する。
+ * 佐賀市スーパーアプリの UID 形式。OPTiM の仕様（2026-11-11 回答）では
+ * 一般的な GUID と同じ「8桁-4桁-4桁-4桁-12桁」の 16 進数とハイフン。
+ * メールアドレス等の別の値を外部IDとして保存しないよう、この形だけを受け付ける。
+ * 大文字・小文字はどちらも受け付け、属性データとの突合のため値は変えずに保存する。
  */
-const SAGA_SUPER_APP_UID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
+const SAGA_SUPER_APP_UID_PATTERN =
+  /^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$/;
 
 export const SAGA_SUPER_APP_PROVIDER = {
   key: "saga_super_app",
