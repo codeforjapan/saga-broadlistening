@@ -424,7 +424,7 @@ async function generateStreamingResponse({
     onError: handleError,
     onAbort: () => resolveRecord(null),
     onFinish: handleFinish,
-    // JSON ツール方式の出力はまとめて届くので、生のイベントでモデルの出力の時刻を取る
+    // 要約などの JSON ツール方式では出力がまとめて届くので、生のイベントでモデルの出力の時刻を取る
     includeRawChunks: true,
     onChunk: ({ chunk }: { chunk: { type: string; rawValue?: unknown } }) => {
       if (chunk.type === "raw") trace.observeRawChunk(chunk.rawValue);
