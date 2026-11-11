@@ -19,15 +19,20 @@ describe("連携元レジストリ", () => {
 });
 
 describe("parseExternalUid", () => {
+  const uid = "123e4567-e89b-42d3-a456-426614174000";
+
   it("UUID 形式の値をそのまま返す", () => {
-    const uid = "123e4567-e89b-42d3-a456-426614174000";
     expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, uid)).toBe(uid);
   });
 
-  it("前後の空白を除いて返す", () => {
-    expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, "  abc-123 ")).toBe(
-      "abc-123"
+  it("大文字の UUID も受け付け、表記は変えない", () => {
+    expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, uid.toUpperCase())).toBe(
+      uid.toUpperCase()
     );
+  });
+
+  it("前後の空白を除いて返す", () => {
+    expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, `  ${uid} `)).toBe(uid);
   });
 
   it("空・null は null", () => {
@@ -37,25 +42,32 @@ describe("parseExternalUid", () => {
     expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, undefined)).toBeNull();
   });
 
-  it("URL で安全でない文字や長すぎる値は null", () => {
-    expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, "abc def")).toBeNull();
-    expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, "abc/def")).toBeNull();
-    expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, "<script>")).toBeNull();
+  it("UUID 形式でない値は null", () => {
     expect(
-      parseExternalUid(SAGA_SUPER_APP_PROVIDER, "a".repeat(129))
+      parseExternalUid(SAGA_SUPER_APP_PROVIDER, "someone+saga@example.com")
     ).toBeNull();
-    expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, "a".repeat(128))).toBe(
-      "a".repeat(128)
-    );
+    expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, "null")).toBeNull();
+    expect(parseExternalUid(SAGA_SUPER_APP_PROVIDER, "test-webview-1")).toBeNull();
+    // 16 進数以外の文字・桁数違い・ハイフンなし
+    expect(
+      parseExternalUid(SAGA_SUPER_APP_PROVIDER, uid.replace("e", "g"))
+    ).toBeNull();
+    expect(
+      parseExternalUid(SAGA_SUPER_APP_PROVIDER, `${uid}0`)
+    ).toBeNull();
+    expect(
+      parseExternalUid(SAGA_SUPER_APP_PROVIDER, uid.replaceAll("-", ""))
+    ).toBeNull();
   });
 });
 
 describe("collectExternalUidClaims", () => {
   it("検証を通った連携元の UID だけを集める", () => {
-    expect(collectExternalUidClaims(() => "abc-123")).toEqual([
-      { providerKey: "saga_super_app", externalUid: "abc-123" },
+    const uid = "123e4567-e89b-42d3-a456-426614174000";
+    expect(collectExternalUidClaims(() => uid)).toEqual([
+      { providerKey: "saga_super_app", externalUid: uid },
     ]);
-    expect(collectExternalUidClaims(() => "abc def")).toEqual([]);
+    expect(collectExternalUidClaims(() => "abc-123")).toEqual([]);
     expect(collectExternalUidClaims(() => undefined)).toEqual([]);
   });
 });
