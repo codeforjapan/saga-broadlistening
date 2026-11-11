@@ -1,5 +1,5 @@
 import type { JSONValue } from "ai";
-import type { AiConfig } from "./config";
+import type { AiConfig, AiModelPurpose } from "./config";
 
 /**
  * gpt-oss は reasoning effort で出力の質が大きく変わる。未指定だと
@@ -23,17 +23,43 @@ function requiresNativeStructuredOutput(bedrockModelId: string): boolean {
   return bedrockModelId.includes("anthropic.claude-opus-5-5");
 }
 
+/**
+ * @ai-sdk/amazon-bedrock は Sonnet 4.6 と Haiku 4.5 で JSON ツール方式を既定にする。
+ * この方式では JSON 全体が最後に一度に届き、本文が出るのは生成が終わってからになる。
+ * インタビューの chat（と最初の質問）は平坦なスキーマで outputFormat でも守れたので、
+ * 本文を少しずつ届けるためにこの用途だけ outputFormat を使う（#240）。
+ * 要約は入れ子のスキーマで未検証のため、SDK の既定のままにする。
+ */
+const STREAMING_STRUCTURED_OUTPUT_MODELS = [
+  "anthropic.claude-sonnet-4-6",
+  "anthropic.claude-haiku-4-5",
+];
+
+function prefersStreamingStructuredOutput(
+  bedrockModelId: string,
+  purpose: AiModelPurpose
+): boolean {
+  return (
+    purpose === "interview" &&
+    STREAMING_STRUCTURED_OUTPUT_MODELS.some((model) =>
+      bedrockModelId.includes(model)
+    )
+  );
+}
+
 /** Bedrock へ渡す providerOptions。付ける設定がなければ undefined を返す */
 export function buildBedrockProviderOptions(
   bedrockModelId: string,
-  guardrail: AiConfig["guardrail"]
+  guardrail: AiConfig["guardrail"],
+  purpose: AiModelPurpose
 ): Record<string, JSONValue> | undefined {
   const options: Record<string, JSONValue> = {
     ...(guardrail ? { guardrailConfig: guardrail } : {}),
     ...(isGptOssModel(bedrockModelId)
       ? { reasoningConfig: { maxReasoningEffort: GPT_OSS_REASONING_EFFORT } }
       : {}),
-    ...(requiresNativeStructuredOutput(bedrockModelId)
+    ...(requiresNativeStructuredOutput(bedrockModelId) ||
+    prefersStreamingStructuredOutput(bedrockModelId, purpose)
       ? { structuredOutputMode: "outputFormat" }
       : {}),
   };

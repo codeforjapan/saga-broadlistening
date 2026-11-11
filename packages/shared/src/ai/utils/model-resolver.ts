@@ -62,7 +62,11 @@ export function createAiModelResolver({
     });
     const bedrockOptions =
       provider === "bedrock"
-        ? buildBedrockProviderOptions(providerModelId, config.guardrail)
+        ? buildBedrockProviderOptions(
+            providerModelId,
+            config.guardrail,
+            purpose
+          )
         : undefined;
     return {
       model: registry.languageModel(modelId),

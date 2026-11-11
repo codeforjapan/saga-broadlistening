@@ -1,7 +1,8 @@
 import { createAmazonBedrock } from "@ai-sdk/amazon-bedrock";
-import { generateText } from "ai";
+import { generateText, Output } from "ai";
 import { MockLanguageModelV3, MockProviderV3 } from "ai/test";
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import {
   type AiModelResolverDependencies,
   createAiModelResolver,
@@ -150,5 +151,53 @@ describe("shared model resolution", () => {
         },
       }),
     ]);
+  });
+  it("asks Bedrock for native structured output on interview turns", async () => {
+    const requests: Record<string, unknown>[] = [];
+    const resolve = createAiModelResolver({
+      readEnv: () => ({}),
+      createProvider: (_provider, config) =>
+        createAmazonBedrock({
+          region: config.awsRegion,
+          credentialProvider: async () => ({
+            accessKeyId: "test",
+            secretAccessKey: "test",
+          }),
+          fetch: async (_url, init) => {
+            requests.push(JSON.parse(String(init?.body)));
+            return Response.json({
+              output: {
+                message: {
+                  role: "assistant",
+                  content: [{ text: '{"text":"OK"}' }],
+                },
+              },
+              stopReason: "end_turn",
+              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+            });
+          },
+        }),
+    });
+    const schema = z.object({ text: z.string() });
+    const run = (purpose: "interview" | "summary") =>
+      generateText({
+        ...resolve(purpose, "bedrock:jp.anthropic.claude-sonnet-4-6"),
+        prompt: "Hello",
+        output: Output.object({ schema }),
+        maxRetries: 0,
+      });
+
+    await run("interview");
+    await run("summary");
+
+    const [interview, summary] = requests;
+    expect(interview).toHaveProperty(
+      "additionalModelRequestFields.output_config.format"
+    );
+    expect(interview).not.toHaveProperty("toolConfig");
+    expect(summary).toHaveProperty("toolConfig");
+    expect(summary).not.toHaveProperty(
+      "additionalModelRequestFields.output_config"
+    );
   });
 });
