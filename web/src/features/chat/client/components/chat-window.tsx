@@ -110,11 +110,11 @@ function ChatMessages({
       <div className="flex flex-col gap-4">
         {/* 初期メッセージ */}
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-bold leading-[1.8] text-foreground">
+          <p className="text-body font-bold text-foreground">
             佐賀市の施策について、気になることをAIに質問してください。
           </p>
           {billContext && (
-            <p className="text-sm font-bold leading-[1.8] text-foreground">
+            <p className="text-body font-bold text-foreground">
               本文中のテキストを選択すると簡単にAIに質問できます
             </p>
           )}
@@ -174,7 +174,7 @@ function ChatMessages({
         );
       })}
       {status === "submitted" && (
-        <span className="text-sm text-muted-foreground">考え中...</span>
+        <span className="text-caption text-muted-foreground">考え中...</span>
       )}
     </>
   );
@@ -280,7 +280,7 @@ export function ChatWindow({
               rows={1}
               submitOnEnter={isDesktop}
               // min-w-0, wrap-anywhere が無いと長文で親幅を押し広げてしまう
-              className={`!min-h-0 min-w-0 wrap-anywhere text-sm font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-muted-foreground placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0`}
+              className={`!min-h-0 min-w-0 wrap-anywhere text-body font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-muted-foreground placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0`}
             />
           </PromptInputBody>
           <Button

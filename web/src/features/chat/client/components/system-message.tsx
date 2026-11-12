@@ -38,10 +38,7 @@ export function SystemMessage({
 }: SystemMessageProps) {
   return (
     <Message from="assistant" className="justify-start py-0">
-      <MessageContent
-        variant="flat"
-        className="text-sm font-medium leading-[1.8] text-foreground"
-      >
+      <MessageContent variant="flat" className="text-foreground">
         {message.parts.map((part, i: number) => {
           if (part.type === "text") {
             return (

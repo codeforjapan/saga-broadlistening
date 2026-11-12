@@ -181,12 +181,12 @@ export function InterviewChatClient({
           {/* 初期表示メッセージ */}
           {messages.length === 0 && !object && !isPreparing && (
             <div className="flex flex-col gap-4">
-              <p className="text-sm font-bold leading-[1.8] text-foreground">
+              <p className="text-body font-bold text-foreground">
                 {bill
                   ? "施策についてのAIインタビューを開始します。"
                   : "AIインタビューを開始します。"}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-caption text-muted-foreground">
                 あなたの意見や経験をお聞かせください。
               </p>
             </div>
@@ -234,7 +234,9 @@ export function InterviewChatClient({
 
           {/* ローディング表示 */}
           {(isPreparing || (isLoading && !object)) && (
-            <span className="text-sm text-muted-foreground">考え中...</span>
+            <span className="text-caption text-muted-foreground">
+              考え中...
+            </span>
           )}
 
           {/* エラー表示 */}

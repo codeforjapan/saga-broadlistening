@@ -52,6 +52,18 @@ export const TEXT_SCALE = {
 export type TextToken = keyof typeof TEXT_SCALE;
 
 /**
+ * tailwind-merge の拡張設定（web / admin の `cn` で共通）。
+ * `text-body` などのサイズトークンを font-size として登録する。
+ * 未登録だと文字色と同じグループとみなされ、`text-body text-foreground`
+ * のような組み合わせで `text-body` が消えてしまう。
+ * 登録後は `leading-*` と競合するため、行間を上書きするときは
+ * `text-body leading-none` のように `text-*` より後ろに書く。
+ */
+export const TAILWIND_MERGE_CONFIG = {
+  extend: { classGroups: { "font-size": [{ text: Object.keys(TEXT_SCALE) }] } },
+};
+
+/**
  * 本文の基準ウェイト（D-7「視認性向上のため太めの書体」）。
  * 従来の W400 から W500 に引き上げる。強調は 700。
  */

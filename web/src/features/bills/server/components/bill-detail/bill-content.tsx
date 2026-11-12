@@ -17,11 +17,11 @@ export async function BillContent({ bill }: BillContentProps) {
   return (
     <div
       className="
-            markdown-content max-w-none text-base
+            markdown-content max-w-none text-body
             [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4
             [&_h2]:text-[22px] [&_h2]:font-bold [&_h2]:mb-4
             [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mb-2
-            [&_p]:mb-4 [&_p]:leading-relaxed
+            [&_p]:mb-4
             [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-4
             [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-4
             [&_li]:mb-4

@@ -86,7 +86,7 @@ export function InterviewChatStart({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pt-6">
         <div className="flex flex-col gap-1">
           <ChatAiAvatar />
-          <div className="flex flex-col gap-3 text-sm font-medium leading-[1.8] text-foreground">
+          <div className="flex flex-col gap-3 text-body text-foreground">
             {notice.map((line) => (
               <p key={line.map((segment) => segment.text).join("")}>
                 {line.map((segment) => {
