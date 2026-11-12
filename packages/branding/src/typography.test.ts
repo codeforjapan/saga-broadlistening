@@ -4,6 +4,7 @@ import {
   FONT_FAMILIES,
   INPUT_MIN_FONT_SIZE,
   LINE_HEIGHTS,
+  TAILWIND_MERGE_CONFIG,
   TEXT_SCALE,
 } from "./typography";
 
@@ -111,5 +112,12 @@ describe("書体", () => {
 describe("入力欄の最小サイズ", () => {
   it("16px（iOS Safari はこれ未満の入力欄にフォーカスすると自動ズームする）", () => {
     expect(remToPx(INPUT_MIN_FONT_SIZE)).toBe(16);
+  });
+});
+
+describe("TAILWIND_MERGE_CONFIG", () => {
+  it("すべてのサイズトークンを font-size として登録する", () => {
+    const [group] = TAILWIND_MERGE_CONFIG.extend.classGroups["font-size"];
+    expect(group.text).toEqual(Object.keys(TEXT_SCALE));
   });
 });

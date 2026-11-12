@@ -60,7 +60,7 @@ export function InterviewSummaryInput({
             </Button>
           ) : (
             <>
-              <p className="text-sm font-medium leading-[1.8] text-foreground mb-2">
+              <p className="text-body text-foreground mb-2">
                 お話しいただいた内容が短く、レポートを作成できませんでした。もう少しインタビューを続けると、レポートを作成できます。
               </p>
               {!isComplete && (
@@ -84,7 +84,7 @@ export function InterviewSummaryInput({
       )}
       {hasReport && !isComplete && (
         <>
-          <p className="mb-2 text-sm font-medium leading-[1.8] text-foreground">
+          <p className="mb-2 text-body text-foreground">
             こちらの内容で問題ありませんか？違和感がある箇所があれば指摘してください。
           </p>
           <InterviewChatInput

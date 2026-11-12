@@ -15,7 +15,7 @@ export function InterviewSummary({ report }: Props) {
 
   return (
     <div className="rounded-[16px] bg-secondary p-4 shadow-sm">
-      <div className="mt-2 space-y-4 text-sm">
+      <div className="mt-2 space-y-4 text-body">
         {report.summary && (
           <div className="font-bold space-y-1">
             <p className="text-primary-accent">💡意見の要約</p>

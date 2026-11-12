@@ -67,7 +67,7 @@ export function InterviewChatInput({
             rows={1}
             disabled={disabled}
             submitOnEnter={isDesktop}
-            className="!min-h-0 min-w-0 wrap-anywhere text-sm font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-muted-foreground placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0"
+            className="!min-h-0 min-w-0 wrap-anywhere text-body font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-muted-foreground placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0"
           />
         </PromptInputBody>
         <button

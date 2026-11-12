@@ -22,6 +22,10 @@
       "types": "./src/contrast.ts",
       "default": "./src/contrast.ts"
     },
+    "./typography": {
+      "types": "./src/typography.ts",
+      "default": "./src/typography.ts"
+    },
     "./site": {
       "types": "./src/site.ts",
       "default": "./src/site.ts"

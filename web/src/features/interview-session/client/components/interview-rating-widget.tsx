@@ -27,10 +27,10 @@ function RatingPhase({
 }) {
   return (
     <>
-      <p className="text-[13px] font-medium leading-none text-primary-accent text-center">
+      <p className="text-caption font-medium leading-none text-primary-accent text-center">
         AIインタビュー改善のためのアンケート
       </p>
-      <p className="text-[13px] font-medium leading-none text-foreground text-center">
+      <p className="text-caption font-medium leading-none text-foreground text-center">
         AIはあなたの考えを十分に引き出せていますか
       </p>
       <div className="flex justify-center">
@@ -67,7 +67,7 @@ function FeedbackPhase({
 }) {
   return (
     <>
-      <p className="text-[13px] font-medium leading-none text-foreground text-center">
+      <p className="text-caption font-medium leading-none text-foreground text-center">
         気になった点を教えてください
       </p>
       <div className="flex flex-wrap gap-2">
@@ -91,7 +91,7 @@ function FeedbackPhase({
           variant="ghost"
           onClick={onSubmit}
           disabled={selectedTags.size === 0}
-          className="h-auto p-0 text-[13px] font-medium text-primary-accent hover:bg-transparent disabled:opacity-40"
+          className="h-auto p-0 text-caption font-medium text-primary-accent hover:bg-transparent disabled:opacity-40"
         >
           送信
           <ArrowRight size={14} />
@@ -103,7 +103,7 @@ function FeedbackPhase({
 
 function ThankYouPhase() {
   return (
-    <p className="text-[13px] font-medium leading-none text-foreground text-center">
+    <p className="text-caption font-medium leading-none text-foreground text-center">
       回答ありがとうございました！
     </p>
   );
