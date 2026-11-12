@@ -6,6 +6,8 @@ import {
 } from "@mirai-gikai/shared/ai/public-chat-settings";
 import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { propagateAttributes } from "@langfuse/tracing";
+import { appendLanguageGuide } from "@mirai-gikai/shared/prompts/language-guide";
+import { getPublishedLanguageGuide } from "@mirai-gikai/shared/prompts/published-language-guide";
 import type { Database } from "@mirai-gikai/supabase";
 import {
   convertToModelMessages,
@@ -334,7 +336,15 @@ async function buildPrompt(
 
   // Fetch prompt from Langfuse
   try {
-    const promptResult = await promptProvider.getPrompt(promptName, variables);
+    // 中立的な言葉づかい（AIインタビューと共通）をシステムプロンプトの末尾に入れる
+    const [prompt, languageGuide] = await Promise.all([
+      promptProvider.getPrompt(promptName, variables),
+      getPublishedLanguageGuide(),
+    ]);
+    const promptResult = {
+      ...prompt,
+      content: appendLanguageGuide(prompt.content, languageGuide),
+    };
     return { promptName, promptResult };
   } catch (error) {
     console.error("Prompt fetch error:", error);

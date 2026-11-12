@@ -1,5 +1,7 @@
 import "server-only";
 import { PromptProvider } from "../prompts/provider";
+import { appendLanguageGuide } from "../prompts/language-guide";
+import { getPublishedLanguageGuide } from "../prompts/published-language-guide";
 import { findPublishedPrompt } from "../prompts/repository";
 import { buildChatSystemPrompt } from "./chat-prompt";
 import { buildInitialSystemPrompt } from "./initial-prompt";
@@ -15,9 +17,9 @@ const provider = new PromptProvider({ findPublishedPrompt }, (key) => {
 export async function getPublishedInterviewPersona(): Promise<string> {
   const [persona, languageGuide] = await Promise.all([
     provider.getTemplate("interview-persona"),
-    provider.getTemplate("interview-language-guide"),
+    getPublishedLanguageGuide(),
   ]);
-  return `${persona.content.trimEnd()}\n\n${languageGuide.content.trim()}`;
+  return appendLanguageGuide(persona.content, languageGuide);
 }
 
 type WithoutPersona<T> = Omit<T, "persona">;
