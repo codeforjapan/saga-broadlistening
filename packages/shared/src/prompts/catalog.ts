@@ -1,6 +1,7 @@
 import {
   INTERVIEW_CHAT_TEMPLATE,
   INTERVIEW_INITIAL_TEMPLATE,
+  INTERVIEW_LANGUAGE_GUIDE_TEMPLATE,
   INTERVIEW_PERSONA_TEMPLATE,
   INTERVIEW_SUMMARY_TEMPLATE,
 } from "../interview-prompts/templates";
@@ -95,6 +96,11 @@ export const INTERVIEW_PROMPT_CATALOG = {
   "interview-persona": {
     key: "interview-persona", name: "AIインタビュー・聞き手の人物像",
     defaultContent: INTERVIEW_PERSONA_TEMPLATE,
+    requiredVariables: [],
+  },
+  "interview-language-guide": {
+    key: "interview-language-guide", name: "AIインタビュー・中立的な言葉づかい",
+    defaultContent: INTERVIEW_LANGUAGE_GUIDE_TEMPLATE,
     requiredVariables: [],
   },
   "interview-chat-system": {

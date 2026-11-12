@@ -99,8 +99,9 @@ it("人物像は意見募集を選ばなくてもプレビューできる", () =
   ).toBe(true);
 });
 
-it("プレビューに意見募集が要るのは、人物像以外のインタビューのプロンプトだけ", () => {
+it("プレビューに意見募集が要るのは、人物像と言葉づかい以外のインタビューのプロンプトだけ", () => {
   expect(previewNeedsInterviewConfig("interview-chat-system")).toBe(true);
   expect(previewNeedsInterviewConfig("interview-persona")).toBe(false);
+  expect(previewNeedsInterviewConfig("interview-language-guide")).toBe(false);
   expect(previewNeedsInterviewConfig("top-chat-system")).toBe(false);
 });

@@ -33,6 +33,7 @@ import { routes } from "@/lib/routes";
 import { toBillPromptVariables } from "../../shared/utils/preview-data";
 import {
   inputError,
+  previewNeedsInterviewConfig,
   previewPromptSchema,
   publishPromptSchema,
   savePromptSchema,
@@ -222,8 +223,8 @@ export async function previewAiPrompt(
       };
     }
     if (isInterviewPromptKey(parsed.data.key)) {
-      // 人物像は変数を持たないので、そのまま見せる
-      if (parsed.data.key === "interview-persona") {
+      // 人物像と言葉づかいは変数を持たないので、そのまま見せる
+      if (!previewNeedsInterviewConfig(parsed.data.key)) {
         return { success: true, content: parsed.data.content };
       }
       const input = await findInterviewPreviewInput(
