@@ -238,6 +238,80 @@ describe("handleInterviewChatRequest 統合テスト", () => {
       });
     });
 
+    it("セッションと発話は渡された利用者のものを DB から読む", async () => {
+      const resolveContext = async () => ({
+        interviewConfig: config,
+        bill: null,
+        policyId: null,
+        isPreview: false,
+      });
+
+      const response = await handleInterviewChatRequest({
+        messages: [{ role: "user", content: "通勤が大変です" }],
+        interviewConfigId: config.id,
+        userId: testUser.id,
+        deps: {
+          chatModel: createStreamMock([validChatResponse]),
+          resolveContext,
+        },
+      });
+      expect(response.status).toBe(200);
+      await consumeResponseStream(response);
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const messages = await findInterviewMessagesBySessionId(sessionId);
+      expect(messages.map((message) => message.role)).toEqual([
+        "user",
+        "assistant",
+      ]);
+
+      // ほかの利用者のセッションは読まない
+      const otherUser = await createTestUser();
+      try {
+        await expect(
+          handleInterviewChatRequest({
+            messages: [{ role: "user", content: "こんにちは" }],
+            interviewConfigId: config.id,
+            userId: otherUser.id,
+            deps: {
+              chatModel: createStreamMock([validChatResponse]),
+              resolveContext,
+            },
+          })
+        ).rejects.toBeInstanceOf(InterviewSessionNotStartedError);
+      } finally {
+        await cleanupTestUser(otherUser.id);
+      }
+    });
+
+    it("システム全体の予算上限に達していたら、回答を保存せずに止める", async () => {
+      const limitReached = new Error("system cost limit reached");
+
+      await expect(
+        handleInterviewChatRequest({
+          messages: [{ role: "user", content: "通勤が大変です" }],
+          interviewConfigId: config.id,
+          userId: testUser.id,
+          checkSystemCost: async () => {
+            throw limitReached;
+          },
+          deps: {
+            chatModel: createStreamMock([validChatResponse]),
+            resolveContext: async () => ({
+              interviewConfig: config,
+              bill: null,
+              policyId: null,
+              isPreview: false,
+            }),
+            getSession: async () => session,
+            getMessages: async () => [],
+          },
+        })
+      ).rejects.toBe(limitReached);
+
+      expect(await findInterviewMessagesBySessionId(sessionId)).toEqual([]);
+    });
+
     it("前処理の各段階の時間を Server-Timing で返し、本文の JSON は壊さない", async () => {
       const response = await handleInterviewChatRequest({
         messages: [{ role: "user", content: "あります" }],

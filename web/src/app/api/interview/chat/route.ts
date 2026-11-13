@@ -66,10 +66,6 @@ async function authorizeAndHandleChat(req: Request, trace: InterviewChatTrace) {
   }
 
   try {
-    // システム全体の予算上限チェック（日次・月次）
-    await trace.measure("cost-check-daily", checkSystemDailyCostLimit);
-    await trace.measure("cost-check-monthly", checkSystemMonthlyCostLimit);
-
     return await handleInterviewChatRequest({
       messages,
       interviewConfigId,
@@ -80,6 +76,13 @@ async function authorizeAndHandleChat(req: Request, trace: InterviewChatTrace) {
         typeof previewPolicyId === "string" ? previewPolicyId : undefined,
       previewToken: typeof previewToken === "string" ? previewToken : undefined,
       userId: user.id,
+      // システム全体の予算上限チェック（日次・月次）。ほかの前処理と並べて走らせる
+      checkSystemCost: async () => {
+        await Promise.all([
+          trace.measure("cost-check-daily", checkSystemDailyCostLimit),
+          trace.measure("cost-check-monthly", checkSystemMonthlyCostLimit),
+        ]);
+      },
       trace,
     });
   } catch (error) {

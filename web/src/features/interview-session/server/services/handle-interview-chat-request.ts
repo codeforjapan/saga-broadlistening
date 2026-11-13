@@ -30,8 +30,6 @@ import {
 } from "@/features/chat/server/services/cost-tracker";
 import { ChatError, ChatErrorCode } from "@/features/chat/shared/types/errors";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { getInterviewMessages } from "@/features/interview-session/server/loaders/get-interview-messages";
-import { getInterviewSession } from "@/features/interview-session/server/loaders/get-interview-session";
 import {
   type InterviewChatContext,
   resolveInterviewChatContext,
@@ -53,15 +51,21 @@ import {
   InterviewAlreadyCompletedError,
   InterviewSessionNotStartedError,
 } from "../../shared/types/errors";
+import { appendSavedMessage } from "../../shared/utils/append-saved-message";
 import { buildSummaryModelMessages } from "../../shared/utils/build-summary-model-messages";
 import { ensureTrailingUserMessage } from "../../shared/utils/ensure-trailing-user-message";
 import { evaluateInterviewParticipation } from "../../shared/utils/evaluate-interview-participation";
 import { measureChatPromptSections } from "../../shared/utils/interview-chat-timing";
 import { mergeMessagesWithIds } from "../../shared/utils/merge-messages-with-ids";
-import { updateInterviewSessionStage } from "../repositories/interview-session-repository";
+import {
+  findActiveInterviewSession,
+  findInterviewMessagesBySessionId,
+  updateInterviewSessionStage,
+} from "../repositories/interview-session-repository";
 import {
   buildInterviewSystemPrompt,
   buildSummarySystemPrompt,
+  loadInterviewPromptParts,
 } from "../utils/build-interview-system-prompt";
 import {
   createInterviewChatTrace,
@@ -78,9 +82,9 @@ import { saveInterviewMessage } from "./save-interview-message";
 export type InterviewChatDeps = ParticipationDeps & {
   chatModel?: LanguageModel;
   summaryModel?: LanguageModel;
-  /** テスト時に認証をバイパスするためのセッション取得関数 */
+  /** テスト時に差し替えるセッション取得関数 */
   getSession?: (configId: string) => Promise<InterviewSession | null>;
-  /** テスト時に認証をバイパスするためのメッセージ取得関数 */
+  /** テスト時に差し替えるメッセージ取得関数 */
   getMessages?: (sessionId: string) => Promise<InterviewMessage[]>;
   /** テスト時にnext/cache・cookies依存をバイパスするためのコンテキスト取得関数 */
   resolveContext?: (
@@ -103,18 +107,23 @@ export async function handleInterviewChatRequest({
   previewPolicyId,
   previewToken,
   userId,
+  checkSystemCost,
   deps,
   trace = createInterviewChatTrace(),
 }: InterviewChatRequestParams & {
+  /** route で認証済みの利用者。セッションと発話はこの利用者のものだけを読む */
   userId: string;
+  /** システム全体の予算上限の確認。超えていれば reject する（route が渡す） */
+  checkSystemCost?: () => Promise<void>;
   deps?: InterviewChatDeps;
   trace?: InterviewChatTrace;
 }) {
   // TTFB短縮のため、互いに依存しないDBアクセスは並列実行する。
-  // 日次コスト制限チェック（fail-closed: エラー時もリクエストをブロック）と
+  // システム全体と利用者の日次コスト制限チェック（fail-closed: エラー時もリクエストをブロック）と
   // 意見募集・施策の解決（テスト時はdeps経由でNext.js依存をバイパス）
-  // 外部IDの解決（参加判定とセッション記録に使う）も userId だけで始められる
-  const [isWithinLimit, context, identities] = await trace.measure(
+  // 外部IDの解決（参加判定とセッション記録に使う）、プロンプトのテンプレートの取得も
+  // userId だけで始められる
+  const [isWithinLimit, context, identities, promptParts] = await trace.measure(
     "resolve-context",
     () =>
       Promise.all([
@@ -133,6 +142,8 @@ export async function handleInterviewChatRequest({
         trace.measure("load-identities", () =>
           loadExternalIdentities(userId, deps)
         ),
+        trace.measure("load-prompt-parts", loadInterviewPromptParts),
+        checkSystemCost?.(),
       ])
   );
   if (!isWithinLimit) {
@@ -159,11 +170,13 @@ export async function handleInterviewChatRequest({
   const lastMessage = messages[messages.length - 1];
   const endButton = action === "end";
 
-  // 「セッション取得→ユーザーメッセージ保存→全メッセージ取得」は順序依存があるため
-  // チェーンとして実行する（テスト時はdeps経由で認証をバイパス）
+  // セッションを取ってから、ユーザーメッセージの保存と全メッセージの取得を並べて走らせる。
+  // 利用者は route で認証済みなので、ここでは Supabase Auth に問い合わせない
   const loadSessionAndMessages = async () => {
-    const getSessionFn = deps?.getSession ?? getInterviewSession;
-    const getMessagesFn = deps?.getMessages ?? getInterviewMessages;
+    const getSessionFn =
+      deps?.getSession ??
+      ((configId: string) => findOwnSession(configId, userId));
+    const getMessagesFn = deps?.getMessages ?? findSessionMessages;
     // セッションは開始画面の同意と同時に作る（#158）。ここでは作らない
     const session = await trace.measure("get-session", () =>
       getSessionFn(interviewConfig.id)
@@ -175,27 +188,25 @@ export async function handleInterviewChatRequest({
       throw new InterviewAlreadyCompletedError();
     }
 
-    // ユーザーメッセージを保存（保存後に取得することで dbMessages に最新を含める）。
-    // 「終える」ボタンは発言ではないので保存しない
-    if (
-      !endButton &&
-      lastMessage?.role === "user" &&
-      lastMessage.content.trim()
-    ) {
-      await trace.measure("save-user-message", () =>
-        saveInterviewMessage({
-          sessionId: session.id,
-          role: "user",
-          content: lastMessage.content,
-          isRetry,
-        })
-      );
-    }
-
-    const dbMessages = await trace.measure("get-messages", () =>
-      getMessagesFn(session.id)
+    // 「終える」ボタンは発言ではないので保存しない。
+    // 保存した発話は取得した一覧の末尾に足すので、dbMessages には最新の回答まで含まれる
+    const shouldSave = Boolean(
+      !endButton && lastMessage?.role === "user" && lastMessage.content.trim()
     );
-    return { session, dbMessages };
+    const [saved, fetched] = await Promise.all([
+      shouldSave
+        ? trace.measure("save-user-message", () =>
+            saveInterviewMessage({
+              sessionId: session.id,
+              role: "user",
+              content: lastMessage.content,
+              isRetry,
+            })
+          )
+        : null,
+      trace.measure("get-messages", () => getMessagesFn(session.id)),
+    ]);
+    return { session, dbMessages: appendSavedMessage(fetched, saved) };
   };
 
   // 独立した事前定義質問の取得とセッション系チェーンを並列実行
@@ -230,14 +241,17 @@ export async function handleInterviewChatRequest({
     const state = computeTurnState({ topics, metas });
     if (!decideSummaryEntry({ state, endButton })) {
       const systemPrompt = await trace.measure("build-prompt", () =>
-        buildInterviewSystemPrompt({
-          bill,
-          interviewConfig,
-          topics,
-          turnState: state,
-          // dbMessages には今回の回答まで保存済み
-          selectedQuickReply: findSelectedQuickReply(dbMessages),
-        })
+        buildInterviewSystemPrompt(
+          {
+            bill,
+            interviewConfig,
+            topics,
+            turnState: state,
+            // dbMessages には今回の回答まで含まれる
+            selectedQuickReply: findSelectedQuickReply(dbMessages),
+          },
+          promptParts
+        )
       );
       trace.setPromptChars({
         total: systemPrompt.length,
@@ -268,12 +282,15 @@ export async function handleInterviewChatRequest({
   });
   const [systemPrompt] = await Promise.all([
     trace.measure("build-prompt", () =>
-      buildSummarySystemPrompt({
-        bill,
-        interviewConfig,
-        messages: mergeMessagesWithIds(messages, dbMessages),
-        summaryState,
-      })
+      buildSummarySystemPrompt(
+        {
+          bill,
+          interviewConfig,
+          messages: mergeMessagesWithIds(messages, dbMessages),
+          summaryState,
+        },
+        promptParts.persona
+      )
     ),
     enteringSummary,
   ]);
@@ -285,6 +302,34 @@ export async function handleInterviewChatRequest({
     isSummaryPhase: true,
     buildRecord: (rawText) => buildSummaryTurnRecord({ rawText, summaryState }),
   });
+}
+
+/** 利用者の進行中のセッション。取得に失敗したときは null（開始前として扱う） */
+async function findOwnSession(
+  interviewConfigId: string,
+  userId: string
+): Promise<InterviewSession | null> {
+  try {
+    return await findActiveInterviewSession(interviewConfigId, userId);
+  } catch (error) {
+    console.error("Failed to fetch interview session:", error);
+    return null;
+  }
+}
+
+/**
+ * セッションの発話の一覧。セッションは利用者の ID で引いたものなので、所有者の確認は済んでいる。
+ * 取得に失敗したときは空の一覧（これまでの getInterviewMessages と同じ扱い）
+ */
+async function findSessionMessages(
+  sessionId: string
+): Promise<InterviewMessage[]> {
+  try {
+    return await findInterviewMessagesBySessionId(sessionId);
+  } catch (error) {
+    console.error("Failed to fetch interview messages:", error);
+    return [];
+  }
 }
 
 /**
