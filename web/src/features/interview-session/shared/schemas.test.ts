@@ -20,8 +20,7 @@ const validContentRichness = {
 // テスト用の有効なreportデータ
 const validReport = {
   summary: "テストのサマリー",
-  stance: "for" as const,
-  role: "subject_expert" as const,
+  final_text: "テストの提出意見本文",
   role_description: "テストの役割説明",
   role_title: "研究者",
   opinions: [
@@ -30,8 +29,10 @@ const validReport = {
       content: "テスト内容",
       source_message_id: null,
       contextual_quote: null,
-      bill_sentiment: null,
       richness: 60,
+      concern: null,
+      proposal: null,
+      reasoning_types: null,
     },
   ],
   content_richness: validContentRichness,
@@ -142,22 +143,6 @@ describe("interviewReportSchema", () => {
       expect(result.summary).toBeNull();
     });
 
-    it("stance に null を許容する", () => {
-      const result = interviewReportSchema.parse({
-        ...validReport,
-        stance: null,
-      });
-      expect(result.stance).toBeNull();
-    });
-
-    it("role に null を許容する", () => {
-      const result = interviewReportSchema.parse({
-        ...validReport,
-        role: null,
-      });
-      expect(result.role).toBeNull();
-    });
-
     it("role_description に null を許容する", () => {
       const result = interviewReportSchema.parse({
         ...validReport,
@@ -172,47 +157,6 @@ describe("interviewReportSchema", () => {
         role_title: null,
       });
       expect(result.role_title).toBeNull();
-    });
-  });
-
-  describe("stance enum", () => {
-    it.each(["for", "against", "neutral"])("%s を受け入れる", (value) => {
-      const result = interviewReportSchema.parse({
-        ...validReport,
-        stance: value,
-      });
-      expect(result.stance).toBe(value);
-    });
-
-    it("無効な値を拒否する", () => {
-      const result = interviewReportSchema.safeParse({
-        ...validReport,
-        stance: "other",
-      });
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe("role enum", () => {
-    it.each([
-      "subject_expert",
-      "work_related",
-      "daily_life_affected",
-      "general_citizen",
-    ])("%s を受け入れる", (value) => {
-      const result = interviewReportSchema.parse({
-        ...validReport,
-        role: value,
-      });
-      expect(result.role).toBe(value);
-    });
-
-    it("無効な値を拒否する", () => {
-      const result = interviewReportSchema.safeParse({
-        ...validReport,
-        role: "unknown",
-      });
-      expect(result.success).toBe(false);
     });
   });
 
@@ -244,24 +188,30 @@ describe("interviewReportSchema", () => {
             content: "内容1",
             source_message_id: null,
             contextual_quote: null,
-            bill_sentiment: null,
             richness: 50,
+            concern: null,
+            proposal: null,
+            reasoning_types: null,
           },
           {
             title: "意見2",
             content: "内容2",
             source_message_id: "msg-1",
             contextual_quote: "（テーマについて）意見2の根拠",
-            bill_sentiment: "期待",
             richness: 80,
+            concern: null,
+            proposal: null,
+            reasoning_types: null,
           },
           {
             title: "意見3",
             content: "内容3",
             source_message_id: null,
             contextual_quote: null,
-            bill_sentiment: "懸念",
             richness: 40,
+            concern: null,
+            proposal: null,
+            reasoning_types: null,
           },
         ],
       });
@@ -314,49 +264,16 @@ describe("interviewReportSchema", () => {
             content: "内容",
             source_message_id: null,
             contextual_quote: null,
-            bill_sentiment: null,
             richness: 55,
+            concern: null,
+            proposal: null,
+            reasoning_types: null,
           },
         ],
       });
       expect(result.opinions[0].contextual_quote).toBeNull();
     });
 
-    it.each(["期待", "懸念"])("bill_sentiment %s を受け入れる", (value) => {
-      const result = interviewReportSchema.parse({
-        ...validReport,
-        opinions: [
-          {
-            title: "意見",
-            content: "内容",
-            source_message_id: null,
-            contextual_quote: null,
-            bill_sentiment: value,
-            richness: 55,
-          },
-        ],
-      });
-      expect(result.opinions[0].bill_sentiment).toBe(value);
-    });
-
-    it("bill_sentiment の無効な値を拒否する", () => {
-      const result = interviewReportSchema.safeParse({
-        ...validReport,
-        opinions: [
-          {
-            title: "意見",
-            content: "内容",
-            source_message_id: null,
-            contextual_quote: null,
-            bill_sentiment: "中立",
-          },
-        ],
-      });
-      expect(result.success).toBe(false);
-    });
-  });
-
-  describe("content_richness内の値に小数が入った場合", () => {
     it("全フィールドが丸められてパースされる", () => {
       const result = interviewReportSchema.parse({
         ...validReport,
@@ -407,116 +324,65 @@ describe("interviewStageSchema", () => {
   });
 });
 
+const validChatText = {
+  question_id: "Q1",
+  topic_title: "関わり",
+  text: "こんにちは",
+  end_request: false,
+  wrap_up: false,
+};
+
 describe("interviewChatTextSchema", () => {
-  it("正常なデータをパースできる", () => {
-    const data = {
-      text: "こんにちは",
-      quick_replies: ["はい", "いいえ"],
-      question_id: "q1",
-      topic_title: "トピック",
-      next_stage: "chat" as const,
-    };
-    const result = interviewChatTextSchema.parse(data);
-    expect(result).toEqual(data);
+  it("本文と制御フラグをパースできる", () => {
+    expect(interviewChatTextSchema.parse(validChatText)).toEqual(validChatText);
   });
 
-  it("quick_replies に null を許容する", () => {
-    const result = interviewChatTextSchema.parse({
-      text: "テスト",
-      quick_replies: null,
-      question_id: "q1",
-      topic_title: "トピック",
-      next_stage: "chat" as const,
-    });
-    expect(result.quick_replies).toBeNull();
+  it("question_id を先頭に置く（本文のストリーミングを妨げない順）", () => {
+    expect(Object.keys(interviewChatTextSchema.shape)[0]).toBe("question_id");
   });
 
-  it("question_id に null を許容する", () => {
-    const result = interviewChatTextSchema.parse({
-      text: "テスト",
-      quick_replies: [],
-      question_id: null,
-      topic_title: "トピック",
-      next_stage: "chat" as const,
-    });
-    expect(result.question_id).toBeNull();
-  });
-
-  it("topic_title に null を許容する", () => {
-    const result = interviewChatTextSchema.parse({
-      text: "テスト",
-      quick_replies: [],
-      question_id: "q1",
-      topic_title: null,
-      next_stage: "chat" as const,
-    });
-    expect(result.topic_title).toBeNull();
-  });
-
-  it("next_stage を必須とする", () => {
-    const result = interviewChatTextSchema.safeParse({
-      text: "テスト",
-      quick_replies: [],
-      question_id: "q1",
-      topic_title: "トピック",
-    });
-    expect(result.success).toBe(false);
+  it("制御フラグが欠けている場合を拒否する", () => {
+    const { end_request: _, ...withoutFlag } = validChatText;
+    expect(interviewChatTextSchema.safeParse(withoutFlag).success).toBe(false);
   });
 
   it("text が欠けている場合を拒否する", () => {
-    const result = interviewChatTextSchema.safeParse({
-      quick_replies: [],
-      question_id: "q1",
-      topic_title: "トピック",
-      next_stage: "chat",
-    });
-    expect(result.success).toBe(false);
+    const { text: _, ...withoutText } = validChatText;
+    expect(interviewChatTextSchema.safeParse(withoutText).success).toBe(false);
   });
 });
 
 describe("interviewChatWithReportSchema", () => {
-  it("text, report, next_stage の正常データをパースできる", () => {
-    const data = {
-      text: "まとめです",
-      report: validReport,
-      next_stage: "summary" as const,
-    };
-    const result = interviewChatWithReportSchema.parse(data);
-    expect(result.text).toBe("まとめです");
-    expect(result.report?.summary).toBe(validReport.summary);
-    expect(result.next_stage).toBe("summary");
-  });
-
-  it("report は nullable（null許容）", () => {
+  it("text, summary_response, report をパースできる", () => {
     const result = interviewChatWithReportSchema.parse({
-      text: "インタビューを再開します",
-      report: null,
-      next_stage: "chat" as const,
+      text: "まとめです",
+      summary_response: "none",
+      report: validReport,
     });
-    expect(result.text).toBe("インタビューを再開します");
-    expect(result.report).toBeNull();
-    expect(result.next_stage).toBe("chat");
+    expect(result.report?.summary).toBe(validReport.summary);
   });
 
-  it("report を省略した場合を拒否する", () => {
+  it("インタビューに戻るときの report は null を許容する", () => {
+    const result = interviewChatWithReportSchema.parse({
+      text: "続けてどうぞ。",
+      summary_response: "resume",
+      report: null,
+    });
+    expect(result.report).toBeNull();
+  });
+
+  it("未知の summary_response を拒否する", () => {
     const result = interviewChatWithReportSchema.safeParse({
-      text: "インタビューを再開します",
-      next_stage: "chat" as const,
+      text: "テスト",
+      summary_response: "maybe",
+      report: null,
     });
     expect(result.success).toBe(false);
   });
 
   it("text が欠けている場合を拒否する", () => {
     const result = interviewChatWithReportSchema.safeParse({
-      report: validReport,
-      next_stage: "summary",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("next_stage が欠けている場合を拒否する", () => {
-    const result = interviewChatWithReportSchema.safeParse({
-      text: "テスト",
+      summary_response: "agree",
       report: validReport,
     });
     expect(result.success).toBe(false);

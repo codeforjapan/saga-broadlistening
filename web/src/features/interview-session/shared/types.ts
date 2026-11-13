@@ -13,15 +13,11 @@ export type InterviewMessage =
 export type InterviewMessageInsert =
   Database["public"]["Tables"]["interview_messages"]["Insert"];
 
-export type InterviewReport =
-  Database["public"]["Tables"]["interview_report"]["Row"];
+// Epic #54 で interview_report → opinions に再定義された。
+// 型名（InterviewReport）の改名は Epic #8 完了後のフォローアップ。
+export type InterviewReport = Database["public"]["Tables"]["opinions"]["Row"];
 export type InterviewReportInsert =
-  Database["public"]["Tables"]["interview_report"]["Insert"];
-
-export type InterviewOpinion =
-  Database["public"]["Tables"]["interview_opinion"]["Row"];
-export type InterviewOpinionInsert =
-  Database["public"]["Tables"]["interview_opinion"]["Insert"];
+  Database["public"]["Tables"]["opinions"]["Insert"];
 
 export type InterviewQuestion =
   Database["public"]["Tables"]["interview_questions"]["Row"];
@@ -29,8 +25,24 @@ export type InterviewQuestion =
 // Request types
 export interface InterviewChatRequestParams {
   messages: Array<{ role: string; content: string }>;
-  billId: string;
-  currentStage: "chat" | "summary" | "summary_complete";
+  /**
+   * 対話する意見募集のID。施策はサーバー側で紐付けから引くため、
+   * クライアントは施策を指定できない。
+   */
+  interviewConfigId: string;
+  /**
+   * 「終える」ボタンが押された。発言は保存せず、chat なら要約へ、要約中なら締めへ進む。
+   * ステージそのものはサーバーがセッションから決めるため、クライアントは送らない。
+   */
+  action?: "end";
   isRetry?: boolean;
-  nextQuestionId?: string;
+  /**
+   * プレビュートークンの発行元施策ID。プレビュー画面からのリクエストのみが送る。
+   */
+  previewPolicyId?: string;
+  /**
+   * プレビュー用トークン。プレビュー画面からのリクエストのみが送る。
+   * サーバー側で検証が通った場合に限り、非公開の施策・設定を対象にできる。
+   */
+  previewToken?: string;
 }

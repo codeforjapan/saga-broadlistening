@@ -1,15 +1,31 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { EXTERNAL_IDENTITY_PROVIDERS } from "@mirai-gikai/shared/external-identity/providers";
+import {
+  PARTICIPATION_MODE_DESCRIPTIONS,
+  PARTICIPATION_MODE_FIELD_LABEL,
+  PARTICIPATION_MODE_LABELS,
+  VALID_PARTICIPATION_MODES,
+} from "@mirai-gikai/shared/interview-participation/participation-mode";
+import {
+  PURPOSE_OPTIONS,
+  type PurposeOptionKey,
+  resolvePurposeType,
+  toPurposeSelection,
+} from "@mirai-gikai/shared/interview-prompts/purpose-types/registry";
 import { Eye } from "lucide-react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import type { MutableRefObject } from "react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { type FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { AiModelSelect } from "@/components/ai-model-select";
+import { CheckboxGroup } from "@/components/checkbox-group";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -23,13 +39,12 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ThumbnailUpload } from "@/features/bills-edit/client/components/thumbnail-upload";
 import { routes } from "@/lib/routes";
 import { generateInterviewPreviewUrl } from "../../server/actions/generate-interview-preview-url";
 import {
@@ -41,42 +56,56 @@ import {
   type InterviewConfig,
   type InterviewConfigInput,
   interviewConfigSchema,
-  textToArray,
 } from "../../shared/types";
-import {
-  CHAT_MODEL_GROUPS,
-  DEFAULT_MODEL_LABEL,
-} from "../../shared/utils/chat-model-options";
+import type { ChatModelGroup } from "../../shared/utils/chat-model-options";
 import { generateDefaultConfigName } from "../../shared/utils/default-config-name";
+import { toParticipationFormValues } from "../../shared/utils/participation-form-values";
+
+/** 紐づけ先として選べる施策 */
+export type PolicyOption = { id: string; name: string };
+
+/**
+ * フォームの現在値。保存時に渡す形と同じで、任意項目は null に揃えてある。
+ * 読み手（AI生成への送信・シミュレーション）が undefined を都度潰さずに済む。
+ */
+export type InterviewConfigFormValues = InterviewConfigInput & {
+  description: string | null;
+  chat_model: string | null;
+  estimated_duration: number | null;
+};
 
 interface InterviewConfigFormProps {
-  billId: string;
+  modelGroups: ChatModelGroup[];
   config: InterviewConfig | null;
   aiGeneratedThemes?: string[] | null;
   onAiThemesApplied?: () => void;
   onConfigCreated?: (configId: string) => Promise<void>;
-  getFormValuesRef?: MutableRefObject<
-    | (() => {
-        name: string;
-        mode: string;
-        themes: string[];
-        chat_model: string | null;
-        estimated_duration: number | null;
-      })
-    | null
-  >;
+  /** 新規作成で、保存の直後に登録する質問の数（募集中にできるかの判定に使う） */
+  pendingQuestionCount?: number;
+  /** 親コンポーネントがフォームの現在値を読むための ref */
+  getFormValuesRef?: MutableRefObject<(() => InterviewConfigFormValues) | null>;
   /** 新規作成時の設定名初期値（ログインユーザー名） */
   initialName?: string | null;
+  /** 新規作成時の Slug 初期値。職員はそのまま保存しても書き換えてもよい */
+  initialSlug?: string;
+  /** 紐づけ先として選べる施策の一覧 */
+  policyOptions: PolicyOption[];
+  /** 現在紐づいている施策のID一覧。新規作成では、施策のページから来たときにその施策が入る */
+  linkedPolicyIds: string[];
 }
 
 export function InterviewConfigForm({
-  billId,
+  modelGroups,
   config,
   aiGeneratedThemes,
   onAiThemesApplied,
   onConfigCreated,
+  pendingQuestionCount,
   getFormValuesRef,
   initialName,
+  initialSlug,
+  policyOptions,
+  linkedPolicyIds,
 }: InterviewConfigFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,25 +115,34 @@ export function InterviewConfigForm({
     resolver: zodResolver(interviewConfigSchema),
     defaultValues: {
       name: config?.name || initialName || generateDefaultConfigName(),
-      status: config?.status || "closed",
-      mode: config?.mode || "loop",
-      themes: config?.themes || [],
+      slug: config?.slug || initialSlug || "",
+      status: config?.status || "draft",
+      description: config?.description ?? "",
       chat_model: config?.chat_model || null,
       estimated_duration: isNew ? 10 : (config?.estimated_duration ?? null),
+      thumbnail_url: config?.thumbnail_url ?? null,
+      ...toParticipationFormValues(config),
+      purpose_type: config?.purpose_type ?? null,
+      opinion_focus: config?.opinion_focus ?? "",
+      decided_matters: config?.decided_matters ?? "",
+      policy_ids: linkedPolicyIds,
     },
   });
 
-  // 親コンポーネントからフォーム値を読み取れるようにする
+  // 親コンポーネントからフォーム値を読み取れるようにする。
+  // AI生成への送信やシミュレーションもこの値を読むため、一部だけ返さないこと
   useEffect(() => {
     if (getFormValuesRef) {
       getFormValuesRef.current = () => {
         const values = form.getValues();
         return {
-          name: values.name,
-          mode: values.mode,
-          themes: values.themes || [],
+          ...values,
+          description: values.description ?? null,
           chat_model: values.chat_model || null,
           estimated_duration: values.estimated_duration ?? null,
+          purpose_type: values.purpose_type ?? null,
+          opinion_focus: values.opinion_focus?.trim() || null,
+          decided_matters: values.decided_matters?.trim() || null,
         };
       };
     }
@@ -113,9 +151,13 @@ export function InterviewConfigForm({
   // AI生成テーマの反映
   useEffect(() => {
     if (aiGeneratedThemes && aiGeneratedThemes.length > 0) {
-      form.setValue("themes", aiGeneratedThemes, { shouldDirty: true });
+      form.setValue("description", arrayToText(aiGeneratedThemes), {
+        shouldDirty: true,
+      });
       onAiThemesApplied?.();
-      toast.success(`AIが${aiGeneratedThemes.length}件のテーマを設定しました`);
+      toast.success(
+        `AIが${aiGeneratedThemes.length}件のテーマを説明欄に反映しました（保存すると確定します）`
+      );
     }
   }, [aiGeneratedThemes, form, onAiThemesApplied]);
 
@@ -123,7 +165,7 @@ export function InterviewConfigForm({
     setIsSubmitting(true);
     try {
       const result = isNew
-        ? await createInterviewConfig(billId, data)
+        ? await createInterviewConfig(data, { pendingQuestionCount })
         : await updateInterviewConfig(config.id, data);
 
       if (result.success) {
@@ -133,9 +175,7 @@ export function InterviewConfigForm({
             await onConfigCreated(result.data.id);
           }
           toast.success("インタビュー設定を作成しました");
-          router.push(
-            routes.billInterviewEdit(billId, result.data.id) as Route
-          );
+          router.push(routes.interviewEdit(result.data.id) as Route);
         } else {
           toast.success("インタビュー設定を保存しました");
           router.refresh();
@@ -151,10 +191,20 @@ export function InterviewConfigForm({
     }
   };
 
+  // 入力欄の外（紐づく施策・サムネイル）で弾かれると画面に何も出ず、
+  // 保存ボタンが無反応に見えるため、まとめて知らせる
+  const handleInvalid = (errors: FieldErrors<InterviewConfigInput>) => {
+    console.error("Interview config validation error:", errors);
+    toast.error("入力内容を確認してください");
+  };
+
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const participationMode = form.watch("participation_mode");
+  // プレビューは施策単位で発行するため、フォームで紐づけた施策の先頭で開く
+  const previewPolicyId = form.watch("policy_ids")?.[0] ?? null;
   const handlePreview = async () => {
-    if (!config) {
-      toast.error("プレビューは設定保存後に利用できます");
+    if (!config || !previewPolicyId) {
+      toast.error("プレビューは施策を紐づけると利用できます");
       return;
     }
 
@@ -176,7 +226,7 @@ export function InterviewConfigForm({
       }
 
       // 2. プレビューURL生成
-      const result = await generateInterviewPreviewUrl(billId);
+      const result = await generateInterviewPreviewUrl(previewPolicyId);
 
       if (result.success && result.url) {
         window.open(result.url, "_blank");
@@ -193,7 +243,7 @@ export function InterviewConfigForm({
 
   return (
     <div className="space-y-4">
-      {config && (
+      {config && previewPolicyId && (
         <div className="flex justify-end">
           <Button
             type="button"
@@ -215,7 +265,7 @@ export function InterviewConfigForm({
         <CardContent>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(handleSubmit)}
+              onSubmit={form.handleSubmit(handleSubmit, handleInvalid)}
               className="space-y-6"
             >
               <FormField
@@ -240,6 +290,23 @@ export function InterviewConfigForm({
 
               <FormField
                 control={form.control}
+                name="slug"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Slug</FormLabel>
+                    <FormControl>
+                      <Input placeholder="saga-no-mirai" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      公開ページのURLに使う識別子です（重複不可）
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
@@ -251,12 +318,13 @@ export function InterviewConfigForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="public">公開（有効）</SelectItem>
-                        <SelectItem value="closed">非公開（無効）</SelectItem>
+                        <SelectItem value="draft">下書き</SelectItem>
+                        <SelectItem value="open">募集中</SelectItem>
+                        <SelectItem value="closed">終了</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      インタビュー機能の有効/無効を設定します。公開設定は法案ごとに1つのみ可能です。
+                      意見募集の状態を設定します。募集中にできるのは施策ごとに1つのみです（施策に紐づかないテーマはこの制限を受けません）。
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -265,33 +333,58 @@ export function InterviewConfigForm({
 
               <FormField
                 control={form.control}
-                name="mode"
+                name="participation_mode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>インタビューモード</FormLabel>
+                    <FormLabel>{PARTICIPATION_MODE_FIELD_LABEL}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="モードを選択" />
+                          <SelectValue
+                            placeholder={`${PARTICIPATION_MODE_FIELD_LABEL}を選択`}
+                          />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="loop">逐次深掘り（loop）</SelectItem>
-                        <SelectItem value="bulk">一括深掘り（bulk）</SelectItem>
-                        <SelectItem value="targeted">
-                          対象者指定（targeted）
-                        </SelectItem>
+                        {VALID_PARTICIPATION_MODES.map((mode) => (
+                          <SelectItem key={mode} value={mode}>
+                            {PARTICIPATION_MODE_LABELS[mode]}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      loop: 質問ごとに深掘り / bulk:
-                      事前定義質問を先にすべて消化してから深掘り / targeted:
-                      質問ごとに対象者条件を設定し、該当しないインタビュイーにはスキップ
+                      {PARTICIPATION_MODE_DESCRIPTIONS[field.value]}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {participationMode === "external_identity" && (
+                <FormField
+                  control={form.control}
+                  name="allowed_provider_keys"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>回答を受け付ける連携元</FormLabel>
+                      <FormDescription>
+                        ここで選んだアプリから開いた利用者だけが回答できます。
+                      </FormDescription>
+                      <CheckboxGroup
+                        idPrefix="provider"
+                        options={EXTERNAL_IDENTITY_PROVIDERS.map((p) => ({
+                          id: p.key,
+                          label: p.displayName,
+                        }))}
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -299,41 +392,14 @@ export function InterviewConfigForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>AIモデル</FormLabel>
-                    <Select
-                      onValueChange={(value) =>
-                        field.onChange(value === "__default__" ? null : value)
-                      }
-                      value={field.value ?? "__default__"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="モデルを選択" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="__default__">
-                          デフォルト（{DEFAULT_MODEL_LABEL}）
-                        </SelectItem>
-                        {CHAT_MODEL_GROUPS.map((group) => (
-                          <SelectGroup key={group.provider}>
-                            <SelectLabel>{group.provider}</SelectLabel>
-                            {group.options.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                                {option.estimatedCost && (
-                                  <span className="ml-2 text-muted-foreground">
-                                    {option.estimatedCost}/回
-                                  </span>
-                                )}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <AiModelSelect
+                        value={field.value ?? null}
+                        onValueChange={field.onChange}
+                        groups={modelGroups}
+                        showEstimatedCost
+                      />
+                    </FormControl>
                     <FormDescription>
                       インタビュー対話に使用するAIモデルを選択します。コストは1インタビューあたりの推定値です。
                     </FormDescription>
@@ -364,7 +430,7 @@ export function InterviewConfigForm({
                       />
                     </FormControl>
                     <FormDescription>
-                      設定するとインタビュー中に残り時間が表示されます。未設定の場合は時間制限なしです。
+                      インタビュー中の残り時間の表示と、目安時間を過ぎたときの案内（続けるか、終えてまとめるか）に使います。AIの進め方には影響しません。未設定の場合は表示しません。
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -373,23 +439,188 @@ export function InterviewConfigForm({
 
               <FormField
                 control={form.control}
-                name="themes"
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>質問テーマ</FormLabel>
+                    <FormLabel>テーマの説明</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="質問テーマを改行区切りで入力"
+                        placeholder="意見を募集するテーマの説明を入力"
                         className="min-h-[100px] resize-y"
-                        value={arrayToText(field.value)}
-                        onChange={(e) => {
-                          field.onChange(textToArray(e.target.value));
-                        }}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
                       />
                     </FormControl>
                     <FormDescription>
-                      質問テーマを1行ずつ入力してください
+                      職員が設定するテーマの説明文です。AIへの指示材料にもなります
                     </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="purpose_type"
+                render={({ field }) => {
+                  const selection = field.value
+                    ? toPurposeSelection(field.value)
+                    : null;
+                  const option = PURPOSE_OPTIONS.find(
+                    (o) => o.key === selection?.optionKey
+                  );
+                  return (
+                    <FormItem>
+                      <FormLabel>目的</FormLabel>
+                      <Select
+                        value={selection?.optionKey ?? "unset"}
+                        onValueChange={(value) =>
+                          field.onChange(
+                            value === "unset"
+                              ? null
+                              : resolvePurposeType(
+                                  value as PurposeOptionKey,
+                                  false
+                                )
+                          )
+                        }
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="目的を選択" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="unset">
+                            未設定（汎用の聞き方）
+                          </SelectItem>
+                          {PURPOSE_OPTIONS.map((o) => (
+                            <SelectItem key={o.key} value={o.key}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selection && option?.checkLabel && (
+                        <label
+                          htmlFor="purpose-check"
+                          className="flex cursor-pointer items-center gap-2 text-sm"
+                        >
+                          <Checkbox
+                            id="purpose-check"
+                            checked={selection.checked}
+                            onCheckedChange={(checked) =>
+                              field.onChange(
+                                resolvePurposeType(
+                                  selection.optionKey,
+                                  checked === true
+                                )
+                              )
+                            }
+                          />
+                          {option.checkLabel}
+                        </label>
+                      )}
+                      <FormDescription>
+                        AIの聞き方と、質問テンプレートが目的で決まります。保存後、質問一覧の「目的のテンプレートを適用」で下書きを入れられます。
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="opinion_focus"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      意見がほしい点（市がこれから決めること）
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="例: どの路線をどう変えるか"
+                        maxLength={60}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormDescription>60文字まで</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="decided_matters"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>決まっていること（任意）</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="例: 2027年度に路線を見直すこと"
+                        maxLength={40}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      40文字まで。施策に紐づく意見募集のときだけ使います（AIはこの点の賛否を聞きません）
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="policy_ids"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>紐づく施策</FormLabel>
+                    <FormDescription>
+                      この意見募集を紐づける施策を選びます。1件も選ばない場合は、特定の施策に紐づかないテーマ（抽象テーマ）になります。
+                    </FormDescription>
+                    {policyOptions.length === 0 ? (
+                      <p className="text-sm text-gray-500">
+                        紐づけられる施策がありません。
+                      </p>
+                    ) : (
+                      <CheckboxGroup
+                        idPrefix="policy-link"
+                        options={policyOptions.map((o) => ({
+                          id: o.id,
+                          label: o.name,
+                        }))}
+                        value={field.value ?? []}
+                        onChange={field.onChange}
+                        className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3"
+                      />
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="thumbnail_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>サムネイル画像</FormLabel>
+                    <FormDescription>
+                      テーマ一覧のカードに表示する画像です。未設定の場合は紐づく施策の画像を使います。
+                    </FormDescription>
+                    {/* billId はファイル名の接頭辞にしか使われないため、
+                        意見募集のIDを渡してテーマごとのファイル名にする */}
+                    <ThumbnailUpload
+                      value={field.value ?? null}
+                      onChange={field.onChange}
+                      billId={config?.id}
+                      storagePrefix="interview"
+                    />
                     <FormMessage />
                   </FormItem>
                 )}

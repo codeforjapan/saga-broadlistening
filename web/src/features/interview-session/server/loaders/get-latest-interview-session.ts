@@ -45,7 +45,7 @@ export async function getLatestInterviewSession(
   }
 
   const isCompleted = session.completed_at !== null;
-  const report = session.interview_report as { id: string } | null;
+  const report = session.opinions as { id: string } | null;
 
   return {
     id: session.id,

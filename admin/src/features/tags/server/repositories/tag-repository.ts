@@ -1,10 +1,12 @@
 import "server-only";
 
-import { createAdminClient } from "@mirai-gikai/supabase";
 import type { Database } from "@mirai-gikai/supabase";
+import { createAdminClient } from "@mirai-gikai/supabase";
 
 type TagUpdate = Database["public"]["Tables"]["tags"]["Update"];
 
+// Epic #54 で bills_tags は policies_tags に再定義された。
+// bill という名前の改名は Epic #8 完了後のフォローアップで行う。
 export async function findAllTagsWithBillCount() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -17,7 +19,7 @@ export async function findAllTagsWithBillCount() {
       featured_priority,
       created_at,
       updated_at,
-      bills_tags(count)
+      policies_tags(count)
     `
     )
     .order("featured_priority", { ascending: true, nullsFirst: false })

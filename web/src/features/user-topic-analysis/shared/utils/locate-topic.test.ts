@@ -8,11 +8,6 @@ function makeTopic(id: string): PublicTopic {
     title: id,
     description: "",
     opinion_count: 0,
-    affected_count: 0,
-    industry_count: 0,
-    expert_count: 0,
-    citizen_count: 0,
-    sentiment: { 期待: 0, 懸念: 0 },
     opinions: [],
   };
 }

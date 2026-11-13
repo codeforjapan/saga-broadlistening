@@ -6,23 +6,20 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getInterviewChatLink } from "@/features/interview-config/shared/utils/interview-links";
 
 interface NewInterviewButtonProps {
-  billId: string;
-  previewToken?: string;
+  target: InterviewTarget;
 }
 
-export function NewInterviewButton({
-  billId,
-  previewToken,
-}: NewInterviewButtonProps) {
+export function NewInterviewButton({ target }: NewInterviewButtonProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = () => {
     setIsLoading(true);
-    const chatLink = getInterviewChatLink(billId, previewToken);
+    const chatLink = getInterviewChatLink(target);
     router.push(chatLink as Route);
   };
 

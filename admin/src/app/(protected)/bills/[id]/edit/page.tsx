@@ -1,15 +1,13 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { routes } from "@/lib/routes";
 import { BillEditForm } from "@/features/bills-edit/client/components/bill-edit-form";
 import { BillTagsForm } from "@/features/bills-edit/client/components/bill-tags-form";
 import { getBillById } from "@/features/bills-edit/server/loaders/get-bill-by-id";
 import { getBillTagIds } from "@/features/bills-edit/server/loaders/get-bill-tag-ids";
-import { loadDietSessions } from "@/features/diet-sessions/server/loaders/load-diet-sessions";
-import { StanceForm } from "@/features/mirai-stance/client/components/stance-form";
-import { getStanceByBillId } from "@/features/mirai-stance/server/loaders/get-stance-by-bill-id";
+import { getParentPolicyOptions } from "@/features/bills-edit/server/loaders/get-parent-policy-options";
 import { loadTags } from "@/features/tags/server/loaders/load-tags";
+import { routes } from "@/lib/routes";
 
 interface BillEditPageProps {
   params: Promise<{
@@ -19,13 +17,12 @@ interface BillEditPageProps {
 
 export default async function BillEditPage({ params }: BillEditPageProps) {
   const { id } = await params;
-  const [bill, stance, allTags, selectedTagIds, dietSessions] =
+  const [bill, allTags, selectedTagIds, parentPolicyOptions] =
     await Promise.all([
       getBillById(id),
-      getStanceByBillId(id),
       loadTags(),
       getBillTagIds(id),
-      loadDietSessions(),
+      getParentPolicyOptions(id),
     ]);
 
   if (!bill) {
@@ -40,18 +37,17 @@ export default async function BillEditPage({ params }: BillEditPageProps) {
           className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="h-4 w-4" />
-          議案一覧に戻る
+          施策一覧に戻る
         </Link>
       </div>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">議案編集</h1>
-        <p className="text-gray-600 mt-1">議案の基本情報を編集します</p>
+        <h1 className="text-2xl font-bold text-gray-900">施策編集</h1>
+        <p className="text-gray-600 mt-1">施策の基本情報を編集します</p>
       </div>
 
       <div className="space-y-6">
-        <BillEditForm bill={bill} dietSessions={dietSessions} />
-        <StanceForm billId={bill.id} stance={stance} billStatus={bill.status} />
+        <BillEditForm bill={bill} parentPolicyOptions={parentPolicyOptions} />
         <BillTagsForm
           billId={bill.id}
           allTags={allTags}

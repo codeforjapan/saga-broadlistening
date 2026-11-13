@@ -60,7 +60,7 @@ export async function updateBillContents(
       success: false,
       error: getErrorMessage(
         error,
-        "議案コンテンツの更新中にエラーが発生しました"
+        "施策コンテンツの更新中にエラーが発生しました"
       ),
     };
   }

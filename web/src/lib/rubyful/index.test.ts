@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { rubyfulClient } from "./index";
 
 describe("RubyfulClient", () => {
@@ -94,5 +94,37 @@ describe("RubyfulClient", () => {
       localStorage.setItem("rubyful-enabled", "true");
       expect(rubyfulClient.getIsEnabledFromStorage()).toBe(true);
     });
+  });
+});
+
+describe("data-ruby-enabled 属性（行間切り替え用）", () => {
+  beforeEach(() => {
+    document.documentElement.removeAttribute("data-ruby-enabled");
+    localStorage.clear();
+  });
+
+  it("show() で <html> に属性が付く", () => {
+    rubyfulClient.show();
+    expect(document.documentElement.hasAttribute("data-ruby-enabled")).toBe(
+      true
+    );
+  });
+
+  it("hide() で属性が外れる", () => {
+    rubyfulClient.show();
+    rubyfulClient.hide();
+    expect(document.documentElement.hasAttribute("data-ruby-enabled")).toBe(
+      false
+    );
+  });
+
+  it("applyStoredStateToDocument() が LocalStorage の設定を反映する", () => {
+    rubyfulClient.show(); // storage に true を保存
+    document.documentElement.removeAttribute("data-ruby-enabled");
+
+    rubyfulClient.applyStoredStateToDocument();
+    expect(document.documentElement.hasAttribute("data-ruby-enabled")).toBe(
+      true
+    );
   });
 });

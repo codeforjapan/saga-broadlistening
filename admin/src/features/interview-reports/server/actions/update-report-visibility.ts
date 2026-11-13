@@ -22,7 +22,7 @@ interface UpdateReportVisibilityResult {
 export async function updateReportVisibilityAction(
   params: UpdateReportVisibilityParams
 ): Promise<UpdateReportVisibilityResult> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   const { reportId, isPublic, billId, sessionId } = params;
 
@@ -45,7 +45,7 @@ export async function updateReportVisibilityAction(
       }
     }
 
-    await updateReportVisibility(reportId, isPublic);
+    await updateReportVisibility(reportId, isPublic, admin.id);
 
     // Revalidate bill interview pages (reports are under interview config)
     revalidatePath(`/bills/${billId}`, "layout");

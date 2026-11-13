@@ -2,14 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { registerPreviewTools } from "../../admin/src/features/mcp/server/tools/register-preview-tools";
 import {
   adminClient,
-  cleanupTestBill,
-  createTestBill,
+  cleanupTestPolicy,
+  createTestPolicy,
 } from "../supabase/utils";
 import { createTestRegistry, type TestMcpRegistry } from "./utils";
 
 describe("MCP preview tools", () => {
   let registry: TestMcpRegistry;
-  const billIds: string[] = [];
+  const policyIds: string[] = [];
 
   beforeEach(() => {
     registry = createTestRegistry();
@@ -17,14 +17,14 @@ describe("MCP preview tools", () => {
   });
 
   afterEach(async () => {
-    // preview_tokens は bills の CASCADE で自動削除される
-    for (const id of billIds.splice(0)) await cleanupTestBill(id);
+    // preview_tokens は policies の CASCADE で自動削除される
+    for (const id of policyIds.splice(0)) await cleanupTestPolicy(id);
   });
 
   describe("generate_preview_url", () => {
     it("type=bill のとき /preview/bills/:id にトークン付きURLを返す", async () => {
-      const bill = await createTestBill();
-      billIds.push(bill.id);
+      const policy = await createTestPolicy();
+      policyIds.push(policy.id);
 
       // 失効日時の検証は呼び出し前後の Date.now() を基準にして範囲比較する。
       const before = Date.now();
@@ -33,13 +33,13 @@ describe("MCP preview tools", () => {
         url: string;
         token: string;
         expiresAt: string;
-      }>("generate_preview_url", { billId: bill.id, type: "bill" });
+      }>("generate_preview_url", { billId: policy.id, type: "bill" });
       const after = Date.now();
 
       expect(result.ok).toBe(true);
       expect(result.token).toMatch(/^[0-9a-f]{64}$/);
       expect(result.url).toContain(
-        `/preview/bills/${bill.id}?token=${result.token}`
+        `/preview/bills/${policy.id}?token=${result.token}`
       );
       expect(result.url).not.toContain("/interview");
       // 30日有効
@@ -50,42 +50,42 @@ describe("MCP preview tools", () => {
     });
 
     it("type=interview のとき /preview/bills/:id/interview を返す", async () => {
-      const bill = await createTestBill();
-      billIds.push(bill.id);
+      const policy = await createTestPolicy();
+      policyIds.push(policy.id);
 
       const result = await registry.callTool<{ url: string }>(
         "generate_preview_url",
-        { billId: bill.id, type: "interview" }
+        { billId: policy.id, type: "interview" }
       );
       expect(result.url).toContain(
-        `/preview/bills/${bill.id}/interview?token=`
+        `/preview/bills/${policy.id}/interview?token=`
       );
     });
 
     it("type を省略すると bill 扱いになる", async () => {
-      const bill = await createTestBill();
-      billIds.push(bill.id);
+      const policy = await createTestPolicy();
+      policyIds.push(policy.id);
 
       const result = await registry.callTool<{ url: string }>(
         "generate_preview_url",
-        { billId: bill.id }
+        { billId: policy.id }
       );
-      expect(result.url).toContain(`/preview/bills/${bill.id}?token=`);
+      expect(result.url).toContain(`/preview/bills/${policy.id}?token=`);
       expect(result.url).not.toContain("/interview");
     });
 
     it("既存の有効トークンがあれば再利用する", async () => {
-      const bill = await createTestBill();
-      billIds.push(bill.id);
+      const policy = await createTestPolicy();
+      policyIds.push(policy.id);
 
       const first = await registry.callTool<{
         token: string;
         expiresAt: string;
-      }>("generate_preview_url", { billId: bill.id, type: "bill" });
+      }>("generate_preview_url", { billId: policy.id, type: "bill" });
       const second = await registry.callTool<{
         token: string;
         expiresAt: string;
-      }>("generate_preview_url", { billId: bill.id, type: "interview" });
+      }>("generate_preview_url", { billId: policy.id, type: "interview" });
       expect(second.token).toBe(first.token);
       // 既存トークンを再利用するので expires_at も延長されない（瞬間時刻として比較）
       expect(new Date(second.expiresAt).getTime()).toBe(
@@ -96,7 +96,7 @@ describe("MCP preview tools", () => {
       const { data } = await adminClient
         .from("preview_tokens")
         .select("token")
-        .eq("bill_id", bill.id);
+        .eq("policy_id", policy.id);
       expect(data).toHaveLength(1);
     });
   });

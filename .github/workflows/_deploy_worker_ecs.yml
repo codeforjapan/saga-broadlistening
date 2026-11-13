@@ -1,0 +1,69 @@
+name: Reusable Deploy Topic Analysis Worker (ECR)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: "GitHub Environment name (e.g. production, staging)"
+      ecr_repository:
+        required: true
+        type: string
+        description: "ECR repository name (e.g. mirai-gikai-topic-analysis-worker-prd)"
+    secrets:
+      role_arn:
+        required: false
+        description: "AWS IAM Role ARN to assume via OIDC"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      DEPLOY_ROLE_ARN: ${{ secrets.role_arn }}
+      ECR_REPOSITORY: ${{ inputs.ecr_repository }}
+      AWS_REGION: ap-northeast-1
+    steps:
+      # AWS側の設定（infra/aws-cdk/README.md参照）が未完了でも赤にせず、green skipにする。
+      - name: Check AWS configuration
+        id: cfg
+        run: |
+          if [ -z "$DEPLOY_ROLE_ARN" ]; then
+            echo "Role ARN secret is not set — skipping ECR push for ${{ inputs.ecr_repository }} (see infra/aws-cdk/README.md)."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v5
+        if: steps.cfg.outputs.configured == 'true'
+
+      - name: Configure AWS credentials
+        if: steps.cfg.outputs.configured == 'true'
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
+        with:
+          role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        if: steps.cfg.outputs.configured == 'true'
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - name: Build and push image
+        if: steps.cfg.outputs.configured == 'true'
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          IMAGE_BASE="${REGISTRY}/${ECR_REPOSITORY}"
+          docker build --platform linux/amd64 -f worker/Dockerfile \
+            -t "${IMAGE_BASE}:${GITHUB_SHA}" \
+            -t "${IMAGE_BASE}:latest" \
+            .
+          docker push "${IMAGE_BASE}:${GITHUB_SHA}"
+          docker push "${IMAGE_BASE}:latest"

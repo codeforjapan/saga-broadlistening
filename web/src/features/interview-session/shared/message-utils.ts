@@ -9,8 +9,7 @@ export function isValidReport(
   if (!report) return false;
   return !!(
     report.summary ||
-    report.stance ||
-    report.role ||
+    report.final_text ||
     report.role_description ||
     report.role_title ||
     report.opinions.length > 0
@@ -55,8 +54,7 @@ export function parseMessageContent(content: string): {
         // opinionsがnullの場合は空配列に変換（content_richnessは除外）
         const report: InterviewReportViewData = {
           summary: rawReport.summary ?? null,
-          stance: rawReport.stance ?? null,
-          role: rawReport.role ?? null,
+          final_text: rawReport.final_text ?? "",
           role_description: rawReport.role_description ?? null,
           role_title: rawReport.role_title ?? null,
           opinions: rawReport.opinions ?? [],

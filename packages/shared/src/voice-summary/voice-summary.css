@@ -1,0 +1,111 @@
+/*
+ * みんなの声のまとめ（Markdown）の表示（Epic #162 / #161・デザイン「5a」）。
+ * web の公開画面と admin のプレビューで同じ見た目にするため、ここに1つだけ持つ。
+ * 色は branding のトークン（--color-*）だけを使う。
+ *
+ *   #   → 問い（大きな見出し＋緑の下線）
+ *   ##  → 左に緑の線つき見出し
+ *   ### → 緑の小見出し
+ *   -   → 通常の箇条書き
+ *   1.  → 番号を緑の丸で表示
+ *   **太字** → 黄色のマーカー（引用の中では付けない）
+ *   >   → コールアウト（左に緑の線、薄緑の背景）
+ */
+.voice-summary-content {
+  color: var(--color-base-ink);
+  font-size: 0.9375rem;
+  line-height: 1.9;
+  counter-reset: none;
+}
+
+.voice-summary-content > * + * {
+  margin-top: 1rem;
+}
+
+.voice-summary-content h1 {
+  display: inline-block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.5;
+  padding-bottom: 0.25rem;
+  border-bottom: 3px solid var(--color-kikasete-400);
+}
+
+.voice-summary-content h2 {
+  margin-top: 2.25rem;
+  padding-left: 0.625rem;
+  border-left: 4px solid var(--color-kikasete-400);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.voice-summary-content h3 {
+  margin-top: 1.5rem;
+  color: var(--color-kikasete-700);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.voice-summary-content ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.voice-summary-content ol {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: voice-summary-item;
+}
+
+.voice-summary-content ol > li {
+  position: relative;
+  padding-left: 2rem;
+  counter-increment: voice-summary-item;
+}
+
+.voice-summary-content ol > li::before {
+  content: counter(voice-summary-item);
+  position: absolute;
+  left: 0;
+  top: 0.25em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 9999px;
+  background: var(--color-kikasete-600);
+  color: var(--color-base-white);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.voice-summary-content li + li {
+  margin-top: 0.375rem;
+}
+
+.voice-summary-content strong {
+  font-weight: 700;
+  background: linear-gradient(
+    transparent 60%,
+    color-mix(in srgb, var(--color-yellow-400) 70%, transparent) 60%
+  );
+}
+
+.voice-summary-content blockquote {
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--color-kikasete-400);
+  border-radius: 0 0.5rem 0.5rem 0;
+  background: var(--color-kikasete-50);
+}
+
+.voice-summary-content blockquote > * + * {
+  margin-top: 0.25rem;
+}
+
+/* 引用の中の太字は見出し扱い。マーカーは付けない */
+.voice-summary-content blockquote strong {
+  background: none;
+}

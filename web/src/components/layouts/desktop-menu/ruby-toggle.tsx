@@ -30,7 +30,7 @@ export function DesktopMenuRubyToggle() {
         <Switch
           checked={rubyEnabled}
           onCheckedChange={handleRubyToggle}
-          aria-label="ルビ表示の切り替え"
+          aria-label="ふりがな表示の切り替え"
         />
       </div>
     </div>

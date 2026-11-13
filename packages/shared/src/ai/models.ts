@@ -1,7 +1,15 @@
 /**
- * AIモデルの識別子を一元管理する定数（Vercel AI Gateway形式）
+ * モデル選択肢の識別子。provider:modelId は接続先を明示する。
+ * 既存の provider/model は AI Gateway のIDとして維持する。
+ * `pnpm check:ai-models` は Gateway のモデルだけ実在チェックする。
  */
 export const AI_MODELS = {
+  // --- Amazon Bedrock ---
+  bedrock_sonnet_4_6: "bedrock:jp.anthropic.claude-sonnet-4-6",
+  bedrock_haiku_4_5: "bedrock:jp.anthropic.claude-haiku-4-5-20251001-v1:0",
+  bedrock_opus_5_5: "bedrock:jp.anthropic.claude-opus-5-5",
+  bedrock_haiku_5_5: "bedrock:jp.anthropic.claude-haiku-5-5",
+  bedrock_gpt_oss_120b: "bedrock:openai.gpt-oss-120b-1:0",
   // --- OpenAI ---
   gpt4o: "openai/gpt-4o",
   gpt4o_mini: "openai/gpt-4o-mini",
@@ -13,8 +21,6 @@ export const AI_MODELS = {
   gpt5: "openai/gpt-5",
   gpt5_mini: "openai/gpt-5-mini",
   gpt5_nano: "openai/gpt-5-nano",
-  gpt5_chat: "openai/gpt-5-chat",
-  gpt5_1_instant: "openai/gpt-5.1-instant",
   gpt5_1_thinking: "openai/gpt-5.1-thinking",
   gpt5_2: "openai/gpt-5.2",
   gpt5_6_sol: "openai/gpt-5.6-sol",
@@ -22,8 +28,7 @@ export const AI_MODELS = {
   gpt5_6_luna: "openai/gpt-5.6-luna",
   // --- Google ---
   gemini3_flash: "google/gemini-3-flash",
-  gemini3_flash_preview: "google/gemini-3-flash-preview",
-  gemini3_1_flash_lite_preview: "google/gemini-3.1-flash-lite-preview",
+  gemini3_1_flash_lite: "google/gemini-3.1-flash-lite",
   gemini3_1_pro_preview: "google/gemini-3.1-pro-preview",
   gemma4_26b_a4b: "google/gemma-4-26b-a4b-it",
   // --- Anthropic ---
@@ -43,4 +48,10 @@ export function isKnownModel(model: string): model is AiModel {
 }
 
 /** インタビューチャットのデフォルトモデル */
-export const DEFAULT_INTERVIEW_CHAT_MODEL = AI_MODELS.gpt5_2;
+export const DEFAULT_INTERVIEW_CHAT_MODEL = AI_MODELS.bedrock_haiku_4_5;
+/** モデレーション評価のデフォルトモデル */
+export const DEFAULT_MODERATION_MODEL = AI_MODELS.bedrock_sonnet_4_6;
+/** コンテンツ充実度評価のデフォルトモデル */
+export const DEFAULT_CONTENT_RICHNESS_MODEL = AI_MODELS.bedrock_sonnet_4_6;
+/** 意見バックフィル（再抽出）のデフォルトモデル */
+export const DEFAULT_OPINION_BACKFILL_MODEL = AI_MODELS.bedrock_sonnet_4_6;

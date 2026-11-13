@@ -8,7 +8,6 @@ describe("withUid", () => {
       question: "好きな色は？",
       follow_up_guide: "理由も聞く",
       quick_replies: ["赤", "青"],
-      target_audience: "全員",
     };
 
     const result = withUid(input);

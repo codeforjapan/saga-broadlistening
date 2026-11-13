@@ -6,8 +6,13 @@ import {
   type ConfigGenerationStage,
   configGenerationResponseSchema,
 } from "../../shared/schemas";
-import type { InterviewQuestionInput } from "../../shared/types";
+import {
+  type InterviewDesignInput,
+  type InterviewQuestionInput,
+  textToArray,
+} from "../../shared/types";
 import { buildQuestionsFromTemplate } from "../../shared/utils/default-questions-template";
+import { toProposedQuestions } from "../../shared/utils/question-input";
 
 interface ChatMessage {
   id: string;
@@ -18,25 +23,61 @@ interface ChatMessage {
 }
 
 interface UseConfigGenerationChatProps {
-  billId: string;
-  configId?: string;
+  /**
+   * AIへ渡すフォームの値を、送信時点で読み取る。
+   * 職員がフォームを書き換えた直後でも最新の内容で生成するため、
+   * 値ではなく取得関数を受け取る（呼び出し側で useCallback すること）。
+   */
+  getFormContext?: () => ConfigFormContext;
   existingThemes?: string[];
   existingQuestions?: InterviewQuestionInput[];
   onThemesConfirmed: (themes: string[]) => void;
   onQuestionsConfirmed: (questions: InterviewQuestionInput[]) => void;
 }
 
+/** AIに渡す、左のフォームの送信時点の値 */
+export type ConfigFormContext = {
+  /** 施策がないときに題材にするテーマ名 */
+  themeName: string | null;
+  themeDescription: string | null;
+  /** フォームで紐づけ中の施策。先頭の施策を題材にする */
+  policyIds: string[];
+  /** フォームで入力済みの目的・意見がほしい点・決まっていること */
+  design: InterviewDesignInput;
+};
+
+const EMPTY_FORM_CONTEXT: ConfigFormContext = {
+  themeName: null,
+  themeDescription: null,
+  policyIds: [],
+  design: { purposeType: null, opinionFocus: null, decidedMatters: null },
+};
+
 /** サーバー側に送る stage（クライアント内部の確定状態は送らない） */
 type ServerStage = "default_questions" | "question_proposal" | "theme_proposal";
 
 export function useConfigGenerationChat({
-  billId,
-  configId,
+  getFormContext,
   existingThemes,
   existingQuestions,
   onThemesConfirmed,
   onQuestionsConfirmed,
 }: UseConfigGenerationChatProps) {
+  /** 送信時点のフォームの値 */
+  const getFormContextOrEmpty = useCallback(
+    () => getFormContext?.() ?? EMPTY_FORM_CONTEXT,
+    [getFormContext]
+  );
+
+  /**
+   * 送信時点の説明欄からテーマを読む。
+   * 確定したテーマは保存前でも説明欄に入っているので、保存済みの値より優先する。
+   */
+  const getCurrentThemes = useCallback((): string[] | undefined => {
+    const themes = textToArray(getFormContextOrEmpty().themeDescription);
+    return themes.length > 0 ? themes : undefined;
+  }, [getFormContextOrEmpty]);
+
   const hasExistingThemes = (existingThemes?.length ?? 0) > 0;
   const hasExistingQuestions = (existingQuestions?.length ?? 0) > 0;
   const [input, setInput] = useState("");
@@ -57,9 +98,23 @@ export function useConfigGenerationChat({
     api: "/api/interview-config/generate",
     schema: configGenerationResponseSchema,
     onFinish: ({ object: finishedObject, error: finishedError }) => {
-      if (finishedError || !finishedObject) return;
+      if (finishedError || !finishedObject) {
+        // スキーマに合わない応答は useObject の error に出ないため、ここで知らせる
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: "AIの応答を読み取れませんでした。もう一度お試しください。",
+          },
+        ]);
+        return;
+      }
 
-      const { text, themes, questions, topics, stance } = finishedObject;
+      const { text, themes, topics, stance } = finishedObject;
+      const questions = finishedObject.questions
+        ? toProposedQuestions(finishedObject.questions)
+        : undefined;
 
       // default_questions ステージ: テンプレと合成して proposedQuestions に
       if (topics || stance) {
@@ -87,7 +142,7 @@ export function useConfigGenerationChat({
           role: "assistant",
           content: text ?? "",
           themes: themes ?? undefined,
-          questions: questions as InterviewQuestionInput[] | undefined,
+          questions,
         },
       ]);
 
@@ -95,7 +150,7 @@ export function useConfigGenerationChat({
         setProposedThemes(themes);
       }
       if (questions && questions.length > 0) {
-        setProposedQuestions(questions as InterviewQuestionInput[]);
+        setProposedQuestions(questions);
       }
     },
   });
@@ -143,13 +198,16 @@ export function useConfigGenerationChat({
         setStage("theme_proposal");
       }
 
-      // 質問ブラッシュアップ時は、現在画面に表示中の質問を優先してコンテキストに渡す
+      // 質問ブラッシュアップ時は、現在画面に表示中の質問を優先してコンテキストに渡す。
+      // 確定は保存済みの質問を作り直さないので、確定済みの質問を保存済みの質問より優先する
       const questionContext =
         proposedQuestions.length > 0
           ? proposedQuestions
-          : hasExistingQuestions
-            ? existingQuestions
-            : undefined;
+          : confirmedQuestions.length > 0
+            ? confirmedQuestions
+            : hasExistingQuestions
+              ? existingQuestions
+              : undefined;
 
       // 修正要望後は proposed をリセット（コンテキストは上で確保済み）
       setProposedThemes([]);
@@ -157,13 +215,10 @@ export function useConfigGenerationChat({
 
       submit({
         messages: apiMessages,
-        billId,
-        configId,
+        ...getFormContextOrEmpty(),
         stage: serverStage,
         existingThemes:
-          serverStage === "theme_proposal" && hasExistingThemes
-            ? existingThemes
-            : undefined,
+          serverStage === "theme_proposal" ? getCurrentThemes() : undefined,
         existingQuestions:
           serverStage === "question_proposal" ? questionContext : undefined,
         confirmedQuestions:
@@ -174,14 +229,12 @@ export function useConfigGenerationChat({
     },
     [
       messages,
-      billId,
-      configId,
+      getFormContextOrEmpty,
       stage,
       isLoading,
       submit,
       resolveServerStage,
-      hasExistingThemes,
-      existingThemes,
+      getCurrentThemes,
       hasExistingQuestions,
       existingQuestions,
       confirmedQuestions,
@@ -190,6 +243,8 @@ export function useConfigGenerationChat({
   );
 
   const startGeneration = useCallback(() => {
+    // ブラッシュアップかどうかは保存済みの設定で決める。説明欄の現在値で決めると、
+    // 新規作成で説明を書いただけでもテーマ設定済みとみなし、初期の質問生成を飛ばしてしまう
     if (hasExistingQuestions || hasExistingThemes) {
       // 既存設定あり: ブラッシュアップモード
       const parts: string[] = [
@@ -219,23 +274,24 @@ export function useConfigGenerationChat({
     }
 
     // 新規: テンプレ + LLMでQ1/Q2を生成
+    const formContext = getFormContextOrEmpty();
     setMessages([
       {
         id: "greeting",
         role: "assistant",
         content:
-          "インタビュー設定アシスタントです。法案内容を分析して、デフォルトの質問セットを準備します。",
+          formContext.policyIds.length > 0
+            ? "インタビュー設定アシスタントです。施策内容を分析して、デフォルトの質問セットを準備します。"
+            : "インタビュー設定アシスタントです。テーマの内容を分析して、デフォルトの質問セットを準備します。",
       },
     ]);
     submit({
       messages: [],
-      billId,
-      configId,
+      ...formContext,
       stage: "default_questions",
     });
   }, [
-    billId,
-    configId,
+    getFormContextOrEmpty,
     submit,
     hasExistingThemes,
     hasExistingQuestions,
@@ -263,22 +319,19 @@ export function useConfigGenerationChat({
 
       submit({
         messages: [],
-        billId,
-        configId,
+        ...getFormContextOrEmpty(),
         stage: "theme_proposal",
         confirmedQuestions: questions,
-        existingThemes: hasExistingThemes ? existingThemes : undefined,
+        existingThemes: getCurrentThemes(),
       });
     },
     [
-      billId,
-      configId,
+      getFormContextOrEmpty,
       isLoading,
       stop,
       submit,
       onQuestionsConfirmed,
-      hasExistingThemes,
-      existingThemes,
+      getCurrentThemes,
     ]
   );
 
@@ -333,24 +386,21 @@ export function useConfigGenerationChat({
 
     submit({
       messages: [],
-      billId,
-      configId,
+      ...getFormContextOrEmpty(),
       stage: "theme_proposal",
       confirmedQuestions:
         questionsToUse.length > 0 ? questionsToUse : undefined,
-      existingThemes: hasExistingThemes ? existingThemes : undefined,
+      existingThemes: getCurrentThemes(),
     });
   }, [
-    billId,
-    configId,
+    getFormContextOrEmpty,
     isLoading,
     stop,
     submit,
     proposedQuestions,
     confirmedQuestions,
     existingQuestions,
-    hasExistingThemes,
-    existingThemes,
+    getCurrentThemes,
   ]);
 
   /** 生成中のストリームを停止する */

@@ -1,7 +1,7 @@
 import "server-only";
 
-import { generateObject } from "ai";
-import type { AiModel } from "@/lib/ai/models";
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
+import { generateObject, type LanguageModel } from "ai";
 import { LLM_MAX_ATTEMPTS, LLM_TIMEOUT_MS } from "../../shared/constants";
 import {
   type IntervieweeSatisfaction,
@@ -15,7 +15,7 @@ import { withTimeoutRetry } from "../../shared/utils/with-timeout-retry";
 interface EvaluateIntervieweeSatisfactionParams {
   persona: PersonaCharacterSheet;
   transcript: SimulatedTurn[];
-  model: AiModel;
+  model?: LanguageModel;
   traceId: string;
   personaIndex: number;
   /** クライアント abort 時に LLM 呼び出しも停止させる */
@@ -51,7 +51,7 @@ export async function evaluateIntervieweeSatisfaction(
     const { object } = await withTimeoutRetry(
       (attemptSignal) =>
         generateObject({
-          model,
+          ...getAiModel("simulation", model),
           schema: intervieweeSatisfactionSchema,
           prompt,
           abortSignal: attemptSignal,

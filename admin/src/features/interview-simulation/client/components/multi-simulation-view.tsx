@@ -1,27 +1,18 @@
 "use client";
 
-import {
-  type InterviewMode,
-  INTERVIEW_MODES,
-} from "@mirai-gikai/shared/interview-prompts/types";
+import { isValidModelId } from "@mirai-gikai/shared/ai/validate-model-id";
 import { Loader2, Play, Settings2, Square } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
+import { AiModelSelect } from "@/components/ai-model-select";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import type { InterviewQuestionInput } from "@/features/interview-config/shared/types";
-import type { AiModel } from "@/lib/ai/models";
+import type { ChatModelGroup } from "@/features/interview-config/shared/utils/chat-model-options";
 import {
   DEFAULT_INTERVIEWEE_MODEL,
   DEFAULT_INTERVIEWER_MODEL,
   DEFAULT_PERSONA_MODEL,
-  SIMULATION_MODEL_OPTIONS,
+  ENV_DEFAULT_MODEL,
 } from "../../shared/constants";
 import type {
   CompletedReportListItem,
@@ -37,12 +28,13 @@ import { PersonaResultCard } from "./persona-result-card";
 import { PersonaSelectorList } from "./persona-selector-list";
 
 interface MultiSimulationViewProps {
-  billId: string;
+  modelGroups: ChatModelGroup[];
   configId: string;
+  /** 施策全体から候補を選べるか。抽象テーマ型では false */
+  hasPolicyScope: boolean;
   /** 編集フォームの現在値を取り出す（未保存編集値を含む） */
   getFormValues: () => {
-    mode: string;
-    themes: string[];
+    description: string | null;
     chat_model: string | null;
     estimated_duration: number | null;
   } | null;
@@ -57,36 +49,33 @@ function ModelSelect({
   label,
   value,
   onChange,
+  groups,
 }: {
   id: string;
   label: string;
-  value: AiModel;
-  onChange: (v: AiModel) => void;
+  value: string;
+  onChange: (v: string) => void;
+  groups: ChatModelGroup[];
 }) {
   return (
     <div className="space-y-1">
       <Label htmlFor={id} className="text-xs text-muted-foreground">
         {label}
       </Label>
-      <Select value={value} onValueChange={(v) => onChange(v as AiModel)}>
-        <SelectTrigger id={id} className="h-8 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {SIMULATION_MODEL_OPTIONS.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <AiModelSelect
+        id={id}
+        value={value === ENV_DEFAULT_MODEL ? null : value}
+        onValueChange={(next) => onChange(next ?? ENV_DEFAULT_MODEL)}
+        groups={groups}
+      />
     </div>
   );
 }
 
 export function MultiSimulationView({
-  billId,
+  modelGroups,
   configId,
+  hasPolicyScope,
   getFormValues,
   getCurrentQuestions,
   completedReports,
@@ -95,10 +84,10 @@ export function MultiSimulationView({
 }: MultiSimulationViewProps) {
   const [slots, setSlots] = useState<PersonaSlotInput[]>([]);
   const [showModelConfig, setShowModelConfig] = useState(false);
-  const [intervieweeModel, setIntervieweeModel] = useState<AiModel>(
+  const [intervieweeModel, setIntervieweeModel] = useState<string>(
     DEFAULT_INTERVIEWEE_MODEL
   );
-  const [personaModel, setPersonaModel] = useState<AiModel>(
+  const [personaModel, setPersonaModel] = useState<string>(
     DEFAULT_PERSONA_MODEL
   );
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -126,13 +115,7 @@ export function MultiSimulationView({
     }
 
     const snapshot: TransientConfigSnapshot = {
-      mode: (INTERVIEW_MODES as readonly string[]).includes(formValues.mode)
-        ? (formValues.mode as InterviewMode)
-        : "loop",
-      themes:
-        formValues.themes.length > 0
-          ? formValues.themes.filter((t) => t.length > 0)
-          : null,
+      description: formValues.description,
       estimatedDurationMinutes: formValues.estimated_duration,
       questions: currentQuestions.map((q, index) => ({
         id: `transient-${index}-${q.question.slice(0, 16)}`,
@@ -142,24 +125,21 @@ export function MultiSimulationView({
             ? q.quick_replies
             : null,
         follow_up_guide: q.follow_up_guide ?? null,
-        target_audience: q.target_audience ?? null,
       })),
     };
 
-    // chat_model は任意文字列なので AI_MODELS に含まれているか検証してから採用。
-    // 未マッチならデフォルトにフォールバック（そのまま送るとサーバ側 400 で不親切）
-    const allowedModels = new Set<string>(
-      SIMULATION_MODEL_OPTIONS.map((opt) => opt.value)
-    );
-    const candidateInterviewerModel = formValues.chat_model ?? "";
-    const resolvedInterviewerModel: AiModel = allowedModels.has(
-      candidateInterviewerModel
-    )
-      ? (candidateInterviewerModel as AiModel)
-      : DEFAULT_INTERVIEWER_MODEL;
+    const candidateInterviewerModel = formValues.chat_model;
+    let resolvedInterviewerModel: string = DEFAULT_INTERVIEWER_MODEL;
+    if (candidateInterviewerModel) {
+      if (!isValidModelId(candidateInterviewerModel)) {
+        setValidationError("設定されたAIモデルを確認してください");
+        return;
+      }
+      resolvedInterviewerModel = candidateInterviewerModel;
+    }
 
     const body: MultiSimulationRunRequest = {
-      billId,
+      interviewConfigId: configId,
       personaSlots: slots,
       improvedConfig: snapshot,
       interviewerModel: resolvedInterviewerModel,
@@ -169,7 +149,7 @@ export function MultiSimulationView({
 
     await run(body);
   }, [
-    billId,
+    configId,
     slots,
     getFormValues,
     getCurrentQuestions,
@@ -208,8 +188,8 @@ export function MultiSimulationView({
         <PersonaSelectorList
           slots={slots}
           onChange={setSlots}
-          billId={billId}
           currentConfigId={configId}
+          hasPolicyScope={hasPolicyScope}
           completedReports={completedReports}
           completedReportsTruncated={completedReportsTruncated}
           completedReportsLimit={completedReportsLimit}
@@ -235,12 +215,14 @@ export function MultiSimulationView({
               </p>
               <div className="grid grid-cols-2 gap-2">
                 <ModelSelect
+                  groups={modelGroups}
                   id="multi-sim-interviewee-model"
                   label="インタビュイー"
                   value={intervieweeModel}
                   onChange={setIntervieweeModel}
                 />
                 <ModelSelect
+                  groups={modelGroups}
                   id="multi-sim-persona-model"
                   label="ペルソナ抽出"
                   value={personaModel}

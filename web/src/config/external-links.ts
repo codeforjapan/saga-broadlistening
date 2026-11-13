@@ -1,13 +1,14 @@
+import { BRAND_CONFIG } from "@mirai-gikai/branding/config";
+
 /**
- * 外部リンク定数
+ * 外部リンク定数。自治体ごとに変わるリンクは brand.config.ts の links で設定する。
+ *
+ * TODO(#15): 佐賀市側のFAQ・サービス紹介ページのURLが確定したら
+ * brand.config.ts の links に追加し、フッター等のリンクを復活させる。
  */
 export const EXTERNAL_LINKS = {
-  REPORT: "https://forms.gle/wJXXMt6cv2ZdiCgg6",
-  ABOUT_NOTE: "https://note.com/team_mirai_jp/n/nd1656aa5f86d",
-  DONATION: "https://team-mir.ai/support/donation",
-  TEAM_MIRAI_ABOUT: "https://team-mir.ai/about",
-  TERMS: "https://team-mir.ai/terms",
-  PRIVACY: "https://team-mir.ai/privacy",
-  FAQ: "https://team-mirai.notion.site/FAQ-28cf6f56bae180bd84e7f7ae80f806a1",
-  FORK_GUIDELINES_NOTE: "https://note.com/team_mirai_jp/n/nc59ec347e8c7",
+  /** 不具合・問題の報告フォーム */
+  REPORT: BRAND_CONFIG.links.report,
+  GITHUB_REPO: BRAND_CONFIG.links.sourceRepository,
+  FORK_GUIDELINES: BRAND_CONFIG.links.forkGuidelines,
 } as const;

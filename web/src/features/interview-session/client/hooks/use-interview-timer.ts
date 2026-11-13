@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { calcRemainingMinutes } from "../../shared/utils/calc-remaining-minutes";
+import { isEndInterviewAvailable } from "../../shared/utils/end-interview-availability";
 
 interface UseInterviewTimerProps {
   estimatedDuration: number | null | undefined;
@@ -13,48 +14,42 @@ interface UseInterviewTimerResult {
   remainingMinutes: number | null;
   /** 目安時間を超過したかどうか */
   isTimeUp: boolean;
+  /** 対話中に「終えてまとめに進む」を出してよいか（目安時間の2/3経過後） */
+  canEndInterview: boolean;
 }
 
 /**
  * インタビューの残り時間を管理するフック
  *
- * 10秒ごとに残り時間を再計算する。
+ * 10秒ごとに現在時刻を更新し、残り時間などはそこから描画時に計算する。
  * estimatedDurationがnull/undefinedの場合はタイムマネジメントしない。
  */
 export function useInterviewTimer({
   estimatedDuration,
   sessionStartedAt,
 }: UseInterviewTimerProps): UseInterviewTimerResult {
-  const [remainingMinutes, setRemainingMinutes] = useState<number | null>(
-    () => {
-      if (!sessionStartedAt) return null;
-      return calcRemainingMinutes(estimatedDuration, sessionStartedAt);
-    }
-  );
+  const [now, setNow] = useState(() => new Date());
+  const timerStartedAt = estimatedDuration ? sessionStartedAt : undefined;
+  const hasTimer = timerStartedAt !== undefined;
 
   useEffect(() => {
-    if (!estimatedDuration || !sessionStartedAt) {
-      setRemainingMinutes(null);
-      return;
-    }
-
-    // 初回計算
-    setRemainingMinutes(
-      calcRemainingMinutes(estimatedDuration, sessionStartedAt)
-    );
-
-    // 10秒ごとに更新
-    const interval = setInterval(() => {
-      setRemainingMinutes(
-        calcRemainingMinutes(estimatedDuration, sessionStartedAt)
-      );
-    }, 10000);
-
+    if (!hasTimer) return;
+    setNow(new Date());
+    const interval = setInterval(() => setNow(new Date()), 10000);
     return () => clearInterval(interval);
-  }, [estimatedDuration, sessionStartedAt]);
+  }, [hasTimer]);
+
+  const remainingMinutes = timerStartedAt
+    ? calcRemainingMinutes(estimatedDuration, timerStartedAt, now)
+    : null;
 
   return {
     remainingMinutes,
     isTimeUp: remainingMinutes !== null && remainingMinutes <= 0,
+    canEndInterview: isEndInterviewAvailable(
+      estimatedDuration,
+      sessionStartedAt,
+      now
+    ),
   };
 }

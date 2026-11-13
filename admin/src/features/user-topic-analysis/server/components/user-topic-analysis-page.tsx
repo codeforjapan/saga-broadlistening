@@ -1,10 +1,14 @@
 import "server-only";
 
 import {
-  fetchBillContext,
-  getTopicsWithOpinions,
-  listVersionsByBill,
+  findInterviewConfigNameById,
+  getLeafTopicsWithOpinions,
+  listVersionsByInterviewConfig,
 } from "@mirai-gikai/topic-analysis-core/repository";
+import type { Route } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { routes } from "@/lib/routes";
 import { DeleteTopicButton } from "../../client/components/delete-topic-button";
 import { PublishToggleButton } from "../../client/components/publish-toggle-button";
 import { RunAnalysisButton } from "../../client/components/run-analysis-button";
@@ -16,27 +20,59 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "失敗",
 };
 
-export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
-  const [bill, versions] = await Promise.all([
-    fetchBillContext(billId),
-    listVersionsByBill(billId),
+/**
+ * ユーザー向けトピック分析の実行・公開画面。
+ *
+ * 分析は意見募集（テーマ）単位なので、施策配下（/bills/[id]/user-topic-analysis）と
+ * テーマ配下（/interviews/[configId]/user-topic-analysis）の両方から同じ画面を出す。
+ * 施策IDからテーマを解決するのは施策配下のページ側の責務。
+ */
+export async function UserTopicAnalysisPage({
+  interviewConfigId,
+}: {
+  interviewConfigId: string;
+}) {
+  // 見出しに出すのはテーマ名だけなので、紐づく施策本文まで引く
+  // fetchInterviewConfigContext は使わない。
+  const [configName, versions] = await Promise.all([
+    findInterviewConfigNameById(interviewConfigId),
+    listVersionsByInterviewConfig(interviewConfigId),
   ]);
 
+  // 存在しないテーマのURLを直接叩かれた場合（名前が引けない）は404にする。
+  if (configName === null) {
+    notFound();
+  }
+
   const latestCompleted = versions.find((v) => v.status === "completed");
+  // 大トピックは意見を直接持たないので、階層UIを持たないこの画面では葉だけを出す。
+  // 混ぜると「0件」の空カードが削除ボタン付きで並び、しかも親を削除すると
+  // ON DELETE CASCADE で配下の中トピックごと消える。階層表示は Phase 3 で作る。
+  // sort_order は2階層化で「大トピック → 配下の中トピック」の深さ優先順になった。
+  // この画面は階層を持たないフラット表示なので、件数降順に並べ直す（公開側と同じ）。
   const topics = latestCompleted
-    ? await getTopicsWithOpinions(latestCompleted.id)
+    ? [...(await getLeafTopicsWithOpinions(latestCompleted.id))].sort(
+        (a, b) =>
+          (b.topic_opinion?.length ?? 0) - (a.topic_opinion?.length ?? 0)
+      )
     : [];
 
   return (
-    <div className="container mx-auto py-8">
+    <div>
       <h1 className="mb-1 text-2xl font-bold">ユーザー向けトピック分析</h1>
-      <p className="mb-1 text-sm text-gray-600">議案: {bill.name}</p>
+      <p className="mb-1 text-sm text-gray-600">テーマ: {configName}</p>
       <p className="mb-6 text-sm text-gray-500">
         公開に同意された意見（モデレーションOK）のみを対象に、論点（トピック）を抽出・分類します。
+        <Link
+          href={routes.interviewVoiceSummary(interviewConfigId) as Route}
+          className="ml-2 underline"
+        >
+          みんなの声のまとめへ
+        </Link>
       </p>
 
       <section className="mb-8 rounded-lg border bg-white p-6">
-        <RunAnalysisButton billId={billId} />
+        <RunAnalysisButton interviewConfigId={interviewConfigId} />
       </section>
 
       <section className="mb-8 rounded-lg border bg-white p-6">
@@ -84,7 +120,7 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
                         )}
                         <PublishToggleButton
                           versionId={v.id}
-                          billId={billId}
+                          interviewConfigId={interviewConfigId}
                           isPublished={v.is_published}
                         />
                       </div>
@@ -113,7 +149,7 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
             <ul className="flex flex-col gap-4">
               {topics.map((topic) => {
                 const opinions = (topic.topic_opinion ?? [])
-                  .map((to) => to.interview_opinion)
+                  .map((to) => to.opinion_segments)
                   .filter((o): o is NonNullable<typeof o> => o != null);
                 return (
                   <li key={topic.id} className="rounded border p-4">
@@ -126,7 +162,7 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
                         <DeleteTopicButton
                           topicId={topic.id}
                           versionId={latestCompleted.id}
-                          billId={billId}
+                          interviewConfigId={interviewConfigId}
                           title={topic.title}
                         />
                       </div>
@@ -138,7 +174,6 @@ export async function UserTopicAnalysisPage({ billId }: { billId: string }) {
                       {opinions.slice(0, 3).map((o) => (
                         <li key={o.id} className="border-l-2 pl-2">
                           {o.contextual_quote ?? o.title}
-                          {o.bill_sentiment ? `（${o.bill_sentiment}）` : ""}
                         </li>
                       ))}
                     </ul>

@@ -1,7 +1,7 @@
 import "server-only";
 
-import { generateObject } from "ai";
-import type { AiModel } from "@/lib/ai/models";
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
+import { generateObject, type LanguageModel } from "ai";
 import { LLM_MAX_ATTEMPTS, LLM_TIMEOUT_MS } from "../../shared/constants";
 import {
   type PersonaCharacterSheet,
@@ -13,7 +13,7 @@ import { withTimeoutRetry } from "../../shared/utils/with-timeout-retry";
 
 interface GeneratePersonaParams {
   original: OriginalInterviewSnapshot;
-  model: AiModel;
+  model?: LanguageModel;
   traceId: string;
   /** クライアント abort 時に LLM 呼び出しも停止させる */
   signal?: AbortSignal;
@@ -34,7 +34,7 @@ export async function generatePersona({
   const { object } = await withTimeoutRetry(
     (attemptSignal) =>
       generateObject({
-        model,
+        ...getAiModel("simulation", model),
         schema: personaSchema,
         prompt,
         abortSignal: attemptSignal,

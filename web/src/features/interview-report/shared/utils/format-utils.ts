@@ -46,15 +46,3 @@ export interface ParsedOpinion {
   content: string;
   source_message_id?: string | null;
 }
-
-/**
- * Parse opinions from an unknown value (typically JSON from DB).
- * Returns a typed array of {title, content, source_message_id} objects,
- * or an empty array if the input is not an array.
- */
-export function parseOpinions(opinions: unknown): ParsedOpinion[] {
-  if (!Array.isArray(opinions)) {
-    return [];
-  }
-  return opinions as ParsedOpinion[];
-}

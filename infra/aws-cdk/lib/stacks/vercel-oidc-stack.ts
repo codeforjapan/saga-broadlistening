@@ -7,10 +7,6 @@ import { createSubmitTopicAnalysisJobPolicyStatement } from "./topic-analysis-st
 export interface VercelOidcStackProps extends cdk.StackProps {
   readonly envConfig: EnvConfig;
   readonly bedrockInvokeModelPolicy: iam.IManagedPolicy;
-  /** admin からトピック分析workerを手動起動するためのBatch Job Queue ARN（#48/#66）。 */
-  readonly topicAnalysisJobQueueArn: string;
-  /** 同上のJob Definition ARN。 */
-  readonly topicAnalysisJobDefinitionArn: string;
 }
 
 const VERCEL_TEAM_SLUG = "c4j";
@@ -75,10 +71,7 @@ export class VercelOidcStack extends cdk.Stack {
     // PolicyStatementの中身はEventBridge SchedulerのSchedulerExecutionRoleと
     // 共通のためtopic-analysis-stack.tsに一元化している。
     this.bedrockAccessRole.addToPolicy(
-      createSubmitTopicAnalysisJobPolicyStatement(
-        props.topicAnalysisJobQueueArn,
-        props.topicAnalysisJobDefinitionArn
-      )
+      createSubmitTopicAnalysisJobPolicyStatement(this, envName)
     );
 
     // 5. Output Role ARN (Vercelプロジェクトの AWS_ROLE_ARN 環境変数に設定する)

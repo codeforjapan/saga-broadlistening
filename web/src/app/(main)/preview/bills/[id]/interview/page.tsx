@@ -2,8 +2,9 @@ import { AlertTriangle } from "lucide-react";
 import { notFound } from "next/navigation";
 import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
-import { InterviewLPPage } from "@/features/interview-config/client/components/interview-lp-page";
+import { InterviewLPPage } from "@/features/interview-config/server/components/interview-lp-page";
 import { getInterviewConfigAdmin } from "@/features/interview-config/server/loaders/get-interview-config-admin";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getUserReportsByInterviewConfig } from "@/features/interview-report/server/loaders/get-user-reports-by-interview-config";
 import { getLatestInterviewSession } from "@/features/interview-session/server/loaders/get-latest-interview-session";
 import { env } from "@/lib/env";
@@ -21,7 +22,7 @@ interface InterviewPreviewPageProps {
 
 function PreviewBanner() {
   return (
-    <div className="sticky top-0 z-50 bg-yellow-50 border-b border-yellow-200">
+    <div className="sticky top-0 z-50 bg-yellow-400/20 border-b border-yellow-400">
       <div className="max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-yellow-800">
@@ -56,7 +57,7 @@ export default async function InterviewPreviewPage({
     notFound();
   }
 
-  // 管理者用API（非公開議案/非公開設定も取得可能）を使用
+  // 管理者用API（非公開施策/非公開設定も取得可能）を使用
   const [bill, interviewConfig] = await Promise.all([
     getBillByIdAdmin(billId),
     getInterviewConfigAdmin(billId),
@@ -76,10 +77,10 @@ export default async function InterviewPreviewPage({
     <>
       <PreviewBanner />
       <InterviewLPPage
+        target={policyInterviewTarget(bill.id, token)}
         bill={bill}
         interviewConfig={interviewConfig}
         sessionInfo={latestSession}
-        previewToken={token}
         userReports={userReports}
       />
     </>

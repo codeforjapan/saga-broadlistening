@@ -11,28 +11,26 @@
 - 「みらい議会」の名称を使用する場合は **「みらい議会＠地域名」** の形式にしてください
   - 例: 「みらい議会＠渋谷区」「みらい議会＠福岡市」
 - 独自のサービス名を使用する場合は、この形式に限りません
-- `web/src/app/layout.tsx` の `siteTitle`、`siteName` などを変更してください
+- `packages/branding/src/brand.config.ts` の `siteName`・`siteDescription`・`keywords` 等を変更してください
 
 ### 2. ロゴの変更
 
 - **チームみらいのロゴは使用しないでください**
-- `web/public/img/logo.svg` および `web/public/img/ogp-logo.png` を独自のロゴに差し替えてください
-- favicon やPWAアイコン（`web/public/icons/`）も独自のものに変更してください
+- 独自のロゴを `web/public/` に置き、`packages/branding/src/brand.config.ts` の `assets.logo`・`assets.logoCompact`（SVGと実寸）・`assets.ogpLogoSrc`（PNG）にそのパスを指定してください
+- チャットのAIアバターは `assets.chatAvatarSrc` で指定します。`null` にすると汎用のデフォルトアイコン（`/icons/ai-chat.svg`）を表示します
+- 指定できるのは `web/public/` 配下のローカルパス（`/` 始まり）のみです。`packages/branding` のテストが、指定したファイルが実在するかを確認します
+- favicon やPWAアイコン（`web/public/icons/`）も独自のものに変更してください。PWAアイコンの生成元は `scripts/pwa-icons/` です
+- PWA の名前・説明文・色（manifest）は `brand.config.ts` とパレットから自動で作られます
 
-### 3. トップ画像の変更
+### 3. OGP 画像の変更
 
-- ヒーロー画像 `web/public/img/hero_background.png` を独自の画像に差し替えてください
-- OGP 画像 `web/public/ogp.jpg` も独自のものに変更してください
+- サイト共通の OGP 画像を `web/public/` に置き、`brand.config.ts` の `assets.ogpImage` に指定してください（既定は `web/public/ogp.jpg`）
 
 ### 4. カラーテーマの変更
 
 - **primary カラーをそのまま使用しないでください**
-- `web/src/app/globals.css` の以下の変数を変更してください:
-  - `--primary`（現在: `#2aa693`）
-  - `--primary-accent`（現在: `#0f8472`）
-  - `--mirai-gradient-start`（現在: `#64d8c6`）
-  - `--mirai-gradient-end`（現在: `#bcecd3`）
-- `layout.tsx` の `themeColor` も合わせて変更してください
+- カラーは `packages/branding/src/palette.ts` に集約されています。パレットを変更後、`pnpm --filter @mirai-gikai/branding build:css` で `tokens.css` を再生成してください
+- ブラウザUI・PWAのテーマ色は `packages/branding/src/brand-meta.ts` の `THEME_COLOR` 等を変更してください
 
 ### 5. 免責文言の表示
 
@@ -56,15 +54,16 @@
 
 | 対象 | ファイルパス | 変更内容 |
 |------|------------|----------|
-| サービス名 | `web/src/app/layout.tsx` | `siteTitle`, `siteName`, `description` |
-| テーマカラー | `web/src/app/globals.css` | `--primary`, `--primary-accent` 等 |
-| テーマカラー | `web/src/app/layout.tsx` | `themeColor` |
-| ロゴ | `web/public/img/logo.svg` | 独自ロゴに差し替え |
-| ロゴ（OGP） | `web/public/img/ogp-logo.png` | 独自ロゴに差し替え |
-| ヒーロー画像 | `web/public/img/hero_background.png` | 独自画像に差し替え |
-| OGP 画像 | `web/public/ogp.jpg` | 独自画像に差し替え |
+| サービス名・説明文 | `packages/branding/src/brand.config.ts` | `siteName`, `hashtag`, `copyright`, `siteDescription`, `keywords` |
+| ロゴ・AIアバター・OGP画像 | `packages/branding/src/brand.config.ts` | `assets`（画像は `web/public/` に置いてパスを指定） |
+| 外部リンク | `packages/branding/src/brand.config.ts` | `links`（不具合報告フォーム、ソースコードの公開先、fork ガイドライン） |
+| テーマカラー | `packages/branding/src/palette.ts` | パレット変更後 `build:css` で再生成 |
+| テーマカラー | `packages/branding/src/brand-meta.ts` | `THEME_COLOR` 等 |
 | favicon / PWA | `web/public/icons/` | 独自アイコンに差し替え |
+| favicon / PWA の生成元 | `scripts/pwa-icons/` | ロゴに合わせて SVG を更新し PNG を再生成 |
+| 文言中の自治体名 | `web/src`・`admin/src` の各画面 | 「佐賀市」が画面の文言や規約に直接書かれている。`grep -rn 佐賀市 web/src admin/src` で探して書き換える |
 | 免責文言 | フッター等 | 免責文言を追加 |
+| 施策の親子関係（任意） | admin の施策編集「親施策」 | 使わなくてよい。親施策が1件もなければ、TOP はテーマにつながる施策ごとに1枚のカードを出す |
 
 ## AGPL-3.0 ライセンスとの関係
 

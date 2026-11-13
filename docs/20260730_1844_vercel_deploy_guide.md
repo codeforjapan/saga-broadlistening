@@ -76,11 +76,17 @@ sequenceDiagram
 | `SUPABASE_SECRET_KEY` | Supabase Service Role (Secret) Key | `sbp_...` または `eyJ...` |
 | `SUPABASE_URL` | APIサーバー用 Supabase URL | `https://<ref>.supabase.co` |
 | `ADMIN_URL` | Admin アプリのルート URL | `https://admin.example.com` |
-| `AI_GATEWAY_API_KEY` | Vercel AI Gateway API キー | `vck_...` |
+| `AI_ALLOWED_PROVIDERS` | 許可するAI接続先。この案件はBedrock | `bedrock` |
+| `AWS_REGION` | Bedrockのリージョン（Vercel側で明示） | `ap-northeast-1` |
+| `AWS_ROLE_ARN` | Vercel OIDC用IAMロール | スタック出力値 |
+| `AI_DEFAULT_MODEL` | 全用途の既定モデル。省略時は用途別Bedrock既定値 | `bedrock:jp.anthropic.claude-sonnet-4-6` |
+| `AI_GATEWAY_API_KEY` | 横展開先でGatewayを選択する場合のみ | `vck_...` |
+| `OPENAI_API_KEY` | OpenAI直接接続を選択する場合のみ | 対象プロバイダーで発行 |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google直接接続を選択する場合のみ | 対象プロバイダーで発行 |
 | `REVALIDATE_SECRET` | Web側オンデマンド再検証用シークレット | ランダムな長い文字列 |
 | `LANGFUSE_PUBLIC_KEY` | (オプション) Langfuse パブリックキー | `pk-lf-...` |
 | `LANGFUSE_SECRET_KEY` | (オプション) Langfuse シークレットキー | `sk-lf-...` |
-| `LANGFUSE_BASE_URL` | (オプション) Langfuse エンドポイント | `https://cloud.langfuse.com` |
+| `LANGFUSE_BASE_URL` | (オプション) Langfuse エンドポイント。未設定時は日本リージョンが既定 | `https://jp.cloud.langfuse.com` |
 
 ### 3.2. Admin アプリ (`admin`) 用の環境変数
 

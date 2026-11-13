@@ -30,7 +30,6 @@ import { ModerationBadge } from "./moderation-badge";
 import { PaginationNav } from "./pagination-nav";
 import { RatingStars } from "./rating-stars";
 import { SessionStatusBadge } from "./session-status-badge";
-import { StanceBadge } from "./stance-badge";
 
 interface SessionListProps {
   billId: string;
@@ -46,7 +45,7 @@ function BooleanIcon({ value }: { value: boolean }) {
   if (value) {
     return <CheckCircle2 className="h-5 w-5 text-green-500" />;
   }
-  return <XCircle className="h-5 w-5 text-red-400" />;
+  return <XCircle className="h-5 w-5 text-system-warning" />;
 }
 
 function buildPageUrl(
@@ -70,12 +69,6 @@ function buildPageUrl(
   }
   if (filters.visibility !== DEFAULT_SESSION_FILTER.visibility) {
     params.set("visibility", filters.visibility);
-  }
-  if (filters.stance !== DEFAULT_SESSION_FILTER.stance) {
-    params.set("stance", filters.stance);
-  }
-  if (filters.role !== DEFAULT_SESSION_FILTER.role) {
-    params.set("role", filters.role);
   }
   if (filters.moderation !== DEFAULT_SESSION_FILTER.moderation) {
     params.set("moderation", filters.moderation);
@@ -121,7 +114,6 @@ export function SessionList({
                 <TableHead className="w-24">ステータス</TableHead>
                 <TableHead className="w-24 text-center">ユーザー公開</TableHead>
                 <TableHead className="w-24 text-center">管理者公開</TableHead>
-                <TableHead className="w-28">スタンス</TableHead>
                 <TableHead className="w-40">役割名</TableHead>
                 <SortableTableHead
                   field="total_content_richness"
@@ -214,7 +206,8 @@ export function SessionList({
                           sessionId={session.id}
                           billId={billId}
                           isPublic={
-                            session.interview_report.is_public_by_admin ?? false
+                            session.interview_report.review_status ===
+                            "published"
                           }
                           isPublicByUser={
                             session.interview_report.is_public_by_user ?? false
@@ -223,11 +216,6 @@ export function SessionList({
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}
-                    </TableCell>
-                    <TableCell>
-                      <StanceBadge
-                        stance={session.interview_report?.stance || null}
-                      />
                     </TableCell>
                     <TableCell className="text-gray-600 text-sm">
                       {session.interview_report?.role_title || "-"}

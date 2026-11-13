@@ -13,7 +13,7 @@ export async function updateBill(id: string, input: BillUpdateInput) {
   } catch (error) {
     console.error("Update bill error:", error);
     throw new Error(
-      getErrorMessage(error, "議案の更新中にエラーが発生しました")
+      getErrorMessage(error, "施策の更新中にエラーが発生しました")
     );
   }
 }

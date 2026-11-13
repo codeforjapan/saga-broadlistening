@@ -1,13 +1,19 @@
-import { notFound } from "next/navigation";
+import type { Route } from "next";
+import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { getInterviewConfig } from "@/features/interview-config/server/loaders/get-interview-config";
 import { getInterviewQuestions } from "@/features/interview-config/server/loaders/get-interview-questions";
-import { InterviewChatClient } from "@/features/interview-session/client/components/interview-chat-client";
+import { policyInterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
+import { InterviewChatStart } from "@/features/interview-session/client/components/interview-chat-start";
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
+import { InterviewChatSession } from "@/features/interview-session/server/components/interview-chat-session";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
+import { InterviewParticipationDeniedError } from "@/features/interview-session/server/services/resolve-interview-participation";
+import { routes } from "@/lib/routes";
 
 interface InterviewChatPageProps {
   params: Promise<{
@@ -20,7 +26,7 @@ export default async function InterviewChatPage({
 }: InterviewChatPageProps) {
   const { id: billId } = await params;
 
-  // 法案とインタビュー設定を取得
+  // 施策とインタビュー設定を取得
   const [bill, interviewConfig] = await Promise.all([
     getBillById(billId),
     getInterviewConfig(billId),
@@ -30,34 +36,46 @@ export default async function InterviewChatPage({
     notFound();
   }
 
-  // ループモードの場合のみ質問数を取得（プログレスバー用）
-  const questions =
-    interviewConfig.mode === "loop"
-      ? await getInterviewQuestions(interviewConfig.id)
-      : [];
+  // 質問数を取得（プログレスバー用）
+  const questions = await getInterviewQuestions(interviewConfig.id);
+  const target = policyInterviewTarget(billId);
 
   // インタビューチャットの初期化処理
   try {
-    const { session, messages } = await initializeInterviewChat(
-      billId,
-      interviewConfig.id
-    );
+    const chat = await initializeInterviewChat(interviewConfig, bill);
 
+    if (chat.kind === "start") {
+      return (
+        <InterviewChatStart
+          target={target}
+          interviewConfig={interviewConfig}
+          themeHref={routes.billDetail(billId)}
+        />
+      );
+    }
+
+    const { session, messages } = chat;
     return (
-      <InterviewChatClient
-        billId={billId}
-        billTitle={bill.bill_content?.title ?? bill.name}
+      <InterviewChatSession
+        target={target}
+        interviewConfigId={interviewConfig.id}
+        bill={{ id: bill.id, title: bill.bill_content?.title ?? bill.name }}
         sessionId={session.id}
         initialMessages={messages}
-        mode={interviewConfig.mode}
         totalQuestions={questions.length}
         estimatedDuration={interviewConfig.estimated_duration}
         sessionStartedAt={session.started_at}
         hasRated={session.rating != null}
+        initialStage={session.stage}
       />
     );
   } catch (error) {
+    // 参加条件を満たさない場合は回答を始めずに LP へ戻す。
+    // LP 側の案内（回答ボタンの差し替え）は #145 で対応する
+    if (error instanceof InterviewParticipationDeniedError) {
+      redirect(getInterviewLPLink(target) as Route);
+    }
     console.error("Failed to initialize interview session:", error);
-    return <InterviewSessionErrorView billId={billId} />;
+    return <InterviewSessionErrorView target={target} />;
   }
 }

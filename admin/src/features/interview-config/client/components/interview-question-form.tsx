@@ -25,16 +25,12 @@ export function InterviewQuestionForm({
   const questionId = useId();
   const followUpGuideId = useId();
   const quickRepliesId = useId();
-  const targetAudienceId = useId();
   const [question, setQuestion] = useState(initialData?.question || "");
   const [followUpGuide, setFollowUpGuide] = useState(
     initialData?.follow_up_guide || ""
   );
   const [quickRepliesText, setQuickRepliesText] = useState(
     arrayToText(initialData?.quick_replies)
-  );
-  const [targetAudience, setTargetAudience] = useState(
-    initialData?.target_audience || ""
   );
 
   const handleSubmit = (e: FormEvent) => {
@@ -51,14 +47,12 @@ export function InterviewQuestionForm({
         quickRepliesText.trim() !== ""
           ? textToArray(quickRepliesText)
           : undefined,
-      target_audience: targetAudience.trim() || undefined,
     });
 
     // フォームをリセット
     setQuestion("");
     setFollowUpGuide("");
     setQuickRepliesText("");
-    setTargetAudience("");
   };
 
   const handleCancel = () => {
@@ -69,7 +63,6 @@ export function InterviewQuestionForm({
       setQuestion("");
       setFollowUpGuide("");
       setQuickRepliesText("");
-      setTargetAudience("");
     }
   };
 
@@ -80,7 +73,7 @@ export function InterviewQuestionForm({
     >
       <div className="space-y-2">
         <Label htmlFor={questionId}>
-          質問文 <span className="text-red-500">*</span>
+          質問文 <span className="text-system-warning">*</span>
         </Label>
         <Input
           id={questionId}
@@ -93,12 +86,12 @@ export function InterviewQuestionForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={followUpGuideId}>フォローアップ指針（任意）</Label>
+        <Label htmlFor={followUpGuideId}>観点（任意）</Label>
         <Textarea
           id={followUpGuideId}
           value={followUpGuide}
           onChange={(e) => setFollowUpGuide(e.target.value)}
-          placeholder="回答後の深掘り方法などの指針を入力"
+          placeholder="聞けたら話が豊かになる観点（例：いつ・どこで・誰と）。2つまでが目安です"
           className="min-h-[80px] resize-y"
         />
       </div>
@@ -114,21 +107,6 @@ export function InterviewQuestionForm({
         />
         <p className="text-sm text-gray-500">
           各クイックリプライを1行ずつ入力してください
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor={targetAudienceId}>対象者条件（任意）</Label>
-        <Textarea
-          id={targetAudienceId}
-          value={targetAudience}
-          onChange={(e) => setTargetAudience(e.target.value)}
-          placeholder="例: 当該法案分野の専門家、業界従事者"
-          className="min-h-[60px] resize-y"
-          maxLength={500}
-        />
-        <p className="text-sm text-gray-500">
-          targetedモード時、指定された対象者にのみ質問を行います（未指定なら全員）。LLMが会話文脈から該当性を判定します。
         </p>
       </div>
 

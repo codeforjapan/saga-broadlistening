@@ -6,7 +6,7 @@ export default async function TagsPage() {
   const tags = await loadTags();
 
   return (
-    <div className="container mx-auto py-8">
+    <div>
       <h1 className="text-2xl font-bold mb-8">タグ管理</h1>
 
       {/* タグ追加セクション */}

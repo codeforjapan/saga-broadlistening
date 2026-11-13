@@ -18,8 +18,6 @@ interface ReportsSearchPageProps {
   searchParams: Promise<{
     q?: string;
     page?: string;
-    stance?: string;
-    role?: string;
     roleTitle?: string;
   }>;
 }
@@ -29,10 +27,10 @@ export default async function ReportsSearchPage({
   searchParams,
 }: ReportsSearchPageProps) {
   const { id, configId } = await params;
-  const { q, page, stance, role, roleTitle } = await searchParams;
+  const { q, page, roleTitle } = await searchParams;
   const query = (q ?? "").trim();
   const currentPage = Math.max(1, Number(page) || 1);
-  const filters = parseMessageSearchFilterParams(stance, role, roleTitle);
+  const filters = parseMessageSearchFilterParams(roleTitle);
 
   const [bill, result] = await Promise.all([
     getBillById(id),
@@ -58,7 +56,7 @@ export default async function ReportsSearchPage({
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">発言検索</h1>
         <p className="text-gray-600 mt-1">
-          議案「{bill.name}」のインタビューでのユーザー発言を検索
+          施策「{bill.name}」のインタビューでのユーザー発言を検索
         </p>
       </div>
 
