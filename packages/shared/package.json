@@ -156,6 +156,14 @@
       "types": "./src/prompts/provider.ts",
       "default": "./src/prompts/provider.ts"
     },
+    "./prompts/language-guide": {
+      "types": "./src/prompts/language-guide.ts",
+      "default": "./src/prompts/language-guide.ts"
+    },
+    "./prompts/published-language-guide": {
+      "types": "./src/prompts/published-language-guide.ts",
+      "default": "./src/prompts/published-language-guide.ts"
+    },
     "./prompts/home-chat-context": {
       "types": "./src/prompts/home-chat-context.ts",
       "default": "./src/prompts/home-chat-context.ts"

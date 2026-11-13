@@ -361,6 +361,28 @@ describe("handleChatRequest 統合テスト", () => {
       expect(content.length).toBeGreaterThan(0);
     });
 
+    it.each([
+      "home",
+      "bill",
+    ] as const)("%s のチャットではシステムプロンプトの末尾に中立的な言葉づかいが入る", async (type) => {
+      const model = createStreamMock(["応答"]);
+      const response = await handleChatRequest({
+        messages: createTestMessages({ pageContext: { type } }),
+        userId: testUser.id,
+        deps: {
+          model,
+          promptProvider: createMockPromptProvider("施策チャットの本文"),
+        },
+      });
+      await consumeResponseStream(response);
+
+      const system = model.doStreamCalls[0].prompt.find(
+        (message) => message.role === "system"
+      );
+      expect(system?.content).toContain("施策チャットの本文");
+      expect(system?.content).toContain("## 中立的な言葉づかい");
+    });
+
     it("billContext を持つメッセージで bill-chat-system プロンプトが選択される", async () => {
       const promptProvider = createMockPromptProvider(
         "請求書チャット用システムプロンプト"

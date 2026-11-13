@@ -13,8 +13,11 @@ import {
 import {
   isInterviewPromptKey,
   isPromptKey,
+  type PromptKey,
 } from "@mirai-gikai/shared/prompts/catalog";
 import { toHomeChatContext } from "@mirai-gikai/shared/prompts/home-chat-context";
+import { appendLanguageGuide } from "@mirai-gikai/shared/prompts/language-guide";
+import { getPublishedLanguageGuide } from "@mirai-gikai/shared/prompts/published-language-guide";
 import {
   createPromptVersion,
   findPromptState,
@@ -33,6 +36,7 @@ import { routes } from "@/lib/routes";
 import { toBillPromptVariables } from "../../shared/utils/preview-data";
 import {
   inputError,
+  previewNeedsInterviewConfig,
   previewPromptSchema,
   publishPromptSchema,
   savePromptSchema,
@@ -222,8 +226,8 @@ export async function previewAiPrompt(
       };
     }
     if (isInterviewPromptKey(parsed.data.key)) {
-      // 人物像は変数を持たないので、そのまま見せる
-      if (parsed.data.key === "interview-persona") {
+      // 人物像と言葉づかいは変数を持たないので、そのまま見せる
+      if (!previewNeedsInterviewConfig(parsed.data.key)) {
         return { success: true, content: parsed.data.content };
       }
       const input = await findInterviewPreviewInput(
@@ -284,43 +288,56 @@ export async function previewAiPrompt(
         ),
       };
     }
-    if (parsed.data.key === "top-chat-system") {
-      const bills = await listHomePreviewBills();
-      return {
-        success: true,
-        content: renderPromptTemplate(parsed.data.key, parsed.data.content, {
-          billSummary: JSON.stringify(
-            bills.map((bill) =>
-              toHomeChatContext({
-                policyName: bill.name,
-                title: bill.title,
-                summary: bill.summary,
-                tags: bill.tags,
-                isFeatured: bill.isFeatured,
-              })
-            )
-          ),
-        }),
-      };
-    }
-    const bill = await findPublishedPreviewBill(
-      parsed.data.billId ?? "",
-      parsed.data.key === "bill-chat-system-hard" ? "hard" : "normal"
-    );
-    if (!bill)
+    // 本番と同じく、公開版の中立的な言葉づかいを末尾に入れる
+    const [rendered, languageGuide] = await Promise.all([
+      renderPublicChatPreview(
+        parsed.data.key,
+        parsed.data.content,
+        parsed.data.billId
+      ),
+      getPublishedLanguageGuide(),
+    ]);
+    if (rendered === null)
       return { success: false, error: "公開済みの施策が見つかりません。" };
     return {
       success: true,
-      content: renderPromptTemplate(
-        parsed.data.key,
-        parsed.data.content,
-        toBillPromptVariables(bill)
-      ),
+      content: appendLanguageGuide(rendered, languageGuide),
     };
   } catch (error) {
     console.error("AI prompt preview failed", error);
     return { success: false, error: "プレビューを作成できませんでした。" };
   }
+}
+
+/** トップページ・施策チャットのプロンプトを、プレビュー用の施策で埋める。施策が無ければ null */
+async function renderPublicChatPreview(
+  key: PromptKey,
+  content: string,
+  billId: string | undefined
+): Promise<string | null> {
+  if (key === "top-chat-system") {
+    const bills = await listHomePreviewBills();
+    return renderPromptTemplate(key, content, {
+      billSummary: JSON.stringify(
+        bills.map((bill) =>
+          toHomeChatContext({
+            policyName: bill.name,
+            title: bill.title,
+            summary: bill.summary,
+            tags: bill.tags,
+            isFeatured: bill.isFeatured,
+          })
+        )
+      ),
+    });
+  }
+  const bill = await findPublishedPreviewBill(
+    billId ?? "",
+    key === "bill-chat-system-hard" ? "hard" : "normal"
+  );
+  return bill
+    ? renderPromptTemplate(key, content, toBillPromptVariables(bill))
+    : null;
 }
 
 /** みんなの声のまとめの生成プロンプトを、選んだテーマの公開中のトピック分析で埋めて見せる */

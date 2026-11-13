@@ -1,5 +1,7 @@
 import "server-only";
 import { PromptProvider } from "../prompts/provider";
+import { appendLanguageGuide } from "../prompts/language-guide";
+import { getPublishedLanguageGuide } from "../prompts/published-language-guide";
 import { findPublishedPrompt } from "../prompts/repository";
 import { buildChatSystemPrompt } from "./chat-prompt";
 import { buildInitialSystemPrompt } from "./initial-prompt";
@@ -9,9 +11,15 @@ const provider = new PromptProvider({ findPublishedPrompt }, (key) => {
   console.warn("Interview prompt fallback", { key, source: "source-code" });
 });
 
-/** 聞き手の人物像（公開版）。対話・初回・要約の先頭に同じものを入れる */
+/**
+ * 聞き手の人物像と中立的な言葉づかい（どちらも公開版）。対話・初回・要約の先頭に同じものを入れる
+ */
 export async function getPublishedInterviewPersona(): Promise<string> {
-  return (await provider.getTemplate("interview-persona")).content;
+  const [persona, languageGuide] = await Promise.all([
+    provider.getTemplate("interview-persona"),
+    getPublishedLanguageGuide(),
+  ]);
+  return appendLanguageGuide(persona.content, languageGuide);
 }
 
 type WithoutPersona<T> = Omit<T, "persona">;

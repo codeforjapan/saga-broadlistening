@@ -1,4 +1,5 @@
 import {
+  INTERVIEW_PROMPT_CATALOG,
   isInterviewPromptKey,
   isPromptKey,
 } from "@mirai-gikai/shared/prompts/catalog";
@@ -38,10 +39,13 @@ export const publishPromptSchema = z.object({
 
 /**
  * プレビューに意見募集の選択が要るか。インタビューのプロンプトは意見募集の質問から組み立てるが、
- * 人物像は変数を持たないのでそのまま見せる
+ * 変数を持たないもの（人物像・言葉づかい）はそのまま見せる
  */
 export function previewNeedsInterviewConfig(key: string): boolean {
-  return isInterviewPromptKey(key) && key !== "interview-persona";
+  return (
+    isInterviewPromptKey(key) &&
+    INTERVIEW_PROMPT_CATALOG[key].requiredVariables.length > 0
+  );
 }
 
 export const previewPromptSchema = z
