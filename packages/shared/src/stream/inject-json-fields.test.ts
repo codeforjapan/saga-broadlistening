@@ -34,6 +34,49 @@ async function streamToString(
   return result;
 }
 
+/**
+ * チャンクを1つずつ流し、その時点までに出てきた文字列を返す。
+ * 途中まで送ったところで、どこまでが読み手に届いているかを確かめるために使う。
+ */
+async function emittedAfterEachChunk(
+  chunks: string[],
+  resolveFields: () => Promise<Record<string, unknown>> = async () => ({})
+): Promise<string[]> {
+  let input!: ReadableStreamDefaultController<string>;
+  const source = new ReadableStream<string>({
+    start(controller) {
+      input = controller;
+    },
+  });
+  const reader = injectJsonFieldsAsync(source, resolveFields).getReader();
+  const decoder = new TextDecoder();
+  let emitted = "";
+  const snapshots: string[] = [];
+  // 読み取りを待たせておき、届いたものを足していく
+  let pending = reader.read();
+  const drain = async () => {
+    for (;;) {
+      const next = await Promise.race([
+        pending,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 0)),
+      ]);
+      if (next === null) return;
+      if (next.done) return;
+      emitted += decoder.decode(next.value, { stream: true });
+      pending = reader.read();
+    }
+  };
+  for (const chunk of chunks) {
+    input.enqueue(chunk);
+    await drain();
+    snapshots.push(emitted);
+  }
+  input.close();
+  await drain();
+  snapshots.push(emitted);
+  return snapshots;
+}
+
 describe("injectJsonFields", () => {
   it("単一フィールドを注入できる", async () => {
     const input = '{"text":"hello","count":1}';
@@ -211,5 +254,71 @@ describe("injectJsonFieldsAsync", () => {
       injectJsonFieldsAsync(stream, async () => ({}))
     );
     expect(result).toBe('{"text":"a"}');
+  });
+
+  it("本文は受け取ったそばから流し、最後の閉じ括弧より後だけを止めておく", async () => {
+    // outputFormat はキーをアルファベット順に返すので、本文の後ろに短い値が続く
+    const chunks = [
+      '{"end_request":false,"question_id":"Q1","text":"',
+      "通勤が",
+      "大変なんですね。",
+      '","topic_title":"仕事","wrap_up":false}',
+    ];
+    const snapshots = await emittedAfterEachChunk(chunks, async () => ({
+      next_stage: "chat",
+    }));
+
+    expect(snapshots[1]).toContain('"text":"通勤が');
+    expect(snapshots[2]).toContain("通勤が大変なんですね。");
+    // 閉じ括弧は注入のために止めておく
+    expect(snapshots[3]).toBe(
+      '{"end_request":false,"question_id":"Q1","text":"通勤が大変なんですね。","topic_title":"仕事","wrap_up":false'
+    );
+    expect(JSON.parse(snapshots[4])).toEqual({
+      end_request: false,
+      question_id: "Q1",
+      text: "通勤が大変なんですね。",
+      topic_title: "仕事",
+      wrap_up: false,
+      next_stage: "chat",
+    });
+  });
+
+  it("閉じ括弧で終わるチャンクはその括弧だけを止め、続きが来たら流す", async () => {
+    const snapshots = await emittedAfterEachChunk(
+      ['{"text":"a}', 'b"', "}"],
+      async () => ({ next_stage: "chat" })
+    );
+
+    expect(snapshots[0]).toBe('{"text":"a');
+    expect(snapshots[1]).toBe('{"text":"a}b"');
+    // 最後の閉じ括弧は注入のために止めておく
+    expect(snapshots[2]).toBe('{"text":"a}b"');
+    expect(JSON.parse(snapshots[3])).toEqual({
+      text: "a}b",
+      next_stage: "chat",
+    });
+  });
+
+  it("最後の閉じ括弧の後ろの空白も残して注入する", async () => {
+    const result = await streamToString(
+      injectJsonFieldsAsync(createStream(['{"text":"a"}', "\n"]), async () => ({
+        next_stage: "chat",
+      }))
+    );
+    expect(result).toBe('{"text":"a","next_stage":"chat"}\n');
+  });
+
+  it("チャンクの境目で割れた絵文字を壊さない", async () => {
+    const snapshots = await emittedAfterEachChunk(
+      ['{"text":"a\ud83d', '\ude00b"}'],
+      async () => ({ next_stage: "chat" })
+    );
+
+    expect(snapshots[0]).toBe('{"text":"a');
+    expect(JSON.parse(snapshots[2])).toEqual({
+      text: "a😀b",
+      next_stage: "chat",
+    });
   });
 });

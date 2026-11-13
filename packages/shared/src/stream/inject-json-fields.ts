@@ -1,13 +1,35 @@
-const TAIL_SIZE = 64;
-
 function buildInjection(fields: Record<string, unknown>): string {
   const fieldEntries = Object.entries(fields);
   return fieldEntries.length > 0
     ? "," +
         fieldEntries
-          .map(([key, value]) => `${JSON.stringify(key)}:${JSON.stringify(value)}`)
+          .map(
+            ([key, value]) => `${JSON.stringify(key)}:${JSON.stringify(value)}`
+          )
           .join(",")
     : "";
+}
+
+/** 最後の閉じ括弧になりうる "}" の位置。無ければ文字列の長さを返す */
+function findFinalBraceCandidate(text: string): number {
+  const lastBrace = text.lastIndexOf("}");
+  if (lastBrace === -1 || text.slice(lastBrace + 1).trim() !== "") {
+    return text.length;
+  }
+  return lastBrace;
+}
+
+/** サロゲートペアの前半（上位サロゲート）か。チャンクの境目で絵文字などが割れないよう、次まで止める */
+function isHighSurrogate(code: number): boolean {
+  return code >= 0xd800 && code <= 0xdbff;
+}
+
+/** いま流してよい長さ。最後の閉じ括弧の候補と、割れたサロゲートペアの前半は止めておく */
+function findHoldPosition(text: string): number {
+  const holdFrom = findFinalBraceCandidate(text);
+  return holdFrom > 0 && isHighSurrogate(text.charCodeAt(holdFrom - 1))
+    ? holdFrom - 1
+    : holdFrom;
 }
 
 /**
@@ -15,24 +37,26 @@ function buildInjection(fields: Record<string, unknown>): string {
  *
  * LLM の出力を読み切ってから決まる値（ステージ遷移・選択肢ボタンなど）を返すときに使う。
  * resolveFields はストリームの末尾で1回だけ呼ばれ、その結果を最後の閉じ括弧の前に挿入する。
+ * ストリームは JSON オブジェクトで終わる前提（Output.object の textStream など）。
+ * 最後の閉じ括弧の後ろに空白以外が続く出力では注入しない。
  */
 export function injectJsonFieldsAsync(
   textStream: ReadableStream<string>,
   resolveFields: () => Promise<Record<string, unknown>>
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
-  // 末尾の数文字をバッファリングして、最後の閉じ括弧を検出
+  // 最後の閉じ括弧になりうる部分（"}" と、その後ろの空白だけ）を止めておく。
+  // "}" の後ろに空白以外が続けば、それは最後の閉じ括弧ではないので流してよい。
+  // （止める量を固定の文字数にすると、短い本文が生成の終わりまで画面に出ない）
   let tail = "";
 
   const transformer = new TransformStream<string, Uint8Array>({
     transform(chunk, controller) {
       const combined = tail + chunk;
-      if (combined.length > TAIL_SIZE) {
-        controller.enqueue(encoder.encode(combined.slice(0, -TAIL_SIZE)));
-        tail = combined.slice(-TAIL_SIZE);
-      } else {
-        tail = combined;
-      }
+      const holdFrom = findHoldPosition(combined);
+      const flushable = combined.slice(0, holdFrom);
+      if (flushable) controller.enqueue(encoder.encode(flushable));
+      tail = combined.slice(holdFrom);
     },
 
     async flush(controller) {
