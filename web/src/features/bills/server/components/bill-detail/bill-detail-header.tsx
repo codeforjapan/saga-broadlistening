@@ -47,7 +47,8 @@ export async function BillDetailHeader({
       )}
     >
       {bill.thumbnail_url ? (
-        <div className="relative w-full h-72 md:h-80">
+        // スマホでは縦横比 1:2 で固定し、md 以上はこれまでどおり高さ 320px
+        <div className="relative aspect-[2/1] w-full md:aspect-auto md:h-80">
           <Image
             src={bill.thumbnail_url}
             alt={bill.name}
