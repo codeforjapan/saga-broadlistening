@@ -34,12 +34,12 @@ export function MainLayout({ children }: MainLayoutProps) {
         isInterviewChat && "[&>main]:bg-transparent",
         // インタビューページと全幅のページ以外ではshadowを表示
         !isInterview && !fullBleed && "sm:shadow-lg",
-        // 施策詳細ページのみ。本文の地は白にし（薄青グレーを外す）、チャットサイドバー用のオフセットをとる。
+        // 施策詳細ページのみ。本文の地は薄い水色（secondary）にし、チャットサイドバー用のオフセットをとる。
         // チャットパネル(CHAT_PANEL_RESPONSIVE_CLASSES: 420px)+右マージン・ガターぶんの
         // 470pxを右に確保しつつ、メインパネルを850pxへ拡大（850+470=1320で中央寄せ計算と一致）。
         // 1320px より広い pcl（1400px）から中央に寄せる
         chatSidebar &&
-          "[&>main]:bg-background pc:max-w-[850px] pc:mr-[470px] pcl:ml-[calc(calc(100vw-1320px)/2)]"
+          "[&>main]:bg-secondary pc:max-w-[850px] pc:mr-[470px] pcl:ml-[calc(calc(100vw-1320px)/2)]"
       )}
     >
       {isInterviewChat && (
