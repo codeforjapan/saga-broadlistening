@@ -11,6 +11,9 @@ import { routes } from "@/lib/routes";
 import { cn } from "@/lib/utils";
 import type { TopTheme } from "../loaders/get-top-themes";
 
+/** みてみて・きかせてのロゴの高さ。カードの中で同じ大きさにそろえる */
+const SERVICE_LOGO_CLASS = "h-[26px] md:h-8";
+
 interface ThemeCardProps {
   theme: TopTheme;
   /** 2カラムのグリッドに並べるとき。カード幅が狭いのでPCでも縦積みにする */
@@ -34,7 +37,7 @@ export function ThemeCard({
   return (
     <article className="relative flex flex-col overflow-hidden rounded-[20px] bg-card shadow-floating md:rounded-4xl">
       <div className="px-4 pt-3.5 pb-3 md:px-7 md:pt-[22px] md:pb-4">
-        <ChikatServiceLogo variant="mitemite" className="h-[26px] md:h-8" />
+        <ChikatServiceLogo variant="mitemite" className={SERVICE_LOGO_CLASS} />
       </div>
 
       {/* 装飾のバナーなので alt は空にする */}
@@ -96,7 +99,11 @@ export function ThemeCard({
 
       {kikasete && (
         <div className="px-[18px] pb-5 md:px-8 md:pb-7">
-          <KikaseteBox {...kikasete} stacked={stacked} />
+          <KikaseteBox
+            {...kikasete}
+            stacked={stacked}
+            logoClassName={SERVICE_LOGO_CLASS}
+          />
         </div>
       )}
     </article>

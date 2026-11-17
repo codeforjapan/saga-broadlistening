@@ -20,6 +20,8 @@ interface KikaseteBoxProps {
   /** 狭い枠に置くとき。PCでも縦に積む */
   stacked?: boolean;
   headingLevel?: "h2" | "h3";
+  /** ロゴの高さ。並べるほかのロゴ（TOP のテーマカードのみてみて）と大きさをそろえるとき */
+  logoClassName?: string;
   className?: string;
 }
 
@@ -40,6 +42,7 @@ export function KikaseteBox({
   start,
   stacked = false,
   headingLevel: Heading = "h3",
+  logoClassName = "h-6",
   className,
 }: KikaseteBoxProps) {
   // スマホでは「インタビューについて・みんなの声」をボタンの下に出す（案内に差し替えたときは行内のまま）
@@ -56,7 +59,10 @@ export function KikaseteBox({
       )}
     >
       <div className="flex flex-col gap-2">
-        <ChikatServiceLogo variant="kikasete" className="h-6 self-start" />
+        <ChikatServiceLogo
+          variant="kikasete"
+          className={cn("self-start", logoClassName)}
+        />
         <Heading className="text-base font-bold leading-normal md:text-lg">
           {prompt}
         </Heading>
