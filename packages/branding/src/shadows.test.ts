@@ -13,8 +13,13 @@ describe("rgba", () => {
 });
 
 describe("シャドウトークン（要求仕様3.4）", () => {
-  it("要求仕様どおりの3種が定義されている", () => {
-    expect(Object.keys(SHADOWS)).toEqual(["card", "raised", "focus"]);
+  it("要求仕様の3種と、TOP のテーマカード用の floating が定義されている", () => {
+    expect(Object.keys(SHADOWS)).toEqual([
+      "card",
+      "raised",
+      "floating",
+      "focus",
+    ]);
   });
 
   it("card は仕様の2段重ね", () => {
@@ -27,13 +32,19 @@ describe("シャドウトークン（要求仕様3.4）", () => {
     expect(SHADOWS.raised).toBe("0 2px 6px rgba(43, 43, 43, 0.08)");
   });
 
+  it("floating は広がり 3px で四辺に影を出す", () => {
+    expect(SHADOWS.floating).toBe(
+      "0 10px 15px 3px rgba(43, 43, 43, 0.1), 0 4px 6px -4px rgba(43, 43, 43, 0.1)"
+    );
+  });
+
   it("focus は sky/700 由来のリング", () => {
     expect(SHADOWS.focus).toBe("0 0 0 3px rgba(0, 119, 200, 0.35)");
   });
 
-  it("card / raised は base-ink 系（有彩色のシャドウを使わない）", () => {
+  it("card / raised / floating は base-ink 系（有彩色のシャドウを使わない）", () => {
     const ink = rgba(PRIMITIVES["base-ink"], 1).replace(", 1)", "");
-    for (const token of ["card", "raised"] as const) {
+    for (const token of ["card", "raised", "floating"] as const) {
       // rgba(43, 43, 43, ...) の形であること
       expect(SHADOWS[token], token).toContain(ink);
     }
@@ -47,7 +58,7 @@ describe("シャドウトークン（要求仕様3.4）", () => {
       PRIMITIVES["lavender-500"],
     ].map((hex) => rgba(hex, 1).replace(", 1)", ""));
 
-    for (const token of ["card", "raised"] as const) {
+    for (const token of ["card", "raised", "floating"] as const) {
       for (const color of chromatic) {
         expect(SHADOWS[token], `${token} / ${color}`).not.toContain(color);
       }

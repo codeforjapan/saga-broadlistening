@@ -20,7 +20,7 @@ interface ThemeCardProps {
 }
 
 /**
- * TOP のテーマカード。バナー・概要・親施策ページへの導線と、きかせてボックスをひとまとめにする。
+ * TOP のテーマカード。みてみてロゴ・バナー・概要・親施策ページへの導線と、きかせてボックスをひとまとめにする。
  * カード全体が親施策ページへのリンクで（「〜について知る」の疑似要素をカードいっぱいに広げる）、
  * きかせてボックスの中だけはインタビューへのリンクになる。
  */
@@ -32,64 +32,72 @@ export function ThemeCard({
   const { kikasete } = theme;
 
   return (
-    <article className="relative flex flex-col overflow-hidden rounded-3xl bg-card shadow-lg">
+    <article className="relative flex flex-col overflow-hidden rounded-[20px] bg-card shadow-floating md:rounded-4xl">
+      <div className="px-4 pt-3.5 pb-3 md:px-7 md:pt-[22px] md:pb-4">
+        <ChikatServiceLogo variant="mitemite" className="h-[26px] md:h-8" />
+      </div>
+
       {/* 装飾のバナーなので alt は空にする */}
-      <div className="relative h-30 w-full md:h-72">
+      <div
+        className={cn(
+          "relative mx-3 h-[132px] overflow-hidden rounded-[14px] md:mx-5 md:rounded-[22px]",
+          stacked ? "md:h-48" : "md:h-[270px]"
+        )}
+      >
         <Image
           src={theme.bannerSrc}
           alt=""
           fill
           priority={priority}
           className="object-cover"
-          // TOP の本文幅は 860px（左右の余白 24px ずつを除くと 812px）。グリッドでは半分
+          // TOP の本文幅は 1000px（カードの左右の余白 20px ずつを除くと 960px）。グリッドでは半分
           sizes={
             stacked
-              ? "(min-width: 768px) 400px, 100vw"
-              : "(min-width: 768px) 812px, 100vw"
+              ? "(min-width: 700px) 460px, 100vw"
+              : "(min-width: 700px) 960px, 100vw"
           }
         />
       </div>
 
-      <div className="flex flex-col gap-5 p-4 md:p-7">
-        <div
-          className={cn(
-            "flex flex-col gap-3",
-            !stacked &&
-              "md:grid md:grid-cols-[1fr_auto] md:items-end md:gap-x-6"
-          )}
-        >
-          <div className="flex flex-col items-start gap-2">
-            <ChikatServiceLogo variant="mitemite" className="h-6" />
-            <h2 className="text-xl font-bold leading-normal md:text-2xl">
-              {theme.title}
-            </h2>
-          </div>
-          {theme.summary && (
-            <p
-              className={cn(
-                "text-sm leading-relaxed text-muted-foreground",
-                !stacked && "md:order-last md:col-span-2"
-              )}
-            >
-              {theme.summary}
-            </p>
-          )}
-          <Button
-            asChild
+      <div
+        className={cn(
+          "flex flex-col gap-3 px-[18px] pt-4 pb-[18px] md:gap-3.5 md:px-8 md:py-6",
+          !stacked &&
+            "md:grid md:grid-cols-[1fr_auto] md:items-center md:gap-x-6"
+        )}
+      >
+        <h2 className="text-xl font-bold leading-normal md:text-2xl">
+          {theme.title}
+        </h2>
+        {theme.summary && (
+          <p
             className={cn(
-              "h-12 w-full px-6 has-[>svg]:px-6 after:absolute after:inset-0",
-              !stacked && "md:h-10 md:w-auto"
+              "text-sm leading-relaxed text-muted-foreground",
+              !stacked && "md:order-last md:col-span-2"
             )}
           >
-            <Link href={routes.billDetail(theme.policyId) as Route}>
-              {theme.policyName}について知る
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-
-        {kikasete && <KikaseteBox {...kikasete} stacked={stacked} />}
+            {theme.summary}
+          </p>
+        )}
+        <Button
+          asChild
+          className={cn(
+            "h-12 w-full px-6 has-[>svg]:px-6 after:absolute after:inset-0",
+            !stacked && "md:h-11 md:w-auto md:px-4 md:text-[13px]"
+          )}
+        >
+          <Link href={routes.billDetail(theme.policyId) as Route}>
+            {theme.policyName}について知る
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
       </div>
+
+      {kikasete && (
+        <div className="px-[18px] pb-5 md:px-8 md:pb-7">
+          <KikaseteBox {...kikasete} stacked={stacked} />
+        </div>
+      )}
     </article>
   );
 }

@@ -4,10 +4,10 @@
 
 /** ページごとのレイアウト設定 */
 export type PageLayout = {
+  /** ヘッダーを出す */
+  showHeader: boolean;
   /** ヘッダーに難易度切り替え（説明をもっと詳しく）を出す */
   showDifficultySelector: boolean;
-  /** スマホ幅では難易度切り替えをヘッダーからメニュー内へ移す */
-  difficultyInMobileMenu: boolean;
   /** チャットサイドバー用のオフセットレイアウト（右に常設チャット）を使う */
   chatSidebar: boolean;
   /** 帯状の背景を画面幅いっぱいに敷く（幅の上限と影を外す） */
@@ -15,8 +15,8 @@ export type PageLayout = {
 };
 
 const DEFAULT_LAYOUT: PageLayout = {
+  showHeader: true,
   showDifficultySelector: false,
-  difficultyInMobileMenu: false,
   chatSidebar: false,
   fullBleed: false,
 };
@@ -24,15 +24,14 @@ const DEFAULT_LAYOUT: PageLayout = {
 /**
  * パスからページのレイアウト設定を決める。
  *
- * - TOP（Epic #162 のテーマカード型）: 全幅。チャットは置かない。スマホでは難易度切り替えをメニューへ
+ * - TOP（Epic #162 のテーマカード型）: 全幅。ヘッダーとチャットは置かない（冒頭はカルーセル）
  * - 施策詳細（/bills/[id]、サブパスは除く）: 右に常設チャットを置くオフセットレイアウト
  */
 export function getPageLayout(pathname: string): PageLayout {
   if (pathname === "/") {
     return {
       ...DEFAULT_LAYOUT,
-      showDifficultySelector: true,
-      difficultyInMobileMenu: true,
+      showHeader: false,
       fullBleed: true,
     };
   }

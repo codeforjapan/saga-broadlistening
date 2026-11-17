@@ -12,7 +12,6 @@ import { useOnPageView } from "@/lib/analytics/use-on-page-view";
 import { logoImageProps } from "@/lib/logo";
 import { getPageLayout, isInterviewPage } from "@/lib/page-layout-utils";
 import { routes } from "@/lib/routes";
-import { cn } from "@/lib/utils";
 import { HamburgerMenu } from "./hamburger-menu";
 
 interface HeaderClientProps {
@@ -21,8 +20,7 @@ interface HeaderClientProps {
 
 export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
   const pathname = usePathname();
-  const { showDifficultySelector, difficultyInMobileMenu } =
-    getPageLayout(pathname);
+  const { showHeader, showDifficultySelector } = getPageLayout(pathname);
   const showInterviewActions = isInterviewPage(pathname);
 
   // Headerは1ページに1つだけ常時マウントされるため、
@@ -30,6 +28,9 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
   // (DifficultySelectorはmarkdown埋め込み等で複数箇所に
   //  同時マウントされ得るため、送信元には適さない)
   useOnPageView(() => sendDifficultyStateEvent(difficultyLevel));
+
+  // TOP はヘッダーを置かない（GA への送信は上で済ませる）
+  if (!showHeader) return null;
 
   return (
     <header className="px-3 fixed top-4 left-0 right-0 z-40 max-w-[1440px] mx-auto">
@@ -51,17 +52,10 @@ export function HeaderClient({ difficultyLevel }: HeaderClientProps) {
             aria-label="補助ナビゲーション"
           >
             {showDifficultySelector && (
-              <DifficultySelector
-                currentLevel={difficultyLevel}
-                className={cn(difficultyInMobileMenu && "max-md:hidden")}
-              />
+              <DifficultySelector currentLevel={difficultyLevel} />
             )}
             {showInterviewActions && <InterviewHeaderActions />}
-            <HamburgerMenu
-              mobileDifficultyLevel={
-                difficultyInMobileMenu ? difficultyLevel : undefined
-              }
-            />
+            <HamburgerMenu />
           </nav>
         </div>
       </div>

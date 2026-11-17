@@ -1,6 +1,5 @@
 import "server-only";
 
-import { SITE_NAME } from "@mirai-gikai/branding/site";
 import { About } from "@/components/top/about";
 import { Badge } from "@/components/ui/badge";
 import { BillDisclaimer } from "@/features/bills/client/components/bill-detail/bill-disclaimer";
@@ -11,18 +10,10 @@ import {
 } from "../../shared/utils/theme-card-view";
 import type { TopTheme } from "../loaders/get-top-themes";
 import { ThemeCard } from "./theme-card";
+import { TopHero } from "./top-hero";
 
-/** タイトル。狭い幅でも句の途中で折り返さないよう、句ごとに区切って持つ */
-const TOP_TITLE_PHRASES = [
-  "佐賀市のこと、",
-  "ちかっと知る。",
-  "ちかっと話す。",
-];
-
-const TOP_INTRO = `${SITE_NAME}（チカット）は、佐賀市の今の取組を気軽に知ったり、AIと話しながら日ごろ感じていることや考えを伝えたりできる、新しい広聴のしくみです。見るだけでも、話すだけでも大丈夫です。`;
-
-/** TOP の本文の幅（デザインの 860px） */
-const TOP_CONTENT_CLASS = "mx-auto w-full max-w-[860px] px-4 md:px-6";
+/** TOP の本文の幅（デザインの 1000px ＋ 左右の余白 24px） */
+const TOP_CONTENT_CLASS = "mx-auto w-full max-w-[1048px] px-6";
 
 interface TopPageProps {
   themes: TopTheme[];
@@ -30,7 +21,7 @@ interface TopPageProps {
 
 /**
  * TOP ページ（Epic #162 / #155、デザイン「1. TOP」）。
- * タイトル直下は紹介文だけを置き（AIチャットの入力欄は置かない）、
+ * 冒頭に CHIKAT・みてみて・きかせてを紹介するカルーセルを置き、
  * その下にテーマカードを並べる。
  */
 export function TopPage({ themes }: TopPageProps) {
@@ -38,47 +29,35 @@ export function TopPage({ themes }: TopPageProps) {
 
   return (
     <div className="bg-background">
+      {/* TOP はヘッダーを置かないので、カルーセルがページの最上部になる */}
+      <TopHero
+        themes={themes}
+        className="pt-5 pb-3.5 pc:pb-7"
+        contentClassName={TOP_CONTENT_CLASS}
+      />
+
       <div
         className={cn(
           TOP_CONTENT_CLASS,
-          "flex flex-col gap-3 pt-28 pb-10 md:pt-6"
+          "grid gap-5 pt-[30px] pb-7 md:gap-7 md:pt-5 md:pb-12",
+          isGrid && "md:grid-cols-2"
         )}
       >
-        <h1 className="text-2xl font-bold leading-normal">
-          {TOP_TITLE_PHRASES.map((phrase) => (
-            <span key={phrase} className="inline-block">
-              {phrase}
-            </span>
-          ))}
-        </h1>
-        <p className="text-sm leading-relaxed text-muted-foreground md:text-base">
-          {TOP_INTRO}
-        </p>
+        {themes.map((theme, index) => (
+          <ThemeCard
+            key={theme.policyId}
+            theme={theme}
+            stacked={isGrid}
+            // グリッドでは2枚目までがファーストビューに入る
+            priority={index < (isGrid ? 2 : 1)}
+          />
+        ))}
+        {/* グリッド（4件以上）では出ないので、2カラムにまたがる指定は要らない */}
+        {showsComingSoon(themes.length) && <ComingSoonBox />}
       </div>
 
-      <div className="bg-linear-to-b from-secondary to-background">
-        <div
-          className={cn(
-            TOP_CONTENT_CLASS,
-            "grid gap-6 py-10",
-            isGrid && "md:grid-cols-2"
-          )}
-        >
-          {themes.map((theme, index) => (
-            <ThemeCard
-              key={theme.policyId}
-              theme={theme}
-              stacked={isGrid}
-              // グリッドでは2枚目までがファーストビューに入る
-              priority={index < (isGrid ? 2 : 1)}
-            />
-          ))}
-          {/* グリッド（4件以上）では出ないので、2カラムにまたがる指定は要らない */}
-          {showsComingSoon(themes.length) && <ComingSoonBox />}
-        </div>
-      </div>
-
-      <div className={TOP_CONTENT_CLASS}>
+      {/* About はデザインどおりスマホでは左右の余白を 16px にする */}
+      <div className={cn(TOP_CONTENT_CLASS, "max-md:px-4")}>
         <About />
         <BillDisclaimer />
       </div>
