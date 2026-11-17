@@ -28,7 +28,9 @@ interface KikaseteBoxProps {
  * 親施策ページ・トピック・レポート・まとめで同じものを使う（Epic #162 の共通ルール）。
  *
  * 枠は relative なので、カード全体をリンクにしている親（TOP のテーマカード）の
- * 疑似要素より手前に重なり、枠の中のリンクとボタンはそれぞれの遷移先が優先される。
+ * 疑似要素より手前に重なる。枠全体は「はじめる」（または「結果を見る」）へのリンクで
+ * （ボタンの疑似要素を枠いっぱいに広げる）、「インタビューについて・みんなの声」だけは
+ * その手前に重ねて自分の遷移先を優先する。
  */
 export function KikaseteBox({
   prompt,
@@ -85,7 +87,7 @@ function AboutLink({ href, className }: { href: string; className?: string }) {
     <Link
       href={href as Route}
       className={cn(
-        "relative text-xs font-bold text-kikasete-700 underline underline-offset-4",
+        "relative z-10 text-xs font-bold text-kikasete-700 underline underline-offset-4",
         className
       )}
     >
@@ -105,8 +107,9 @@ function KikaseteStartAction({
     return <ExternalIdentityGuideNotice participation={start.participation} />;
   }
 
+  // 疑似要素を枠（section）いっぱいに広げ、枠全体をクリックできるようにする
   const className = cn(
-    "relative h-12 w-full px-6 has-[>svg]:px-6",
+    "h-12 w-full px-6 has-[>svg]:px-6 after:absolute after:inset-0",
     !stacked && "md:w-auto md:shrink-0"
   );
 

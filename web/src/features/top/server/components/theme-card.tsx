@@ -83,7 +83,8 @@ export function ThemeCard({
           asChild
           className={cn(
             "h-12 w-full px-6 has-[>svg]:px-6 after:absolute after:inset-0",
-            !stacked && "md:h-11 md:w-auto md:px-4 md:text-[13px]"
+            // きかせての「はじめる」と同じ大きさにそろえる
+            !stacked && "md:w-auto"
           )}
         >
           <Link href={routes.billDetail(theme.policyId) as Route}>
