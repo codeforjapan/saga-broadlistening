@@ -86,7 +86,7 @@ vi.mock("@/components/ai-elements/prompt-input", () => ({
 
 vi.mock("./mobile-chat-dialog", () => ({
   CHAT_PANEL_RESPONSIVE_CLASSES:
-    "md:bottom-4 md:right-4 md:left-auto md:w-[450px] md:rounded-2xl",
+    "md:bottom-4 md:right-4 md:left-auto md:w-[420px] md:rounded-2xl",
   MobileChatDialog: (props: {
     children: ReactNode;
     disableAutoFocus?: boolean;

@@ -310,12 +310,12 @@ export function ChatWindow({
   }
 
   // PCでは常設の補助領域、モバイルでは背景を操作不能にするモーダルとして扱う。
-  // pcl の右位置の 1350px は MainLayout の中央寄せ（本文850px + チャット用の余白500px）と同じ値
+  // pcl の右位置の 1320px は MainLayout の中央寄せ（本文850px + チャット用の余白470px）と同じ値
   if (isPc) {
     return createPortal(
       <section
         aria-label="佐賀市の施策についてAIに質問する"
-        className={`fixed inset-x-0 bottom-0 z-50 bg-white shadow-md rounded-t-2xl flex flex-col pc:h-[70vh] pcl:right-[calc(calc(100%-1350px)/2)] ${CHAT_PANEL_RESPONSIVE_CLASSES}`}
+        className={`fixed inset-x-0 bottom-0 z-50 bg-white shadow-md rounded-t-2xl flex flex-col pc:h-[70vh] pcl:right-[calc(calc(100%-1320px)/2)] ${CHAT_PANEL_RESPONSIVE_CLASSES}`}
       >
         {chatPanelContent}
       </section>,
