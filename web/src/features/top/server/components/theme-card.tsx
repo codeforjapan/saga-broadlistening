@@ -35,7 +35,7 @@ export function ThemeCard({
   const { kikasete } = theme;
 
   return (
-    <article className="relative flex flex-col overflow-hidden rounded-[20px] bg-card shadow-floating md:rounded-4xl">
+    <article className="relative flex flex-col overflow-hidden rounded-[20px] bg-card shadow-card md:rounded-4xl">
       <div className="px-4 pt-3.5 pb-3 md:px-7 md:pt-[22px] md:pb-4">
         <ChikatServiceLogo variant="mitemite" className={SERVICE_LOGO_CLASS} />
       </div>

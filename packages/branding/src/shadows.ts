@@ -21,11 +21,9 @@ const RING = PRIMITIVES["sky-700"];
 
 export const SHADOWS = {
   /** 既定。カード・入力欄など、面を背景から浮かせる */
-  card: `0 1px 2px ${rgba(INK, 0.06)}, 0 1px 1px ${rgba(INK, 0.04)}`,
+  card: `0 10px 15px 3px ${rgba(INK, 0.1)}, 0 4px 6px -4px ${rgba(INK, 0.1)}`,
   /** 一段強い浮き上がり。ホバー・モーダルなど */
   raised: `0 2px 6px ${rgba(INK, 0.08)}`,
-  /** 大きく浮かせる面。TOP のテーマカードなど（広がりを持たせて四辺に影を出す） */
-  floating: `0 10px 15px 3px ${rgba(INK, 0.1)}, 0 4px 6px -4px ${rgba(INK, 0.1)}`,
   /** フォーカスリング。輪郭のみで、色そのものはアウトライン扱い */
   focus: `0 0 0 3px ${rgba(RING, 0.35)}`,
 } as const;
