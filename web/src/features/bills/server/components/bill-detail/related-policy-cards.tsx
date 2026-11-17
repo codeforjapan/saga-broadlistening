@@ -24,8 +24,9 @@ export function RelatedPolicyCards({ policies }: RelatedPolicyCardsProps) {
               href={routes.billDetail(policy.id) as Route}
               className="flex h-full flex-col overflow-hidden rounded-2xl bg-white hover:bg-muted/50"
             >
-              {/* 装飾の画像なので alt は空にし、施策名は見出しで読ませる */}
-              <div className="relative aspect-[2/1] w-full">
+              {/* 装飾の画像なので alt は空にし、施策名は見出しで読ませる。
+                  縦に並べる flex の中でも縦横比（1:2）が崩れないよう、縮ませない */}
+              <div className="relative aspect-[2/1] w-full shrink-0">
                 <Image
                   src={resolveInterviewThumbnail(policy.thumbnailUrl, null)}
                   alt=""

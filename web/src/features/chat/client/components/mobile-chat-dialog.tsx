@@ -6,15 +6,13 @@ import type { CSSProperties, ReactNode, RefObject } from "react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 
-export const CHAT_PANEL_RESPONSIVE_CLASSES =
-  "md:bottom-4 md:right-4 md:left-auto md:w-[450px] md:rounded-2xl";
-
 /**
- * PC常設パネル専用の幅。mdレンジのフローティングダイアログ(450px)より狭くし、
- * メインパネル(850px)を広く取る。MainLayoutの pc:mr-[350px] は
- * この幅300px + 右マージン・ガターぶんの余白に対応する。
+ * md 以上のチャットパネルの位置と幅。PC の常設パネルも同じ 420px で、
+ * MainLayout の pc:mr-[470px] はこの幅420px + 右マージン・ガターぶんの余白に対応する。
+ * 幅を変えるときは、MainLayout と ChatWindow の中央寄せの基準幅（1320px = 850 + 470）も合わせて直す。
  */
-export const CHAT_PANEL_PC_WIDTH_CLASS = "pc:w-[300px]";
+export const CHAT_PANEL_RESPONSIVE_CLASSES =
+  "md:bottom-4 md:right-4 md:left-auto md:w-[420px] md:rounded-2xl";
 
 interface MobileChatDialogProps {
   children: ReactNode;
