@@ -41,6 +41,19 @@ describe("HeaderClient", () => {
     });
   });
 
+  it("TOPではヘッダーを出さない", () => {
+    const { container } = render(<HeaderClient difficultyLevel="normal" />);
+
+    expect(container.querySelector("header")).toBeNull();
+  });
+
+  it("TOP以外ではヘッダーを出す", () => {
+    usePathnameMock.mockReturnValue("/bills/1");
+    const { container } = render(<HeaderClient difficultyLevel="normal" />);
+
+    expect(container.querySelector("header")).not.toBeNull();
+  });
+
   it("pathnameが変わると再度GAへ送る", () => {
     const { rerender } = render(<HeaderClient difficultyLevel="normal" />);
     expect(sendGAEventMock).toHaveBeenCalledTimes(1);

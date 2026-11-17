@@ -20,6 +20,8 @@ interface KikaseteBoxProps {
   /** 狭い枠に置くとき。PCでも縦に積む */
   stacked?: boolean;
   headingLevel?: "h2" | "h3";
+  /** ロゴの高さ。並べるほかのロゴ（TOP のテーマカードのみてみて）と大きさをそろえるとき */
+  logoClassName?: string;
   className?: string;
 }
 
@@ -28,7 +30,9 @@ interface KikaseteBoxProps {
  * 親施策ページ・トピック・レポート・まとめで同じものを使う（Epic #162 の共通ルール）。
  *
  * 枠は relative なので、カード全体をリンクにしている親（TOP のテーマカード）の
- * 疑似要素より手前に重なり、枠の中のリンクとボタンはそれぞれの遷移先が優先される。
+ * 疑似要素より手前に重なる。枠全体は「はじめる」（または「結果を見る」）へのリンクで
+ * （ボタンの疑似要素を枠いっぱいに広げる）、「インタビューについて・みんなの声」だけは
+ * その手前に重ねて自分の遷移先を優先する。
  */
 export function KikaseteBox({
   prompt,
@@ -38,6 +42,7 @@ export function KikaseteBox({
   start,
   stacked = false,
   headingLevel: Heading = "h3",
+  logoClassName = "h-6",
   className,
 }: KikaseteBoxProps) {
   // スマホでは「インタビューについて・みんなの声」をボタンの下に出す（案内に差し替えたときは行内のまま）
@@ -54,7 +59,10 @@ export function KikaseteBox({
       )}
     >
       <div className="flex flex-col gap-2">
-        <ChikatServiceLogo variant="kikasete" className="h-6 self-start" />
+        <ChikatServiceLogo
+          variant="kikasete"
+          className={cn("self-start", logoClassName)}
+        />
         <Heading className="text-base font-bold leading-normal md:text-lg">
           {prompt}
         </Heading>
@@ -85,7 +93,7 @@ function AboutLink({ href, className }: { href: string; className?: string }) {
     <Link
       href={href as Route}
       className={cn(
-        "relative text-xs font-bold text-kikasete-700 underline underline-offset-4",
+        "relative z-10 text-xs font-bold text-kikasete-700 underline underline-offset-4",
         className
       )}
     >
@@ -105,8 +113,9 @@ function KikaseteStartAction({
     return <ExternalIdentityGuideNotice participation={start.participation} />;
   }
 
+  // 疑似要素を枠（section）いっぱいに広げ、枠全体をクリックできるようにする
   const className = cn(
-    "relative h-12 w-full px-6 has-[>svg]:px-6",
+    "h-12 w-full px-6 has-[>svg]:px-6 after:absolute after:inset-0",
     !stacked && "md:w-auto md:shrink-0"
   );
 

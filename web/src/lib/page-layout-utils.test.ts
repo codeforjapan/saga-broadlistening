@@ -7,10 +7,10 @@ import {
 } from "./page-layout-utils";
 
 describe("getPageLayout", () => {
-  it("TOPは全幅で、スマホでは難易度切り替えをメニューへ移す", () => {
+  it("TOPは全幅で、ヘッダーを出さない", () => {
     expect(getPageLayout("/")).toEqual({
-      showDifficultySelector: true,
-      difficultyInMobileMenu: true,
+      showHeader: false,
+      showDifficultySelector: false,
       chatSidebar: false,
       fullBleed: true,
     });
@@ -18,8 +18,8 @@ describe("getPageLayout", () => {
 
   it("施策詳細ページは右に常設チャットを置く", () => {
     expect(getPageLayout("/bills/abc-123")).toEqual({
+      showHeader: true,
       showDifficultySelector: true,
-      difficultyInMobileMenu: false,
       chatSidebar: true,
       fullBleed: false,
     });
@@ -33,8 +33,8 @@ describe("getPageLayout", () => {
     "/interviews/wakamono-shien",
   ])("%s は既定のレイアウト", (pathname) => {
     expect(getPageLayout(pathname)).toEqual({
+      showHeader: true,
       showDifficultySelector: false,
-      difficultyInMobileMenu: false,
       chatSidebar: false,
       fullBleed: false,
     });

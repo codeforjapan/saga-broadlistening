@@ -19,7 +19,7 @@ describe("シャドウトークン（要求仕様3.4）", () => {
 
   it("card は仕様の2段重ね", () => {
     expect(SHADOWS.card).toBe(
-      "0 1px 2px rgba(43, 43, 43, 0.06), 0 1px 1px rgba(43, 43, 43, 0.04)"
+      "0 10px 15px 3px rgba(43, 43, 43, 0.1), 0 4px 6px -4px rgba(43, 43, 43, 0.1)"
     );
   });
 
