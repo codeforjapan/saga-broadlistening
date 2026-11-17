@@ -8,7 +8,7 @@ const SERVICE_LOGOS = {
   kikasete: { src: "/icons/chikat-kikasete.svg", label: "きかせて" },
 } as const;
 
-const LOGO_WIDTH = 590;
+const LOGO_WIDTH = 641;
 const LOGO_HEIGHT = 151;
 
 interface ChikatServiceLogoProps {
