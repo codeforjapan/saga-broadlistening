@@ -16,6 +16,9 @@ import type { TopTheme } from "../loaders/get-top-themes";
 const HEADING_CLASS =
   "mt-[18px] font-heading text-[22px] font-bold leading-[1.45] tracking-wide pc:mt-[22px] pc:text-4xl pc:leading-[1.4]";
 
+/** みてみて・きかせてのロゴ。2つのSVGは同じ寸法なので、同じ高さにすれば同じ大きさで並ぶ */
+const SERVICE_LOGO_CLASS = "h-10 pc:h-14";
+
 const LEAD_CLASS =
   "mt-2.5 text-[13.5px] leading-[1.7] text-muted-foreground pc:mt-3.5 pc:text-[17px] pc:leading-[1.8]";
 
@@ -184,7 +187,9 @@ function MitemiteSlide({ themes }: { themes: TopTheme[] }) {
   const [first] = themes;
   return (
     <Slide
-      logo={<ChikatServiceLogo variant="mitemite" className="h-10 pc:h-14" />}
+      logo={
+        <ChikatServiceLogo variant="mitemite" className={SERVICE_LOGO_CLASS} />
+      }
       heading={
         <p className={HEADING_CLASS}>
           <span className="inline-block">市の取り組みを、</span>
@@ -275,7 +280,9 @@ const CHAT_BUBBLE_CLASS =
 function KikaseteSlide() {
   return (
     <Slide
-      logo={<ChikatServiceLogo variant="kikasete" className="h-11 pc:h-16" />}
+      logo={
+        <ChikatServiceLogo variant="kikasete" className={SERVICE_LOGO_CLASS} />
+      }
       heading={
         <p className={HEADING_CLASS}>
           <span className="inline-block">思っていることを、</span>
