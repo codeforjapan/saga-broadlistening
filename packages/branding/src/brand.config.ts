@@ -10,6 +10,8 @@ export const BRAND_CONFIG = {
   siteName: "CHIKAT",
   hashtag: "CHIKAT",
   copyright: "Copyright (c) Saga city. All Rights Reserved.",
+  // 「みんなの声のまとめ」だけでは何のまとめか分かりにくいため、きかせて（AIインタビュー）のまとめだと分かる名前にする
+  voiceSummaryName: "ちかっときかせてまとめ",
   siteDescription:
     "佐賀市で今どんな施策が検討されているか、わかりやすく伝える公聴プラットフォーム",
   keywords: ["施策", "政治", "佐賀市", "解説", "公聴"],

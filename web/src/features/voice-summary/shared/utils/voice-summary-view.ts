@@ -1,3 +1,4 @@
+import { VOICE_SUMMARY_LABEL } from "@mirai-gikai/branding/site";
 import type { Metadata } from "next";
 import { buildShareMetadata } from "@/features/user-topic-analysis/shared/utils/topic-analysis-metadata";
 import { formatDateWithDots } from "@/lib/utils/date";
@@ -34,7 +35,7 @@ export function selectSourceTopics<T extends { id: string }>(
     .slice(0, limit);
 }
 
-/** まとめページのメタデータ（タイトル「みんなの声のまとめ：若者支援」、説明は冒頭の段落） */
+/** まとめページのメタデータ（タイトル「ちかっときかせてまとめ：若者支援」、説明は冒頭の段落） */
 export function buildVoiceSummaryMetadata(params: {
   subjectName: string | null;
   lead: string | null;
@@ -42,10 +43,10 @@ export function buildVoiceSummaryMetadata(params: {
   shareImageUrl: string;
 }): Metadata {
   const title = params.subjectName
-    ? `みんなの声のまとめ：${params.subjectName}`
-    : "みんなの声のまとめ";
+    ? `${VOICE_SUMMARY_LABEL}：${params.subjectName}`
+    : VOICE_SUMMARY_LABEL;
   const description =
-    params.lead ?? "寄せられたご意見をAIが整理したみんなの声のまとめ";
+    params.lead ?? `寄せられたご意見をAIが整理した${VOICE_SUMMARY_LABEL}`;
   return {
     title,
     description,

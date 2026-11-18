@@ -1,5 +1,6 @@
 import "server-only";
 
+import { VOICE_SUMMARY_LABEL } from "@mirai-gikai/branding/site";
 import { countPublicOpinionsByInterviewConfigId } from "@mirai-gikai/shared/report-publication/count-public-reports";
 import {
   canGenerateVoiceSummary,
@@ -28,7 +29,7 @@ import {
 import { VoiceSummaryHistoryTable } from "./voice-summary-history-table";
 
 /**
- * みんなの声のまとめの生成・編集・公開画面（#160）。
+ * ちかっときかせてまとめの生成・編集・公開画面（#160）。
  * 公開中のトピック分析から AI で下書きを作り、確認・編集してから公開する。
  */
 export async function VoiceSummaryPage({
@@ -60,7 +61,7 @@ export async function VoiceSummaryPage({
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold">みんなの声のまとめ</h1>
+      <h1 className="mb-1 text-2xl font-bold">{VOICE_SUMMARY_LABEL}</h1>
       <p className="mb-1 text-sm text-gray-600">テーマ: {configName}</p>
       <p className="mb-6 text-sm text-gray-500">
         公開中のトピック分析をもとに AI

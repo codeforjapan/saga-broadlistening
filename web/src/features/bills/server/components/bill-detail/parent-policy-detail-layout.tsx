@@ -1,5 +1,6 @@
 import "server-only";
 
+import { VOICE_SUMMARY_LABEL } from "@mirai-gikai/branding/site";
 import { Container } from "@/components/layouts/container";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
 import { KikaseteBox } from "@/features/interview-config/client/components/kikasete-box";
@@ -87,11 +88,11 @@ export async function ParentPolicyDetailLayout({
           </div>
         )}
 
-        {/* みんなの声のまとめ（まとめのプレビューとテーマのトピック一覧。どちらもなければ出さない） */}
+        {/* ちかっときかせてまとめ（まとめのプレビューとテーマのトピック一覧。どちらもなければ出さない） */}
         {target && interview && (voiceSummary || topicContext?.analysis) && (
           <section className="my-8 flex flex-col gap-4">
             <h2 className="text-[22px] font-bold leading-9">
-              みんなの声のまとめ
+              {VOICE_SUMMARY_LABEL}
             </h2>
             <div className="flex flex-col gap-6 rounded-2xl bg-white p-4 md:p-6">
               {voiceSummary && (

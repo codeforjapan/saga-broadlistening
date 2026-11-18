@@ -1,3 +1,4 @@
+import { VOICE_SUMMARY_LABEL } from "@mirai-gikai/branding/site";
 import { describe, expect, it } from "vitest";
 import {
   buildVoiceSummaryMetadata,
@@ -53,13 +54,13 @@ describe("buildVoiceSummaryMetadata", () => {
     shareImageUrl: "https://example.com/theme.jpg",
   };
 
-  it("タイトルは「みんなの声のまとめ：〇〇」、説明は冒頭の段落", () => {
+  it("タイトルは「（まとめの呼び名）：〇〇」、説明は冒頭の段落", () => {
     const metadata = buildVoiceSummaryMetadata({
       ...base,
       subjectName: "若者支援",
       lead: "冒頭の段落",
     });
-    expect(metadata.title).toBe("みんなの声のまとめ：若者支援");
+    expect(metadata.title).toBe(`${VOICE_SUMMARY_LABEL}：若者支援`);
     expect(metadata.description).toBe("冒頭の段落");
     expect(metadata.alternates).toEqual({ canonical: base.canonical });
   });
@@ -71,12 +72,12 @@ describe("buildVoiceSummaryMetadata", () => {
       lead: "冒頭の段落",
     });
     expect(metadata.openGraph).toMatchObject({
-      title: "みんなの声のまとめ：若者支援",
+      title: `${VOICE_SUMMARY_LABEL}：若者支援`,
       description: "冒頭の段落",
       images: [{ url: base.shareImageUrl }],
     });
     expect(metadata.twitter).toMatchObject({
-      title: "みんなの声のまとめ：若者支援",
+      title: `${VOICE_SUMMARY_LABEL}：若者支援`,
       images: [base.shareImageUrl],
     });
   });
@@ -87,7 +88,7 @@ describe("buildVoiceSummaryMetadata", () => {
       subjectName: null,
       lead: null,
     });
-    expect(metadata.title).toBe("みんなの声のまとめ");
+    expect(metadata.title).toBe(VOICE_SUMMARY_LABEL);
     expect(metadata.description).toBeTruthy();
   });
 });

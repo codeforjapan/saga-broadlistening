@@ -69,7 +69,7 @@ export async function TopicListPage({ target }: TopicListPageProps) {
       {target.kind === "theme" && voiceSummary && (
         <Button asChild className="w-full">
           <Link href={routes.interviewThemeSummary(target.slug) as Route}>
-            みんなの声のまとめを見る
+            まとめを見る
             <ChevronRight aria-hidden="true" />
           </Link>
         </Button>

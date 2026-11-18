@@ -11,3 +11,6 @@ export const SITE_HASHTAG = BRAND_CONFIG.hashtag;
 
 /** コピーライト表記（フッター等で共通利用） */
 export const COPYRIGHT_TEXT = BRAND_CONFIG.copyright;
+
+/** テーマごとのまとめ（AIが意見を整理したもの）の呼び名 */
+export const VOICE_SUMMARY_LABEL = BRAND_CONFIG.voiceSummaryName;

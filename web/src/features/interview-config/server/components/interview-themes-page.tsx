@@ -1,5 +1,6 @@
 import "server-only";
 
+import { VOICE_SUMMARY_LABEL } from "@mirai-gikai/branding/site";
 import { Container } from "@/components/layouts/container";
 import { INTERVIEW_THEME_LIST_DESCRIPTION } from "../../shared/constants";
 import {
@@ -42,7 +43,8 @@ export async function InterviewThemesPage() {
                 募集終了したテーマ
               </h2>
               <p className="text-[15px] leading-relaxed text-muted-foreground">
-                募集は終了しましたが、寄せられた意見をAIが整理したまとめは読むことができます。
+                募集は終了しましたが、寄せられた意見をAIが整理した
+                {VOICE_SUMMARY_LABEL}は読むことができます。
               </p>
             </header>
 

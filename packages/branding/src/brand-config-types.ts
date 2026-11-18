@@ -19,6 +19,11 @@ export type BrandConfig = {
   hashtag: string;
   /** コピーライト表記（フッター等） */
   copyright: string;
+  /**
+   * AIインタビューで寄せられた意見をAIが整理した、テーマごとのまとめの呼び名
+   * （ページの見出し・パンくず・タイトルなど）
+   */
+  voiceSummaryName: string;
   /** 検索エンジン・SNS・PWA（manifest）向けのサイトの説明文 */
   siteDescription: string;
   /** メタデータの keywords（サービス名は自動で先頭に付く） */

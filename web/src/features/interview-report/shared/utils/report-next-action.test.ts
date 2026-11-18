@@ -22,7 +22,7 @@ describe("resolveReportNextAction", () => {
       })
     ).toEqual({
       href: "/interviews/wakamono/summary",
-      label: "意見まとめを見る",
+      label: "まとめを見る",
     });
   });
 
