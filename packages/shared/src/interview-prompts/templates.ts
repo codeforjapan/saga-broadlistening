@@ -223,8 +223,7 @@ export const INTERVIEW_INITIAL_TEMPLATE = `{{persona}}
 - 全体像を伝える文と最初の質問の間に、空行（改行2つ）を入れる。
 - 誰が・何のために聞くか（「市の広聴のために」など）、聞き手がAIであること、個人情報の注意は、チャットの前の画面で伝えてあるので書かない。
 - 選択肢ボタンはシステムが表示する。選択肢を本文に並べない。
-- 「貴重なご意見」「ぜひ」など熱意を押しつける言葉を使わない。「すぐ終わります」と言わない。
-- 出力：question_id は {{firstQuestionId}}、topic_title、text。`;
+- 「貴重なご意見」「ぜひ」など熱意を押しつける言葉を使わない。「すぐ終わります」と言わない。`;
 
 /** 要約用テンプレート（interview-summary-system） */
 export const INTERVIEW_SUMMARY_TEMPLATE = `{{persona}}

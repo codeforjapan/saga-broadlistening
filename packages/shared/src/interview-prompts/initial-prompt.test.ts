@@ -14,7 +14,6 @@ describe("buildInitialTurnVariables", () => {
     expect(buildInitialTurnVariables(topics)).toEqual({
       topicCount: "5",
       firstQuestion: "佐賀市に住んで（関わって）どのくらいになりますか？",
-      firstQuestionId: "Q1",
     });
   });
 
@@ -22,7 +21,6 @@ describe("buildInitialTurnVariables", () => {
     expect(buildInitialTurnVariables([])).toEqual({
       topicCount: "0",
       firstQuestion: "このテーマについて、思うことを教えてください。",
-      firstQuestionId: "Q1",
     });
   });
 });

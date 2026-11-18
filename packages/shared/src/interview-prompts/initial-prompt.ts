@@ -13,7 +13,6 @@ export function buildInitialTurnVariables(topics: TurnTopic[]) {
   return {
     topicCount: String(topics.length),
     firstQuestion: first?.question ?? "このテーマについて、思うことを教えてください。",
-    firstQuestionId: first?.label ?? "Q1",
   };
 }
 
