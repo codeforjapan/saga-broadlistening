@@ -16,6 +16,7 @@ import { InterviewChatSession } from "@/features/interview-session/server/compon
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 import { interviewChatViewport } from "@/features/interview-session/shared/constants/interview-chat-viewport";
 import { env } from "@/lib/env";
+import { setupRequestTelemetry } from "@/lib/telemetry/register";
 
 interface InterviewPreviewChatPageProps {
   params: Promise<{
@@ -78,6 +79,8 @@ export default async function InterviewPreviewChatPage({
 
   // インタビューチャットの初期化処理
   try {
+    // 最初の質問を生成する LLM 呼び出しがこの描画中に走るので、そのトレースを送れるようにする
+    await setupRequestTelemetry();
     // プレビューは職員の確認用なので、テーマの参加条件は問わない
     const chat = await initializeInterviewChat(interviewConfig, bill, {
       isPreview: true,
