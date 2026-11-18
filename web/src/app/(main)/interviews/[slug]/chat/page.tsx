@@ -17,6 +17,7 @@ import { initializeInterviewChat } from "@/features/interview-session/server/loa
 import { InterviewParticipationDeniedError } from "@/features/interview-session/server/services/resolve-interview-participation";
 import { interviewChatViewport } from "@/features/interview-session/shared/constants/interview-chat-viewport";
 import { routes } from "@/lib/routes";
+import { setupRequestTelemetry } from "@/lib/telemetry/register";
 
 interface ThemeChatPageProps {
   params: Promise<{
@@ -44,6 +45,8 @@ export default async function ThemeChatPage({ params }: ThemeChatPageProps) {
   const target = themeInterviewTarget(slug);
 
   try {
+    // 最初の質問を生成する LLM 呼び出しがこの描画中に走るので、そのトレースを送れるようにする
+    await setupRequestTelemetry();
     const chat = await initializeInterviewChat(config, bill);
 
     if (chat.kind === "start") {
