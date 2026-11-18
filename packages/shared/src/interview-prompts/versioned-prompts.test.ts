@@ -163,7 +163,8 @@ describe("初回の発話", () => {
     expect(prompt).toContain(
       "「この案は、あなたの暮らしや仕事に関わりがありますか？」"
     );
-    expect(prompt).toContain("question_id は Q1");
+    // 出力欄の指定を書くと、本文（text）に「Q1」とだけ入れられることがあった
+    expect(prompt).not.toContain("question_id");
   });
 });
 
