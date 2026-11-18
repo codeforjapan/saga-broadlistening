@@ -5,12 +5,19 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowDownIcon } from "lucide-react";
 import type { ComponentProps } from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 
-export type ConversationProps = ComponentProps<typeof StickToBottom>;
+export type ConversationProps = Omit<
+  ComponentProps<typeof StickToBottom>,
+  "children"
+> & { children?: ReactNode };
 
-export const Conversation = ({ className, ...props }: ConversationProps) => (
+export const Conversation = ({
+  className,
+  children,
+  ...props
+}: ConversationProps) => (
   <StickToBottom
     className={cn("relative flex-1 overflow-y-auto", className)}
     initial="smooth"
@@ -18,8 +25,39 @@ export const Conversation = ({ className, ...props }: ConversationProps) => (
     role="log"
     aria-live="polite"
     {...props}
-  />
+  >
+    {children}
+    <StickToBottomOnScrollAreaShrink />
+  </StickToBottom>
 );
+
+/**
+ * スクロール枠が縮んだとき（スマホでキーボードを開いたときなど）に最下部へ戻す。
+ * use-stick-to-bottom は中身の高さしか監視しないため、枠が縮むと
+ * その分だけ最新のメッセージが下に見切れたままになる。
+ */
+function StickToBottomOnScrollAreaShrink() {
+  const { scrollRef, state, scrollToBottom } = useStickToBottomContext();
+
+  useEffect(() => {
+    const scrollArea = scrollRef.current;
+    if (!scrollArea) return;
+
+    let previousHeight = scrollArea.clientHeight;
+    const observer = new ResizeObserver(() => {
+      const height = scrollArea.clientHeight;
+      // state.isAtBottom は最下部に吸い付いているかのフラグ（ライブラリが同期的に更新する）
+      if (height < previousHeight && state.isAtBottom) {
+        scrollToBottom("instant");
+      }
+      previousHeight = height;
+    });
+    observer.observe(scrollArea);
+    return () => observer.disconnect();
+  }, [scrollRef, state, scrollToBottom]);
+
+  return null;
+}
 
 export type ConversationContentProps = ComponentProps<
   typeof StickToBottom.Content
