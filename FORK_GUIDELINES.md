@@ -54,7 +54,7 @@
 
 | 対象 | ファイルパス | 変更内容 |
 |------|------------|----------|
-| サービス名・説明文 | `packages/branding/src/brand.config.ts` | `siteName`, `hashtag`, `copyright`, `siteDescription`, `keywords` |
+| サービス名・説明文 | `packages/branding/src/brand.config.ts` | `siteName`, `hashtag`, `copyright`, `voiceSummaryName`, `siteDescription`, `keywords` |
 | ロゴ・AIアバター・OGP画像 | `packages/branding/src/brand.config.ts` | `assets`（画像は `web/public/` に置いてパスを指定） |
 | 外部リンク | `packages/branding/src/brand.config.ts` | `links`（不具合報告フォーム、ソースコードの公開先、fork ガイドライン） |
 | テーマカラー | `packages/branding/src/palette.ts` | パレット変更後 `build:css` で再生成 |

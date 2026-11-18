@@ -1,5 +1,6 @@
 import "server-only";
 
+import { VOICE_SUMMARY_LABEL } from "@mirai-gikai/branding/site";
 import {
   findInterviewConfigNameById,
   getLeafTopicsWithOpinions,
@@ -67,7 +68,7 @@ export async function UserTopicAnalysisPage({
           href={routes.interviewVoiceSummary(interviewConfigId) as Route}
           className="ml-2 underline"
         >
-          みんなの声のまとめへ
+          {VOICE_SUMMARY_LABEL}へ
         </Link>
       </p>
 

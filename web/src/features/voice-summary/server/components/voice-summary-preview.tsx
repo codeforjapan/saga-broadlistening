@@ -12,12 +12,12 @@ interface VoiceSummaryPreviewProps {
     "question" | "lead" | "sourceOpinionCount"
   >;
   href: string;
-  /** ボタンの文言（親施策ページでは「まとめを見る」） */
+  /** ボタンの文言（親施策ページでは「ちかっときかせてまとめを見る」） */
   linkLabel: string;
 }
 
 /**
- * みんなの声のまとめのプレビュー（問いと冒頭の段落だけ）。親施策ページの「みんなの声のまとめ」で使う（#156）。
+ * ちかっときかせてまとめのプレビュー（問いと冒頭の段落だけ）。親施策ページの「ちかっときかせてまとめ」で使う（#156）。
  */
 export function VoiceSummaryPreview({
   summary,

@@ -1,3 +1,4 @@
+import { VOICE_SUMMARY_LINK_LABEL } from "@mirai-gikai/branding/site";
 import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
 import type { ReportOrigin } from "./public-report-display";
@@ -11,7 +12,7 @@ export type ReportNextAction = {
 /**
  * 完了ページの次の導線を決める（#246）。
  *
- * テーマのみんなの声のまとめが公開されていればまとめへ、なければ施策のページへ戻す。
+ * テーマのちかっときかせてまとめが公開されていればまとめへ、なければ施策のページへ戻す。
  * 施策に紐づかない抽象テーマ型はサイトトップへ戻す。レポート末尾の戻り導線
  * （BackToBillButton）はテーマのページへ戻すが、回答を終えた直後なので
  * 参加の入口であるテーマのページではなくサイトトップへ送る（#246 の指定）。
@@ -29,7 +30,7 @@ export function resolveReportNextAction({
   if (hasPublishedSummary) {
     return {
       href: routes.interviewThemeSummary(origin.theme.slug),
-      label: "意見まとめを見る",
+      label: VOICE_SUMMARY_LINK_LABEL,
     };
   }
 

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { VOICE_SUMMARY_LABEL } from "@mirai-gikai/branding/site";
 import { ChevronRight, Info, Undo2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -32,7 +33,7 @@ export async function loadVoiceSummaryPage(slug: string) {
 }
 
 /**
- * みんなの声のまとめページ（/interviews/[slug]/summary、#161・デザイン「5a」）。
+ * ちかっときかせてまとめページ（/interviews/[slug]/summary、#161・デザイン「5a」）。
  * admin で公開した Markdown を、トピック一覧・詳細・レポートと同じ枠で描画する。
  */
 export async function VoiceSummaryPage({ slug }: { slug: string }) {
@@ -58,7 +59,7 @@ export async function VoiceSummaryPage({ slug }: { slug: string }) {
       footer={
         <div className="flex flex-col items-center gap-3 pt-2">
           <ShareArticleButton
-            billName={`みんなの声のまとめ：${subject.name}`}
+            billName={`${VOICE_SUMMARY_LABEL}：${subject.name}`}
             shareUrl={`${siteOrigin}${routes.interviewThemeSummary(slug)}`}
             // メタデータの og:image と同じ（テーマのサムネイル、なければサイト共通）
             ogImageUrl={resolveThemeShareImageUrl(
@@ -81,12 +82,12 @@ export async function VoiceSummaryPage({ slug }: { slug: string }) {
     >
       <TopicSubjectHeader
         subject={subject}
-        trail={[{ label: "みんなの声のまとめ" }]}
+        trail={[{ label: VOICE_SUMMARY_LABEL }]}
       />
 
       <div className="flex flex-col gap-3">
         <h1 className="text-[22px] font-bold leading-9 text-foreground">
-          💬みんなの声のまとめ
+          💬{VOICE_SUMMARY_LABEL}
         </h1>
         <p className="text-xs text-muted-foreground">
           {formatVoiceSummaryMeta({

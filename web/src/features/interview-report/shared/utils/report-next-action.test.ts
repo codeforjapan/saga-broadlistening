@@ -1,3 +1,4 @@
+import { VOICE_SUMMARY_LINK_LABEL } from "@mirai-gikai/branding/site";
 import { describe, expect, it } from "vitest";
 import type { ReportOrigin } from "./public-report-display";
 import { resolveReportNextAction } from "./report-next-action";
@@ -22,7 +23,7 @@ describe("resolveReportNextAction", () => {
       })
     ).toEqual({
       href: "/interviews/wakamono/summary",
-      label: "意見まとめを見る",
+      label: VOICE_SUMMARY_LINK_LABEL,
     });
   });
 

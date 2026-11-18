@@ -1,3 +1,4 @@
+import { VOICE_SUMMARY_LINK_LABEL } from "@mirai-gikai/branding/site";
 import type { LucideIcon } from "lucide-react";
 import { Check, ChevronRight, Clock, Eye, Landmark, Undo2 } from "lucide-react";
 import type { Route } from "next";
@@ -139,7 +140,7 @@ export function KikasetePage({
               {voices.summary && (
                 <Button asChild variant="kikasete" size="sm" className="px-4">
                   <Link href={voices.summary.href as Route}>
-                    まとめを見る
+                    {VOICE_SUMMARY_LINK_LABEL}
                     <ChevronRight aria-hidden="true" />
                   </Link>
                 </Button>
