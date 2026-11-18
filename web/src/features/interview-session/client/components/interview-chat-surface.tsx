@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils";
  * インタビューのチャットの白い面（デザイン「4b」）。
  * 中央の列いっぱいに、上の2つの角だけを丸めて画面の下まで続ける。
  * 地の薄い緑は MainLayout がページ全体に敷く。
+ *
+ * 高さは h-dvh。Android でキーボードの分だけ縮めるため、この面を使うページは
+ * `interviewChatViewport` を viewport として export すること。
  */
 export function InterviewChatSurface({
   children,

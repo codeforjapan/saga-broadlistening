@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+export const viewport = interviewChatViewport;
 
 import { getBillByIdAdmin } from "@/features/bills/server/loaders/get-bill-by-id-admin";
 import { validatePreviewToken } from "@/features/bills/server/loaders/validate-preview-token";
@@ -13,6 +14,7 @@ import { InterviewChatStart } from "@/features/interview-session/client/componen
 import { InterviewSessionErrorView } from "@/features/interview-session/client/components/interview-session-error-view";
 import { InterviewChatSession } from "@/features/interview-session/server/components/interview-chat-session";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
+import { interviewChatViewport } from "@/features/interview-session/shared/constants/interview-chat-viewport";
 import { env } from "@/lib/env";
 
 interface InterviewPreviewChatPageProps {

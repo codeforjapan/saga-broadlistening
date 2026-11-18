@@ -2,6 +2,7 @@ import type { Route } from "next";
 import { notFound, redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+export const viewport = interviewChatViewport;
 
 import { getBillById } from "@/features/bills/server/loaders/get-bill-by-id";
 import { getInterviewConfigBySlug } from "@/features/interview-config/server/loaders/get-interview-config-by-slug";
@@ -14,6 +15,7 @@ import { InterviewSessionErrorView } from "@/features/interview-session/client/c
 import { InterviewChatSession } from "@/features/interview-session/server/components/interview-chat-session";
 import { initializeInterviewChat } from "@/features/interview-session/server/loaders/initialize-interview-chat";
 import { InterviewParticipationDeniedError } from "@/features/interview-session/server/services/resolve-interview-participation";
+import { interviewChatViewport } from "@/features/interview-session/shared/constants/interview-chat-viewport";
 import { routes } from "@/lib/routes";
 
 interface ThemeChatPageProps {
