@@ -18,6 +18,7 @@ describe("parseAssistantMessageContent", () => {
       quickReplies: ["はい", "いいえ"],
       nextStage: "chat",
       hasReport: false,
+      finalText: null,
     });
   });
 
@@ -26,6 +27,13 @@ describe("parseAssistantMessageContent", () => {
       JSON.stringify({ text: "まとめます", report: { summary: "x" } })
     );
     expect(result.hasReport).toBe(true);
+  });
+
+  it("report.final_text を finalText として取り出す", () => {
+    const result = parseAssistantMessageContent(
+      JSON.stringify({ text: "まとめます", report: { final_text: "提出文" } })
+    );
+    expect(result.finalText).toBe("提出文");
   });
 
   it("空配列の quick_replies は null に倒す", () => {
@@ -49,6 +57,7 @@ describe("parseAssistantMessageContent", () => {
       quickReplies: null,
       nextStage: null,
       hasReport: false,
+      finalText: null,
     });
   });
 
@@ -61,6 +70,7 @@ describe("parseAssistantMessageContent", () => {
       quickReplies: null,
       nextStage: "summary_complete",
       hasReport: true,
+      finalText: null,
     });
   });
 });

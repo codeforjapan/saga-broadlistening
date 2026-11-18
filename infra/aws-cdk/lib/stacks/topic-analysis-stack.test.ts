@@ -4,7 +4,7 @@ import { createTestTopicAnalysisStack } from "./test-support";
 
 describe("TopicAnalysisStack", () => {
   it("NAT Gatewayを作らずパブリックサブネットのみのVPCを構成する", () => {
-    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test1", "dev");
+    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test1", "stg");
 
     const template = Template.fromStack(topicAnalysisStack);
 
@@ -17,7 +17,7 @@ describe("TopicAnalysisStack", () => {
   it("ECRリポジトリをイメージスキャン有効・ライフサイクルルール付きで作成する", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test2",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -30,7 +30,7 @@ describe("TopicAnalysisStack", () => {
   });
 
   it("ECRリポジトリのリソースポリシーでGitHub Actionsのpushを許可する", () => {
-    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test2b", "dev");
+    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test2b", "stg");
 
     const template = Template.fromStack(topicAnalysisStack);
 
@@ -50,7 +50,7 @@ describe("TopicAnalysisStack", () => {
   it("タスクロールにBedrock呼び出しポリシーをアタッチする", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test3",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -75,7 +75,7 @@ describe("TopicAnalysisStack", () => {
   it("Compute EnvironmentがNATなしのパブリックサブネットでFargate構成になっている", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test4",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -93,7 +93,7 @@ describe("TopicAnalysisStack", () => {
   it("Job Queueが唯一のCompute Environmentに紐づく", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test5",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -109,7 +109,7 @@ describe("TopicAnalysisStack", () => {
   it("Job Definitionがvcpu1・memory2048で、既定コマンドがanalyze-allのコンテナを持つ", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test6",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -124,10 +124,13 @@ describe("TopicAnalysisStack", () => {
           Match.objectLike({ Type: "MEMORY", Value: "2048" }),
           Match.objectLike({ Type: "VCPU", Value: "1" }),
         ]),
+        Environment: Match.arrayWith([
+          { Name: "AWS_REGION", Value: "ap-northeast-1" },
+          { Name: "AI_ALLOWED_PROVIDERS", Value: "bedrock" },
+        ]),
         Secrets: Match.arrayWith([
           Match.objectLike({ Name: "SUPABASE_URL" }),
           Match.objectLike({ Name: "SUPABASE_SECRET_KEY" }),
-          Match.objectLike({ Name: "AI_GATEWAY_API_KEY" }),
         ]),
       }),
     });
@@ -136,14 +139,13 @@ describe("TopicAnalysisStack", () => {
   it("EventBridge Schedulerのcron式・タイムゾーン・Batch SubmitJobターゲットが正しい", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test7",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
 
-    // InputはjobQueue/jobDefinitionのARNをトークンとして含むためFn::Joinに
-    // なる。固定文字列部分だけを正規表現で照合する（jobQueue/jobDefinitionの
-    // ARN自体はFn::GetAtt/Refとして別要素になるため、ここでは照合しない）。
+    // InputはARNのトークン（jobQueueのFn::GetAtt・AWS::Partition）を含むためFn::Joinに
+    // なる。固定文字列部分だけを正規表現で照合する。
     // キー名はPascalCase（実機デプロイでcamelCaseだと拒否されることを確認済み）。
     template.hasResourceProperties("AWS::Scheduler::Schedule", {
       ScheduleExpression: "cron(0 6 * * ? *)",
@@ -158,8 +160,9 @@ describe("TopicAnalysisStack", () => {
               Match.stringLikeRegexp(
                 `"JobName":"topic-analysis-analyze-all-${envConfig.envName}"`
               ),
+              // JobDefinitionはリビジョン番号を含まないARNで指定する
               Match.stringLikeRegexp(
-                String.raw`"ContainerOverrides":\{"Command":\["--mode=analyze-all"\]\}\}`
+                String.raw`:job-definition/mirai-gikai-topic-analysis-worker-${envConfig.envName}","ContainerOverrides":\{"Command":\["--mode=analyze-all"\]\}\}`
               ),
             ]),
           ],
@@ -170,7 +173,7 @@ describe("TopicAnalysisStack", () => {
   });
 
   it("EventBridge Schedulerロールのbatch:SubmitJobがワイルドカードでなくJobQueue/JobDefinitionに限定される", () => {
-    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test8", "dev");
+    const { topicAnalysisStack } = createTestTopicAnalysisStack("Test8", "stg");
 
     const template = Template.fromStack(topicAnalysisStack);
 
@@ -191,7 +194,7 @@ describe("TopicAnalysisStack", () => {
   it("Job Queue/Job Definition ARNをCfnOutputとして出力する", () => {
     const { topicAnalysisStack, envConfig } = createTestTopicAnalysisStack(
       "Test10",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(topicAnalysisStack);
@@ -201,7 +204,18 @@ describe("TopicAnalysisStack", () => {
         Name: `MiraiGikaiTopicAnalysisJobQueueArn-${envConfig.envName}`,
       },
     });
+    // Job Definition ARNはリビジョン番号を含まない形で出力する
     template.hasOutput("JobDefinitionArnOutput", {
+      Value: {
+        "Fn::Join": [
+          "",
+          [
+            "arn:",
+            { Ref: "AWS::Partition" },
+            `:batch:${envConfig.region}:${envConfig.account}:job-definition/mirai-gikai-topic-analysis-worker-${envConfig.envName}`,
+          ],
+        ],
+      },
       Export: {
         Name: `MiraiGikaiTopicAnalysisJobDefinitionArn-${envConfig.envName}`,
       },

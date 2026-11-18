@@ -84,7 +84,7 @@ export function AdminItem({ admin, isCurrentUser }: AdminItemProps) {
                 variant="ghost"
                 size="sm"
                 disabled={isDeleting}
-                className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -102,7 +102,7 @@ export function AdminItem({ admin, isCurrentUser }: AdminItemProps) {
                 <AlertDialogAction
                   onClick={handleDelete}
                   disabled={isDeleting}
-                  className="bg-red-600 hover:bg-red-700"
+                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                 >
                   {isDeleting ? "削除中..." : "削除"}
                 </AlertDialogAction>

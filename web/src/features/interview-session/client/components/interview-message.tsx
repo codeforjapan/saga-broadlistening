@@ -1,14 +1,18 @@
 import type { UIMessage } from "@ai-sdk/react";
-import Image from "next/image";
 import type { ComponentProps, ReactNode } from "react";
 import { useMemo } from "react";
+import remarkBreaks from "remark-breaks";
 import { SystemMessage } from "@/features/chat/client/components/system-message";
 import { UserMessage } from "@/features/chat/client/components/user-message";
 import { InterviewSummary } from "@/features/interview-session/client/components/interview-summary";
 import { rehypeOpenLinksInNewTab } from "@/lib/markdown/rehype-open-links-in-new-tab";
+import { ChatAiAvatar } from "../../shared/components/chat-ai-avatar";
 import type { InterviewReportViewData } from "../../shared/schemas";
 
 type RehypePlugins = ComponentProps<typeof SystemMessage>["rehypePlugins"];
+
+// インタビュアーの発話は、つなぎと次の質問を改行1つで区切るため、改行をそのまま表示する
+const REMARK_PLUGINS = [remarkBreaks];
 
 interface InterviewMessageProps {
   message: UIMessage;
@@ -37,26 +41,18 @@ export function InterviewMessage({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex-shrink-0">
-        <Image
-          src="/icons/ai-chat.svg"
-          alt="AI"
-          width={36}
-          height={36}
-          className="rounded-full"
-        />
+        <ChatAiAvatar />
       </div>
       <div className="flex-1 space-y-2">
         <SystemMessage
           message={message}
           isStreaming={isStreaming}
           rehypePlugins={rehypePlugins}
+          remarkPlugins={REMARK_PLUGINS}
         />
         {report && (
           <div className="mt-2">
             <InterviewSummary report={report} />
-            <p className="text-sm font-medium mt-2">
-              こちらの内容で問題ありませんか？違和感がある箇所があれば指摘してください。
-            </p>
           </div>
         )}
       </div>

@@ -1,6 +1,11 @@
 "use server";
 
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
+import { randomBytes } from "node:crypto";
+import { parseAiConfig, resolveModelId } from "@mirai-gikai/shared/ai/config";
+import {
+  getModelPricing,
+  parseModelPricingOverrides,
+} from "@mirai-gikai/shared/ai/pricing";
 import { requireAdmin } from "@/features/auth/server/lib/auth-server";
 import {
   invalidateWebCache,
@@ -12,55 +17,86 @@ import {
   interviewConfigSchema,
 } from "../../shared/types";
 import { prepareQuestionsForDuplication } from "../../shared/utils/prepare-questions-for-duplication";
+import { findPublishBlockReason } from "../../shared/utils/publish-requirement";
+import { toConfigRecord } from "../../shared/utils/to-config-record";
 import {
-  closeOtherPublicConfigs,
+  closeInterviewConfigRecord,
+  closeOtherOpenConfigs,
   createInterviewConfigRecord,
   createInterviewQuestions,
   deleteInterviewConfigRecord,
-  findInterviewConfigBillId,
   findInterviewConfigById,
   findInterviewQuestionsByConfigId,
-  softDeleteInterviewConfigRecord,
+  findPolicyIdsByInterviewConfigId,
+  linkPolicyToInterviewConfig,
+  replacePolicyLinksForConfig,
   unpublishReportsByConfigId,
   updateInterviewConfigRecord,
+  updateInterviewConfigStatusToDraft,
 } from "../repositories/interview-config-repository";
 
 export type InterviewConfigResult =
   | { success: true; data: { id: string } }
   | { success: false; error: string };
 
-export type DuplicateInterviewConfigResult =
-  | { success: true; data: { id: string; billId: string } }
-  | { success: false; error: string };
+/** interview_configs.slug は NOT NULL かつ一意なため、複製時に採番する */
+function buildDuplicatedSlug(originalSlug: string): string {
+  return `${originalSlug}-copy-${randomBytes(4).toString("hex")}`;
+}
 
 /**
- * 新しいインタビュー設定を作成する
+ * 新しいインタビュー設定を作成し、指定された施策に紐づける。
+ *
+ * `input.policy_ids` が空（または未指定）なら施策に紐づかない
+ * 抽象テーマ型の意見募集になる。
  */
 export async function createInterviewConfig(
-  billId: string,
-  input: InterviewConfigInput
+  input: InterviewConfigInput,
+  /** 作成の直後に登録する質問の数（AI生成で確定した、プレビュー中の質問） */
+  options?: { pendingQuestionCount?: number }
 ): Promise<InterviewConfigResult> {
   try {
     await requireAdmin();
 
     // バリデーション
     const validatedData = interviewConfigSchema.parse(input);
+    const publishBlockReason = findPublishBlockReason({
+      status: validatedData.status,
+      questionCount: options?.pendingQuestionCount ?? 0,
+    });
+    if (publishBlockReason) {
+      return { success: false, error: publishBlockReason };
+    }
+    const modelId = resolveModelId(
+      parseAiConfig(process.env),
+      "interview",
+      validatedData.chat_model || undefined
+    );
+    if (
+      !getModelPricing(
+        modelId,
+        parseModelPricingOverrides(process.env.AI_MODEL_PRICING)
+      )
+    ) {
+      throw new Error(
+        "このモデルの料金が未設定です。AI_MODEL_PRICINGを設定してください。"
+      );
+    }
+    const policyIds = validatedData.policy_ids ?? [];
 
-    // 公開設定の場合、既存の公開設定を非公開にする
-    if (validatedData.status === "public") {
-      await closeOtherPublicConfigs(billId);
+    // 募集中にする場合、同じ施策の他の募集中設定を終了する
+    if (validatedData.status === "open") {
+      await closeOtherOpenConfigs(policyIds);
     }
 
     // 新規作成
-    const data = await createInterviewConfigRecord({
-      bill_id: billId,
-      name: validatedData.name,
-      status: validatedData.status,
-      mode: validatedData.mode,
-      themes: validatedData.themes || null,
-      chat_model: validatedData.chat_model || null,
-      estimated_duration: validatedData.estimated_duration ?? null,
-    });
+    const data = await createInterviewConfigRecord(
+      toConfigRecord(validatedData)
+    );
+
+    // 施策との紐づけ（policies_interview_configs）。
+    // 作成直後は外す紐付けがないので、更新と同じ関数で一括投入できる
+    await replacePolicyLinksForConfig(data.id, policyIds);
 
     // web側のキャッシュを無効化
     await invalidateWebCache([WEB_CACHE_TAGS.INTERVIEW_CONFIGS]);
@@ -79,7 +115,31 @@ export async function createInterviewConfig(
 }
 
 /**
- * 既存のインタビュー設定を更新する
+ * 作成直後の質問の登録に失敗したとき、意見募集を下書きに戻す。
+ * 質問が0件のまま募集中にしないため（募集中にする条件は findPublishBlockReason）。
+ */
+export async function revertInterviewConfigToDraft(
+  configId: string
+): Promise<InterviewConfigResult> {
+  try {
+    await requireAdmin();
+    await updateInterviewConfigStatusToDraft(configId);
+    await invalidateWebCache([WEB_CACHE_TAGS.INTERVIEW_CONFIGS]);
+    return { success: true, data: { id: configId } };
+  } catch (error) {
+    console.error("Revert interview config error:", error);
+    return {
+      success: false,
+      error: getErrorMessage(error, "下書きに戻せませんでした"),
+    };
+  }
+}
+
+/**
+ * 既存のインタビュー設定を更新する。
+ *
+ * `input.policy_ids` を渡した場合のみ、施策との紐づけを指定された集合に揃える。
+ * 未指定なら紐づけには触れない。
  */
 export async function updateInterviewConfig(
   configId: string,
@@ -90,22 +150,51 @@ export async function updateInterviewConfig(
 
     // バリデーション
     const validatedData = interviewConfigSchema.parse(input);
+    const modelId = resolveModelId(
+      parseAiConfig(process.env),
+      "interview",
+      validatedData.chat_model || undefined
+    );
+    if (
+      !getModelPricing(
+        modelId,
+        parseModelPricingOverrides(process.env.AI_MODEL_PRICING)
+      )
+    ) {
+      throw new Error(
+        "このモデルの料金が未設定です。AI_MODEL_PRICINGを設定してください。"
+      );
+    }
 
-    // 公開設定の場合、他の公開設定を非公開にする
-    if (validatedData.status === "public") {
-      // まず現在の設定のbill_idを取得
-      const currentConfig = await findInterviewConfigBillId(configId);
-      await closeOtherPublicConfigs(currentConfig.bill_id, configId);
+    if (validatedData.status === "open") {
+      const questions = await findInterviewQuestionsByConfigId(configId);
+      const publishBlockReason = findPublishBlockReason({
+        status: validatedData.status,
+        questionCount: questions.length,
+      });
+      if (publishBlockReason) {
+        return { success: false, error: publishBlockReason };
+      }
+    }
+
+    // 紐づけの更新は、募集中の重複チェックより先に行う。
+    // 新しく紐づけた施策側の募集中設定も終了対象に含めるため。
+    if (validatedData.policy_ids) {
+      await replacePolicyLinksForConfig(configId, validatedData.policy_ids);
+    }
+
+    // 募集中にする場合、同じ施策の他の募集中設定を終了する。
+    // 紐付けを更新した場合は書き込んだ集合がそのまま対象になるので読み直さない
+    if (validatedData.status === "open") {
+      const policyIds =
+        validatedData.policy_ids ??
+        (await findPolicyIdsByInterviewConfigId(configId));
+      await closeOtherOpenConfigs(policyIds, configId);
     }
 
     // 更新
     const data = await updateInterviewConfigRecord(configId, {
-      name: validatedData.name,
-      status: validatedData.status,
-      mode: validatedData.mode,
-      themes: validatedData.themes || null,
-      chat_model: validatedData.chat_model || null,
-      estimated_duration: validatedData.estimated_duration ?? null,
+      ...toConfigRecord(validatedData),
       updated_at: new Date().toISOString(),
     });
 
@@ -128,14 +217,14 @@ export async function updateInterviewConfig(
 /**
  * インタビュー設定を複製する（質問も含めてコピー）
  *
- * `options.targetBillId` を渡すと別の法案にコピーする。
- * 省略時は同じ法案内で複製する（従来動作）。
+ * `options.targetBillId` を渡すと別の施策にコピーする。
+ * 省略時は複製元と同じ施策に紐づける（従来動作）。
  * いずれの場合も新しい設定は status="closed" で作成する。
  */
 export async function duplicateInterviewConfig(
   configId: string,
   options?: { targetBillId?: string }
-): Promise<DuplicateInterviewConfigResult> {
+): Promise<InterviewConfigResult> {
   try {
     await requireAdmin();
 
@@ -152,20 +241,34 @@ export async function duplicateInterviewConfig(
     // 元の質問を取得
     const originalQuestions = await findInterviewQuestionsByConfigId(configId);
 
-    const targetBillId = options?.targetBillId ?? originalConfig.bill_id;
+    const linkedPolicyIds = await findPolicyIdsByInterviewConfigId(configId);
+    const targetBillId = options?.targetBillId ?? linkedPolicyIds[0];
 
-    // 新しい設定を作成（ステータスは非公開で複製）
+    if (!targetBillId) {
+      return {
+        success: false,
+        error: "複製元のインタビュー設定に施策が紐づいていません",
+      };
+    }
+
+    // 新しい設定を作成（ステータスは終了状態で複製）
     let newConfig: { id: string };
     try {
       newConfig = await createInterviewConfigRecord({
-        bill_id: targetBillId,
         name: `${originalConfig.name}（コピー）`,
+        slug: buildDuplicatedSlug(originalConfig.slug),
         status: "closed" as const,
-        mode: originalConfig.mode as InterviewMode,
-        themes: originalConfig.themes,
+        description: originalConfig.description,
         chat_model: originalConfig.chat_model,
         estimated_duration: originalConfig.estimated_duration,
+        thumbnail_url: originalConfig.thumbnail_url,
+        participation_mode: originalConfig.participation_mode,
+        allowed_provider_keys: originalConfig.allowed_provider_keys,
+        purpose_type: originalConfig.purpose_type,
+        opinion_focus: originalConfig.opinion_focus,
+        decided_matters: originalConfig.decided_matters,
       });
+      await linkPolicyToInterviewConfig(targetBillId, newConfig.id);
     } catch (error) {
       return {
         success: false,
@@ -195,7 +298,7 @@ export async function duplicateInterviewConfig(
     // web側のキャッシュを無効化
     await invalidateWebCache([WEB_CACHE_TAGS.INTERVIEW_CONFIGS]);
 
-    return { success: true, data: { id: newConfig.id, billId: targetBillId } };
+    return { success: true, data: { id: newConfig.id } };
   } catch (error) {
     console.error("Duplicate interview config error:", error);
     return {
@@ -209,7 +312,7 @@ export async function duplicateInterviewConfig(
 }
 
 /**
- * インタビュー設定を削除する
+ * インタビュー設定を削除する（status を closed にして一覧・公開から外す）
  */
 export async function deleteInterviewConfig(
   configId: string
@@ -217,15 +320,15 @@ export async function deleteInterviewConfig(
   try {
     await requireAdmin();
 
-    // 先に配下レポートを公開停止してから設定を論理削除する。
-    // この順序なら、途中で失敗しても「設定は一覧に残る／レポートも公開のまま」
+    // 先に配下の意見を公開停止してから設定を終了状態にする。
+    // この順序なら、途中で失敗しても「設定は募集中のまま／意見も公開のまま」
     // の整合した状態になり、再実行で安全にやり直せる（いずれも冪等）。
     await unpublishReportsByConfigId(configId);
-    await softDeleteInterviewConfigRecord(configId);
+    await closeInterviewConfigRecord(configId);
 
     // web側のキャッシュを無効化
     // - INTERVIEW_CONFIGS: 公開設定の取得
-    // - BILLS: 法案一覧の「AIインタビュー受付中」バッジ・法案ページの公開レポート件数
+    // - BILLS: 施策一覧の「AIインタビュー受付中」バッジ・施策ページの公開意見件数
     await invalidateWebCache([
       WEB_CACHE_TAGS.BILLS,
       WEB_CACHE_TAGS.INTERVIEW_CONFIGS,

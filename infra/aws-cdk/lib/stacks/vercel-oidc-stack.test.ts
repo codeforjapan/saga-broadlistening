@@ -4,7 +4,7 @@ import { createTestVercelOidcStack } from "./test-support";
 
 describe("VercelOidcStack", () => {
   it("Vercel用OIDCプロバイダーを作成する", () => {
-    const { vercelOidcStack } = createTestVercelOidcStack("Test1", "dev");
+    const { vercelOidcStack } = createTestVercelOidcStack("Test1", "stg");
 
     const template = Template.fromStack(vercelOidcStack);
 
@@ -17,7 +17,7 @@ describe("VercelOidcStack", () => {
   it("Vercel Bedrockアクセス用IAMロールを作成し信頼条件を検証する", () => {
     const { vercelOidcStack, envConfig } = createTestVercelOidcStack(
       "Test2",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(vercelOidcStack);
@@ -51,7 +51,7 @@ describe("VercelOidcStack", () => {
   it("BedrockInvokeModelPolicyをロールにアタッチする", () => {
     const { vercelOidcStack, envConfig } = createTestVercelOidcStack(
       "Test3",
-      "dev"
+      "stg"
     );
 
     const template = Template.fromStack(vercelOidcStack);
@@ -65,14 +65,20 @@ describe("VercelOidcStack", () => {
     expect(bedrockAccessRole.Properties.ManagedPolicyArns).toHaveLength(1);
   });
 
-  it("トピック分析workerのbatch:SubmitJob権限をJob Queue/Job Definition ARNちょうど2つに限定して付与する", () => {
-    const { vercelOidcStack } = createTestVercelOidcStack("Test3b", "dev");
+  it("トピック分析workerのbatch:SubmitJob権限をJob QueueとリビジョンなしJob Definitionに限定して付与する", () => {
+    const { vercelOidcStack, envConfig } = createTestVercelOidcStack(
+      "Test3b",
+      "stg"
+    );
 
     const template = Template.fromStack(vercelOidcStack);
 
-    // Job Queue/Job DefinitionはTopicAnalysisStackからのクロススタック参照
-    // （Fn::ImportValue）になるため、リテラル値の完全一致ではなく「ちょうど2要素
-    // （＝Job Queue ARNとJob Definition ARN）で、ワイルドカードでない」ことを検証する。
+    const prefix = `:batch:${envConfig.region}:${envConfig.account}`;
+    const arnOf = (resource: string) => ({
+      "Fn::Join": ["", ["arn:", { Ref: "AWS::Partition" }, `${prefix}:${resource}`]],
+    });
+    const jobDefinition = "job-definition/mirai-gikai-topic-analysis-worker-stg";
+
     template.hasResourceProperties("AWS::IAM::Policy", {
       PolicyDocument: {
         Statement: Match.arrayWith([
@@ -80,7 +86,11 @@ describe("VercelOidcStack", () => {
             Sid: "SubmitTopicAnalysisJob",
             Effect: "Allow",
             Action: "batch:SubmitJob",
-            Resource: [Match.anyValue(), Match.anyValue()],
+            Resource: [
+              arnOf("job-queue/mirai-gikai-topic-analysis-stg"),
+              arnOf(jobDefinition),
+              arnOf(`${jobDefinition}:*`),
+            ],
           }),
         ]),
       },
@@ -91,7 +101,7 @@ describe("VercelOidcStack", () => {
   });
 
   it("Vercelロールのポリシーにiam:PassRoleを含めない", () => {
-    const { vercelOidcStack } = createTestVercelOidcStack("Test3c", "dev");
+    const { vercelOidcStack } = createTestVercelOidcStack("Test3c", "stg");
 
     const template = Template.fromStack(vercelOidcStack);
 
@@ -124,7 +134,7 @@ describe("VercelOidcStack", () => {
   });
 
   it("bedrockAccessRoleプロパティを公開する", () => {
-    const { vercelOidcStack } = createTestVercelOidcStack("Test5", "dev");
+    const { vercelOidcStack } = createTestVercelOidcStack("Test5", "stg");
 
     expect(vercelOidcStack.bedrockAccessRole).toBeDefined();
   });

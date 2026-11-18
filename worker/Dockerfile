@@ -1,7 +1,7 @@
 # トピック分析・意見再抽出バックフィルを実行する Cloud Run Job / ECS Fargate 用イメージ。
 # pnpm workspace の .ts ソースをそのまま tsx で実行する（ビルド工程を持たない）。
 # Fargateはlinux/amd64のみのため、Apple Siliconなどでビルドしても常にamd64になるよう固定する。
-FROM --platform=linux/amd64 node:22-slim
+FROM --platform=linux/amd64 node:24-slim
 
 # pnpm を有効化（packageManager フィールドのバージョンを使用）
 RUN corepack enable

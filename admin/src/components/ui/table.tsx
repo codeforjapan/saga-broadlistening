@@ -12,7 +12,8 @@ function Table({ className, ...props }: ComponentProps<"table">) {
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        // 一覧は情報密度が高いため compact スケール（15px/1.6）を既定にする（D-14）
+        className={cn("w-full caption-bottom text-compact-body", className)}
         {...props}
       />
     </div>

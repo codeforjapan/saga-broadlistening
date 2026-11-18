@@ -1,12 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import type { LanguageModelUsage } from "ai";
 import {
   adminClient,
-  createTestUser,
   cleanupTestUser,
+  createTestUser,
   type TestUser,
 } from "@test-utils/utils";
-import { recordChatUsage, getUsageCostUsd } from "./cost-tracker";
+import type { LanguageModelUsage } from "ai";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  getUsageCostUsd,
+  isWithinDailyCostLimit,
+  recordChatUsage,
+} from "./cost-tracker";
 
 function mockUsage(
   input: number,
@@ -28,6 +32,7 @@ describe("cost-tracker 統合テスト", () => {
   });
 
   afterEach(async () => {
+    vi.unstubAllEnvs();
     // テストデータを削除
     await adminClient
       .from("chat_usage_events")
@@ -37,6 +42,57 @@ describe("cost-tracker 統合テスト", () => {
   });
 
   describe("recordChatUsage", () => {
+    it("直接接続の設定単価で費用を記録し、日次上限に反映する", async () => {
+      vi.stubEnv(
+        "AI_MODEL_PRICING",
+        JSON.stringify({
+          "openai:gpt-4o": {
+            inputTokensPerMillionUsd: 2,
+            outputTokensPerMillionUsd: 8,
+          },
+        })
+      );
+      expect(await isWithinDailyCostLimit(testUser.id, 0.006)).toBe(true);
+
+      await recordChatUsage({
+        userId: testUser.id,
+        model: "openai:gpt-4o",
+        usage: mockUsage(1000, 500, 1500),
+      });
+
+      const { data, error } = await adminClient
+        .from("chat_usage_events")
+        .select("model, cost_usd")
+        .eq("user_id", testUser.id)
+        .single();
+
+      expect(error).toBeNull();
+      expect(data?.model).toBe("openai:gpt-4o");
+      expect(Number(data?.cost_usd)).toBe(0.006);
+      expect(await isWithinDailyCostLimit(testUser.id, 0.006)).toBe(false);
+      expect(await isWithinDailyCostLimit(testUser.id, 0.007)).toBe(true);
+    });
+
+    it("料金未登録の使用量は拒否し、費用ゼロのレコードを保存しない", async () => {
+      vi.stubEnv("AI_MODEL_PRICING", undefined);
+
+      await expect(
+        recordChatUsage({
+          userId: testUser.id,
+          model: "openai:unpriced-test-model",
+          usage: mockUsage(1000, 500, 1500),
+        })
+      ).rejects.toThrow(/Unknown pricing/);
+
+      const { data, error } = await adminClient
+        .from("chat_usage_events")
+        .select("id")
+        .eq("user_id", testUser.id);
+
+      expect(error).toBeNull();
+      expect(data).toEqual([]);
+    });
+
     it("usage を DB に記録できる", async () => {
       await recordChatUsage({
         userId: testUser.id,

@@ -11,8 +11,6 @@ const reports = new Map<string, CompletedReportListItem>([
       configId: "c1",
       configName: "v1",
       roleTitle: "教員",
-      role: null,
-      stance: "for",
       summary: null,
       totalContentRichness: 80,
       completedAt: null,
@@ -21,9 +19,9 @@ const reports = new Map<string, CompletedReportListItem>([
 ]);
 
 describe("describePersonaSlot", () => {
-  it("report ソース（ルックアップに存在する）は roleTitle と stance を表示", () => {
+  it("report ソース（ルックアップに存在する）は roleTitle を表示", () => {
     const slot: PersonaSlotInput = { kind: "report", reportId: "r1" };
-    expect(describePersonaSlot(slot, reports)).toBe("レポート: 教員 / 賛成");
+    expect(describePersonaSlot(slot, reports)).toBe("レポート: 教員");
   });
 
   it("report ソース（ルックアップ未提供）は reportId を短縮表示", () => {

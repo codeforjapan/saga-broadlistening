@@ -1,55 +1,89 @@
-import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
+import { after } from "next/server";
 import {
   checkSystemDailyCostLimit,
   checkSystemMonthlyCostLimit,
 } from "@/features/chat/server/services/system-cost-guard";
 import { chatErrorToResponse } from "@/features/chat/server/utils/chat-error-response";
+import { getChatSupabaseUser } from "@/features/chat/server/utils/supabase-server";
 import { handleInterviewChatRequest } from "@/features/interview-session/server/services/handle-interview-chat-request";
+import {
+  type InterviewChatTrace,
+  runInterviewChatTrace,
+} from "@/features/interview-session/server/utils/interview-chat-trace";
 import { jsonResponse } from "@/lib/api/response";
-import { registerNodeTelemetry } from "@/lib/telemetry/register";
+import {
+  flushTelemetry,
+  registerNodeTelemetry,
+} from "@/lib/telemetry/register";
 
 export async function POST(req: Request) {
+  const requestStart = performance.now();
+
   // Vercel node環境でinstrumentationが自動で起動しない問題対応
   // 明示的にtelemetryを初期化
   await registerNodeTelemetry();
+  const telemetryInitMs = performance.now() - requestStart;
 
+  return runInterviewChatTrace(requestStart, (trace) => {
+    trace.addStage("telemetry-init", telemetryInitMs);
+    after(async () => {
+      trace.end();
+      await flushTelemetry();
+    });
+    return authorizeAndHandleChat(req, trace);
+  });
+}
+
+async function authorizeAndHandleChat(req: Request, trace: InterviewChatTrace) {
   const body = await req.json();
   const {
     messages,
-    billId,
-    currentStage,
+    interviewConfigId,
+    action,
     isRetry,
+    previewPolicyId,
+    previewToken,
   }: {
     messages: Array<{ role: string; content: string }>;
-    billId: string;
-    currentStage: "chat" | "summary" | "summary_complete";
+    interviewConfigId: string;
+    action?: unknown;
     isRetry?: boolean;
+    previewPolicyId?: unknown;
+    previewToken?: unknown;
   } = body;
 
   const {
     data: { user },
     error: getUserError,
-  } = await getChatSupabaseUser();
+  } = await trace.measure("auth", getChatSupabaseUser);
 
   if (getUserError || !user) {
     return jsonResponse({ error: "Anonymous session required" }, 401);
   }
 
-  if (!billId) {
-    return jsonResponse({ error: "billId is required" }, 400);
+  if (!interviewConfigId) {
+    return jsonResponse({ error: "interviewConfigId is required" }, 400);
   }
 
   try {
-    // システム全体の予算上限チェック（日次・月次）
-    await checkSystemDailyCostLimit();
-    await checkSystemMonthlyCostLimit();
-
     return await handleInterviewChatRequest({
       messages,
-      billId,
-      currentStage,
+      interviewConfigId,
+      action: action === "end" ? "end" : undefined,
       isRetry,
+      // 文字列以外は検証対象にしない（不正な型のトークンは未指定として扱う）
+      previewPolicyId:
+        typeof previewPolicyId === "string" ? previewPolicyId : undefined,
+      previewToken: typeof previewToken === "string" ? previewToken : undefined,
       userId: user.id,
+      // システム全体の予算上限チェック（日次・月次）。ほかの前処理と並べて走らせる
+      checkSystemCost: async () => {
+        await Promise.all([
+          trace.measure("cost-check-daily", checkSystemDailyCostLimit),
+          trace.measure("cost-check-monthly", checkSystemMonthlyCostLimit),
+        ]);
+      },
+      trace,
     });
   } catch (error) {
     console.error("Interview chat request error:", error);

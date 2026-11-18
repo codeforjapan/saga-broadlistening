@@ -14,7 +14,6 @@ import type { MessageSearchResult } from "../loaders/search-user-messages";
 import { SEARCH_SESSIONS_PER_PAGE } from "../loaders/search-user-messages";
 import { HighlightedText } from "./highlighted-text";
 import { PaginationNav } from "./pagination-nav";
-import { StanceBadge } from "./stance-badge";
 import { VisibilityBadge } from "./visibility-badge";
 
 const MAX_SNIPPETS_PER_SESSION = 3;
@@ -83,9 +82,8 @@ function SessionResultCard({
           >
             {session.id.substring(0, 8)}...
           </Link>
-          <StanceBadge stance={report?.stance || null} />
           {report && (
-            <VisibilityBadge isPublic={report.is_public_by_admin ?? false} />
+            <VisibilityBadge isPublic={report.review_status === "published"} />
           )}
           {report?.role_title && (
             <span className="text-sm text-gray-600">{report.role_title}</span>

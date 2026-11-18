@@ -14,7 +14,7 @@ import {
 } from "../repositories/bill-edit-repository";
 
 /**
- * 議案のタグを更新する
+ * 施策のタグを更新する
  * 既存のタグと新しいタグを比較して、差分のみを更新する
  */
 export async function updateBillTags(billId: string, tagIds: string[]) {

@@ -1,43 +1,28 @@
-import { LangfuseExporter } from "langfuse-vercel";
-import { NodeSDK } from "@opentelemetry/sdk-node";
+import "server-only";
+import {
+  flushTelemetry,
+  getLangfuseSpanProcessor,
+  registerNodeTelemetry as registerSharedTelemetry,
+} from "@mirai-gikai/shared/telemetry/register";
+import { after } from "next/server";
 import { env } from "@/lib/env";
 
-let isInitialized = false;
+export { flushTelemetry, getLangfuseSpanProcessor };
+
+export async function registerNodeTelemetry() {
+  await registerSharedTelemetry({
+    ...env.langfuse,
+    environment: process.env.VERCEL_ENV || "development",
+  });
+}
 
 /**
- * Langfuse telemetryを初期化する
- * Vercel環境ではinstrumentation.node.tsが自動起動しないため、
- * 必要な箇所で明示的に呼び出す
+ * LLM を呼ぶリクエスト（API ルート・ページの描画）のトレース準備。
+ * Vercel では instrumentation が自動で起動しないことがあるので明示的に登録し、
+ * ためたトレースを応答後に送る（送らないまま関数が止まると消える）。
+ * リクエストの中でしか呼べない（after の制約）
  */
-export async function registerNodeTelemetry() {
-  if (isInitialized) {
-    return;
-  }
-
-  try {
-    const { publicKey, secretKey, baseUrl } = env.langfuse;
-
-    if (!publicKey || !secretKey) {
-      console.warn(
-        "[Telemetry] Langfuse credentials not configured. Telemetry disabled."
-      );
-      return;
-    }
-
-    const langfuseExporter = new LangfuseExporter({
-      publicKey,
-      secretKey,
-      baseUrl,
-      environment: process.env.VERCEL_ENV || "development",
-    });
-
-    const sdk = new NodeSDK({
-      traceExporter: langfuseExporter,
-    });
-
-    sdk.start();
-    isInitialized = true;
-  } catch (error) {
-    console.error("[Telemetry] Failed to initialize Langfuse:", error);
-  }
+export async function setupRequestTelemetry() {
+  after(flushTelemetry);
+  await registerNodeTelemetry();
 }

@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { StanceBadge } from "@/features/interview-reports/server/components/stance-badge";
 import {
   MAX_PERSONA_SLOTS,
   RECOMMENDED_PERSONA_SLOTS,
@@ -20,11 +19,14 @@ import { PersonaSlotCard } from "./persona-slot-card";
 interface PersonaSelectorListProps {
   slots: PersonaSlotInput[];
   onChange: (next: PersonaSlotInput[]) => void;
-  /** この config に紐づく billId（UI では特に使わないが、将来スコープ切替で使うかも） */
-  billId: string;
   /** この config の ID */
   currentConfigId: string;
-  /** 法案配下の全完了レポート（config_id 付き） */
+  /**
+   * 施策全体から候補を選べるか。抽象テーマ型では候補がこの config のものだけなので、
+   * 「この設定のみ / この施策全体」の切り替え自体を出さない。
+   */
+  hasPolicyScope: boolean;
+  /** 施策配下の全完了レポート（config_id 付き） */
   completedReports: CompletedReportListItem[];
   completedReportsTruncated?: boolean;
   completedReportsLimit?: number;
@@ -38,6 +40,7 @@ export function PersonaSelectorList({
   slots,
   onChange,
   currentConfigId,
+  hasPolicyScope,
   completedReports,
   completedReportsTruncated = false,
   completedReportsLimit,
@@ -175,23 +178,26 @@ export function PersonaSelectorList({
               件を表示。古いものは含まれていません。
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs">
-            <Label className="text-xs">対象範囲:</Label>
-            <button
-              type="button"
-              className={`text-xs px-2 py-0.5 rounded ${reportScope === "config" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-              onClick={() => setReportScope("config")}
-            >
-              この設定のみ
-            </button>
-            <button
-              type="button"
-              className={`text-xs px-2 py-0.5 rounded ${reportScope === "bill" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
-              onClick={() => setReportScope("bill")}
-            >
-              この法案全体
-            </button>
-          </div>
+          {/* 抽象テーマ型は候補がこの設定のものだけなので、切り替え自体を出さない */}
+          {hasPolicyScope && (
+            <div className="flex items-center gap-2 text-xs">
+              <Label className="text-xs">対象範囲:</Label>
+              <button
+                type="button"
+                className={`text-xs px-2 py-0.5 rounded ${reportScope === "config" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                onClick={() => setReportScope("config")}
+              >
+                この設定のみ
+              </button>
+              <button
+                type="button"
+                className={`text-xs px-2 py-0.5 rounded ${reportScope === "bill" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
+                onClick={() => setReportScope("bill")}
+              >
+                この施策全体
+              </button>
+            </div>
+          )}
           <div className="max-h-72 overflow-y-auto space-y-1 text-sm">
             {visibleReports.length === 0 ? (
               <p className="text-xs text-muted-foreground italic py-2">
@@ -229,7 +235,6 @@ export function PersonaSelectorList({
                         <span className="font-medium">
                           {r.roleTitle ?? "立場不明"}
                         </span>
-                        <StanceBadge stance={r.stance} />
                         {r.totalContentRichness !== null && (
                           <Badge
                             variant="outline"

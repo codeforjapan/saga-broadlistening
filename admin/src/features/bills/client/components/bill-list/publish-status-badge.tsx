@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Clock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,12 +28,6 @@ const PUBLISH_STATUS_CONFIG: Record<
     label: "下書き",
     icon: EyeOff,
     badgeClass: "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200",
-  },
-  coming_soon: {
-    label: "Coming Soon",
-    icon: Clock,
-    badgeClass:
-      "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200",
   },
   published: {
     label: "公開中",

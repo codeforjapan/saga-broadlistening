@@ -1,10 +1,8 @@
-import {
-  PROMPT_VERSION,
-  TOPIC_MODEL,
-} from "@mirai-gikai/topic-analysis-core/constants";
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
+import { PROMPT_VERSION } from "@mirai-gikai/topic-analysis-core/constants";
 import {
   createVersion,
-  findActiveVersionByBill,
+  findActiveVersionByInterviewConfig,
   isStaleActiveVersion,
   updateVersionStatus,
 } from "@mirai-gikai/topic-analysis-core/repository";
@@ -27,18 +25,21 @@ export async function POST(request: Request) {
     return json({ error: "Unauthorized" }, 401);
   }
 
-  let billId: string;
+  let interviewConfigId: string;
   let strategy: "full" | "incremental" = "full";
   try {
     const body: unknown = await request.json();
     const obj =
       typeof body === "object" && body !== null
-        ? (body as { billId?: unknown; strategy?: unknown })
+        ? (body as { interviewConfigId?: unknown; strategy?: unknown })
         : {};
-    if (typeof obj.billId !== "string" || obj.billId.trim() === "") {
-      return json({ error: "billId is required" }, 400);
+    if (
+      typeof obj.interviewConfigId !== "string" ||
+      obj.interviewConfigId.trim() === ""
+    ) {
+      return json({ error: "interviewConfigId is required" }, 400);
     }
-    billId = obj.billId.trim();
+    interviewConfigId = obj.interviewConfigId.trim();
     if (obj.strategy !== undefined) {
       if (obj.strategy !== "full" && obj.strategy !== "incremental") {
         return json({ error: "strategy must be 'full' or 'incremental'" }, 400);
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     // 二重起動防止（§5.3）: running/pending があればスキップ。
     // ただし Batch ジョブが worker 到達前に死んだ等で失効した行は failed に倒し、
     // 再実行をブロックし続けないようにする（pending/running のままの残骸を自己回復）。
-    const active = await findActiveVersionByBill(billId);
+    const active = await findActiveVersionByInterviewConfig(interviewConfigId);
     if (active) {
       if (isStaleActiveVersion(active, Date.now())) {
         await updateVersionStatus(
@@ -67,14 +68,14 @@ export async function POST(request: Request) {
     }
 
     // 事前チェックは TOCTOU で破れるため、createVersion は
-    // one_active_version_per_bill の一意制約に弾かれたら null を返す。
+    // one_active_version_per_interview_config の一意制約に弾かれたら null を返す。
     // 同時 POST で負けた側はここでスキップ扱いにする（原子的ガード）。
-    const version = await createVersion(
-      billId,
-      "manual",
-      TOPIC_MODEL,
-      PROMPT_VERSION
-    );
+    const version = await createVersion({
+      interviewConfigId,
+      trigger: "manual",
+      model: getAiModel("topicAnalysis").modelId,
+      promptVersion: PROMPT_VERSION,
+    });
     if (!version) {
       return json({ skipped: true, reason: "running" });
     }
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
     try {
       await executeTopicAnalysisJob([
         "--mode=analyze",
-        `--bill-id=${billId}`,
+        `--interview-config-id=${interviewConfigId}`,
         `--version-id=${version.id}`,
         `--strategy=${strategy}`,
       ]);

@@ -10,7 +10,7 @@
 #
 # 接続情報:
 #   - SUPABASE_URL / SUPABASE_SECRET_KEY … `supabase status` から自動取得（ローカル）
-#   - AI_GATEWAY_API_KEY … ルート .env から読み込む（実 LLM 呼び出し＝コストが出る点に注意）
+#   - AI設定 … ルート .env と AWS_PROFILE のSSO認証から読み込む（実 LLM 呼び出し＝コストが出る点に注意）
 #
 set -euo pipefail
 
@@ -29,9 +29,9 @@ fi
 export SUPABASE_URL SUPABASE_SECRET_KEY
 
 echo "▶ worker (local) を起動: SUPABASE_URL=${SUPABASE_URL}  args: $*"
-echo "  ※ 接続先はローカル。AI_GATEWAY_API_KEY は .env から（実 LLM 呼び出しが走ります）"
+echo "  ※ 接続先はローカル。AI設定は .env と AWS_PROFILE から（実 LLM 呼び出しが走ります）"
 
-# AI_GATEWAY_API_KEY 等は .env から注入（dotenv-cli は既存の export を上書きしないので
+# AI設定は .env から注入（dotenv-cli は既存の export を上書きしないので
 # 上で export した SUPABASE_* がそのまま優先される）。worker の start で実行する。
 exec pnpm exec dotenv -e "${REPO_ROOT}/.env" -- \
   pnpm --filter @mirai-gikai/topic-analysis-worker start -- "$@"

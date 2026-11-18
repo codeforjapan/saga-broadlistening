@@ -1,90 +1,115 @@
-import { MIN_PUBLIC_REPORTS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { MIN_PUBLIC_OPINIONS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
 import { describe, expect, it } from "vitest";
 import {
   buildPublicReportsPage,
-  buildStanceCounts,
   canViewReportWithMessages,
   countUserMessageCharacters,
-  getBillIdFromPublicReportSession,
-  mapPublicInterviewReports,
-  type RawPublicInterviewReport,
+  getReportOrigin,
+  getReportOriginLink,
+  type PublicInterviewReport,
+  type ReportOrigin,
+  resolveReportSubject,
   selectPrimaryBillContent,
 } from "./public-report-display";
 
-function rawReport(id: string): RawPublicInterviewReport {
+function rawReport(id: string): PublicInterviewReport {
   return {
     id,
-    stance: "for",
-    role: "general_citizen",
     role_title: "会社員",
     summary: `summary-${id}`,
+    final_text: `final-${id}`,
     total_content_richness: 72,
     created_at: "2026-05-06T00:00:00.000Z",
   };
 }
 
 describe("public report display utilities", () => {
-  it("公開レポートの表示用フィールドだけを写す", () => {
-    expect(mapPublicInterviewReports([rawReport("report-1")])).toEqual([
-      {
-        id: "report-1",
-        stance: "for",
-        role: "general_citizen",
-        role_title: "会社員",
-        summary: "summary-report-1",
-        total_content_richness: 72,
-        created_at: "2026-05-06T00:00:00.000Z",
-      },
-    ]);
-  });
-
-  it("スタンス別件数を all に合算し、null stance は個別集計に入れない", () => {
-    expect(
-      buildStanceCounts([
-        { stance: "for", count: 12 },
-        { stance: "against", count: "5" },
-        { stance: null, count: 3 },
-      ])
-    ).toEqual({
-      all: 20,
-      for: 12,
-      against: 5,
-      neutral: 0,
-    });
-  });
-
-  it("ページサイズを超える公開レポートは hasMore を立てて切り詰める", () => {
+  it("ページサイズを超える公開意見は hasMore を立てて切り詰める", () => {
     const result = buildPublicReportsPage(
-      [rawReport("report-1"), rawReport("report-2")],
+      [rawReport("opinion-1"), rawReport("opinion-2")],
       1
     );
 
     expect(result).toEqual({
-      reports: [rawReport("report-1")],
+      reports: [rawReport("opinion-1")],
       hasMore: true,
     });
   });
 
-  it("公開レポートのセッションから bill id を取り出す", () => {
+  it("意見のセッションから起点の施策とテーマを取り出す（多対多は公開済みの最初の1件）", () => {
     expect(
-      getBillIdFromPublicReportSession({
+      getReportOrigin({
         started_at: "2026-05-06T00:00:00.000Z",
         completed_at: null,
-        interview_configs: { bill_id: "bill-1" },
+        interview_config_id: "config-1",
+        interview_configs: {
+          slug: "saga-no-mirai",
+          name: "佐賀市のみらい",
+          status: "open",
+          policies_interview_configs: [
+            { policies: { id: "policy-1", publish_status: "draft" } },
+            { policies: { id: "policy-2", publish_status: "published" } },
+            { policies: { id: "policy-3", publish_status: "published" } },
+          ],
+        },
       })
-    ).toBe("bill-1");
+    ).toEqual({
+      policyId: "policy-2",
+      theme: { slug: "saga-no-mirai", name: "佐賀市のみらい", isOpen: true },
+    });
+  });
+
+  it("施策に紐づかない抽象テーマ型はテーマだけを起点にする", () => {
     expect(
-      getBillIdFromPublicReportSession({
+      getReportOrigin({
         started_at: "2026-05-06T00:00:00.000Z",
         completed_at: null,
+        interview_config_id: "config-1",
+        interview_configs: {
+          slug: "saga-no-mirai",
+          name: "佐賀市のみらい",
+          status: "open",
+          policies_interview_configs: [],
+        },
+      })
+    ).toEqual({
+      policyId: null,
+      theme: { slug: "saga-no-mirai", name: "佐賀市のみらい", isOpen: true },
+    });
+  });
+
+  it("紐づく施策がすべて未公開なら施策なしとして扱う", () => {
+    expect(
+      getReportOrigin({
+        started_at: "2026-05-06T00:00:00.000Z",
+        completed_at: null,
+        interview_config_id: "config-1",
+        interview_configs: {
+          slug: "saga-no-mirai",
+          name: "佐賀市のみらい",
+          status: "open",
+          policies_interview_configs: [
+            { policies: { id: "policy-1", publish_status: "draft" } },
+          ],
+        },
+      })?.policyId
+    ).toBeNull();
+  });
+
+  it("意見募集を辿れないセッションは起点を決められない", () => {
+    expect(
+      getReportOrigin({
+        started_at: "2026-05-06T00:00:00.000Z",
+        completed_at: null,
+        interview_config_id: "config-1",
         interview_configs: null,
       })
     ).toBeNull();
   });
 
-  it("bill_contents の配列・単体・null を表示用に正規化する", () => {
-    expect(selectPrimaryBillContent([{ title: "議案タイトル" }])).toEqual({
-      title: "議案タイトル",
+  it("policy_contents の配列・単体・null を表示用に正規化する", () => {
+    expect(selectPrimaryBillContent([{ title: "施策タイトル" }])).toEqual({
+      title: "施策タイトル",
     });
     expect(selectPrimaryBillContent({ title: "単体タイトル" })).toEqual({
       title: "単体タイトル",
@@ -102,30 +127,73 @@ describe("public report display utilities", () => {
     ).toBe(5);
   });
 
-  it("所有者は公開件数ゲートを迂回し、非所有者は公開フラグと件数を満たす必要がある", () => {
+  it("所有者は公開件数ゲートを迂回し、非所有者は公開状態と件数を満たす必要がある", () => {
     expect(
       canViewReportWithMessages({
         isOwner: true,
-        isPublicByAdmin: false,
-        isPublicByUser: false,
-        publicReportCount: 0,
+        reviewStatus: "pending_review",
+        publicOpinionCount: 0,
       })
     ).toBe(true);
     expect(
       canViewReportWithMessages({
         isOwner: false,
-        isPublicByAdmin: true,
-        isPublicByUser: true,
-        publicReportCount: MIN_PUBLIC_REPORTS_FOR_DISPLAY,
+        reviewStatus: "published",
+        publicOpinionCount: MIN_PUBLIC_OPINIONS_FOR_DISPLAY,
       })
     ).toBe(true);
     expect(
       canViewReportWithMessages({
         isOwner: false,
-        isPublicByAdmin: true,
-        isPublicByUser: true,
-        publicReportCount: MIN_PUBLIC_REPORTS_FOR_DISPLAY - 1,
+        reviewStatus: "published",
+        publicOpinionCount: MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1,
       })
     ).toBe(false);
+  });
+});
+
+const openThemeOrigin: ReportOrigin = {
+  policyId: null,
+  theme: { slug: "saga-no-mirai", name: "佐賀市のみらい", isOpen: true },
+};
+
+describe("getReportOriginLink", () => {
+  it("施策があれば施策詳細を指す", () => {
+    expect(
+      getReportOriginLink({ ...openThemeOrigin, policyId: "policy-1" })
+    ).toBe("/bills/policy-1");
+  });
+
+  it("施策がなく募集中ならテーマのページを指す", () => {
+    expect(getReportOriginLink(openThemeOrigin)).toBe(
+      "/interviews/saga-no-mirai"
+    );
+  });
+
+  it("募集が終わったテーマは個別ページが公開されないのでテーマ一覧に送る", () => {
+    expect(
+      getReportOriginLink({
+        ...openThemeOrigin,
+        theme: { ...openThemeOrigin.theme, isOpen: false },
+      })
+    ).toBe("/interviews");
+  });
+});
+
+describe("resolveReportSubject", () => {
+  it("施策があれば施策名と施策のページを使う（トピック一覧のパンくずとそろえる）", () => {
+    expect(
+      resolveReportSubject(
+        { name: "若者支援" },
+        { ...openThemeOrigin, policyId: "policy-1" }
+      )
+    ).toEqual({ name: "若者支援", href: "/bills/policy-1" });
+  });
+
+  it("施策がなければテーマ名とテーマのページを使う", () => {
+    expect(resolveReportSubject(null, openThemeOrigin)).toEqual({
+      name: "佐賀市のみらい",
+      href: "/interviews/saga-no-mirai",
+    });
   });
 });

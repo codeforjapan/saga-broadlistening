@@ -2,8 +2,8 @@ import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/type
 import { findBillContentByDifficulty } from "../../repositories/bill-repository";
 
 /**
- * 指定された難易度の議案コンテンツを取得
- * @param billId 議案ID
+ * 指定された難易度の施策コンテンツを取得
+ * @param billId 施策ID
  * @param difficultyLevel 難易度レベル
  */
 export async function getBillContentWithDifficulty(

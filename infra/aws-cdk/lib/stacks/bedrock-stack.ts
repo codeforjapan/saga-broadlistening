@@ -27,6 +27,8 @@ const JP_CRIS_REGIONS = ["ap-northeast-1", "ap-northeast-3"] as const;
 const JP_CRIS_MODELS = [
   "anthropic.claude-sonnet-4-6",
   "anthropic.claude-haiku-4-5-20251001-v1:0",
+  "anthropic.claude-opus-5-5",
+  "anthropic.claude-haiku-5-5",
 ] as const;
 
 // 東京In-Regionのみで完結し、CRISを経由しないfoundation model。#43の採用モデル。

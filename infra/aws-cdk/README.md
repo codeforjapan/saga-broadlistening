@@ -1,7 +1,9 @@
 # AWS CDK (Bedrock / Lambda)
 
 AWS Bedrock と Lambda 関連のインフラを管理する AWS CDK (TypeScript) プロジェクトです。
-dev / stg / prd を **AWS アカウントレベルで分離** する構成になっています。
+stg / prd を **AWS アカウントレベルで分離** する構成になっています。
+develop環境（GitHubの`staging` Environment）は独立したAWSアカウントを持たず、
+stg環境（`826784631888`）をそのまま使います。
 
 既存の `infra/cloud-run`（GCP Cloud Run）とは独立したプロジェクトで、pnpm workspace の
 メンバー（`@mirai-gikai/aws-cdk`）として管理されています。
@@ -10,13 +12,12 @@ dev / stg / prd を **AWS アカウントレベルで分離** する構成にな
 
 ```
 infra/aws-cdk/
-├── bin/app.ts                # CDKアプリのエントリーポイント（--context env=dev|stg|prd で対象環境を指定）
+├── bin/app.ts                # CDKアプリのエントリーポイント（--context env=stg|prd で対象環境を指定）
 ├── lib/
 │   ├── config/
 │   │   ├── types.ts               # EnvConfig / EnvName の型定義
 │   │   └── environments/
-│   │       ├── dev.ts             # dev環境の設定
-│   │       ├── stg.ts             # stg環境の設定（アカウント未定のためプレースホルダー）
+│   │       ├── stg.ts             # stg環境の設定（develop環境もこれを流用）
 │   │       ├── prd.ts             # prd環境の設定
 │   │       └── index.ts           # resolveEnvConfig(envName) — 環境名から設定を解決する純粋関数
 │   └── stacks/
@@ -37,8 +38,7 @@ infra/aws-cdk/
 
 | 環境 | AWSアカウントID | リージョン |
 | --- | --- | --- |
-| dev | `826784631888` | `ap-northeast-1` |
-| stg | 未設定（`resolveEnvConfig("stg")` が明示的にエラーを投げる。stg用アカウントが決まったら `lib/config/environments/stg.ts` の `account` を実際のIDに差し替える） | `ap-northeast-1` |
+| stg（developブランチのdeploy先も兼ねる） | `826784631888` | `ap-northeast-1` |
 | prd | `085350497655` | `ap-northeast-1` |
 
 `bedrockModelId` も含め、環境ごとの設定値は `lib/config/environments/*.ts` に集約しています。
@@ -53,14 +53,14 @@ pnpm install
 
 AWS認証情報は環境ごとに異なるアカウントを使うため、環境変数 `AWS_PROFILE` で
 対象アカウントのプロファイルを切り替えて実行してください（例: `~/.aws/config` に
-`mirai-gikai-dev` / `mirai-gikai-prd` などのプロファイルを用意）。
+`mirai-gikai-stg` / `mirai-gikai-prd` などのプロファイルを用意）。
 
 ## 初回のみ: CDK Bootstrap
 
 各AWSアカウント・リージョンごとに一度だけ実行が必要です。
 
 ```bash
-AWS_PROFILE=<devアカウント用プロファイル> npx cdk bootstrap aws://826784631888/ap-northeast-1 --context env=dev
+AWS_PROFILE=<stgアカウント用プロファイル> npx cdk bootstrap aws://826784631888/ap-northeast-1 --context env=stg
 AWS_PROFILE=<prdアカウント用プロファイル> npx cdk bootstrap aws://085350497655/ap-northeast-1 --context env=prd
 ```
 
@@ -70,17 +70,16 @@ AWS_PROFILE=<prdアカウント用プロファイル> npx cdk bootstrap aws://08
 
 ```bash
 # 差分確認
-AWS_PROFILE=<devアカウント用プロファイル> pnpm run diff:dev
+AWS_PROFILE=<stgアカウント用プロファイル> pnpm run diff:stg
 
 # デプロイ
-AWS_PROFILE=<devアカウント用プロファイル> pnpm run deploy:dev
+AWS_PROFILE=<stgアカウント用プロファイル> pnpm run deploy:stg
 
 # CloudFormationテンプレートの出力のみ
-pnpm run synth:dev
+pnpm run synth:stg
 ```
 
-stg / prd も同様に `:stg` / `:prd` のスクリプトを使用してください
-（stgは`account`が未設定のため、対象アカウントが決まるまで`resolveEnvConfig`がエラーを投げてsynth/deployを止めます）。
+prdも同様に`:prd`のスクリプトを使用してください。
 
 > **注意**: `TopicAnalysisStack` が `ec2.Vpc` を作成するため、`AZ一覧の取得`
 > （`ec2:DescribeAvailabilityZones`）にAWS認証情報が必要です。`synth`も含め、
@@ -97,54 +96,69 @@ pnpm test        # 単体テスト
 pnpm typecheck    # 型チェック
 ```
 
-## CI/CD（main ブランチ・prd環境）
+## CI/CD
 
-`.github/workflows/cdk_diff.yml` / `cdk_deploy.yml` により、`infra/aws-cdk/` に変更がある場合
-prd環境（AWSアカウント `085350497655`）に対して以下を自動実行します。
+`infra/aws-cdk/` に変更がある場合、ブランチに応じてprd環境・stg環境それぞれに
+diff/deployを自動実行します。認証は長期のAWSアクセスキーを使わず、GitHub Actionsの
+OIDCとAWS IAM Roleの信頼関係で行います。OIDC IDプロバイダーおよびデプロイ用IAM Roleは
+CDK スタック（`MiraiGikaiGitHubOidcStack`）としてコード管理されているため、
+手元の管理者権限プロファイルから事前作成します。
+
+### main ブランチ・prd環境（`cdk_diff.yml` / `cdk_deploy.yml`）
 
 - **main への PR**: `cdk diff --context env=prd` を実行し、結果をPRコメントに表示（実デプロイなし）。
   コメントは同一PRへの再pushのたびに上書き更新されます。
 - **main へのマージ（push）**: `cdk deploy --all --context env=prd --require-approval never` を実行。
   **承認ゲートなし**でマージ直後に本番デプロイされるため、mainへのマージ自体を変更管理の最終ゲートとして扱ってください。
 
-認証は長期のAWSアクセスキーを使わず、GitHub ActionsのOIDCとAWS IAM Roleの信頼関係で行います。
-OIDC IDプロバイダーおよびデプロイ用IAM Roleは CDK スタック（`MiraiGikaiGitHubOidcStack`）としてコード管理されているため、手元の管理者権限プロファイルから事前作成します。
+### develop ブランチ・stg環境（`cdk_diff_stg.yml` / `cdk_deploy_stg.yml`）
+
+- **develop への PR**: `cdk diff --context env=stg` を実行し、結果をPRコメントに表示（実デプロイなし）。
+- **develop へのマージ（push）**: `cdk deploy --all --context env=stg --require-approval never` を実行。
+  こちらも**承認ゲートなし**です。GitHub Environmentは既存の`staging`（Supabase/Vercelのdeploy.ymlと共用）を使います。
 
 ### 1. CDKによるOIDCスタックのデプロイ
 
 ```bash
 AWS_PROFILE=<prdアカウント用プロファイル> npx cdk deploy MiraiGikaiGitHubOidcStack-prd --context env=prd
+AWS_PROFILE=<stgアカウント用プロファイル> npx cdk deploy MiraiGikaiGitHubOidcStack-stg --context env=stg
 ```
 
-このスタックにより以下が作成されます：
+このスタックにより環境ごとに以下が作成されます：
 
 - **OIDC IDプロバイダー**: `https://token.actions.githubusercontent.com`
-- **デプロイ用IAM Role**: `MiraiGikaiGitHubActionsDeployRole-prd`
-  - **信頼関係**: リポジトリ `codeforjapan/saga-broadlistening` の `main` ブランチおよび `pull_request` のみ許可 (`sts:AssumeRoleWithWebIdentity`)
-  - **権限**: CDK Bootstrap が作成する既定のロール群（`cdk-hnb659fds-*-085350497655-ap-northeast-1`）への `sts:AssumeRole` のみ許可
+- **デプロイ用IAM Role**: `MiraiGikaiGitHubActionsDeployRole-<env>`
+  - **信頼関係**（`sts:AssumeRoleWithWebIdentity`）: リポジトリ `codeforjapan/saga-broadlistening` の
+    `pull_request`に加え、prdは`main`ブランチ/`production` Environmentを、
+    stgは`develop`ブランチ/`staging` Environmentを許可
+  - **権限**: CDK Bootstrap が作成する既定のロール群（`cdk-hnb659fds-*-<account>-ap-northeast-1`）への `sts:AssumeRole` のみ許可
 
 ### 2. GitHub側の設定
 
-- リポジトリに `production` という名前のGitHub Environmentを作成する
+各Environmentの同名Secret `AWS_CDK_DEPLOY_ROLE_ARN` に、その環境用のRole ARNを設定する
+（Environment Secretは環境ごとにスコープされるため、同じキー名を複数のEnvironmentで
+使い回せる。ワークフロー側は`environment:`の切り替えだけで対象を変えられる）。
+
+- `production` EnvironmentのSecret `AWS_CDK_DEPLOY_ROLE_ARN` に
+  `arn:aws:iam::085350497655:role/MiraiGikaiGitHubActionsDeployRole-prd` を設定する
   （承認ゲートは設けない方針のため、protection ruleは追加不要）。
-- `production` EnvironmentのSecretに `AWS_CDK_PRD_DEPLOY_ROLE_ARN` を追加し、
-  CDKデプロイ時の CloudFormation Output (`GitHubActionsDeployRoleArn`) または以下のRole ARNを設定する。
-  `arn:aws:iam::085350497655:role/MiraiGikaiGitHubActionsDeployRole-prd`
+- `staging` EnvironmentのSecret `AWS_CDK_DEPLOY_ROLE_ARN` に
+  `arn:aws:iam::826784631888:role/MiraiGikaiGitHubActionsDeployRole-stg` を設定する。
+  （このSecretが未設定の間は `cdk_deploy_stg.yml` / `cdk_diff_stg.yml` はgreen skipになります）
 
-### 補足
+### worker イメージのCI（`deploy_worker_ecs.yml` / `deploy_worker_ecs_stg.yml`）
 
-- dev環境（`826784631888`）にはCI/CDを設定していません。ローカルから
-  `AWS_PROFILE=<devプロファイル> pnpm run deploy:dev` 等で手動デプロイしてください。
-- stg環境は前述の通りAWSアカウント未発行のため対象外です。
+`worker/` 配下（および依存パッケージ）の変更がmain/developにマージされると、
+`_deploy_worker_ecs.yml`（reusable workflow）が対応する環境のECRリポジトリへ
+`:latest` / `:<sha>` をpushする（タスク定義は常に`:latest`を参照するため、
+pushするだけで次回起動から反映される）。
 
-### worker イメージのCI（`.github/workflows/deploy_worker_ecs.yml`）
+- `deploy_worker_ecs.yml`: mainへのpush → `production` Environment →
+  `mirai-gikai-topic-analysis-worker-prd`
+- `deploy_worker_ecs_stg.yml`: developへのpush → `staging` Environment →
+  `mirai-gikai-topic-analysis-worker-stg`
 
-`worker/` 配下（および依存パッケージ）の変更が main にマージされると、上記の
-`MiraiGikaiGitHubActionsDeployRole-prd` を使ってprd用ECRリポジトリへ
-`mirai-gikai-topic-analysis-worker-prd:latest` / `:<sha>` をpushする
-（タスク定義は常に`:latest`を参照するため、pushするだけで次回起動から反映される）。
-Roleの信頼条件が `main`ブランチ限定のため、dev/stg環境への自動pushは対象外
-（手動で`docker push`するか、上記手順3を参照）。
+いずれも`AWS_CDK_DEPLOY_ROLE_ARN`が未設定の間はgreen skipになる。
 
 ## 現状のスコープ
 
@@ -161,9 +175,11 @@ Roleの信頼条件が `main`ブランチ限定のため、dev/stg環境への�
   admin側（#49）にもインフラの詳細が漏れ出す問題があったため、AWS Batchへ移行した（#66）。
 - `VercelOidcStack`: Vercel（`saga-kocho-web`/`saga-kocho-admin`）からOIDC Federationで
   AWSを呼び出すためのIAMロールを管理。Bedrock呼び出し権限に加え、`TopicAnalysisStack`の
-  Job Queue/Job Definition ARNに限定した`batch:SubmitJob`権限も付与している。
-  `TopicAnalysisStack`の出力を参照するため、`bin/app.ts`では`VercelOidcStack`より
-  先にデプロイされる必要がある（個別スタック指定で`cdk deploy`する場合は順序に注意）。
+  Job Queue/Job Definition（リビジョン問わず）に限定した`batch:SubmitJob`権限も付与している。
+  ARNは名前から組み立てており、`TopicAnalysisStack`へのクロススタック参照は持たない
+  （Job Definition更新でリビジョン付きARNが変わるたびにexport使用中エラーで
+  `TopicAnalysisStack`のデプロイが失敗していたため）。旧構成からの移行のため
+  `bin/app.ts`では`VercelOidcStack`を`TopicAnalysisStack`より先にデプロイする。
   admin側の実際のディスパッチ実装（現行のGCP Cloud Run Job起動処理
   `admin/src/lib/cloud-run-job.ts`をBatch SubmitJob版に置き換える想定）は
   GitHub Issue #49で対応する。実際の呼び出しコード例は
@@ -186,7 +202,7 @@ Roleの信頼条件が `main`ブランチ限定のため、dev/stg環境への�
      -t <account>.dkr.ecr.ap-northeast-1.amazonaws.com/mirai-gikai-topic-analysis-worker-<env>:latest .
    docker push <account>.dkr.ecr.ap-northeast-1.amazonaws.com/mirai-gikai-topic-analysis-worker-<env>:latest
    ```
-   以降は `.github/workflows/deploy_worker_ecs.yml`（mainブランチ・prd環境のみ）が
+   以降は `deploy_worker_ecs.yml`（main/prd）・`deploy_worker_ecs_stg.yml`（develop/stg）が
    `worker/` 配下の変更を検知して自動push する。
 3. **手動でジョブを実行して動作確認する**（Batchなのでsubnet/SGの指定は不要）:
    ```bash

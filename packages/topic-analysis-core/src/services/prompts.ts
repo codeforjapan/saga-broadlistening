@@ -1,4 +1,4 @@
-import type { BillContext, FinalTopicWithId } from "../shared/types";
+import type { FinalTopicWithId, InterviewConfigContext } from "../shared/types";
 import { toInlineText } from "../utils/to-inline-text";
 
 /** fine 粒度方針（§A.1）。Phase1/2 共通。 */
@@ -19,22 +19,37 @@ const GRANULARITY_POLICY = `## トピック粒度の方針（fine）
     ["防災大臣の勧告権に強制力がなく、実効性を懸念する声がある。", "大規模災害時には省庁間調整が機能しないリスクが指摘されている。", "勧告レベルや対応基準の事前明確化を求める意見がある。"]
 - 公開されるため、特定発言の原文をそのまま転記しない・個人名等の固有名詞を含めない（引用は短い言い回しに留める）。`;
 
-function buildBillContextText(bill: BillContext): string {
-  const body = bill.body ?? bill.summary ?? "";
-  return `## 議案
-議案名: ${bill.name}
-本文/概要:
-${body.slice(0, 4000)}`;
+/**
+ * 施策の本文/概要をプロンプトに載せる際の1件あたり上限。
+ * 施策が複数紐づく意見募集でもコンテキストが膨らみすぎないよう切り詰める。
+ */
+const POLICY_BODY_MAX_CHARS = 4000;
+
+function buildContextText(context: InterviewConfigContext): string {
+  const policiesText = context.policies
+    .map((p) => {
+      const body = (p.body ?? p.summary ?? "").slice(0, POLICY_BODY_MAX_CHARS);
+      return `施策名: ${p.name}\n本文/概要:\n${body}`;
+    })
+    .join("\n\n");
+
+  return `## 意見募集テーマ
+テーマ名: ${context.name}
+テーマの説明:
+${context.description ?? "（説明なし）"}
+
+## 対象の施策
+${policiesText || "（施策の紐づけなし。テーマそのものへの意見募集）"}`;
 }
 
 /** Phase1 一次抽出プロンプト */
 export function buildExtractPrompt(
-  bill: BillContext,
+  context: InterviewConfigContext,
   opinionsText: string
 ): string {
-  return `あなたは議案に対する市民の意見を分析する専門家です。
+  return `あなたは行政施策に対する市民の意見を分析する専門家です。
 
-${buildBillContextText(bill)}
+${buildContextText(context)}
 
 ${GRANULARITY_POLICY}
 
@@ -47,12 +62,12 @@ ${opinionsText}
 
 /** Phase2 統合プロンプト */
 export function buildMergePrompt(
-  bill: BillContext,
+  context: InterviewConfigContext,
   candidatesText: string
 ): string {
-  return `あなたは議案に対する市民の意見を分析する専門家です。
+  return `あなたは行政施策に対する市民の意見を分析する専門家です。
 
-${buildBillContextText(bill)}
+${buildContextText(context)}
 
 ${GRANULARITY_POLICY}
 
@@ -60,22 +75,22 @@ ${GRANULARITY_POLICY}
 ${candidatesText}
 
 ## タスク
-上記は意見バッチごとに抽出したトピック候補です。重複・近接するトピックを統合し、議案全体で一貫した最終トピック集合にまとめてください。「その他」等の総括トピックが含まれていたら除去してください。`;
+上記は意見バッチごとに抽出したトピック候補です。重複・近接するトピックを統合し、テーマ全体で一貫した最終トピック集合にまとめてください。「その他」等の総括トピックが含まれていたら除去してください。`;
 }
 
 /** Phase3 割当プロンプト（TSV 出力・§A.2） */
 export function buildAssignPrompt(
-  bill: BillContext,
+  context: InterviewConfigContext,
   finalTopics: FinalTopicWithId[],
   opinionsText: string
 ): string {
   const topicsText = finalTopics
     .map((t) => `${t.local_id}: ${t.title} — ${toInlineText(t.description)}`)
     .join("\n");
-  return `あなたは議案分析の専門家です。各意見を適切なトピックに割り当ててください。
+  return `あなたは施策分析の専門家です。各意見を適切なトピックに割り当ててください。
 
-## 議案
-${bill.name}
+## 意見募集テーマ
+${context.name}
 
 ## トピック一覧
 ${topicsText}
@@ -100,13 +115,13 @@ ${opinionsText}
  * 「新規トピックとして採用」する。曖昧なものは採用しない（既存へ吸収させる）。
  */
 export function buildJudgeNewTopicsPrompt(
-  bill: BillContext,
+  context: InterviewConfigContext,
   existingTopicsText: string,
   candidatesText: string
 ): string {
-  return `あなたは議案に対する市民の意見を分析する専門家です。
+  return `あなたは行政施策に対する市民の意見を分析する専門家です。
 
-${buildBillContextText(bill)}
+${buildContextText(context)}
 
 ${GRANULARITY_POLICY}
 
@@ -129,4 +144,34 @@ ${candidatesText}
 - **採用すべきか判断が曖昧な場合も不採用にする**（トピックの乱立を防ぐため、迷ったら作らない）。
 
 不採用の候補に紐づく意見は、後段で既存トピックへ割り当てられるため、ここで無理に新規作成しないこと。`;
+}
+
+/**
+ * グルーピングプロンプト（中トピック → 大トピック）。
+ * 中トピックが数十件並列に並ぶと論点の網羅チェックに使えないため、
+ * 読み手が畳んで俯瞰できる粒度の大トピックを被せる。
+ */
+export function buildGroupTopicsPrompt(
+  context: InterviewConfigContext,
+  mediumTopicsText: string
+): string {
+  return `あなたは行政施策に対する市民の意見を分析する専門家です。
+
+${buildContextText(context)}
+
+## 中トピック一覧
+${mediumTopicsText}
+
+## タスク
+上記の中トピックを、論点領域ごとに **大トピック** へグルーピングしてください。
+
+設計方針:
+- 大トピックは **6〜10個** を目安にする。中トピックが少なければ少なくてよい。
+- **MECE に近づける。** 同じ領域の論点が複数の大トピックに散らないようにする。
+- 件数バランスを意識する。1つの大トピックに大半が入る、逆に1件だけの大トピックが並ぶ、といった偏りを避ける。
+- 大トピック名は配下の主張を横断する **領域の見出し** にする（12-25字の名詞句）。中トピックのような主張文にはしない。
+  - 良い例: 「防災庁の権限設計と組織位置づけ」「予算配分・費用対効果」「避難所環境と被災者生活支援」
+  - 悪い例: 「権限を強化すべきだ」（主張文になっている）、「その他」（総括トピック）
+- **すべての中トピックを、ちょうど1つの大トピックに割り当てる。** 割り当て漏れ・重複を作らない。
+- 「その他」という大トピックは作らない（どこにも入らないものは後段で機械的にまとめる）。`;
 }

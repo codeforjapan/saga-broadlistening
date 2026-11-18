@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { SpeechBubble } from "@/components/ui/speech-bubble";
 import type { ReportReactionData } from "@/features/report-reaction/shared/types";
 import { ShareArticleButton } from "../../client/components/share-article-button";
+import type { ReportOrigin } from "../utils/public-report-display";
 import { BackToBillButton } from "./back-to-bill-button";
 import { ChatLogSection } from "./chat-log-section";
 import { IntervieweeInfo } from "./interviewee-info";
@@ -13,10 +14,11 @@ import { ReportProblemButton } from "./report-problem-button";
 
 interface ReportContentProps {
   reportId: string;
-  billId: string;
+  /** 意見が寄せられた対象（施策・テーマ）。戻り導線とパンくずに使う */
+  origin: ReportOrigin;
+  /** 施策名（「〇〇に戻る」に使う） */
+  policyName?: string;
   summary: string | null;
-  stance: string | null;
-  role: string | null;
   roleTitle?: string | null;
   sessionStartedAt: string | null;
   characterCount: number;
@@ -44,10 +46,9 @@ interface ReportContentProps {
 
 export function ReportContent({
   reportId,
-  billId,
+  origin,
+  policyName,
   summary,
-  stance,
-  role,
   roleTitle,
   sessionStartedAt,
   characterCount,
@@ -69,11 +70,9 @@ export function ReportContent({
           </p>
         </SpeechBubble>
 
-        {/* スタンスと日時情報 */}
+        {/* 立場と日時情報 */}
         <ReportMetaInfo
           reportId={reportId}
-          stance={stance}
-          role={role}
           roleTitle={roleTitle}
           sessionStartedAt={sessionStartedAt}
           characterCount={characterCount}
@@ -110,14 +109,14 @@ export function ReportContent({
             shareMessage={share.shareMessage}
           />
         )}
-        {/* 法案の記事に戻るボタン */}
-        <BackToBillButton billId={billId} from={from} />
+        {/* 施策の記事に戻るボタン */}
+        <BackToBillButton origin={origin} from={from} policyName={policyName} />
         {/* 問題を報告する */}
         <ReportProblemButton />
       </div>
 
       {/* パンくずリスト */}
-      <ReportBreadcrumb billId={billId} />
+      <ReportBreadcrumb origin={origin} />
     </div>
   );
 }
