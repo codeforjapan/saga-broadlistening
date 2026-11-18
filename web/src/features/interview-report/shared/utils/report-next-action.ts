@@ -1,4 +1,3 @@
-import { VOICE_SUMMARY_LINK_LABEL } from "@mirai-gikai/branding/site";
 import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
 import type { ReportOrigin } from "./public-report-display";
@@ -30,7 +29,7 @@ export function resolveReportNextAction({
   if (hasPublishedSummary) {
     return {
       href: routes.interviewThemeSummary(origin.theme.slug),
-      label: VOICE_SUMMARY_LINK_LABEL,
+      label: "まとめを見る",
     };
   }
 

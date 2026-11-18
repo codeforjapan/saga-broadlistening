@@ -1,6 +1,5 @@
 import "server-only";
 
-import { VOICE_SUMMARY_LINK_LABEL } from "@mirai-gikai/branding/site";
 import { ChevronRight } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -70,7 +69,7 @@ export async function TopicListPage({ target }: TopicListPageProps) {
       {target.kind === "theme" && voiceSummary && (
         <Button asChild className="w-full">
           <Link href={routes.interviewThemeSummary(target.slug) as Route}>
-            {VOICE_SUMMARY_LINK_LABEL}
+            まとめを見る
             <ChevronRight aria-hidden="true" />
           </Link>
         </Button>

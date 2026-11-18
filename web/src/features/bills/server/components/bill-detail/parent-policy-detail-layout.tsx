@@ -1,9 +1,6 @@
 import "server-only";
 
-import {
-  VOICE_SUMMARY_LABEL,
-  VOICE_SUMMARY_LINK_LABEL,
-} from "@mirai-gikai/branding/site";
+import { VOICE_SUMMARY_LABEL } from "@mirai-gikai/branding/site";
 import { Container } from "@/components/layouts/container";
 import type { DifficultyLevelEnum } from "@/features/bill-difficulty/shared/types";
 import { KikaseteBox } from "@/features/interview-config/client/components/kikasete-box";
@@ -102,7 +99,7 @@ export async function ParentPolicyDetailLayout({
                 <VoiceSummaryPreview
                   summary={voiceSummary}
                   href={routes.interviewThemeSummary(interview.slug)}
-                  linkLabel={VOICE_SUMMARY_LINK_LABEL}
+                  linkLabel="まとめを見る"
                 />
               )}
               {topicContext?.analysis && (

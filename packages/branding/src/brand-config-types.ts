@@ -21,7 +21,7 @@ export type BrandConfig = {
   copyright: string;
   /**
    * AIインタビューで寄せられた意見をAIが整理した、テーマごとのまとめの呼び名
-   * （ページの見出し・パンくず・「〇〇を見る」のボタンなど）
+   * （ページの見出し・パンくず・タイトルなど）
    */
   voiceSummaryName: string;
   /** 検索エンジン・SNS・PWA（manifest）向けのサイトの説明文 */
