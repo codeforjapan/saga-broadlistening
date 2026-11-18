@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  calcElapsedMinutes,
-  calcRemainingMinutes,
-} from "./calc-remaining-minutes";
+import { calcRemainingMinutes } from "./calc-remaining-minutes";
 
 describe("calcRemainingMinutes", () => {
   const baseTime = new Date("2026-02-23T10:00:00Z");
@@ -42,12 +39,5 @@ describe("calcRemainingMinutes", () => {
   it("ちょうど時間ぴったりの場合は0を返す", () => {
     const started = "2026-02-23T09:50:00Z"; // 10分前
     expect(calcRemainingMinutes(10, started, baseTime)).toBe(0);
-  });
-});
-
-describe("calcElapsedMinutes", () => {
-  it("開始からの経過分数を端数ありで返す", () => {
-    const now = new Date("2026-02-23T10:00:00Z");
-    expect(calcElapsedMinutes("2026-02-23T09:56:30Z", now)).toBe(3.5);
   });
 });

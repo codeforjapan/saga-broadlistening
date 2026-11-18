@@ -23,7 +23,7 @@ export function TimeUpPrompt({
       </p>
       <div className="flex gap-2">
         <Button size="sm" onClick={onContinue} disabled={disabled}>
-          インタビューを続ける
+          続ける
         </Button>
         <Button
           variant="outline"

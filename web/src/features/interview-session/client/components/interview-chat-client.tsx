@@ -8,6 +8,7 @@ import {
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import { getBillDetailLink } from "@/features/interview-config/shared/utils/interview-links";
 import type { InterviewStage } from "@/features/interview-session/shared/schemas";
+import { isEndInterviewButtonVisible } from "@/features/interview-session/shared/utils/end-interview-button-visibility";
 import { useInterviewChat } from "../hooks/use-interview-chat";
 import { useInterviewRating } from "../hooks/use-interview-rating";
 import { useInterviewTimer } from "../hooks/use-interview-timer";
@@ -88,7 +89,7 @@ export function InterviewChatClient({
     initialStage,
   });
 
-  const { remainingMinutes, isTimeUp, canEndInterview } = useInterviewTimer({
+  const { remainingMinutes, isTimeUp, hasTimer } = useInterviewTimer({
     estimatedDuration,
     sessionStartedAt,
   });
@@ -109,15 +110,19 @@ export function InterviewChatClient({
 
   const showProgressBar = progress !== null;
   const timerMinutes =
-    remainingMinutes !== null && stage === "chat" && !timeUpDismissed
-      ? remainingMinutes
-      : null;
+    hasTimer && stage === "chat" && !timeUpDismissed ? remainingMinutes : null;
   const showTimeUpPrompt =
     isTimeUp &&
     !timeUpDismissed &&
     stage === "chat" &&
     !isLoading &&
     !isPreparing;
+  const showEndInterviewButton = isEndInterviewButtonVisible({
+    stage,
+    hasTimer,
+    isTimeUp,
+    timeUpDismissed,
+  });
 
   // チャット操作時にタイムアップアラートを自動非表示にする
   const dismissTimeUpIfNeeded = useCallback(() => {
@@ -279,8 +284,7 @@ export function InterviewChatClient({
 
       {/* 入力エリア */}
       <div className="px-6 pt-2">
-        {/* 対話中は目安時間の2/3が過ぎてから出す。要約中は締めるために常に出す */}
-        {(stage === "summary" || (stage === "chat" && canEndInterview)) && (
+        {showEndInterviewButton && (
           <div className="flex justify-end pb-2">
             <EndInterviewButton
               isSummaryStage={stage === "summary"}

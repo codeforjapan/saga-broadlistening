@@ -22,7 +22,7 @@ export function calcRemainingMinutes(
  * @param sessionStartedAt - セッション開始時刻（ISO string）
  * @param now - 現在時刻（テスト用にDI可能）
  */
-export function calcElapsedMinutes(
+function calcElapsedMinutes(
   sessionStartedAt: string,
   now: Date = new Date()
 ): number {

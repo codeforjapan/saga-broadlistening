@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { calcRemainingMinutes } from "../../shared/utils/calc-remaining-minutes";
-import { isEndInterviewAvailable } from "../../shared/utils/end-interview-availability";
 
 interface UseInterviewTimerProps {
   estimatedDuration: number | null | undefined;
@@ -14,8 +13,8 @@ interface UseInterviewTimerResult {
   remainingMinutes: number | null;
   /** 目安時間を超過したかどうか */
   isTimeUp: boolean;
-  /** 対話中に「終えてまとめに進む」を出してよいか（目安時間の2/3経過後） */
-  canEndInterview: boolean;
+  /** 目安時間が設定され、残り時間を測っているか */
+  hasTimer: boolean;
 }
 
 /**
@@ -46,10 +45,6 @@ export function useInterviewTimer({
   return {
     remainingMinutes,
     isTimeUp: remainingMinutes !== null && remainingMinutes <= 0,
-    canEndInterview: isEndInterviewAvailable(
-      estimatedDuration,
-      sessionStartedAt,
-      now
-    ),
+    hasTimer,
   };
 }
