@@ -1,5 +1,6 @@
 "use client";
 
+import Autoplay from "embla-carousel-autoplay";
 import { type ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,9 @@ export type TopHeroSlide = {
   content: ReactNode;
 };
 
+/** 自動で次のスライドへ送る間隔（ミリ秒） */
+const AUTOPLAY_DELAY_MS = 3000;
+
 interface TopHeroCarouselProps {
   slides: TopHeroSlide[];
   /** 帯（全幅）に足すクラス。余白など */
@@ -31,6 +35,9 @@ interface TopHeroCarouselProps {
  * TOP 冒頭のカルーセル（デザイン「1. TOP」の色の帯）。
  * 表示中のスライドに合わせて帯の色とドットの色を切り替える。
  * スライドの中身は Server Component で組み立てて受け取る。
+ * 3秒ごとに自動で送る。スワイプやドットで操作したときは、そこから3秒数え直す。
+ * マウスを乗せている間とキーボードでフォーカスしている間は止める。
+ * 「視差効果を減らす」設定の端末では自動で送らない。
  */
 export function TopHeroCarousel({
   slides,
@@ -39,6 +46,16 @@ export function TopHeroCarousel({
 }: TopHeroCarouselProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [selected, setSelected] = useState(0);
+  const [autoplay] = useState(() =>
+    Autoplay({
+      delay: AUTOPLAY_DELAY_MS,
+      // 操作で止めきらず、操作のあとから数え直す
+      stopOnInteraction: false,
+      // マウスを乗せている間・キーボードでフォーカスしている間は止める（フォーカスは既定で止まる）
+      stopOnMouseEnter: true,
+      breakpoints: { "(prefers-reduced-motion: reduce)": { active: false } },
+    })
+  );
 
   useEffect(() => {
     if (!api) return;
@@ -63,6 +80,7 @@ export function TopHeroCarousel({
       <Carousel
         setApi={setApi}
         opts={{ loop: true }}
+        plugins={[autoplay]}
         aria-roledescription="カルーセル"
         aria-label="CHIKATの紹介"
       >
@@ -88,7 +106,10 @@ export function TopHeroCarousel({
                 size="icon"
                 aria-label={`${index + 1}枚目を表示`}
                 aria-current={isCurrent}
-                onClick={() => api?.scrollTo(index)}
+                onClick={() => {
+                  api?.scrollTo(index);
+                  autoplay.reset();
+                }}
                 className="size-7 p-0 hover:bg-transparent pc:size-8"
               >
                 <span
