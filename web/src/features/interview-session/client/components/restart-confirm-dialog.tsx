@@ -29,7 +29,7 @@ export function RestartConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="px-8 py-12">
+      <DialogContent className="theme-kikasete px-8 py-12">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-primary text-center">
             最初からやり直しますか？

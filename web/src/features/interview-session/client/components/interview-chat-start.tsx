@@ -11,8 +11,10 @@ import type { InterviewTarget } from "@/features/interview-config/shared/types/i
 import { formatEstimatedDuration } from "@/features/interview-config/shared/utils/format-estimated-duration";
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 import { startInterviewSession } from "../../server/actions/start-interview-session";
 import { ChatAiAvatar } from "../../shared/components/chat-ai-avatar";
+import { INTERVIEW_MESSAGE_TEXT_CLASS } from "../../shared/constants/interview-message-text";
 import { buildChatStartNotice } from "../../shared/utils/chat-start-notice";
 import { InterviewChatSurface } from "./interview-chat-surface";
 
@@ -73,8 +75,8 @@ export function InterviewChatStart({
 
   return (
     // ヘッダーの「保存して中断」は、この属性があるあいだ隠す（interview-header-actions）
-    <InterviewChatSurface data-interview-chat-start="" className="md:px-12">
-      <header className="flex items-center gap-3 border-b px-4 pb-4">
+    <InterviewChatSurface data-interview-chat-start="">
+      <header className="flex items-center gap-3 border-b pb-4">
         <ChikatServiceLogo variant="kikasete" className="h-5" />
         {durationLabel && (
           <span className="ml-auto text-xs text-muted-foreground">
@@ -83,10 +85,15 @@ export function InterviewChatStart({
         )}
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pt-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 pt-6">
         <div className="flex flex-col gap-1">
           <ChatAiAvatar />
-          <div className="flex flex-col gap-3 text-body text-foreground">
+          <div
+            className={cn(
+              "flex flex-col gap-3 text-foreground",
+              INTERVIEW_MESSAGE_TEXT_CLASS
+            )}
+          >
             {notice.map((line) => (
               <p key={line.map((segment) => segment.text).join("")}>
                 {line.map((segment) => {
@@ -95,7 +102,7 @@ export function InterviewChatStart({
                       <Link
                         key={segment.text}
                         href={themeHref as Route}
-                        className="text-kikasete-700 underline underline-offset-4"
+                        className="text-primary-accent underline underline-offset-4"
                       >
                         {segment.text}
                       </Link>
@@ -116,7 +123,7 @@ export function InterviewChatStart({
             <Button
               asChild
               variant="outline"
-              className="h-11 border-kikasete-400 text-kikasete-700"
+              className="h-12 border-kikasete-400 px-6 text-base text-primary-accent"
             >
               <Link href={aboutHref as Route}>
                 このインタビューについて詳しく
@@ -124,8 +131,7 @@ export function InterviewChatStart({
             </Button>
             <Button
               type="button"
-              variant="kikasete"
-              className="h-11 px-8"
+              className="h-12 px-8 text-base"
               disabled={isPending}
               onClick={handleStart}
             >

@@ -87,7 +87,6 @@ export function ReportContent({
       {/* 主な意見 */}
       <OpinionsList
         opinions={opinions}
-        title="💬主な意見"
         reportId={reportId}
         chatLogFrom={from}
       />

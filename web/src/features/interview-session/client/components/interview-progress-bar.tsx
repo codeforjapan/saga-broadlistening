@@ -15,13 +15,13 @@ export function InterviewProgressBar({
   remainingMinutes,
 }: InterviewProgressBarProps) {
   return (
-    <div className="rounded-[18px] bg-white">
+    <div>
       {(currentTopic || remainingMinutes != null) && (
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-2 flex items-center gap-2 md:mb-2.5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {currentTopic && (
-              <div className="inline-flex max-w-full rounded-lg bg-secondary px-4 py-0.5">
-                <p className="min-w-0 truncate text-sm font-bold leading-[1.8] text-foreground">
+              <div className="inline-flex max-w-full rounded-[10px] bg-secondary px-3 py-0.5 md:px-4">
+                <p className="min-w-0 truncate text-[13px] font-bold leading-[22px] text-foreground md:text-sm md:leading-[25px]">
                   {currentTopic}
                 </p>
               </div>
@@ -36,7 +36,7 @@ export function InterviewProgressBar({
       )}
       <Progress
         value={percentage}
-        className="h-[7px] rounded-full bg-muted [&>[data-slot=progress-indicator]]:bg-primary"
+        className="h-1.5 rounded-full bg-progress-track md:h-[7px] [&>[data-slot=progress-indicator]]:bg-progress"
       />
     </div>
   );

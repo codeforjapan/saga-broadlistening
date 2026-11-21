@@ -1,3 +1,5 @@
+import { UsersRound } from "lucide-react";
+import { HeadingIcon } from "@/components/heading-icon";
 import { formatRoleDescriptionLines } from "../utils/format-utils";
 
 interface IntervieweeInfoProps {
@@ -19,9 +21,10 @@ export function IntervieweeInfo({
   return (
     <div className="flex flex-col gap-4">
       <Heading className="text-xl font-bold text-foreground">
-        👫インタビューを受けた人
+        <HeadingIcon icon={UsersRound} />
+        インタビューを受けた人
       </Heading>
-      <div className="bg-white rounded-2xl p-6">
+      <div className="rounded-2xl border border-border bg-white p-6">
         <div className="text-sm text-foreground whitespace-pre-wrap font-medium">
           {lines.map((line, index) => (
             <p key={`${index}-${line.slice(0, 20)}`}>{line}</p>

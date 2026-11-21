@@ -53,7 +53,7 @@ export async function ReportCompletePage({
   });
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="theme-kikasete min-h-dvh bg-background">
       {/* ヘッダーセクション */}
       <div className="bg-white rounded-b-[32px] px-4 pt-30 md:pt-16 pb-8">
         <div className="flex flex-col items-center gap-4">
@@ -78,7 +78,7 @@ export async function ReportCompletePage({
           </p>
 
           {/* 次の導線（まとめ → 施策 → サイトトップの順に、あるものへ） */}
-          <Button asChild className="mt-2 w-full max-w-sm">
+          <Button asChild className="mt-2 w-full max-w-sm text-base">
             <Link href={nextAction.href as Route}>
               {nextAction.label}
               <ChevronRight aria-hidden="true" />

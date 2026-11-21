@@ -1,6 +1,7 @@
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, MessageSquare } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
+import { HeadingIcon } from "@/components/heading-icon";
 import { getInterviewMessageLink } from "@/features/interview-config/shared/utils/interview-links";
 import type { ParsedOpinion } from "../utils/format-utils";
 
@@ -9,7 +10,7 @@ interface ReportMainOpinionsProps {
   reportId: string;
 }
 
-/** レポート詳細「💬主な意見」セクション。各意見から会話ログの該当箇所へ遷移する。 */
+/** レポート詳細「主な意見」セクション。各意見から会話ログの該当箇所へ遷移する。 */
 export function ReportMainOpinions({
   opinions,
   reportId,
@@ -19,13 +20,14 @@ export function ReportMainOpinions({
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-[22px] font-bold leading-9 text-foreground">
-        💬主な意見
+        <HeadingIcon icon={MessageSquare} />
+        主な意見
       </h2>
       <div className="flex flex-col gap-4">
         {opinions.map((opinion, index) => (
           <div
             key={`${index}-${opinion.title.slice(0, 16)}`}
-            className="flex flex-col gap-3 rounded-2xl bg-white px-4 py-5"
+            className="flex flex-col gap-3 rounded-2xl border border-border bg-white px-4 py-5"
           >
             <h3 className="text-base font-bold leading-6 text-foreground">
               {opinion.title}
