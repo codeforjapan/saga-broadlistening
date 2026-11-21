@@ -41,7 +41,7 @@ export function MakePrivateModal({
 }: MakePrivateModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="py-9">
+      <DialogContent className="theme-kikasete py-9">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-primary-accent text-center leading-relaxed">
             インタビュー内容を

@@ -3,6 +3,7 @@ import "server-only";
 import type { ReactNode } from "react";
 import { KikaseteBox } from "@/features/interview-config/client/components/kikasete-box";
 import type { KikaseteBoxData } from "@/features/interview-config/server/loaders/get-kikasete-box";
+import { cn } from "@/lib/utils";
 
 interface VoicesPageFrameProps {
   /** ページ下部のきかせてボックス。募集中でなければ null（出さない） */
@@ -10,6 +11,8 @@ interface VoicesPageFrameProps {
   children: ReactNode;
   /** きかせてボックスの下に置く要素（共有・戻る・問題を報告する） */
   footer?: ReactNode;
+  /** 地。インタビューレポートはチャットと同じグラデーションにする（#271） */
+  background?: "muted" | "page";
 }
 
 /**
@@ -22,9 +25,15 @@ export function VoicesPageFrame({
   kikasete,
   children,
   footer,
+  background = "muted",
 }: VoicesPageFrameProps) {
   return (
-    <div className="theme-kikasete min-h-dvh bg-muted pt-24 md:pt-0">
+    <div
+      className={cn(
+        "theme-kikasete min-h-dvh pt-24 md:pt-0",
+        background === "page" ? "bg-page" : "bg-muted"
+      )}
+    >
       <div className="mx-auto flex max-w-[720px] flex-col gap-8 px-4 pb-8 md:pt-8">
         {children}
         {kikasete && <KikaseteBox {...kikasete} />}

@@ -17,8 +17,8 @@ export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { showHeader, chatSidebar, fullBleed } = getPageLayout(pathname);
   const isInterview = isInterviewSection(pathname);
-  // インタビューのチャット（デザイン「4b」）は、ヘッダーの後ろも含めて画面全体を薄い緑にする。
-  // スマホ幅では白い面が画面幅いっぱいなので、緑は見えない（チャット中と同じ）
+  // インタビューのチャットは、ヘッダーの後ろも含めて画面全体にきかせてのグラデーションを敷く（#271）。
+  // スマホ幅では白い面が画面幅いっぱいなので、地は見えない
   const isInterviewChat = isInterviewPage(pathname);
 
   return (
@@ -30,7 +30,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         "relative mx-auto",
         showHeader && "md:mt-24",
         !fullBleed && "max-w-[700px]",
-        // 本文の地（main の薄青グレー）を外し、下に敷いた緑を見せる
+        // 本文の地（main の薄青グレー）を外し、下に敷いたグラデーションを見せる
         isInterviewChat && "[&>main]:bg-transparent",
         // インタビューページと全幅のページ以外ではshadowを表示
         !isInterview && !fullBleed && "sm:shadow-lg",
@@ -45,7 +45,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       {isInterviewChat && (
         <div
           aria-hidden="true"
-          className="fixed inset-0 -z-10 bg-kikasete-50"
+          className="theme-kikasete fixed inset-0 -z-10 bg-page"
         />
       )}
       {children}

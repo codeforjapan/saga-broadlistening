@@ -1,9 +1,10 @@
 import "server-only";
 
-import { Undo2 } from "lucide-react";
+import { MessageSquare, Undo2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { HeadingIcon } from "@/components/heading-icon";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { getKikaseteBoxByConfigId } from "@/features/interview-config/server/loaders/get-kikasete-box";
 import { ShareArticleButton } from "@/features/interview-report/client/components/share-article-button";
@@ -60,6 +61,7 @@ export async function PublicReportPage({
   return (
     <VoicesPageFrame
       kikasete={kikasete}
+      background="page"
       // アクションはきかせてボックスの下に置く（デザイン「5d」）
       footer={
         <div className="flex flex-col items-center gap-3 pt-2">
@@ -91,7 +93,8 @@ export async function PublicReportPage({
       </div>
 
       <h1 className="text-[22px] font-bold leading-9 text-foreground">
-        💬インタビューレポート
+        <HeadingIcon icon={MessageSquare} />
+        インタビューレポート
       </h1>
 
       {/* 回答者カード */}

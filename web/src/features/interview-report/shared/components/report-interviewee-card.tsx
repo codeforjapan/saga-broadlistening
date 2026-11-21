@@ -40,7 +40,7 @@ export function ReportIntervieweeCard({
   const answeredAt = formatAnsweredAt(sessionStartedAt);
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl bg-white p-6">
+    <div className="flex flex-col gap-4 rounded-2xl border border-border bg-white p-6">
       {/* アバター + 立場 */}
       <div className="flex items-center gap-4">
         <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-secondary">
