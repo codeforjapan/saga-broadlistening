@@ -12,7 +12,8 @@ import {
   SURFACE_ONLY_TOKENS,
   TEXT_SAFE_TOKENS,
 } from "./palette";
-import { THEME_NAMES, THEMES } from "./themes";
+import { THEME_NAMES } from "./theme-types";
+import { resolveTheme } from "./themes";
 
 const WHITE = PRIMITIVES["base-white"];
 
@@ -99,7 +100,7 @@ describe.each(THEME_NAMES)("テーマ %s の色", (theme) => {
     resolveSemantic(token, theme);
 
   it("すべての色トークンがプリミティブを指す", () => {
-    for (const [token, primitive] of Object.entries(THEMES[theme].colors)) {
+    for (const [token, primitive] of Object.entries(resolveTheme(theme).colors)) {
       expect(PRIMITIVES, token).toHaveProperty(primitive);
     }
   });
@@ -154,7 +155,7 @@ describe.each(THEME_NAMES)("テーマ %s の色", (theme) => {
   });
 });
 
-describe("みてみての色", () => {
+describe("default（みてみて）の色", () => {
   it("primary-foreground は黒であり、白ではない（D-13）", () => {
     expect(resolveSemantic("primary-foreground")).toBe(
       PRIMITIVES["base-ink"]
@@ -180,9 +181,9 @@ describe("みてみての色", () => {
   });
 });
 
-describe("きかせての色", () => {
+describe("interview（きかせて）の色", () => {
   it("primary-accent の文字はグラデーションの地の上でも 4.5:1 以上", () => {
-    const accent = resolveSemantic("primary-accent", "kikasete");
+    const accent = resolveSemantic("primary-accent", "interview");
     for (const surface of ["kikasete-100", "kikasete-50"] as const) {
       expect(
         contrastRatio(accent, PRIMITIVES[surface]),

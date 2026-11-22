@@ -53,7 +53,7 @@ export async function ReportCompletePage({
   });
 
   return (
-    <div className="theme-kikasete min-h-dvh bg-background">
+    <div className="theme-interview min-h-dvh bg-background">
       {/* ヘッダーセクション */}
       <div className="bg-white rounded-b-[32px] px-4 pt-30 md:pt-16 pb-8">
         <div className="flex flex-col items-center gap-4">

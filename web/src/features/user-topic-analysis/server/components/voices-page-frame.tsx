@@ -17,7 +17,7 @@ interface VoicesPageFrameProps {
 
 /**
  * みんなの声のページ（トピック一覧・トピック詳細・インタビューレポート・まとめ）の共通の枠（#159）。
- * 中央1カラム（幅720px）にし、アクセントをきかせての緑にする（.theme-kikasete）。
+ * 中央1カラム（幅720px）にし、アクセントをきかせての緑にする（.theme-interview）。
  * 背景は水色をやめ、白いカードが浮いて見える薄いグレー（muted）にする。
  * ページ下部の参加導線は、TOP・親施策ページと同じきかせてボックス。
  */
@@ -30,7 +30,7 @@ export function VoicesPageFrame({
   return (
     <div
       className={cn(
-        "theme-kikasete min-h-dvh pt-24 md:pt-0",
+        "theme-interview min-h-dvh pt-24 md:pt-0",
         background === "page" ? "bg-page" : "bg-muted"
       )}
     >

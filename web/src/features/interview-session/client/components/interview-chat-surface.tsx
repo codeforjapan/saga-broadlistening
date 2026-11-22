@@ -24,7 +24,7 @@ export function InterviewChatSurface({
     <div className="h-dvh md:h-[calc(100dvh-96px)]" {...props}>
       <div
         className={cn(
-          "theme-kikasete flex h-full flex-col bg-white px-4 pt-23 md:rounded-t-[32px] md:px-12 md:pt-10 md:shadow-card",
+          "theme-interview flex h-full flex-col bg-white px-4 pt-23 md:rounded-t-[32px] md:px-12 md:pt-10 md:shadow-card",
           className
         )}
       >

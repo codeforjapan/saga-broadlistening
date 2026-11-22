@@ -45,7 +45,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       {isInterviewChat && (
         <div
           aria-hidden="true"
-          className="theme-kikasete fixed inset-0 -z-10 bg-page"
+          className="theme-interview fixed inset-0 -z-10 bg-page"
         />
       )}
       {children}

@@ -13,7 +13,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PRIMITIVES, SHADCN_UI_TOKENS } from "./palette";
 import { SHADOWS } from "./shadows";
-import { THEMES, type Theme } from "./themes";
+import { THEME_NAMES, type Theme } from "./theme-types";
+import { resolveTheme } from "./themes";
 import {
   BODY_FONT_WEIGHT,
   FONT_FAMILIES,
@@ -36,9 +37,15 @@ export function renderTokensCss(): string {
       `  --page-background: ${theme.pageBackground};`,
     ].join("\n");
 
-  const semanticThemeVars = Object.keys(THEMES.mitemite.colors)
+  const semanticThemeVars = Object.keys(resolveTheme("default").colors)
     .map((name) => `  --color-${name}: var(--${name});`)
     .join("\n");
+
+  const themeBlocks = THEME_NAMES.map((name) => {
+    const selector =
+      name === "default" ? ":root,\n.theme-default" : `.theme-${name}`;
+    return `${selector} {\n${themeVars(resolveTheme(name))}\n}`;
+  }).join("\n\n");
 
   const uiVars = Object.entries(SHADCN_UI_TOKENS)
     .map(([name, value]) => `  --${name}: ${value};`)
@@ -77,7 +84,7 @@ export function renderTokensCss(): string {
  * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
  *
  * このファイルは自動生成です。直接編集しないでください。
- * 値の変更は packages/branding/src/palette.ts・themes.ts を編集し、
+ * 値の変更は packages/branding/src/palette.ts・brand.themes.ts を編集し、
  * pnpm --filter @mirai-gikai/branding build:css で再生成します。
  */
 
@@ -104,7 +111,7 @@ ${shadowVars}
     font-weight: ${BODY_FONT_WEIGHT};
   }
 
-  /* 見出しの書体はテーマで変える（みてみては丸ゴ、きかせては Noto Sans JP） */
+  /* 見出しの書体はテーマで変える（brand.themes.ts の headingFont） */
   h1,
   h2,
   h3,
@@ -119,15 +126,10 @@ ${shadowVars}
   }
 }
 
-/* テーマ（themes.ts）。クラスのないページはみてみての値になる */
-:root,
-.theme-mitemite {
-${themeVars(THEMES.mitemite)}
-}
-
-.theme-kikasete {
-${themeVars(THEMES.kikasete)}
-}
+/* テーマ（brand.themes.ts）。クラスのないページは default の値になる。
+   default 以外のテーマも、書かれていない値を default で補ってすべて出力する
+   （テーマを入れ子にしても、親のテーマの値を引き継がないため） */
+${themeBlocks}
 
 :root {
   /* chart / sidebar（値は移行前のまま。案3-1への割り当ては #14） */
@@ -141,7 +143,7 @@ ${uiThemeVars}
   --font-heading: var(--heading-font);
 }
 
-/* ページの地。テーマの pageBackground（きかせてはグラデーション） */
+/* ページの地。テーマの pageBackground */
 @utility bg-page {
   background: var(--page-background);
 }

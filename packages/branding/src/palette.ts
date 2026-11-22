@@ -7,7 +7,8 @@
  * 値の根拠は Epic #8 の要求仕様3章。すべて `#FFFFFF` 背景上での使用を前提とする。
  */
 
-import { THEMES, type ThemeColorToken, type ThemeName } from "./themes";
+import type { ThemeColorToken, ThemeName } from "./theme-types";
+import { resolveTheme } from "./themes";
 
 /** プリミティブパレット。キーが CSS 変数名（`--color-<key>`）になる */
 export const PRIMITIVES = {
@@ -70,12 +71,12 @@ export const PRIMITIVES = {
 
 export type PrimitiveToken = keyof typeof PRIMITIVES;
 
-/** テーマの色トークンの実際の色（hex）を返す。テーマを省くとみてみて */
+/** テーマの色トークンの実際の色（hex）を返す。テーマを省くと default */
 export function resolveSemantic(
   token: ThemeColorToken,
-  theme: ThemeName = "mitemite"
+  theme: ThemeName = "default"
 ): string {
-  return PRIMITIVES[THEMES[theme].colors[token]];
+  return PRIMITIVES[resolveTheme(theme).colors[token]];
 }
 
 /**

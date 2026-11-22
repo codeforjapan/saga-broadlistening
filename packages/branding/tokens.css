@@ -2,7 +2,7 @@
  * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
  *
  * このファイルは自動生成です。直接編集しないでください。
- * 値の変更は packages/branding/src/palette.ts・themes.ts を編集し、
+ * 値の変更は packages/branding/src/palette.ts・brand.themes.ts を編集し、
  * pnpm --filter @mirai-gikai/branding build:css で再生成します。
  */
 
@@ -80,7 +80,7 @@
     font-weight: 500;
   }
 
-  /* 見出しの書体はテーマで変える（みてみては丸ゴ、きかせては Noto Sans JP） */
+  /* 見出しの書体はテーマで変える（brand.themes.ts の headingFont） */
   h1,
   h2,
   h3,
@@ -95,9 +95,11 @@
   }
 }
 
-/* テーマ（themes.ts）。クラスのないページはみてみての値になる */
+/* テーマ（brand.themes.ts）。クラスのないページは default の値になる。
+   default 以外のテーマも、書かれていない値を default で補ってすべて出力する
+   （テーマを入れ子にしても、親のテーマの値を引き継がないため） */
 :root,
-.theme-mitemite {
+.theme-default {
   --background: var(--color-base-white);
   --foreground: var(--color-base-ink);
   --card: var(--color-base-white);
@@ -120,14 +122,12 @@
   --border: var(--color-base-surface);
   --input: var(--color-base-ink-muted);
   --ring: var(--color-sky-700);
-  --progress: var(--color-sky-400);
-  --progress-track: var(--color-base-surface);
-  --heading-icon: var(--color-sky-400);
+  --decor: var(--color-sky-400);
   --heading-font: var(--font-zen-maru-gothic), var(--font-noto-sans-jp), system-ui, sans-serif;
   --page-background: var(--color-base-surface);
 }
 
-.theme-kikasete {
+.theme-interview {
   --background: var(--color-base-white);
   --foreground: var(--color-base-ink);
   --card: var(--color-base-white);
@@ -150,9 +150,7 @@
   --border: var(--color-kikasete-line);
   --input: var(--color-base-ink-muted);
   --ring: var(--color-kikasete-700);
-  --progress: var(--color-kikasete-400);
-  --progress-track: var(--color-kikasete-line);
-  --heading-icon: var(--color-kikasete-400);
+  --decor: var(--color-kikasete-400);
   --heading-font: var(--font-noto-sans-jp), system-ui, sans-serif;
   --page-background: linear-gradient(180deg, var(--color-kikasete-100) 0, var(--color-kikasete-50) 360px, var(--color-base-white) 1200px);
 }
@@ -198,9 +196,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-progress: var(--progress);
-  --color-progress-track: var(--progress-track);
-  --color-heading-icon: var(--heading-icon);
+  --color-decor: var(--decor);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -217,7 +213,7 @@
   --font-heading: var(--heading-font);
 }
 
-/* ページの地。テーマの pageBackground（きかせてはグラデーション） */
+/* ページの地。テーマの pageBackground */
 @utility bg-page {
   background: var(--page-background);
 }

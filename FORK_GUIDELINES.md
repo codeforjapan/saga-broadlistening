@@ -30,6 +30,10 @@
 
 - **primary カラーをそのまま使用しないでください**
 - カラーは `packages/branding/src/palette.ts` に集約されています。パレットを変更後、`pnpm --filter @mirai-gikai/branding build:css` で `tokens.css` を再生成してください
+- 画面の色・見出しの書体・ページの地は、テーマとして `packages/branding/src/brand.themes.ts` に書きます。テーマはサービスの役割で分かれています
+  - `default`：施策紹介などサイト全体の土台。すべての値を書きます。クラスのないページ（admin を含む）もこの値になります
+  - `interview`：AIインタビューの画面（`.theme-interview` の配下）。`default` と変えたい値だけを書きます。書かなかった値は `default` の値になります
+  - 変更後は、パレットと同じく `build:css` で `tokens.css` を再生成してください。`packages/branding` のテストが、文字と面の色の組み合わせのコントラスト（WCAG AA）を確認します
 - ブラウザUI・PWAのテーマ色は `packages/branding/src/brand-meta.ts` の `THEME_COLOR` 等を変更してください
 
 ### 5. 免責文言の表示
@@ -58,6 +62,7 @@
 | ロゴ・AIアバター・OGP画像 | `packages/branding/src/brand.config.ts` | `assets`（画像は `web/public/` に置いてパスを指定） |
 | 外部リンク | `packages/branding/src/brand.config.ts` | `links`（不具合報告フォーム、ソースコードの公開先、fork ガイドライン） |
 | テーマカラー | `packages/branding/src/palette.ts` | パレット変更後 `build:css` で再生成 |
+| テーマ（色の役割・見出しの書体・ページの地） | `packages/branding/src/brand.themes.ts` | `default` と `interview`（差分のみ）。変更後 `build:css` で再生成 |
 | テーマカラー | `packages/branding/src/brand-meta.ts` | `THEME_COLOR` 等 |
 | favicon / PWA | `web/public/icons/` | 独自アイコンに差し替え |
 | favicon / PWA の生成元 | `scripts/pwa-icons/` | ロゴに合わせて SVG を更新し PNG を再生成 |

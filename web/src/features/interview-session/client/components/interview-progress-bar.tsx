@@ -36,7 +36,7 @@ export function InterviewProgressBar({
       )}
       <Progress
         value={percentage}
-        className="h-1.5 rounded-full bg-progress-track md:h-[7px] [&>[data-slot=progress-indicator]]:bg-progress"
+        className="h-1.5 rounded-full bg-border md:h-[7px] [&>[data-slot=progress-indicator]]:bg-decor"
       />
     </div>
   );

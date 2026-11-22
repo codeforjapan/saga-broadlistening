@@ -28,7 +28,7 @@ export function InterviewPublicConsentModal({
 }: InterviewPublicConsentModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="theme-kikasete py-9">
+      <DialogContent className="theme-interview py-9">
         <DialogHeader>
           <p className="text-center text-primary-accent font-bold">
             あと少しです！
