@@ -23,7 +23,7 @@ interface InterviewThemePageProps {
  * テーマのきかせてページ（/interviews/[slug]、#158）。
  *
  * インタビューの説明と、これまでの声（公開中のトピック分析）への入口を出す。
- * テーマにつながる施策（親施策）があれば、その本文のタイトルをサブ見出しに、施策ページを戻り先にする。
+ * テーマにつながる施策（親施策）があれば、その施策ページを戻り先にする。
  */
 export async function InterviewThemePage({ slug }: InterviewThemePageProps) {
   const target = themeInterviewTarget(slug);
@@ -61,7 +61,6 @@ export async function InterviewThemePage({ slug }: InterviewThemePageProps) {
     <KikasetePage
       target={target}
       interviewConfig={config}
-      subtitle={bill?.bill_content?.title ?? null}
       sessionInfo={latestSession}
       participation={participation}
       userReports={userReports}
