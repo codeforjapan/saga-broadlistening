@@ -1,10 +1,10 @@
 import type { BrandThemes, Theme } from "./theme-types";
 
 /**
- * 自治体ごとのテーマの値（佐賀市）。fork 先はこのファイルを書き換える。
+ * 自治体ごとのテーマの値。fork 先はこのファイルを書き換える。
  *
- * - `default`：施策紹介などサイト全体の土台（佐賀市では「CHIKAT みてみて」の水色）。すべての値を書く
- * - `interview`：AIインタビューの画面（佐賀市では「CHIKAT きかせて」の緑）。
+ * - `default`：施策紹介などサイト全体の土台。すべての値を書く
+ * - `interview`：AIインタビューの画面。
  *   `default` と変える値だけを書き、書かなかった値は `default` の値になる
  *
  * 仕組みは theme-types.ts を参照。
@@ -51,7 +51,6 @@ const DEFAULT_THEME: Theme = {
 export const BRAND_THEMES = {
   default: DEFAULT_THEME,
   /**
-   * きかせての緑（Epic #162 / #279）。
    * #00B98D（kikasete-400）は対白 2.5:1 のため、飾り（decor）など面専用にする。
    * 白文字を載せるボタン面は kikasete-600、文字・リンクは kikasete-700 を使う。
    */

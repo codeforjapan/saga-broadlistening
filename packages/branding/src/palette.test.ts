@@ -155,7 +155,7 @@ describe.each(THEME_NAMES)("テーマ %s の色", (theme) => {
   });
 });
 
-describe("default（みてみて）の色", () => {
+describe("default の色", () => {
   it("primary-foreground は黒であり、白ではない（D-13）", () => {
     expect(resolveSemantic("primary-foreground")).toBe(
       PRIMITIVES["base-ink"]
@@ -181,7 +181,7 @@ describe("default（みてみて）の色", () => {
   });
 });
 
-describe("interview（きかせて）の色", () => {
+describe("interview の色", () => {
   it("primary-accent の文字はグラデーションの地の上でも 4.5:1 以上", () => {
     const accent = resolveSemantic("primary-accent", "interview");
     for (const surface of ["kikasete-100", "kikasete-50"] as const) {

@@ -69,7 +69,7 @@ describe("resolveTheme", () => {
   });
 });
 
-describe("佐賀市のテーマ", () => {
+describe("brand.themes.ts の値", () => {
   it("default の見出しは Zen Maru Gothic（D-15）", () => {
     expect(resolveTheme("default").headingFont).toContain(
       "--font-zen-maru-gothic"
