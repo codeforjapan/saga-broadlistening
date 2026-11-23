@@ -9,10 +9,11 @@ import {
   LARGE_TEXT_ONLY_TOKENS,
   PRIMITIVES,
   resolveSemantic,
-  SEMANTICS,
   SURFACE_ONLY_TOKENS,
   TEXT_SAFE_TOKENS,
 } from "./palette";
+import { THEME_NAMES } from "./theme-types";
+import { resolveTheme } from "./themes";
 
 const WHITE = PRIMITIVES["base-white"];
 
@@ -94,52 +95,72 @@ describe("大テキスト・UI部品にのみ使えるトークン", () => {
   });
 });
 
-describe("shadcnセマンティックマッピング", () => {
-  it("すべてのセマンティックがプリミティブを指す", () => {
-    for (const [semantic, primitive] of Object.entries(SEMANTICS)) {
-      expect(PRIMITIVES, semantic).toHaveProperty(primitive);
+describe.each(THEME_NAMES)("テーマ %s の色", (theme) => {
+  const resolve = (token: Parameters<typeof resolveSemantic>[0]) =>
+    resolveSemantic(token, theme);
+
+  it("すべての色トークンがプリミティブを指す", () => {
+    for (const [token, primitive] of Object.entries(resolveTheme(theme).colors)) {
+      expect(PRIMITIVES, token).toHaveProperty(primitive);
     }
   });
 
   it("background は白（D-2）", () => {
-    expect(resolveSemantic("background")).toBe("#ffffff");
-  });
-
-  it("primary-foreground は黒であり、白ではない（D-13）", () => {
-    expect(resolveSemantic("primary-foreground")).toBe(
-      PRIMITIVES["base-ink"]
-    );
-    expect(resolveSemantic("primary-foreground")).not.toBe(WHITE);
+    expect(resolve("background")).toBe("#ffffff");
   });
 
   it("primary の面に primary-foreground を載せて 4.5:1 以上", () => {
     expect(
-      contrastRatio(resolveSemantic("primary-foreground"), resolveSemantic("primary"))
+      contrastRatio(resolve("primary-foreground"), resolve("primary"))
     ).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
   it("ring はフォーカス可視性 3:1 以上（対 background）", () => {
     expect(
-      contrastRatio(resolveSemantic("ring"), resolveSemantic("background"))
+      contrastRatio(resolve("ring"), resolve("background"))
     ).toBeGreaterThanOrEqual(AA_LARGE_TEXT_OR_UI);
   });
 
   it("foreground / muted-foreground は本文として 4.5:1 以上", () => {
     for (const token of ["foreground", "muted-foreground"] as const) {
       expect(
-        contrastRatio(resolveSemantic(token), resolveSemantic("background")),
+        contrastRatio(resolve(token), resolve("background")),
         token
       ).toBeGreaterThanOrEqual(AA_TEXT);
     }
   });
 
-  it("secondary / accent の面に foreground を載せて 4.5:1 以上", () => {
+  it("secondary / accent などの面に foreground を載せて 4.5:1 以上", () => {
     for (const surface of ["secondary", "accent", "muted", "card"] as const) {
       expect(
-        contrastRatio(resolveSemantic("foreground"), resolveSemantic(surface)),
+        contrastRatio(resolve("foreground"), resolve(surface)),
         surface
       ).toBeGreaterThanOrEqual(AA_TEXT);
     }
+  });
+
+  it("primary-accent の文字は白と secondary の面の上で 4.5:1 以上", () => {
+    for (const surface of ["background", "secondary"] as const) {
+      expect(
+        contrastRatio(resolve("primary-accent"), resolve(surface)),
+        surface
+      ).toBeGreaterThanOrEqual(AA_TEXT);
+    }
+  });
+
+  it("destructive の面には白文字を載せられる（破壊的操作の視認性）", () => {
+    expect(
+      contrastRatio(resolve("destructive-foreground"), resolve("destructive"))
+    ).toBeGreaterThanOrEqual(AA_TEXT);
+  });
+});
+
+describe("default の色", () => {
+  it("primary-foreground は黒であり、白ではない（D-13）", () => {
+    expect(resolveSemantic("primary-foreground")).toBe(
+      PRIMITIVES["base-ink"]
+    );
+    expect(resolveSemantic("primary-foreground")).not.toBe(WHITE);
   });
 
   it("primary-accent の文字は薄い面の上でも 4.5:1 以上（ページ背景が base-surface のため）", () => {
@@ -158,23 +179,16 @@ describe("shadcnセマンティックマッピング", () => {
       ).toBeGreaterThanOrEqual(AA_TEXT);
     }
   });
+});
 
-  it("きかせてのボタン面（kikasete-600）には白文字を載せられる", () => {
-    expect(meetsAaText(WHITE, PRIMITIVES["kikasete-600"])).toBe(true);
-  });
-
-  it("きかせての文字色（kikasete-700）はきかせての薄い面の上でも 4.5:1 以上", () => {
-    expect(
-      contrastRatio(PRIMITIVES["kikasete-700"], PRIMITIVES["kikasete-50"])
-    ).toBeGreaterThanOrEqual(AA_TEXT);
-  });
-
-  it("destructive の面には白文字を載せられる（破壊的操作の視認性）", () => {
-    expect(
-      contrastRatio(
-        resolveSemantic("destructive-foreground"),
-        resolveSemantic("destructive")
-      )
-    ).toBeGreaterThanOrEqual(AA_TEXT);
+describe("interview の色", () => {
+  it("primary-accent の文字はグラデーションの地の上でも 4.5:1 以上", () => {
+    const accent = resolveSemantic("primary-accent", "interview");
+    for (const surface of ["kikasete-100", "kikasete-50"] as const) {
+      expect(
+        contrastRatio(accent, PRIMITIVES[surface]),
+        surface
+      ).toBeGreaterThanOrEqual(AA_TEXT);
+    }
   });
 });

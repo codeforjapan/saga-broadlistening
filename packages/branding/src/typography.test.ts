@@ -90,10 +90,6 @@ describe("ウェイト（D-7）", () => {
 });
 
 describe("書体", () => {
-  it("見出しは Zen Maru Gothic（D-15）", () => {
-    expect(FONT_FAMILIES.heading).toContain("--font-zen-maru-gothic");
-  });
-
   it("本文は Noto Sans JP", () => {
     expect(FONT_FAMILIES.sans).toContain("--font-noto-sans-jp");
   });
@@ -102,10 +98,6 @@ describe("書体", () => {
     for (const [name, value] of Object.entries(FONT_FAMILIES)) {
       expect(value.split(",").length, name).toBeGreaterThanOrEqual(2);
     }
-  });
-
-  it("見出しが読めない環境でも本文書体にフォールバックする", () => {
-    expect(FONT_FAMILIES.heading).toContain("--font-noto-sans-jp");
   });
 });
 

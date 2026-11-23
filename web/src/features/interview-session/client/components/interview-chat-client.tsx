@@ -171,9 +171,9 @@ export function InterviewChatClient({
   const hasReport = messages.some((m) => m.report != null);
 
   return (
-    <InterviewChatSurface className="md:px-12">
+    <InterviewChatSurface>
       {showProgressBar && progress && (
-        <div className="px-4 pb-1">
+        <div className="pb-1">
           <InterviewProgressBar
             percentage={progress.percentage}
             currentTopic={progress.currentTopic}
@@ -181,8 +181,9 @@ export function InterviewChatClient({
           />
         </div>
       )}
-      <Conversation className="min-h-0 flex-1 overflow-y-auto">
-        <ConversationContent className="flex flex-col gap-4">
+      {/* 会話の上端はぼかして消す（スクロールで文字が途中で切れて見えないように） */}
+      <Conversation className="min-h-0 flex-1 overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent_0,black_24px)] md:[mask-image:linear-gradient(to_bottom,transparent_0,black_32px)]">
+        <ConversationContent className="flex flex-col gap-4 px-0">
           {/* 初期表示メッセージ */}
           {messages.length === 0 && !object && !isPreparing && (
             <div className="flex flex-col gap-4">
@@ -283,7 +284,7 @@ export function InterviewChatClient({
       )}
 
       {/* 入力エリア */}
-      <div className="px-6 pt-2">
+      <div className="pt-2">
         {showEndInterviewButton && (
           <div className="flex justify-end pb-2">
             <EndInterviewButton

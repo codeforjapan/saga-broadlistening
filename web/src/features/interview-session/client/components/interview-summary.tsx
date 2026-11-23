@@ -1,6 +1,8 @@
 "use client";
 
+import { FileText, Lightbulb, MessageSquare } from "lucide-react";
 import { useMemo } from "react";
+import { HeadingIcon } from "@/components/heading-icon";
 import type { InterviewReportViewData } from "@/features/interview-session/shared/schemas";
 
 type Props = {
@@ -18,13 +20,19 @@ export function InterviewSummary({ report }: Props) {
       <div className="mt-2 space-y-4 text-body">
         {report.summary && (
           <div className="font-bold space-y-1">
-            <p className="text-primary-accent">💡意見の要約</p>
+            <p className="text-primary-accent">
+              <HeadingIcon icon={Lightbulb} />
+              意見の要約
+            </p>
             <p className="whitespace-pre-wrap">{report.summary}</p>
           </div>
         )}
         {report.final_text && (
           <div className="font-bold space-y-1">
-            <p className="text-primary-accent">📝提出する意見</p>
+            <p className="text-primary-accent">
+              <HeadingIcon icon={FileText} />
+              提出する意見
+            </p>
             <p className="whitespace-pre-wrap">{report.final_text}</p>
           </div>
         )}
@@ -46,7 +54,10 @@ export function InterviewSummary({ report }: Props) {
         )}
         {opinions.length > 0 && (
           <div className="space-y-1">
-            <p className="font-bold text-primary-accent">💬主な意見</p>
+            <p className="font-bold text-primary-accent">
+              <HeadingIcon icon={MessageSquare} />
+              主な意見
+            </p>
             <ul className="space-y-4">
               {opinions.map((op, index) => (
                 <li

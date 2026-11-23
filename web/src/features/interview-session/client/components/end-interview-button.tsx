@@ -53,7 +53,7 @@ export function EndInterviewButton({
         {isSummaryStage ? "このまとめで終える" : "終えてまとめに進む"}
       </Button>
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="px-8 py-12">
+        <DialogContent className="theme-interview px-8 py-12">
           <DialogHeader>
             <DialogTitle className="text-center text-lg font-bold text-primary">
               このまとめで終えますか？

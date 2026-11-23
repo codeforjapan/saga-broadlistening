@@ -1,6 +1,8 @@
+import { MessageSquare } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { HeadingIcon } from "@/components/heading-icon";
 import { getInterviewMessageLink } from "@/features/interview-config/shared/utils/interview-links";
 import type { ParsedOpinion as Opinion } from "../utils/format-utils";
 
@@ -8,7 +10,6 @@ export type { Opinion };
 
 interface OpinionsListProps {
   opinions: Opinion[];
-  title?: string;
   footer?: ReactNode;
   reportId?: string;
   chatLogFrom?: "complete" | "opinions";
@@ -16,7 +17,6 @@ interface OpinionsListProps {
 
 export function OpinionsList({
   opinions,
-  title = "💬意見の要約",
   footer,
   reportId,
   chatLogFrom,
@@ -27,8 +27,11 @@ export function OpinionsList({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-xl font-bold text-foreground">{title}</h2>
-      <div className="bg-white rounded-2xl p-6 flex flex-col gap-6">
+      <h2 className="text-xl font-bold text-foreground">
+        <HeadingIcon icon={MessageSquare} />
+        主な意見
+      </h2>
+      <div className="flex flex-col gap-6 rounded-2xl border border-border bg-white p-6">
         {opinions.map((opinion, index) => (
           <div
             key={`opinion-${index}-${opinion.title.slice(0, 20)}`}
