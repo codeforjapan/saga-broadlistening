@@ -1,25 +1,32 @@
 import type { InterviewStage } from "../schemas";
 
+/** 進捗バーの上に出す段階のラベル。トピック名は出さない（#273） */
+export const INTERVIEW_STAGE_LABELS = {
+  intro: "はじめに",
+  deepen: "もう少し聞かせて",
+  summary: "まとめを確認",
+} as const;
+
+export type InterviewStageLabel =
+  (typeof INTERVIEW_STAGE_LABELS)[keyof typeof INTERVIEW_STAGE_LABELS];
+
 export interface InterviewProgress {
   percentage: number;
-  currentTopic: string | null;
-  showSkip: boolean;
+  stageLabel: InterviewStageLabel;
 }
 
 interface ProgressMessage {
   role: "assistant" | "user";
   questionId?: string | null;
-  topicTitle?: string | null;
 }
 
 /**
- * インタビューのプログレスバー進捗を計算する純粋関数
+ * インタビューのプログレスバー進捗と段階のラベルを計算する純粋関数
  *
- * - summary_complete: 100%
- * - summary: 90% 固定
- * - chat: 完了質問数 / 全質問数 x 80%（残り20%はsummary+summary_complete）
- *
- * currentTopic は全ステージ共通で最後のトピック名を返す。
+ * - summary_complete: 100%、「まとめを確認」
+ * - summary: 90% 固定、「まとめを確認」
+ * - chat: 完了質問数 / 全質問数 x 80%（残り20%はsummary+summary_complete）。
+ *   最初の質問のあいだは「はじめに」、2問目からは「もう少し聞かせて」
  */
 export function calcInterviewProgress(
   totalQuestions: number | undefined,
@@ -28,18 +35,12 @@ export function calcInterviewProgress(
 ): InterviewProgress | null {
   if (!totalQuestions || totalQuestions === 0) return null;
 
-  // 全ステージ共通: 最後のトピック名を取得
-  const lastTopicMessage = [...messages]
-    .reverse()
-    .find((m) => m.role === "assistant" && m.topicTitle);
-  const currentTopic = lastTopicMessage?.topicTitle ?? null;
-
   if (stage === "summary_complete") {
-    return { percentage: 100, currentTopic, showSkip: false };
+    return { percentage: 100, stageLabel: INTERVIEW_STAGE_LABELS.summary };
   }
 
   if (stage === "summary") {
-    return { percentage: 90, currentTopic, showSkip: false };
+    return { percentage: 90, stageLabel: INTERVIEW_STAGE_LABELS.summary };
   }
 
   // chat: 質問ベースの進捗
@@ -52,6 +53,10 @@ export function calcInterviewProgress(
   const completedCount = Math.max(0, askedIds.size - 1);
   // chatステージでは最大80%まで
   const percentage = Math.round((completedCount / totalQuestions) * 80);
+  const stageLabel =
+    askedIds.size <= 1
+      ? INTERVIEW_STAGE_LABELS.intro
+      : INTERVIEW_STAGE_LABELS.deepen;
 
-  return { percentage, currentTopic, showSkip: true };
+  return { percentage, stageLabel };
 }
