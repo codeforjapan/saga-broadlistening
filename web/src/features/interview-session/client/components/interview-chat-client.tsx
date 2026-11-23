@@ -89,7 +89,7 @@ export function InterviewChatClient({
     initialStage,
   });
 
-  const { remainingMinutes, isTimeUp, hasTimer } = useInterviewTimer({
+  const { isTimeUp, hasTimer } = useInterviewTimer({
     estimatedDuration,
     sessionStartedAt,
   });
@@ -109,8 +109,6 @@ export function InterviewChatClient({
   const billDetailLink = bill ? getBillDetailLink(bill.id, previewToken) : null;
 
   const showProgressBar = progress !== null;
-  const timerMinutes =
-    hasTimer && stage === "chat" && !timeUpDismissed ? remainingMinutes : null;
   const showTimeUpPrompt =
     isTimeUp &&
     !timeUpDismissed &&
@@ -176,8 +174,7 @@ export function InterviewChatClient({
         <div className="pb-1">
           <InterviewProgressBar
             percentage={progress.percentage}
-            currentTopic={progress.currentTopic}
-            remainingMinutes={timerMinutes}
+            stageLabel={progress.stageLabel}
           />
         </div>
       )}
@@ -314,7 +311,7 @@ export function InterviewChatClient({
             input={input}
             onInputChange={setInput}
             onSubmit={handleChatSubmit}
-            placeholder="AIの質問に回答する"
+            placeholder="ここに入力してください"
             isResponding={isLoading}
             disabled={isPreparing}
           />

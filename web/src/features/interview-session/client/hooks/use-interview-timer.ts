@@ -9,8 +9,6 @@ interface UseInterviewTimerProps {
 }
 
 interface UseInterviewTimerResult {
-  /** 残り分数。タイムマネジメント不要の場合はnull */
-  remainingMinutes: number | null;
   /** 目安時間を超過したかどうか */
   isTimeUp: boolean;
   /** 目安時間が設定され、残り時間を測っているか */
@@ -18,9 +16,10 @@ interface UseInterviewTimerResult {
 }
 
 /**
- * インタビューの残り時間を管理するフック
+ * インタビューの目安時間を超えたかを管理するフック。
+ * 残り時間は画面に出さず、「終える」ボタンと時間超過の案内を出す判定にだけ使う（#273）。
  *
- * 10秒ごとに現在時刻を更新し、残り時間などはそこから描画時に計算する。
+ * 10秒ごとに現在時刻を更新し、超過したかはそこから描画時に計算する。
  * estimatedDurationがnull/undefinedの場合はタイムマネジメントしない。
  */
 export function useInterviewTimer({
@@ -43,7 +42,6 @@ export function useInterviewTimer({
     : null;
 
   return {
-    remainingMinutes,
     isTimeUp: remainingMinutes !== null && remainingMinutes <= 0,
     hasTimer,
   };

@@ -1,41 +1,28 @@
 "use client";
 
 import { Progress } from "@/components/ui/progress";
-import { InterviewTimer } from "./interview-timer";
+import type { InterviewStageLabel } from "../../shared/utils/calc-interview-progress";
 
 interface InterviewProgressBarProps {
   percentage: number;
-  currentTopic: string | null;
-  remainingMinutes?: number | null;
+  stageLabel: InterviewStageLabel;
 }
 
+/** 進み具合はバーと段階のラベルだけで伝える。残り時間や残りの問数は出さない（#273） */
 export function InterviewProgressBar({
   percentage,
-  currentTopic,
-  remainingMinutes,
+  stageLabel,
 }: InterviewProgressBarProps) {
   return (
     <div>
-      {(currentTopic || remainingMinutes != null) && (
-        <div className="mb-2 flex items-center gap-2 md:mb-2.5">
-          <div className="flex min-w-0 flex-1 items-center gap-2">
-            {currentTopic && (
-              <div className="inline-flex max-w-full rounded-[10px] bg-secondary px-3 py-0.5 md:px-4">
-                <p className="min-w-0 truncate text-[13px] font-bold leading-[22px] text-foreground md:text-sm md:leading-[25px]">
-                  {currentTopic}
-                </p>
-              </div>
-            )}
-          </div>
-          {remainingMinutes != null && (
-            <div className="ml-auto shrink-0">
-              <InterviewTimer remainingMinutes={remainingMinutes} />
-            </div>
-          )}
-        </div>
-      )}
+      <div className="mb-2 flex w-fit rounded-[10px] bg-secondary px-3 py-0.5 md:mb-2.5 md:px-4">
+        <p className="text-[13px] font-bold leading-[22px] text-foreground md:text-sm md:leading-[25px]">
+          {stageLabel}
+        </p>
+      </div>
       <Progress
         value={percentage}
+        aria-label="進み具合"
         className="h-1.5 rounded-full bg-border md:h-[7px] [&>[data-slot=progress-indicator]]:bg-decor"
       />
     </div>
