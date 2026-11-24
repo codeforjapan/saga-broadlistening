@@ -111,7 +111,7 @@ export const INTERVIEW_PROMPT_CATALOG = {
   "interview-initial-system": {
     key: "interview-initial-system", name: "AIインタビュー・初回の発話",
     defaultContent: INTERVIEW_INITIAL_TEMPLATE,
-    requiredVariables: ["persona", "topicCount", "firstQuestion"],
+    requiredVariables: ["persona", "firstQuestion"],
   },
   "interview-summary-system": {
     key: "interview-summary-system", name: "AIインタビュー・要約方針",

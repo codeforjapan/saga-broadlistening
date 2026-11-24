@@ -3,6 +3,7 @@ import { interviewReportSchema } from "../interview-report/schema";
 import {
   INTERVIEW_CHAT_FIELD_DESCRIPTIONS,
   INTERVIEW_CHAT_TEXT_DESCRIPTION,
+  INTERVIEW_INITIAL_TEXT_DESCRIPTION,
 } from "./chat-text-description";
 import { SUMMARY_RESPONSES } from "./types";
 
@@ -28,11 +29,14 @@ export const interviewChatTextSchema = z.object({
 export type InterviewChatText = z.infer<typeof interviewChatTextSchema>;
 
 // 初回（1ターン目）。フラグはコードが false で埋める
-export const interviewInitialSchema = interviewChatTextSchema.pick({
-  question_id: true,
-  topic_title: true,
-  text: true,
-});
+export const interviewInitialSchema = interviewChatTextSchema
+  .pick({
+    question_id: true,
+    topic_title: true,
+  })
+  .extend({
+    text: z.string().describe(INTERVIEW_INITIAL_TEXT_DESCRIPTION),
+  });
 
 // 要約（stage = summary）
 export const interviewChatWithReportSchema = z.object({

@@ -105,7 +105,7 @@ export function renderChatOutputInstructions(state: TurnState): string {
     "- text：回答者に表示する本文",
     "- end_request：回答者が終えたい・やめたいとはっきり言ったら true（「疲れた」だけなら false）",
     candidates.length === 0
-      ? "- wrap_up：この話題が最後。回答者が「ない」「特にない」と答えた、または十分に聞けたら true（本文は「ありがとうございます。ここまでのお話をまとめますね。」の意味の1文だけ）。続けて聞くなら false"
+      ? "- wrap_up：この話題が最後。回答者が「ない」「特にない」と答えた、または十分に聞けたら true（本文は「終わり方」の締めの言葉。質問はしない）。続けて聞くなら false"
       : "- wrap_up：false（まだ聞いていない話題がある）",
   ].join("\n");
 }

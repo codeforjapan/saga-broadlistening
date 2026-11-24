@@ -111,6 +111,13 @@ describe("renderChatOutputInstructions", () => {
       renderChatOutputInstructions(stateAfter("q1", "q2", "q3", "q4", "q5"))
     ).toContain("- wrap_up：この話題が最後。");
   });
+
+  it("wrap_up の本文は「終わり方」の締めの言葉を指す", () => {
+    const text = renderChatOutputInstructions(
+      stateAfter("q1", "q2", "q3", "q4", "q5")
+    );
+    expect(text).toContain("「終わり方」の締めの言葉");
+  });
 });
 
 describe("renderSummaryState", () => {

@@ -7,7 +7,11 @@ import {
 import { PromptProvider } from "../prompts/provider";
 import { validatePromptTemplate } from "../prompts/template";
 import { buildChatSystemPrompt } from "./chat-prompt";
-import { NO_INDIVIDUAL_RESPONSE_TEXT, VOICE_USAGE_TEXT } from "./constants";
+import {
+  CLOSING_TEXT,
+  NO_INDIVIDUAL_RESPONSE_TEXT,
+  VOICE_USAGE_TEXT,
+} from "./constants";
 import { buildInitialSystemPrompt } from "./initial-prompt";
 import { getPurposeTemplateSteps } from "./purpose-types/registry";
 import { buildSummarySystemPrompt } from "./summary";
@@ -107,6 +111,30 @@ describe("対話用プロンプト", () => {
     expect(prompt).not.toContain("どちらかといえば賛成");
   });
 
+  it("受け止めの形を固定せず、決めつけ・深追い・聞き直しをしないよう指示する", () => {
+    const prompt = buildChatSystemPrompt({
+      bill,
+      interviewConfig,
+      topics,
+      turnState,
+    });
+    // 言い換えから毎回始める定型をやめる
+    expect(prompt).not.toContain("回答者の具体的な言葉を1つ以上そのまま使う");
+    expect(prompt).not.toContain("相手の言葉の言い換えと組み合わせる");
+    expect(prompt).toContain("同じ形を2回続けて使わない");
+    // 経験・きっかけを決めつけない
+    expect(prompt).toContain(
+      "具体的な出来事やきっかけがあったと決めつけて聞かない"
+    );
+    // すべてを聞き出そうとしない
+    expect(prompt).not.toContain("答えが十分といえるのは");
+    expect(prompt).toContain("全部を聞くことを目的にしない");
+    // 聞き直さない
+    expect(prompt).toContain("答えが出ていることは聞かない");
+    // 締めの言葉
+    expect(prompt).toContain(`「${CLOSING_TEXT}」`);
+  });
+
   it("話題の発話の上限を使い切ったら次の話題に移るよう指示する", () => {
     const exhausted = computeTurnState({
       topics,
@@ -151,15 +179,12 @@ describe("対話用プロンプト", () => {
 });
 
 describe("初回の発話", () => {
-  it("全体像と最初の質問を埋め込む", () => {
+  it("親しみやすい導入と最初の質問を埋め込む", () => {
     const prompt = buildInitialSystemPrompt({ topics });
-    expect(prompt).toContain(
-      "「全部で5つうかがいます。途中でやめても大丈夫です。」"
-    );
-    // 「いくつか」とぼかさず、話題の数を数字で言わせる
-    expect(prompt).toContain(
-      "話題の数は数字のまま入れ、「いくつか」「少し」などとぼかさない"
-    );
+    expect(prompt).toContain("ご自身のことでも、身近な方のことでも大丈夫です");
+    // 残りの話題の数は出さない（進捗はバーだけで出す）
+    expect(prompt).not.toContain("全部で");
+    expect(prompt).toContain("話題の数や残りの数は伝えない");
     expect(prompt).toContain(
       "「この案は、あなたの暮らしや仕事に関わりがありますか？」"
     );
