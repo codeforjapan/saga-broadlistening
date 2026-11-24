@@ -6,12 +6,11 @@ import {
 import type { TurnTopic } from "./turn-control";
 
 /**
- * 初回の発話の変数を作る。話題の数は言い足しを含むすべての話題。
+ * 初回の発話の変数を作る。残りの話題の数は伝えない方針のため、最初の質問だけを渡す。
  */
 export function buildInitialTurnVariables(topics: TurnTopic[]) {
   const first = topics[0];
   return {
-    topicCount: String(topics.length),
     firstQuestion: first?.question ?? "このテーマについて、思うことを教えてください。",
   };
 }

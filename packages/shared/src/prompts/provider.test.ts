@@ -26,6 +26,22 @@ describe("PromptProvider", () => {
     expect(fallbacks).toEqual(["top-chat-system"]);
   });
 
+  it("旧版の初回プロンプト（{{topicCount}} を含む）が公開中でも、コードの文面に戻して壊れない", async () => {
+    const fallbacks: string[] = [];
+    const provider = new PromptProvider(
+      {
+        findPublishedPrompt: async () => ({
+          content: "{{persona}}\n全部で{{topicCount}}つうかがいます。\n{{firstQuestion}}",
+        }),
+      },
+      (key) => fallbacks.push(key)
+    );
+    const result = await provider.getTemplate("interview-initial-system");
+    expect(JSON.parse(result.metadata).source).toBe("source-code");
+    expect(result.content).not.toContain("{{topicCount}}");
+    expect(fallbacks).toEqual(["interview-initial-system"]);
+  });
+
   it("rejects missing variables before database lookup", async () => {
     let queried = false;
     const provider = new PromptProvider({ findPublishedPrompt: async () => { queried = true; return null; } });
