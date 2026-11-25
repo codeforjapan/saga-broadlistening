@@ -42,13 +42,18 @@ export function PublicStatusSection({
 
   return (
     <>
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex items-center gap-3">
         {isPublic ? (
-          <span className="inline-flex items-center gap-1 bg-hero-gradient text-foreground text-sm font-bold px-4 py-1.5 rounded-full">
-            公開
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-sm font-bold text-primary-accent">
+            <span aria-hidden="true" className="size-2 rounded-full bg-decor" />
+            公開中
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 bg-muted text-muted-foreground text-sm font-bold px-4 py-1.5 rounded-full">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm font-bold text-muted-foreground">
+            <span
+              aria-hidden="true"
+              className="size-2 rounded-full bg-muted-foreground"
+            />
             非公開
           </span>
         )}
