@@ -22,7 +22,6 @@ const validReportMessage = JSON.stringify({
   text: "インタビューのまとめです。",
   report: {
     summary: "テスト施策に賛成の立場",
-    final_text: "この施策には賛成です。社会全体の利益になると考えるためです。",
     role_description: "一般市民として施策に関心がある",
     role_title: "会社員",
     opinions: [
@@ -50,7 +49,6 @@ function buildReportMessage(
     text: "インタビューのまとめです。",
     report: {
       summary: "テスト施策に賛成の立場",
-      final_text: "この施策には賛成です。",
       role_description: "一般市民として施策に関心がある",
       role_title: "会社員",
       opinions: opinions.map((o) => ({
@@ -99,8 +97,9 @@ describe("completeInterviewSession 統合テスト", () => {
     // 戻り値を検証
     expect(report.interview_session_id).toBe(sessionId);
     expect(report.summary).toBe("テスト施策に賛成の立場");
+    // 提出本文は見出しとトピックから組み立てる
     expect(report.final_text).toBe(
-      "この施策には賛成です。社会全体の利益になると考えるためです。"
+      "テスト施策に賛成の立場\n\n1. 賛成の理由\n社会全体の利益になると考える"
     );
 
     // DB 状態を検証: 意見が保存されていること

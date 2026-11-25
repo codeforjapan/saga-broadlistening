@@ -192,7 +192,7 @@ export type DiverseRolesPlan = z.infer<typeof diverseRolesPlanSchema>;
 
 /**
  * シミュレーションの Summary フェーズで LLM に生成させるレポートのスキーマ。
- * web 本番の interviewReportSchema と互換（シミュ用の定義）。
+ * web 本番の interviewReportSchema をもとにした、シミュ用の簡易な定義（項目の制約は揃えていない）。
  *
  * content_richness は本番では別ステップで算出するため、シミュでは出力させない簡易版。
  */

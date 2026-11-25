@@ -12,7 +12,7 @@ export type OpenDataInterviewItem = {
   roleTitle: string | null;
   roleDescription: string | null;
   summary: string | null;
-  /** 回答者が最終確認・修正して提出した意見文 */
+  /** 提出された意見の本文（見出しの下にトピックを並べた形） */
   finalText: string;
   messages: OpenDataMessage[];
   createdAt: string;

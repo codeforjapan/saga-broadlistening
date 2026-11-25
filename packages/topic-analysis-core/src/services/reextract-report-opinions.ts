@@ -116,6 +116,13 @@ export async function reextractReportOpinions(
 
     const report = await generateReport({ systemPrompt });
 
+    // 今の要約は、ほとんど話していない意見を見出しだけ（トピック0件）にする。
+    // 再抽出で0件になっても、すでにある論点をトピック分析から消さないよう同期しない
+    if (report.opinions.length === 0) {
+      await markReextractionAttempted(opinionId, nowIso);
+      return { opinionId, status: "skipped", reason: "no topics extracted" };
+    }
+
     // source_message_id を元発言に解決して opinion_segments 行を作る。
     const enrichedOpinions = enrichOpinionsWithSourceContent(
       report.opinions,

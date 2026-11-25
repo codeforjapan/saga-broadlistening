@@ -129,7 +129,7 @@ export type PublicRespondentDetail = {
   role_description: string | null;
   /** 意見の要約テキスト。 */
   summary: string | null;
-  /** 市民が最終確認・修正して提出した意見本文（opinions.final_text）。 */
+  /** 提出された意見の本文（opinions.final_text）。見出しの下にトピックを並べた形。 */
   final_text: string;
   /** 出典意見の作成日時。 */
   created_at: string | null;
@@ -139,7 +139,7 @@ export type PublicRespondentDetail = {
 
 /** 詳細取得の生の意見行（pure 関数の入力）。回答一覧の行に本文と立場説明を加えたもの。 */
 export type RawRespondentDetailRow = PublicRespondent & {
-  /** 市民が最終確認・修正して提出した意見本文（opinions.final_text）。 */
+  /** 提出された意見の本文（opinions.final_text）。見出しの下にトピックを並べた形。 */
   final_text: string;
   role_description: string | null;
 };

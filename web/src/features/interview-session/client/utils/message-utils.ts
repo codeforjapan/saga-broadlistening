@@ -29,7 +29,6 @@ export function convertPartialReport(
   partialReport:
     | {
         summary?: string | null;
-        final_text?: string | null;
         role_description?: string | null;
         role_title?: string | null;
         opinions?: Array<
@@ -70,8 +69,7 @@ export function convertPartialReport(
     : [];
 
   const converted: InterviewReportViewData = {
-    summary: partialReport.summary ?? null,
-    final_text: partialReport.final_text ?? "",
+    summary: partialReport.summary ?? "",
     role_description: partialReport.role_description ?? null,
     role_title: partialReport.role_title ?? null,
     opinions,

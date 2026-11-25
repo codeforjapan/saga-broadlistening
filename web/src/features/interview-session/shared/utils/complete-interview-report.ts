@@ -1,3 +1,4 @@
+import { buildFinalText } from "@mirai-gikai/shared/interview-report/build-final-text";
 import { enrichOpinionsWithSourceContent } from "@mirai-gikai/shared/interview-report/enrich-opinions";
 import { shouldAutoPublishOnUserSettingChange } from "@mirai-gikai/shared/report-publication/auto-publish";
 import type { OpinionReviewStatus } from "@mirai-gikai/shared/report-publication/review-status";
@@ -50,7 +51,7 @@ export function buildCompletedInterviewReportInsert({
 
   return {
     interview_session_id: sessionId,
-    final_text: reportData.final_text,
+    final_text: buildFinalText(reportData),
     summary: reportData.summary,
     role_description: reportData.role_description,
     role_title: reportData.role_title,
