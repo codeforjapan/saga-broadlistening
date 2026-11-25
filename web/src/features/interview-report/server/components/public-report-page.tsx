@@ -13,9 +13,9 @@ import { routes } from "@/lib/routes";
 import { getOrigin } from "@/lib/utils/url";
 import { BackToBillButton } from "../../shared/components/back-to-bill-button";
 import { ChatLogSection } from "../../shared/components/chat-log-section";
-import { ReportIntervieweeCard } from "../../shared/components/report-interviewee-card";
-import { ReportMainOpinions } from "../../shared/components/report-main-opinions";
+import { OpinionsList } from "../../shared/components/opinions-list";
 import { ReportProblemButton } from "../../shared/components/report-problem-button";
+import { ReportSummaryCard } from "../../shared/components/report-summary-card";
 import { resolveReportSubject } from "../../shared/utils/public-report-display";
 import { getPublicReportById } from "../loaders/get-public-report-by-id";
 
@@ -97,20 +97,18 @@ export async function PublicReportPage({
         インタビューレポート
       </h1>
 
-      {/* 回答者カード */}
-      <ReportIntervieweeCard
-        roleTitle={data.role_title}
-        roleDescription={data.role_description}
+      {/* 要約カード（#278） */}
+      <ReportSummaryCard
+        summary={data.summary}
         sessionStartedAt={data.session_started_at}
-        sessionCompletedAt={data.session_completed_at}
         characterCount={data.characterCount}
       />
 
-      {/* 主な意見 */}
-      <ReportMainOpinions
+      {/* 主な意見。会話ログの該当箇所へのリンクは、会話ログを公開するテーマでだけ出す */}
+      <OpinionsList
         opinions={data.opinions}
-        reportId={reportId}
-        showSourceLinks={data.chatLogPublic}
+        reportId={data.chatLogPublic ? reportId : undefined}
+        chatLogFrom={from}
       />
 
       {/* すべての会話ログ */}

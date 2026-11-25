@@ -43,9 +43,9 @@ export function OpinionsList({
                   意見{index + 1}
                 </span>
               </div>
-              <p className="text-base font-bold text-foreground">
+              <h3 className="text-base font-bold text-foreground">
                 {opinion.title}
-              </p>
+              </h3>
             </div>
             <p className="text-sm text-muted-foreground">{opinion.content}</p>
             {reportId && opinion.source_message_id && (
