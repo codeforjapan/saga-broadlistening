@@ -49,6 +49,7 @@ function renderDialog(
     report,
     profileForm,
     canRevise: overrides.canRevise ?? true,
+    chatLogPublic: false,
     onSubmit,
     isSubmitting: false,
   };

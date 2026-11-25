@@ -45,6 +45,7 @@ export default function PublicConsentModalPreview() {
             report={mockInterviewReport}
             profileForm={profileForm}
             canRevise
+            chatLogPublic={false}
             onSubmit={() => setOpenConsent(false)}
             isSubmitting={false}
           />

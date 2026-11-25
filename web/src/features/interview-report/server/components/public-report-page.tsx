@@ -107,7 +107,11 @@ export async function PublicReportPage({
       />
 
       {/* 主な意見 */}
-      <ReportMainOpinions opinions={data.opinions} reportId={reportId} />
+      <ReportMainOpinions
+        opinions={data.opinions}
+        reportId={reportId}
+        showSourceLinks={data.chatLogPublic}
+      />
 
       {/* すべての会話ログ */}
       {data.messages.length > 0 && (

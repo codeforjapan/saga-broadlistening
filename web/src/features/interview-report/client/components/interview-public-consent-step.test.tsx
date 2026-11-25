@@ -7,13 +7,18 @@ import { InterviewStepDialog } from "@/features/interview-session/client/compone
 import { InterviewPublicConsentStep } from "./interview-public-consent-step";
 
 function renderStep(
-  overrides: { isSubmitting?: boolean; error?: string | null } = {}
+  overrides: {
+    isSubmitting?: boolean;
+    error?: string | null;
+    chatLogPublic?: boolean;
+  } = {}
 ) {
   const onSubmit = vi.fn();
   const onBack = vi.fn();
   render(
     <InterviewStepDialog open onOpenChange={vi.fn()}>
       <InterviewPublicConsentStep
+        chatLogPublic={overrides.chatLogPublic ?? false}
         onBack={onBack}
         onSubmit={onSubmit}
         isSubmitting={overrides.isSubmitting ?? false}
@@ -35,6 +40,17 @@ describe("InterviewPublicConsentStep", () => {
     expect(
       screen.getByText("会話の原文は公開されません。")
     ).toBeInTheDocument();
+  });
+
+  it("会話ログを公開するテーマでは、原文も掲載されうると案内する", () => {
+    renderStep({ chatLogPublic: true });
+
+    expect(
+      screen.getByText(/意見のまとめとインタビューの原文が/)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("会話の原文は公開されません。")
+    ).not.toBeInTheDocument();
   });
 
   it("オープンデータ提供の告知とデータ利用規約リンクを表示する", () => {

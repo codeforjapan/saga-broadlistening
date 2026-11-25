@@ -7,6 +7,8 @@ const config = {
   status: "draft",
   participation_mode: "public",
   allowed_provider_keys: [],
+  rating_enabled: false,
+  chat_log_public: false,
 };
 
 describe("interviewConfigSchema model validation", () => {
@@ -100,5 +102,14 @@ describe("interviewConfigSchema の設計項目", () => {
         opinion_focus: "あ".repeat(61),
       }).success
     ).toBe(false);
+  });
+});
+
+describe("interviewConfigSchema の表示の切り替え", () => {
+  it("星評価と会話ログの切り替えは必須（既定値はフォームで入れる）", () => {
+    const { rating_enabled: _, ...withoutRating } = config;
+    expect(interviewConfigSchema.safeParse(withoutRating).success).toBe(false);
+    const { chat_log_public: __, ...withoutChatLog } = config;
+    expect(interviewConfigSchema.safeParse(withoutChatLog).success).toBe(false);
   });
 });

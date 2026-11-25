@@ -22,6 +22,8 @@ interface InterviewSummaryInputProps {
   /** まとめのモーダルの開閉。自動で開く判定は呼び出し側が持つ */
   isSubmitDialogOpen: boolean;
   onSubmitDialogOpenChange: (open: boolean) => void;
+  /** テーマが会話ログを公開する設定か。公開設定の案内を変える */
+  chatLogPublic: boolean;
   /** 締めの発話まで終わった（これ以上 AI は発話しない） */
   isComplete: boolean;
   input: string;
@@ -39,6 +41,7 @@ export function InterviewSummaryInput({
   latestReport,
   isSubmitDialogOpen,
   onSubmitDialogOpenChange,
+  chatLogPublic,
   isComplete,
   input,
   onInputChange,
@@ -101,6 +104,7 @@ export function InterviewSummaryInput({
         report={latestReport.report}
         profileForm={profileForm}
         canRevise={!isComplete}
+        chatLogPublic={chatLogPublic}
         onSubmit={handleSubmit}
         isSubmitting={isCompleting}
         submitError={completeError}

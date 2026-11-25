@@ -8,12 +8,15 @@ import type { ParsedOpinion } from "../utils/format-utils";
 interface ReportMainOpinionsProps {
   opinions: ParsedOpinion[];
   reportId: string;
+  /** 会話ログの該当箇所へのリンクを出すか。会話ログを公開しないテーマでは出さない（#278） */
+  showSourceLinks: boolean;
 }
 
-/** レポート詳細「主な意見」セクション。各意見から会話ログの該当箇所へ遷移する。 */
+/** レポート詳細「主な意見」セクション。会話ログを公開するテーマでは、各意見から会話ログの該当箇所へ遷移できる。 */
 export function ReportMainOpinions({
   opinions,
   reportId,
+  showSourceLinks,
 }: ReportMainOpinionsProps) {
   if (opinions.length === 0) return null;
 
@@ -42,7 +45,7 @@ export function ReportMainOpinions({
                 </p>
               </div>
             )}
-            {opinion.source_message_id && (
+            {showSourceLinks && opinion.source_message_id && (
               <Link
                 href={
                   getInterviewMessageLink(

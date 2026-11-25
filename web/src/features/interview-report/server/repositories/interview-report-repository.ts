@@ -15,7 +15,7 @@ import type { SortOrder } from "../../shared/utils/sort-order";
  * 意見募集の slug と name（戻り先とヘッダーに使う）も併せて引く。
  */
 const OPINION_WITH_SESSION_SELECT =
-  "*, interview_sessions(user_id, started_at, completed_at, interview_config_id, interview_configs(slug, name, status, policies_interview_configs(policies(id, publish_status))))";
+  "*, interview_sessions(user_id, started_at, completed_at, interview_config_id, interview_configs(slug, name, status, chat_log_public, policies_interview_configs(policies(id, publish_status))))";
 
 /**
  * 意見IDから意見とセッション情報を結合取得

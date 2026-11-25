@@ -30,6 +30,7 @@ export default function SummaryInputPreview() {
               latestReport={null}
               isSubmitDialogOpen={false}
               onSubmitDialogOpenChange={() => {}}
+              chatLogPublic={false}
               isComplete={false}
               input={input}
               onInputChange={setInput}
@@ -56,6 +57,7 @@ export default function SummaryInputPreview() {
               }}
               isSubmitDialogOpen={isDialogOpen}
               onSubmitDialogOpenChange={setIsDialogOpen}
+              chatLogPublic={false}
               isComplete={false}
               input={input}
               onInputChange={setInput}

@@ -23,6 +23,8 @@ interface InterviewSubmitDialogProps {
   profileForm: UserProfileForm;
   /** まだチャットでまとめを直せるか。締めの発話のあとは直せないので、提出だけを案内する */
   canRevise: boolean;
+  /** テーマが会話ログを公開する設定か。STEP 3 の案内を変える */
+  chatLogPublic: boolean;
   onSubmit: (isPublic: boolean) => void;
   isSubmitting: boolean;
   submitError?: string | null;
@@ -38,6 +40,7 @@ export function InterviewSubmitDialog({
   report,
   profileForm,
   canRevise,
+  chatLogPublic,
   onSubmit,
   isSubmitting,
   submitError,
@@ -100,6 +103,7 @@ export function InterviewSubmitDialog({
       )}
       {step === 3 && (
         <InterviewPublicConsentStep
+          chatLogPublic={chatLogPublic}
           onBack={() => setStep(2)}
           onSubmit={onSubmit}
           isSubmitting={isSubmitting}

@@ -117,7 +117,8 @@ export async function ReportCompletePage({
             roleTitle={report.role_title}
             sessionStartedAt={report.session_started_at}
             characterCount={characterCount}
-            messages={messages}
+            // 会話ログを公開しないテーマ（#278）では、本人にも会話ログを出さない
+            messages={report.chatLogPublic ? messages : undefined}
             roleDescription={report.role_description}
             opinions={opinions}
           />
