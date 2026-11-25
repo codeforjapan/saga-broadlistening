@@ -73,7 +73,6 @@ export function InterviewChatClient({
     isLoading,
     error,
     object,
-    streamingReportData,
     currentQuickReplies,
     canRetry,
     handleSubmit,
@@ -165,8 +164,31 @@ export function InterviewChatClient({
   // ストリーミング中のメッセージを表示するかどうか
   const showStreamingMessage = object && !isStreamingMessageCommitted;
 
-  // メッセージ内にレポートが存在するかどうか
-  const hasReport = messages.some((m) => m.report != null);
+  // いちばん新しいまとめ。チャットには出さず、モーダルで確認してもらう（#274）
+  const latestReport = useMemo(() => {
+    const message = messages.findLast((m) => m.report != null);
+    return message?.report
+      ? { messageId: message.id, report: message.report }
+      : null;
+  }, [messages]);
+
+  // まとめができた・直ったら、そのつどモーダルを自動で開く。
+  // 要約の入力欄は対話に戻るとアンマウントされるので、開いた記録はここで持つ。
+  // 対話中に開いた画面では、手元にある古いまとめを開いた扱いにして、
+  // 次の要約を作り始める前に古いまとめが開かないようにする
+  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
+  const [autoOpenedReportId, setAutoOpenedReportId] = useState(() =>
+    initialStage === "chat" ? (latestReport?.messageId ?? null) : null
+  );
+  if (
+    stage !== "chat" &&
+    !isLoading &&
+    latestReport &&
+    latestReport.messageId !== autoOpenedReportId
+  ) {
+    setAutoOpenedReportId(latestReport.messageId);
+    setIsSubmitDialogOpen(true);
+  }
 
   return (
     <InterviewChatSurface>
@@ -216,7 +238,6 @@ export function InterviewChatClient({
                 }}
                 openLinksInNewTab={index === 0}
                 isStreaming={false}
-                report={message.report}
               />
             );
           })}
@@ -231,7 +252,6 @@ export function InterviewChatClient({
                 parts: [{ type: "text" as const, text: object.text ?? "" }],
               }}
               isStreaming={isLoading}
-              report={streamingReportData}
             />
           )}
 
@@ -285,7 +305,6 @@ export function InterviewChatClient({
         {showEndInterviewButton && (
           <div className="flex justify-end pb-2">
             <EndInterviewButton
-              isSummaryStage={stage === "summary"}
               onEnd={handleEnd}
               disabled={isLoading || isPreparing}
             />
@@ -295,7 +314,9 @@ export function InterviewChatClient({
           <InterviewSummaryInput
             sessionId={sessionId}
             target={target}
-            hasReport={hasReport}
+            latestReport={latestReport}
+            isSubmitDialogOpen={isSubmitDialogOpen}
+            onSubmitDialogOpenChange={setIsSubmitDialogOpen}
             isComplete={stage === "summary_complete"}
             input={input}
             onInputChange={setInput}

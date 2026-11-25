@@ -1638,6 +1638,30 @@ export type Database = {
           },
         ]
       }
+      user_profiles: {
+        Row: {
+          age_group: string | null
+          area: string | null
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age_group?: string | null
+          area?: string | null
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age_group?: string | null
+          area?: string | null
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

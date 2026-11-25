@@ -35,16 +35,13 @@ describe("isEndInterviewButtonVisible", () => {
     );
   });
 
-  it("要約中は時間に関係なく常に出す", () => {
-    expect(isEndInterviewButtonVisible({ ...base, stage: "summary" })).toBe(
-      true
-    );
-  });
-
-  it("要約完了後は出さない", () => {
+  it.each([
+    "summary",
+    "summary_complete",
+  ] as const)("%s では出さない（まとめはモーダルで確認して提出する）", (stage) => {
     expect(
       isEndInterviewButtonVisible({
-        stage: "summary_complete",
+        stage,
         hasTimer: false,
         isTimeUp: true,
         timeUpDismissed: true,
