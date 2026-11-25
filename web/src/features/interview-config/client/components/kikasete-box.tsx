@@ -52,7 +52,7 @@ export function KikaseteBox({
     <section
       aria-label={`${SITE_NAME} きかせて`}
       className={cn(
-        "relative flex flex-col gap-4 rounded-2xl border-2 border-kikasete-400 bg-kikasete-50 p-4",
+        "theme-interview relative flex flex-col gap-4 rounded-2xl border-2 border-decor bg-secondary p-4",
         !stacked &&
           "md:flex-row md:items-center md:justify-between md:gap-6 md:px-5",
         className
@@ -93,7 +93,7 @@ function AboutLink({ href, className }: { href: string; className?: string }) {
     <Link
       href={href as Route}
       className={cn(
-        "relative z-10 text-xs font-bold text-kikasete-700 underline underline-offset-4",
+        "relative z-10 text-xs font-bold text-primary-accent underline underline-offset-4",
         className
       )}
     >
@@ -120,7 +120,7 @@ function KikaseteStartAction({
   );
 
   return (
-    <Button asChild variant="kikasete" className={className}>
+    <Button asChild className={className}>
       <Link href={start.href as Route}>
         {start.kind === "result" ? "結果を見る" : "はじめる"}
         <ArrowRight aria-hidden="true" />

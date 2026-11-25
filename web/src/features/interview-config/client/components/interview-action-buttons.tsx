@@ -17,25 +17,16 @@ interface InterviewActionButtonsProps {
   target: InterviewTarget;
   sessionInfo: LatestInterviewSession | null;
   participation: InterviewParticipationView;
-  /** きかせてページ（#158）では、はじめる・再開のボタンをきかせての緑にする */
-  tone?: "primary" | "kikasete";
 }
 
 const START_BUTTON_CLASS =
   "w-full rounded-[100px] h-[48px] px-6 font-bold text-[15px] hover:opacity-90 transition-opacity flex items-center justify-center gap-4";
 
-const TONE_VARIANTS = {
-  primary: "default",
-  kikasete: "kikasete",
-} as const;
-
 export function InterviewActionButtons({
   target,
   sessionInfo,
   participation,
-  tone = "primary",
 }: InterviewActionButtonsProps) {
-  const startVariant = TONE_VARIANTS[tone];
   const isActive = sessionInfo?.status === "active";
   const isCompleted = sessionInfo?.status === "completed";
 
@@ -54,7 +45,7 @@ export function InterviewActionButtons({
   if (isActive) {
     return (
       <>
-        <Button asChild variant={startVariant} className={START_BUTTON_CLASS}>
+        <Button asChild className={START_BUTTON_CLASS}>
           <Link href={chatLink as Route}>
             <Image
               src="/icons/messages-square-icon.svg"
@@ -74,7 +65,7 @@ export function InterviewActionButtons({
 
   // 新規の場合もチャットへ直接進む。同意はチャット冒頭の案内で取る（#158）
   return (
-    <Button asChild variant={startVariant} className={START_BUTTON_CLASS}>
+    <Button asChild className={START_BUTTON_CLASS}>
       <Link href={chatLink as Route}>
         <Image
           src="/icons/messages-square-icon.svg"

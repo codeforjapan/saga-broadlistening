@@ -60,7 +60,6 @@ export function KikasetePage({
       target={target}
       sessionInfo={sessionInfo}
       participation={participation}
-      tone="kikasete"
     />
   );
 

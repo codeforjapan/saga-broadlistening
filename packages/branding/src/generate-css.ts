@@ -81,8 +81,6 @@ export function renderTokensCss(): string {
     .join("\n");
 
   return `/**
- * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
- *
  * このファイルは自動生成です。直接編集しないでください。
  * 値の変更は packages/branding/src/palette.ts・brand.themes.ts を編集し、
  * pnpm --filter @mirai-gikai/branding build:css で再生成します。

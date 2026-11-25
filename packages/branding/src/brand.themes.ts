@@ -51,21 +51,21 @@ const DEFAULT_THEME: Theme = {
 export const BRAND_THEMES = {
   default: DEFAULT_THEME,
   /**
-   * #00B98D（kikasete-400）は対白 2.5:1 のため、飾り（decor）など面専用にする。
-   * 白文字を載せるボタン面は kikasete-600、文字・リンクは kikasete-700 を使う。
+   * #00B98D（emerald-400）は対白 2.5:1 のため、飾り（decor）など面専用にする。
+   * 白文字を載せるボタン面は emerald-600、文字・リンクは emerald-700 を使う。
    */
   interview: {
     colors: {
-      primary: "kikasete-600",
+      primary: "emerald-600",
       "primary-foreground": "base-white",
-      "primary-accent": "kikasete-700",
-      secondary: "kikasete-50",
-      border: "kikasete-line",
-      ring: "kikasete-700",
-      decor: "kikasete-400",
+      "primary-accent": "emerald-700",
+      secondary: "emerald-50",
+      border: "emerald-line",
+      ring: "emerald-700",
+      decor: "emerald-400",
     },
     headingFont: NOTO_SANS_JP,
     pageBackground:
-      "linear-gradient(180deg, var(--color-kikasete-100) 0, var(--color-kikasete-50) 360px, var(--color-base-white) 1200px)",
+      "linear-gradient(180deg, var(--color-emerald-100) 0, var(--color-emerald-50) 360px, var(--color-base-white) 1200px)",
   },
 } as const satisfies BrandThemes;

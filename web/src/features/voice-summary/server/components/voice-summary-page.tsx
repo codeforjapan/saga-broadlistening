@@ -109,7 +109,7 @@ export async function VoiceSummaryPage({ slug }: { slug: string }) {
       </div>
 
       <article
-        className="voice-summary-content rounded-2xl bg-white px-5 py-6 md:px-8"
+        className="theme-interview voice-summary-content rounded-2xl bg-white px-5 py-6 md:px-8"
         // 公開時に記法を検証し、描画でも8記法のタグだけを残した HTML
         dangerouslySetInnerHTML={{ __html: summary.html }}
       />

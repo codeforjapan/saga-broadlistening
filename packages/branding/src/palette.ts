@@ -1,6 +1,4 @@
 /**
- * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
- *
  * ここが色の唯一の出所。`tokens.css` は `pnpm --filter @mirai-gikai/branding build:css`
  * で本ファイルから生成する（`tokens-css.test.ts` が同期を検証する）。
  *
@@ -40,19 +38,19 @@ export const PRIMITIVES = {
   "green-700": "#55801a",
 
   /**
-   * Kikasete ＝ 緑（「CHIKAT きかせて」＝AIインタビュー導線の色、Epic #162 で追加）。
-   * デザインの #00B98D は対白 2.5:1 のため枠線・面専用（kikasete-400）。
-   * 白文字を載せるボタン面は AA を満たす kikasete-600（対白 4.6:1）、
-   * 文字・リンクは kikasete-700（対白 5.3:1、kikasete-50 上 5.0:1）を使う。
+   * Emerald ＝ 緑（AIインタビューの導線の色、Epic #162 で追加）。
+   * デザインの #00B98D は対白 2.5:1 のため枠線・面専用（emerald-400）。
+   * 白文字を載せるボタン面は AA を満たす emerald-600（対白 4.6:1）、
+   * 文字・リンクは emerald-700（対白 5.3:1、emerald-50 上 5.0:1）を使う。
    */
-  "kikasete-50": "#f0fbf7",
+  "emerald-50": "#f0fbf7",
   /** ページの地のグラデーションの上端（#279） */
-  "kikasete-100": "#e3f6ee",
-  /** きかせてのカード・区切りの線（#279）。文字には使わない */
-  "kikasete-line": "#e5ecea",
-  "kikasete-400": "#00b98d",
-  "kikasete-600": "#008566",
-  "kikasete-700": "#007a5c",
+  "emerald-100": "#e3f6ee",
+  /** AIインタビューのカード・区切りの線（#279）。文字には使わない */
+  "emerald-line": "#e5ecea",
+  "emerald-400": "#00b98d",
+  "emerald-600": "#008566",
+  "emerald-700": "#007a5c",
 
   // Yellow（差し色／優先度3）
   "yellow-400": "#ffd644",
@@ -114,7 +112,7 @@ export const SURFACE_ONLY_TOKENS = [
   "green-400",
   "green-500",
   "yellow-400",
-  "kikasete-400",
+  "emerald-400",
 ] as const satisfies readonly PrimitiveToken[];
 
 /** 文字・アイコンに使えるトークン（`base-white` 背景で 4.5:1 以上） */
@@ -124,8 +122,8 @@ export const TEXT_SAFE_TOKENS = [
   "sky-700",
   "sky-800",
   "green-700",
-  "kikasete-600",
-  "kikasete-700",
+  "emerald-600",
+  "emerald-700",
   "lavender-600",
   "yellow-700",
   "system-destructive",

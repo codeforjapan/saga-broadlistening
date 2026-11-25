@@ -35,11 +35,11 @@ const BASE: Theme = {
 describe("mergeTheme", () => {
   it("書いた値は base の値より優先され、書かなかった値は base の値になる", () => {
     const merged = mergeTheme(BASE, {
-      colors: { primary: "kikasete-600" },
+      colors: { primary: "emerald-600" },
       headingFont: "override-font",
     });
 
-    expect(merged.colors.primary).toBe("kikasete-600");
+    expect(merged.colors.primary).toBe("emerald-600");
     expect(merged.colors.background).toBe("base-white");
     expect(merged.headingFont).toBe("override-font");
     expect(merged.pageBackground).toBe("base-background");
@@ -52,7 +52,7 @@ describe("mergeTheme", () => {
   });
 
   it("base を書き換えない", () => {
-    mergeTheme(BASE, { colors: { primary: "kikasete-600" } });
+    mergeTheme(BASE, { colors: { primary: "emerald-600" } });
     expect(BASE.colors.primary).toBe("sky-400");
   });
 });
