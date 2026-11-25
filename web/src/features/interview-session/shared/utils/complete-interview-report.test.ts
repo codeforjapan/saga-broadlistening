@@ -7,7 +7,6 @@ import {
 
 const reportData = {
   summary: "賛成の立場",
-  final_text: "この施策には賛成です。理由は社会全体の利益になるからです。",
   role_description: "一般市民として関心がある",
   role_title: "会社員",
   opinions: [
@@ -45,8 +44,8 @@ describe("buildCompletedInterviewReportInsert", () => {
     expect(insert).toEqual(
       expect.objectContaining({
         interview_session_id: "session-1",
-        final_text:
-          "この施策には賛成です。理由は社会全体の利益になるからです。",
+        // 提出本文は見出しとトピックから組み立てる
+        final_text: "賛成の立場\n\n1. 賛成の理由\n社会全体の利益になる",
         summary: "賛成の立場",
         is_public_by_user: true,
         is_public_by_admin: true,

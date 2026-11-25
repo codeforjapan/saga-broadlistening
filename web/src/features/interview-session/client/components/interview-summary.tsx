@@ -13,20 +13,30 @@ export function InterviewSummary({ report }: Props) {
     return report.opinions as Array<{ title: string; content: string }>;
   }, [report.opinions]);
 
+  // 見出しの下に、話した量に応じて 0〜3 件のトピックを並べる
   return (
     <div className="rounded-[16px] bg-secondary p-4 shadow-sm">
       <div className="mt-2 space-y-4 text-body">
         {report.summary && (
           <div className="font-bold space-y-1">
-            <p className="text-primary-accent">💡意見の要約</p>
+            <p className="text-primary-accent">💡あなたの声</p>
             <p className="whitespace-pre-wrap">{report.summary}</p>
           </div>
         )}
-        {report.final_text && (
-          <div className="font-bold space-y-1">
-            <p className="text-primary-accent">📝提出する意見</p>
-            <p className="whitespace-pre-wrap">{report.final_text}</p>
-          </div>
+        {opinions.length > 0 && (
+          <ul className="space-y-4">
+            {opinions.map((op, index) => (
+              <li
+                key={`${op.title}-${op.content}`}
+                className="whitespace-pre-wrap"
+              >
+                <p className="font-bold mb-1">
+                  {index + 1}. {op.title}
+                </p>
+                <p>{op.content}</p>
+              </li>
+            ))}
+          </ul>
         )}
         {(report.role_description || report.role_title) && (
           <div className="space-y-4 font-bold">
@@ -42,24 +52,6 @@ export function InterviewSummary({ report }: Props) {
                 <p>{report.role_description}</p>
               </div>
             )}
-          </div>
-        )}
-        {opinions.length > 0 && (
-          <div className="space-y-1">
-            <p className="font-bold text-primary-accent">💬主な意見</p>
-            <ul className="space-y-4">
-              {opinions.map((op, index) => (
-                <li
-                  key={`${op.title}-${op.content}`}
-                  className="whitespace-pre-wrap"
-                >
-                  <p className="font-bold mb-1">
-                    {index + 1}. {op.title}
-                  </p>
-                  <p>{op.content}</p>
-                </li>
-              ))}
-            </ul>
           </div>
         )}
       </div>

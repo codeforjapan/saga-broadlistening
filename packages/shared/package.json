@@ -76,6 +76,14 @@
       "types": "./src/interview-report/schema.ts",
       "default": "./src/interview-report/schema.ts"
     },
+    "./interview-report/build-final-text": {
+      "types": "./src/interview-report/build-final-text.ts",
+      "default": "./src/interview-report/build-final-text.ts"
+    },
+    "./interview-report/normalize-legacy-report": {
+      "types": "./src/interview-report/normalize-legacy-report.ts",
+      "default": "./src/interview-report/normalize-legacy-report.ts"
+    },
     "./interview-report/parse-assistant-message": {
       "types": "./src/interview-report/parse-assistant-message.ts",
       "default": "./src/interview-report/parse-assistant-message.ts"

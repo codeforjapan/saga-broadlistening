@@ -13,8 +13,7 @@ describe("isValidReport", () => {
   it("全フィールドがnull/空のレポートはfalseを返す", () => {
     expect(
       isValidReport({
-        summary: null,
-        final_text: "",
+        summary: "",
         role_description: null,
         role_title: null,
         opinions: [],
@@ -26,19 +25,6 @@ describe("isValidReport", () => {
     expect(
       isValidReport({
         summary: "テスト要約",
-        final_text: "",
-        role_description: null,
-        role_title: null,
-        opinions: [],
-      })
-    ).toBe(true);
-  });
-
-  it("final_textがあればtrueを返す", () => {
-    expect(
-      isValidReport({
-        summary: null,
-        final_text: "提出する意見の本文",
         role_description: null,
         role_title: null,
         opinions: [],
@@ -49,8 +35,7 @@ describe("isValidReport", () => {
   it("role_descriptionがあればtrueを返す", () => {
     expect(
       isValidReport({
-        summary: null,
-        final_text: "",
+        summary: "",
         role_description: "専門家として",
         role_title: null,
         opinions: [],
@@ -61,8 +46,7 @@ describe("isValidReport", () => {
   it("role_titleがあればtrueを返す", () => {
     expect(
       isValidReport({
-        summary: null,
-        final_text: "",
+        summary: "",
         role_description: null,
         role_title: "教師",
         opinions: [],
@@ -73,8 +57,7 @@ describe("isValidReport", () => {
   it("opinionsがあればtrueを返す", () => {
     expect(
       isValidReport({
-        summary: null,
-        final_text: "",
+        summary: "",
         role_description: null,
         role_title: null,
         opinions: [
@@ -151,7 +134,6 @@ describe("parseMessageContent", () => {
       text: "レポートです",
       report: {
         summary: "要約テスト",
-        final_text: "提出する意見の本文",
         role_description: "一般市民",
         role_title: "市民",
         opinions: [{ title: "意見", content: "内容" }],
@@ -160,10 +142,20 @@ describe("parseMessageContent", () => {
     const result = parseMessageContent(content);
     expect(result.report).toEqual({
       summary: "要約テスト",
-      final_text: "提出する意見の本文",
       role_description: "一般市民",
       role_title: "市民",
-      opinions: [{ title: "意見", content: "内容" }],
+      // 旧メッセージに無い項目は null で補う
+      opinions: [
+        {
+          title: "意見",
+          content: "内容",
+          contextual_quote: null,
+          richness: null,
+          concern: null,
+          proposal: null,
+          reasoning_types: null,
+        },
+      ],
     });
     expect(result.text).toBe("レポートです");
   });
@@ -173,7 +165,6 @@ describe("parseMessageContent", () => {
       text: "テスト",
       report: {
         summary: "要約",
-        final_text: "本文",
         role_description: null,
         role_title: null,
         opinions: [],
@@ -190,7 +181,6 @@ describe("parseMessageContent", () => {
       text: "テスト",
       report: {
         summary: null,
-        final_text: "",
         role_description: null,
         role_title: null,
         opinions: [],
@@ -200,12 +190,27 @@ describe("parseMessageContent", () => {
     expect(result.report).toBeNull();
   });
 
+  it("AI が final_text を書いていた旧メッセージで見出しが無ければ、本文を見出しにする", () => {
+    const content = JSON.stringify({
+      text: "テスト",
+      report: {
+        summary: null,
+        final_text: "提出する意見の本文",
+        role_description: null,
+        role_title: null,
+        opinions: [],
+      },
+    });
+    const result = parseMessageContent(content);
+    expect(result.report?.summary).toBe("提出する意見の本文");
+    expect(result.report).not.toHaveProperty("final_text");
+  });
+
   it("reportのopinionsがnullの場合は空配列に変換される", () => {
     const content = JSON.stringify({
       text: "テスト",
       report: {
         summary: "要約あり",
-        final_text: "",
         role_description: null,
         role_title: null,
         opinions: null,

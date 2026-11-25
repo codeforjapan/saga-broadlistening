@@ -1,3 +1,4 @@
+import { normalizeLegacyReport } from "@mirai-gikai/shared/interview-report/normalize-legacy-report";
 import { z } from "zod";
 import { type InterviewReportData, interviewReportSchema } from "../schemas";
 
@@ -11,50 +12,19 @@ const reportExtractionSchema = z.object({
 });
 
 /**
- * 後方互換: 旧メッセージの opinions には contextual_quote /
- * richness / concern / proposal / reasoning_types が存在しないため、
- * 欠落フィールドを null で補完してから検証する。
- * これにより新フィールド追加前に生成された要約メッセージでも抽出が失敗せず、
- * インタビュー完了がブロックされない（§4.0）。
- */
-function backfillOpinionFields(parsed: unknown): unknown {
-  if (
-    !parsed ||
-    typeof parsed !== "object" ||
-    !("report" in parsed) ||
-    !parsed.report ||
-    typeof parsed.report !== "object" ||
-    !("opinions" in parsed.report) ||
-    !Array.isArray(parsed.report.opinions)
-  ) {
-    return parsed;
-  }
-
-  const opinions = parsed.report.opinions.map((opinion) =>
-    opinion && typeof opinion === "object"
-      ? {
-          contextual_quote: null,
-          richness: null,
-          concern: null,
-          proposal: null,
-          reasoning_types: null,
-          ...opinion,
-        }
-      : opinion
-  );
-
-  return { ...parsed, report: { ...parsed.report, opinions } };
-}
-
-/**
  * メッセージからレポートを抽出する
  */
 export function extractReportFromMessage(
   content: string
 ): InterviewReportData | null {
   try {
-    const parsed = backfillOpinionFields(JSON.parse(content));
-    const result = reportExtractionSchema.safeParse(parsed);
+    const parsed = JSON.parse(content);
+    // 旧メッセージの report も今の形にそろえてから検証する（完了をブロックしない）
+    const result = reportExtractionSchema.safeParse(
+      parsed && typeof parsed === "object"
+        ? { ...parsed, report: normalizeLegacyReport(parsed.report) }
+        : parsed
+    );
     if (result.success) {
       return result.data.report;
     }

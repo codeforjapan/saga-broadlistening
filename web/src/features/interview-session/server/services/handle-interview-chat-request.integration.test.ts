@@ -96,7 +96,6 @@ const validSummaryResponse = JSON.stringify({
   summary_response: "none",
   report: {
     summary: "テスト施策への意見",
-    final_text: "子育て世帯への支援をもっと手厚くしてほしいと考えています。",
     role_description: "一般市民として施策に関心がある",
     role_title: "会社員",
     opinions: [

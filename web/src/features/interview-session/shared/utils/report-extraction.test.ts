@@ -6,7 +6,6 @@ describe("extractReportFromMessage", () => {
     text: "まとめです",
     report: {
       summary: "テスト要約",
-      final_text: "この施策には賛成です。",
       role_description: "一般市民です",
       role_title: "市民",
       opinions: [{ title: "意見1", content: "内容1", source_message_id: null }],
@@ -25,11 +24,33 @@ describe("extractReportFromMessage", () => {
     const result = extractReportFromMessage(JSON.stringify(validReport));
     expect(result).not.toBeNull();
     expect(result?.summary).toBe("テスト要約");
-    expect(result?.final_text).toBe("この施策には賛成です。");
     expect(result?.opinions).toHaveLength(1);
     expect(result?.content_richness.total).toBe(75);
     // 後方互換: 旧メッセージには無い新フィールドが null で補完される
     expect(result?.opinions[0].contextual_quote).toBeNull();
+  });
+
+  it("AI が final_text を書いていた旧メッセージも抽出でき、final_text は落とす", () => {
+    const legacy = {
+      ...validReport,
+      report: { ...validReport.report, final_text: "この施策には賛成です。" },
+    };
+    const result = extractReportFromMessage(JSON.stringify(legacy));
+    expect(result?.summary).toBe("テスト要約");
+    expect(result).not.toHaveProperty("final_text");
+  });
+
+  it("見出しが null の旧メッセージは、final_text を見出しにする", () => {
+    const legacy = {
+      ...validReport,
+      report: {
+        ...validReport.report,
+        summary: null,
+        final_text: "この施策には賛成です。",
+      },
+    };
+    const result = extractReportFromMessage(JSON.stringify(legacy));
+    expect(result?.summary).toBe("この施策には賛成です。");
   });
 
   it("新フィールド付きメッセージは contextual_quote を保持する", () => {
@@ -66,7 +87,7 @@ describe("extractReportFromMessage", () => {
       text: "テスト",
       report: {
         summary: "要約",
-        // final_text が欠落している
+        // opinions・content_richness などが欠落している
       },
     };
     const result = extractReportFromMessage(JSON.stringify(invalid));

@@ -13,14 +13,12 @@ describe("convertPartialReport", () => {
   it("有効なレポートを変換する", () => {
     const result = convertPartialReport({
       summary: "テスト要約",
-      final_text: "提出する意見の本文",
       role_description: "一般市民",
       role_title: "市民",
       opinions: [{ title: "意見1", content: "内容1" }],
     });
     expect(result).toEqual({
       summary: "テスト要約",
-      final_text: "提出する意見の本文",
       role_description: "一般市民",
       role_title: "市民",
       opinions: [
@@ -41,7 +39,6 @@ describe("convertPartialReport", () => {
   it("全フィールドがnull/空なら無効としてnullを返す", () => {
     const result = convertPartialReport({
       summary: null,
-      final_text: null,
       role_description: null,
       role_title: null,
       opinions: [],
@@ -125,7 +122,6 @@ describe("convertPartialReport", () => {
     });
     expect(result).toEqual({
       summary: "テスト",
-      final_text: "",
       role_description: null,
       role_title: null,
       opinions: [],

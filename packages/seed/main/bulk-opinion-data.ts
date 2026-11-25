@@ -1,3 +1,4 @@
+import { buildFinalText } from "@mirai-gikai/shared/interview-report/build-final-text";
 import { randomUUID } from "node:crypto";
 import type { Database } from "@mirai-gikai/supabase";
 import { pickRespondent } from "../shared/respondents";
@@ -686,7 +687,10 @@ export function createRealisticOpinion(sessionId: string): OpinionSeed {
   return {
     opinion: {
       interview_session_id: sessionId,
-      final_text: buildFinalText(realisticPattern.segments),
+      final_text: buildFinalText({
+        summary: realisticPattern.summary,
+        opinions: realisticPattern.segments,
+      }),
       summary: realisticPattern.summary,
       role_title: realisticPattern.role_title,
       role_description: realisticPattern.role_description,
@@ -711,14 +715,6 @@ export function createRealisticOpinion(sessionId: string): OpinionSeed {
   };
 }
 
-/**
- * 市民が最終確認して提出した意見文（opinions.final_text）を論点から組み立てる。
- * AI が作った要約（summary）とは別に、本文そのものが必須のため。
- */
-function buildFinalText(segments: { content: string }[]): string {
-  return segments.map((segment) => segment.content).join("\n\n");
-}
-
 /** 意見の公開レビュー状態（先頭 30 件のみ公開済みとして扱う） */
 const BULK_PUBLISHED_COUNT = 30;
 /** 職員が非公開にしたケースを作る位置 */
@@ -736,7 +732,10 @@ export function createBulkOpinions(sessionIds: string[]): OpinionSeed[] {
     return {
       opinion: {
         interview_session_id: sessionId,
-        final_text: buildFinalText(pattern.segments),
+        final_text: buildFinalText({
+          summary: pattern.summary,
+          opinions: pattern.segments,
+        }),
         summary: pattern.summary,
         role_title: pattern.role_title,
         role_description: pattern.role_description,

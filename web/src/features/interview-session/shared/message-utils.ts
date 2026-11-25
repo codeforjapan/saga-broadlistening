@@ -1,3 +1,4 @@
+import { normalizeLegacyReport } from "@mirai-gikai/shared/interview-report/normalize-legacy-report";
 import type { InterviewReportViewData } from "./schemas";
 
 /**
@@ -9,7 +10,6 @@ export function isValidReport(
   if (!report) return false;
   return !!(
     report.summary ||
-    report.final_text ||
     report.role_description ||
     report.role_title ||
     report.opinions.length > 0
@@ -39,7 +39,11 @@ export function parseMessageContent(content: string): {
           : typeof parsed.questionId === "string" && parsed.questionId
             ? parsed.questionId
             : null;
-      const rawReport = parsed.report;
+      // 旧メッセージの report も今の形にそろえる（AI が書いていた final_text など）
+      const rawReport = normalizeLegacyReport(parsed.report) as
+        | Partial<InterviewReportViewData>
+        | null
+        | undefined;
       const quickReplies = Array.isArray(parsed.quick_replies)
         ? parsed.quick_replies.filter(
             (r: unknown): r is string => typeof r === "string" && r.length > 0
@@ -53,8 +57,7 @@ export function parseMessageContent(content: string): {
       if (rawReport) {
         // opinionsがnullの場合は空配列に変換（content_richnessは除外）
         const report: InterviewReportViewData = {
-          summary: rawReport.summary ?? null,
-          final_text: rawReport.final_text ?? "",
+          summary: rawReport.summary ?? "",
           role_description: rawReport.role_description ?? null,
           role_title: rawReport.role_title ?? null,
           opinions: rawReport.opinions ?? [],

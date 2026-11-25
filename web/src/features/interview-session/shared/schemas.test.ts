@@ -20,7 +20,6 @@ const validContentRichness = {
 // テスト用の有効なreportデータ
 const validReport = {
   summary: "テストのサマリー",
-  final_text: "テストの提出意見本文",
   role_description: "テストの役割説明",
   role_title: "研究者",
   opinions: [
@@ -135,12 +134,27 @@ describe("interviewReportSchema", () => {
   });
 
   describe("null許容フィールド", () => {
-    it("summary に null を許容する", () => {
-      const result = interviewReportSchema.parse({
-        ...validReport,
-        summary: null,
-      });
-      expect(result.summary).toBeNull();
+    it("見出し（summary）は必須で、null と空文字を受け付けない", () => {
+      expect(
+        interviewReportSchema.safeParse({ ...validReport, summary: null })
+          .success
+      ).toBe(false);
+      expect(
+        interviewReportSchema.safeParse({ ...validReport, summary: "" }).success
+      ).toBe(false);
+      expect(
+        interviewReportSchema.safeParse({ ...validReport, summary: "  " })
+          .success
+      ).toBe(false);
+    });
+
+    it("提出本文（final_text）は AI に書かせない", () => {
+      expect(
+        interviewReportSchema.safeParse({
+          ...validReport,
+          final_text: "AI が書いた本文",
+        }).success
+      ).toBe(false);
     });
 
     it("role_description に null を許容する", () => {
