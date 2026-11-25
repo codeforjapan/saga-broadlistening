@@ -184,7 +184,7 @@ describe("default の色", () => {
 describe("interview の色", () => {
   it("primary-accent の文字はグラデーションの地の上でも 4.5:1 以上", () => {
     const accent = resolveSemantic("primary-accent", "interview");
-    for (const surface of ["kikasete-100", "kikasete-50"] as const) {
+    for (const surface of ["emerald-100", "emerald-50"] as const) {
       expect(
         contrastRatio(accent, PRIMITIVES[surface]),
         surface

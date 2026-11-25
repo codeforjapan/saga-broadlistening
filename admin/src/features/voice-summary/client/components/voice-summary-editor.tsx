@@ -99,7 +99,7 @@ export function VoiceSummaryEditor({
             プレビュー（公開画面と同じ表示）
           </p>
           <div
-            className="voice-summary-content min-h-[560px] rounded-md border bg-white p-6"
+            className="theme-interview voice-summary-content min-h-[560px] rounded-md border bg-white p-6"
             dangerouslySetInnerHTML={{ __html: previewHtml }}
           />
         </div>

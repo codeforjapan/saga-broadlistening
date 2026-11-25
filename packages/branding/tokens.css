@@ -1,6 +1,4 @@
 /**
- * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
- *
  * このファイルは自動生成です。直接編集しないでください。
  * 値の変更は packages/branding/src/palette.ts・brand.themes.ts を編集し、
  * pnpm --filter @mirai-gikai/branding build:css で再生成します。
@@ -23,12 +21,12 @@
   --color-green-400: #8cc63f;
   --color-green-500: #7ab32f;
   --color-green-700: #55801a;
-  --color-kikasete-50: #f0fbf7;
-  --color-kikasete-100: #e3f6ee;
-  --color-kikasete-line: #e5ecea;
-  --color-kikasete-400: #00b98d;
-  --color-kikasete-600: #008566;
-  --color-kikasete-700: #007a5c;
+  --color-emerald-50: #f0fbf7;
+  --color-emerald-100: #e3f6ee;
+  --color-emerald-line: #e5ecea;
+  --color-emerald-400: #00b98d;
+  --color-emerald-600: #008566;
+  --color-emerald-700: #007a5c;
   --color-yellow-400: #ffd644;
   --color-yellow-700: #8a6a00;
   --color-lavender-300: #e6e3fe;
@@ -134,10 +132,10 @@
   --card-foreground: var(--color-base-ink);
   --popover: var(--color-base-white);
   --popover-foreground: var(--color-base-ink);
-  --primary: var(--color-kikasete-600);
+  --primary: var(--color-emerald-600);
   --primary-foreground: var(--color-base-white);
-  --primary-accent: var(--color-kikasete-700);
-  --secondary: var(--color-kikasete-50);
+  --primary-accent: var(--color-emerald-700);
+  --secondary: var(--color-emerald-50);
   --secondary-foreground: var(--color-base-ink);
   --muted: var(--color-base-surface);
   --muted-foreground: var(--color-base-ink-muted);
@@ -147,12 +145,12 @@
   --destructive-foreground: var(--color-base-white);
   --success: var(--color-system-success);
   --warning: var(--color-system-warning);
-  --border: var(--color-kikasete-line);
+  --border: var(--color-emerald-line);
   --input: var(--color-base-ink-muted);
-  --ring: var(--color-kikasete-700);
-  --decor: var(--color-kikasete-400);
+  --ring: var(--color-emerald-700);
+  --decor: var(--color-emerald-400);
   --heading-font: var(--font-noto-sans-jp), system-ui, sans-serif;
-  --page-background: linear-gradient(180deg, var(--color-kikasete-100) 0, var(--color-kikasete-50) 360px, var(--color-base-white) 1200px);
+  --page-background: linear-gradient(180deg, var(--color-emerald-100) 0, var(--color-emerald-50) 360px, var(--color-base-white) 1200px);
 }
 
 :root {

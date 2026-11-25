@@ -142,7 +142,7 @@ function IntroSlide({ themes }: { themes: TopTheme[] }) {
           <span className="inline-block">佐賀市のこと、</span>
           <br />
           <span className="inline-block text-sky-700">ちかっと知る。</span>
-          <span className="inline-block text-kikasete-600">ちかっと話す。</span>
+          <span className="inline-block text-emerald-600">ちかっと話す。</span>
         </h1>
       }
       lead={
@@ -171,12 +171,12 @@ function IntroSlide({ themes }: { themes: TopTheme[] }) {
             dotClassName="bg-yellow-700"
           />
           <DotBubble
-            className="top-[236px] left-[300px] h-[58px] w-[92px] -rotate-[4deg] gap-[7px] rounded-[29px] rounded-tl-sm bg-kikasete-400"
+            className="top-[236px] left-[300px] h-[58px] w-[92px] -rotate-[4deg] gap-[7px] rounded-[29px] rounded-tl-sm bg-emerald-400"
             dotClassName="bg-base-white"
           />
           <div className="absolute top-[262px] -left-1.5 h-[30px] w-11 -rotate-[6deg] rounded-[15px] rounded-br-sm bg-sky-200" />
           <div className="absolute top-[94px] left-[372px] size-3 rounded-full bg-sky-400" />
-          <div className="absolute top-2.5 left-[268px] size-2.5 rounded-full bg-kikasete-400" />
+          <div className="absolute top-2.5 left-[268px] size-2.5 rounded-full bg-emerald-400" />
         </>
       }
     />
@@ -231,7 +231,7 @@ function MitemiteSlide({ themes }: { themes: TopTheme[] }) {
             dotClassName="bg-base-white"
           />
           <div className="absolute top-[30px] left-1.5 size-3 rounded-full bg-sky-200" />
-          <div className="absolute top-[120px] left-[372px] size-2.5 rounded-full bg-kikasete-400" />
+          <div className="absolute top-[120px] left-[372px] size-2.5 rounded-full bg-emerald-400" />
         </>
       }
     />
@@ -266,7 +266,7 @@ const CHAT_BUBBLES = [
   {
     text: "夜のバス、もう少しあったらなぁ…",
     className:
-      "top-[130px] left-[124px] w-[276px] rounded-br-md bg-kikasete-600 font-bold text-base-white",
+      "top-[130px] left-[124px] w-[276px] rounded-br-md bg-emerald-600 font-bold text-base-white",
   },
   {
     text: "ありがとうございます。どんな時に困りますか？",
@@ -287,14 +287,14 @@ function KikaseteSlide() {
         <p className={HEADING_CLASS}>
           <span className="inline-block">思っていることを、</span>
           <br />
-          <span className="inline-block text-kikasete-600">話すだけ。</span>
+          <span className="inline-block text-emerald-600">話すだけ。</span>
         </p>
       }
       lead="AIが聞き役になって、考えを整理。"
       smallDecor={
         <>
           <DotBubble
-            className="top-[30px] left-1.5 h-10 w-[62px] -rotate-[4deg] gap-[5px] rounded-[20px] rounded-bl-sm bg-kikasete-400"
+            className="top-[30px] left-1.5 h-10 w-[62px] -rotate-[4deg] gap-[5px] rounded-[20px] rounded-bl-sm bg-emerald-400"
             dotClassName="bg-base-white"
           />
           <DotBubble
@@ -356,8 +356,8 @@ export function TopHero({ themes, className, contentClassName }: TopHeroProps) {
     },
     {
       key: "kikasete",
-      bandClass: "bg-kikasete-50",
-      dotClass: "bg-kikasete-400",
+      bandClass: "bg-emerald-50",
+      dotClass: "bg-emerald-400",
       content: <KikaseteSlide />,
     },
   ];
