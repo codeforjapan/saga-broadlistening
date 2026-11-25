@@ -151,10 +151,6 @@ export function useInterviewChat({
     isLoading: isChatLoading,
   });
 
-  // objectからreportを取得（chat遷移時はストリーミング中もレポート非表示）
-  const streamingReportData =
-    object?.next_stage === "chat" ? null : convertPartialReport(object?.report);
-
   // チャットAPI送信のヘルパー（リクエストパラメータを保存）
   const submitChatRequest = (requestParams: ChatRequestParams) => {
     retry.saveRequestParams(requestParams); // 失敗時の自動リトライ用に保存
@@ -254,7 +250,6 @@ export function useInterviewChat({
     isLoading: isChatLoading,
     error: error || retry.displayError,
     object,
-    streamingReportData,
     currentQuickReplies,
     canRetry: retry.canRetry,
 

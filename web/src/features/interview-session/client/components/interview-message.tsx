@@ -4,11 +4,9 @@ import { useMemo } from "react";
 import remarkBreaks from "remark-breaks";
 import { SystemMessage } from "@/features/chat/client/components/system-message";
 import { UserMessage } from "@/features/chat/client/components/user-message";
-import { InterviewSummary } from "@/features/interview-session/client/components/interview-summary";
 import { rehypeOpenLinksInNewTab } from "@/lib/markdown/rehype-open-links-in-new-tab";
 import { ChatAiAvatar } from "../../shared/components/chat-ai-avatar";
 import { INTERVIEW_MESSAGE_TEXT_CLASS } from "../../shared/constants/interview-message-text";
-import type { InterviewReportViewData } from "../../shared/schemas";
 
 type RehypePlugins = ComponentProps<typeof SystemMessage>["rehypePlugins"];
 
@@ -18,7 +16,6 @@ const REMARK_PLUGINS = [remarkBreaks];
 interface InterviewMessageProps {
   message: UIMessage;
   isStreaming?: boolean;
-  report?: InterviewReportViewData | null;
   footer?: ReactNode;
   openLinksInNewTab?: boolean;
 }
@@ -26,7 +23,6 @@ interface InterviewMessageProps {
 export function InterviewMessage({
   message,
   isStreaming = false,
-  report,
   footer,
   openLinksInNewTab = false,
 }: InterviewMessageProps) {
@@ -58,11 +54,6 @@ export function InterviewMessage({
           remarkPlugins={REMARK_PLUGINS}
           contentClassName={INTERVIEW_MESSAGE_TEXT_CLASS}
         />
-        {report && (
-          <div className="mt-2">
-            <InterviewSummary report={report} />
-          </div>
-        )}
       </div>
       {footer && <div className="flex justify-end">{footer}</div>}
     </div>

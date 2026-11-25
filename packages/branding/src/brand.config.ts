@@ -15,6 +15,12 @@ export const BRAND_CONFIG = {
   siteDescription:
     "佐賀市で今どんな施策が検討されているか、わかりやすく伝える公聴プラットフォーム",
   keywords: ["施策", "政治", "佐賀市", "解説", "公聴"],
+  // TODO(#275): 区分は仮。市に確認する
+  respondentAreaOptions: [
+    { value: "saga_city", label: "佐賀市内" },
+    { value: "saga_pref_other", label: "佐賀県内（佐賀市以外）" },
+    { value: "outside_saga_pref", label: "佐賀県外" },
+  ],
   assets: {
     chatAvatarSrc: "/img/chat-avatar.svg",
     logo: { src: "/img/logo.svg", width: 546, height: 279 },
