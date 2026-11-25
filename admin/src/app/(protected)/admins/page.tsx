@@ -15,7 +15,7 @@ export default async function AdminsPage() {
   const admins = await loadAdmins();
 
   return (
-    <div className="container mx-auto py-8">
+    <div>
       <h1 className="text-2xl font-bold mb-8">管理者管理</h1>
 
       {/* 管理者追加セクション */}

@@ -11,13 +11,17 @@ interface CsvImportConfig {
   file: string;
 }
 
+// FK の親から順に投入する
 const CSV_IMPORTS: CsvImportConfig[] = [
-  { table: "diet_sessions", file: "diet_sessions_rows.csv" },
   { table: "tags", file: "tags_rows.csv" },
-  { table: "bills", file: "bills_rows.csv" },
-  { table: "bill_contents", file: "bill_contents_rows.csv" },
-  { table: "bills_tags", file: "bills_tags_rows.csv" },
+  { table: "policies", file: "policies_rows.csv" },
+  { table: "policy_contents", file: "policy_contents_rows.csv" },
+  { table: "policies_tags", file: "policies_tags_rows.csv" },
   { table: "interview_configs", file: "interview_configs_rows.csv" },
+  {
+    table: "policies_interview_configs",
+    file: "policies_interview_configs_rows.csv",
+  },
   { table: "interview_questions", file: "interview_questions_rows.csv" },
 ];
 

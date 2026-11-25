@@ -1,0 +1,174 @@
+"use client";
+
+import { ArrowRight } from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { ensureAnonymousSupabaseUser } from "@/features/chat/client/utils/ensure-anonymous-supabase-user";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
+import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
+import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
+import { startInterviewSession } from "../../server/actions/start-interview-session";
+import { ChatAiAvatar } from "../../shared/components/chat-ai-avatar";
+import { INTERVIEW_MESSAGE_TEXT_CLASS } from "../../shared/constants/interview-message-text";
+import { INTERVIEW_STAGE_LABELS } from "../../shared/utils/calc-interview-progress";
+import { buildChatStartNotice } from "../../shared/utils/chat-start-notice";
+import { InterviewChatSurface } from "./interview-chat-surface";
+import { InterviewProgressBar } from "./interview-progress-bar";
+
+interface InterviewChatStartProps {
+  /** 参加導線の起点。「詳しく」のリンクと、プレビューのトークンに使う */
+  target: InterviewTarget;
+  interviewConfig: {
+    id: string;
+    name: string;
+    estimated_duration: number | null;
+  };
+  /** テーマ名のリンク先（施策ページ。なければきかせてページ） */
+  themeHref: string;
+}
+
+/**
+ * チャットの開始画面（#158、デザイン「4b」）。チャット中と同じ白い面に冒頭の案内3行を出し、
+ * 「はじめる」で同意を記録してセッションを作る。作成後はページを再描画して最初の質問を出す。
+ * 案内の余白・文字・アイコンはチャット中の発話（InterviewMessage）にそろえる（#245）。
+ * 上端はチャット中と同じ進捗の表示にし、所要時間の見出しは出さない（#273）。
+ */
+export function InterviewChatStart({
+  target,
+  interviewConfig,
+  themeHref,
+}: InterviewChatStartProps) {
+  const { name: themeName, estimated_duration: estimatedDuration } =
+    interviewConfig;
+  const aboutHref = getInterviewLPLink(target);
+  // 職員プレビューは、参加条件と募集状態を問わずに始められる
+  const preview =
+    target.kind === "policy" && target.previewToken
+      ? { policyId: target.policyId, token: target.previewToken }
+      : undefined;
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const notice = buildChatStartNotice({ themeName, estimatedDuration });
+
+  const handleStart = () => {
+    setError(null);
+    startTransition(async () => {
+      // AuthGate の匿名ログインより先に押されても始められるよう、確立を待つ（#228）
+      if (!(await ensureAnonymousSupabaseUser())) {
+        setError(
+          "接続を確認できませんでした。ページを再読み込みしてお試しください"
+        );
+        return;
+      }
+      const result = await startInterviewSession(interviewConfig.id, preview);
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
+  return (
+    // ヘッダーの「保存して中断」は、この属性があるあいだ隠す（interview-header-actions）
+    <InterviewChatSurface data-interview-chat-start="">
+      <div className="pb-1">
+        <InterviewProgressBar
+          percentage={0}
+          stageLabel={INTERVIEW_STAGE_LABELS.intro}
+        />
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4">
+        <div className="flex flex-col gap-1">
+          <ChatAiAvatar />
+          <div
+            className={cn(
+              "flex flex-col gap-3 text-foreground",
+              INTERVIEW_MESSAGE_TEXT_CLASS
+            )}
+          >
+            {notice.map((line) => (
+              <p key={line.map((segment) => segment.text).join("")}>
+                {line.map((segment) => {
+                  if (segment.kind === "theme") {
+                    return (
+                      <Link
+                        key={segment.text}
+                        href={themeHref as Route}
+                        className="text-primary-accent underline underline-offset-4"
+                      >
+                        {segment.text}
+                      </Link>
+                    );
+                  }
+                  if (segment.kind === "strong") {
+                    return <strong key={segment.text}>{segment.text}</strong>;
+                  }
+                  return <span key={segment.text}>{segment.text}</span>;
+                })}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 md:items-end">
+          {/* スマホは「はじめる」を上に横幅いっぱい、PC は「詳しく」を左・「はじめる」を右に並べる */}
+          <div className="flex flex-col-reverse gap-2.5 md:flex-row md:gap-3">
+            <Button
+              asChild
+              variant="outline"
+              className="h-12 border-decor px-6 text-base text-primary-accent"
+            >
+              <Link href={aboutHref as Route}>
+                このインタビューについて詳しく
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              className="h-12 px-8 text-base"
+              disabled={isPending}
+              onClick={handleStart}
+            >
+              {isPending ? (
+                "準備しています…"
+              ) : (
+                <>
+                  はじめる
+                  <ArrowRight className="size-5" />
+                </>
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            「はじめる」を押すと、上の内容と
+            <Link
+              href={routes.terms() as Route}
+              className="underline underline-offset-2"
+            >
+              利用規約
+            </Link>
+            ・
+            <Link
+              href={routes.privacy() as Route}
+              className="underline underline-offset-2"
+            >
+              プライバシーポリシー
+            </Link>
+            に同意したものとします。
+          </p>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+        </div>
+      </div>
+    </InterviewChatSurface>
+  );
+}

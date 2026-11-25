@@ -24,4 +24,4 @@ jobs:
       environment: production
       context_env: prd
     secrets:
-      role_arn: ${{ secrets.AWS_CDK_PRD_DEPLOY_ROLE_ARN }}
+      role_arn: ${{ secrets.AWS_CDK_DEPLOY_ROLE_ARN }}

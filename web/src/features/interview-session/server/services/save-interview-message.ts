@@ -1,6 +1,7 @@
 import "server-only";
 
 import { logger } from "@/lib/logger";
+import type { InterviewMessage } from "../../shared/types";
 import { createInterviewMessage } from "../repositories/interview-session-repository";
 
 interface SaveInterviewMessageParams {
@@ -11,19 +12,19 @@ interface SaveInterviewMessageParams {
 }
 
 /**
- * インタビューメッセージをDBに保存
+ * インタビューメッセージをDBに保存し、保存した行を返す。保存しなかったときは null
  */
 export async function saveInterviewMessage({
   sessionId,
   role,
   content,
   isRetry = false,
-}: SaveInterviewMessageParams): Promise<void> {
+}: SaveInterviewMessageParams): Promise<InterviewMessage | null> {
   // リトライ時はユーザーメッセージの保存をスキップ（既に保存済み）
   if (isRetry && role === "user") {
     logger.debug("[Message Save] Skipping user message (retry)");
-    return;
+    return null;
   }
 
-  await createInterviewMessage({ sessionId, role, content });
+  return createInterviewMessage({ sessionId, role, content });
 }

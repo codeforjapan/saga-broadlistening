@@ -2,13 +2,9 @@ import {
   DEFAULT_SESSION_FILTER,
   MODERATION_FILTER_VALUES,
   type ModerationFilter,
-  ROLE_FILTER_VALUES,
-  type RoleFilter,
   SESSION_STATUS_FILTER_VALUES,
   type SessionFilterConfig,
   type SessionStatusFilter,
-  STANCE_FILTER_VALUES,
-  type StanceFilter,
   VISIBILITY_FILTER_VALUES,
   type VisibilityFilter,
 } from "../types";
@@ -27,8 +23,6 @@ export function parseEnum<T extends string>(
 export function parseSessionFilterParams(
   status?: string,
   visibility?: string,
-  stance?: string,
-  role?: string,
   moderation?: string
 ): SessionFilterConfig {
   return {
@@ -41,16 +35,6 @@ export function parseSessionFilterParams(
       visibility,
       VISIBILITY_FILTER_VALUES,
       DEFAULT_SESSION_FILTER.visibility
-    ),
-    stance: parseEnum<StanceFilter>(
-      stance,
-      STANCE_FILTER_VALUES,
-      DEFAULT_SESSION_FILTER.stance
-    ),
-    role: parseEnum<RoleFilter>(
-      role,
-      ROLE_FILTER_VALUES,
-      DEFAULT_SESSION_FILTER.role
     ),
     moderation: parseEnum<ModerationFilter>(
       moderation,

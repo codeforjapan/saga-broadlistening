@@ -8,17 +8,23 @@ import {
   ChatButton,
   type ChatButtonRef,
 } from "@/features/chat/client/components/chat-button";
+import type { InterviewParticipationView } from "@/features/interview-config/shared/types/interview-participation-view";
+import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
 import type { BillWithContent } from "../../../shared/types";
 
 interface BillDetailClientProps {
   bill: BillWithContent;
   currentDifficulty: DifficultyLevelEnum;
   hasInterviewConfig: boolean;
+  interviewParticipation?: InterviewParticipationView;
+  interviewTarget?: InterviewTarget;
+  /** チャットのサンプル質問。省略時は施策ページの既定の質問 */
+  chatSampleQuestions?: string[];
   children: ReactNode;
 }
 
 /**
- * 議案詳細のクライアントサイド機能を管理するコンポーネント
+ * 施策詳細のクライアントサイド機能を管理するコンポーネント
  *
  * 実装背景:
  * - テキスト選択からのAIチャット連携機能を提供
@@ -29,6 +35,9 @@ export function BillDetailClient({
   bill,
   currentDifficulty,
   hasInterviewConfig,
+  interviewParticipation,
+  interviewTarget,
+  chatSampleQuestions,
   children,
 }: BillDetailClientProps) {
   const chatButtonRef = useRef<ChatButtonRef>(null);
@@ -48,7 +57,10 @@ export function BillDetailClient({
         ref={chatButtonRef}
         billContext={bill}
         hasInterviewConfig={hasInterviewConfig}
+        interviewParticipation={interviewParticipation}
+        interviewTarget={interviewTarget}
         difficultyLevel={currentDifficulty}
+        sampleQuestions={chatSampleQuestions}
       />
     </>
   );

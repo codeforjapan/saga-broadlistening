@@ -1,6 +1,8 @@
+import { MessageSquare } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { HeadingIcon } from "@/components/heading-icon";
 import { getInterviewMessageLink } from "@/features/interview-config/shared/utils/interview-links";
 import type { ParsedOpinion as Opinion } from "../utils/format-utils";
 
@@ -8,7 +10,6 @@ export type { Opinion };
 
 interface OpinionsListProps {
   opinions: Opinion[];
-  title?: string;
   footer?: ReactNode;
   reportId?: string;
   chatLogFrom?: "complete" | "opinions";
@@ -16,7 +17,6 @@ interface OpinionsListProps {
 
 export function OpinionsList({
   opinions,
-  title = "💬意見の要約",
   footer,
   reportId,
   chatLogFrom,
@@ -27,8 +27,11 @@ export function OpinionsList({
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-xl font-bold text-gray-800">{title}</h2>
-      <div className="bg-white rounded-2xl p-6 flex flex-col gap-6">
+      <h2 className="text-xl font-bold text-foreground">
+        <HeadingIcon icon={MessageSquare} />
+        主な意見
+      </h2>
+      <div className="flex flex-col gap-6 rounded-2xl border border-border bg-white p-6">
         {opinions.map((opinion, index) => (
           <div
             key={`opinion-${index}-${opinion.title.slice(0, 20)}`}
@@ -36,15 +39,15 @@ export function OpinionsList({
           >
             <div className="flex flex-col gap-1">
               <div className="inline-flex">
-                <span className="bg-primary text-white text-xs font-bold px-1.5 py-0.5 rounded">
+                <span className="bg-primary text-primary-foreground text-xs font-bold px-1.5 py-0.5 rounded">
                   意見{index + 1}
                 </span>
               </div>
-              <p className="text-base font-bold text-gray-800">
+              <h3 className="text-base font-bold text-foreground">
                 {opinion.title}
-              </p>
+              </h3>
             </div>
-            <p className="text-sm text-gray-600">{opinion.content}</p>
+            <p className="text-sm text-muted-foreground">{opinion.content}</p>
             {reportId && opinion.source_message_id && (
               <Link
                 href={
@@ -54,7 +57,7 @@ export function OpinionsList({
                     chatLogFrom
                   ) as Route
                 }
-                className="text-[15px] leading-6 text-mirai-text-muted underline"
+                className="text-[15px] leading-6 text-muted-foreground underline"
               >
                 元の回答を見る
               </Link>

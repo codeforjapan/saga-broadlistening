@@ -41,7 +41,7 @@ export function MakePrivateModal({
 }: MakePrivateModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="py-9">
+      <DialogContent className="theme-interview py-9">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-primary-accent text-center leading-relaxed">
             インタビュー内容を
@@ -55,7 +55,7 @@ export function MakePrivateModal({
             非公開にした場合、あなたのご意見が世の中に公開されることはありません。
           </CheckListItem>
           <CheckListItem>
-            チームみらい党内での政策検討に最大限活用させていただきます。
+            佐賀市の施策検討に最大限活用させていただきます。
           </CheckListItem>
         </div>
 
@@ -74,7 +74,7 @@ export function MakePrivateModal({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="w-full text-gray-500"
+            className="w-full text-muted-foreground"
           >
             公開のまま戻る
           </Button>

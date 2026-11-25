@@ -18,7 +18,7 @@ export async function TopicAnalysisPageContent({
 }: TopicAnalysisPageContentProps) {
   const [bill, versions] = await Promise.all([
     getBillById(billId),
-    getTopicAnalysisVersions(billId),
+    getTopicAnalysisVersions(configId),
   ]);
 
   if (!bill) {

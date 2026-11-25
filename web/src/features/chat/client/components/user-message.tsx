@@ -1,16 +1,22 @@
 import type { UIMessage } from "@ai-sdk/react";
 import { Message, MessageContent } from "@/components/ai-elements/message";
+import { cn } from "@/lib/utils";
 
 interface UserMessageProps {
   message: UIMessage;
+  /** 吹き出しの見た目の上書き（インタビューの文字サイズ・余白など） */
+  className?: string;
 }
 
-export function UserMessage({ message }: UserMessageProps) {
+export function UserMessage({ message, className }: UserMessageProps) {
   return (
     <Message from="user" className="justify-end py-0">
       <MessageContent
         variant="flat"
-        className="max-w-fit text-sm font-medium leading-[2] text-black bg-mirai-gradient rounded-2xl px-4 !py-0.5"
+        className={cn(
+          "max-w-fit text-foreground bg-secondary rounded-2xl px-4 py-1.5",
+          className
+        )}
       >
         {message.parts.map((part, i: number) => {
           if (part.type === "text") {

@@ -6,8 +6,7 @@ describe("extractReportFromMessage", () => {
     text: "まとめです",
     report: {
       summary: "テスト要約",
-      stance: "for",
-      role: "general_citizen",
+      final_text: "この施策には賛成です。",
       role_description: "一般市民です",
       role_title: "市民",
       opinions: [{ title: "意見1", content: "内容1", source_message_id: null }],
@@ -26,16 +25,14 @@ describe("extractReportFromMessage", () => {
     const result = extractReportFromMessage(JSON.stringify(validReport));
     expect(result).not.toBeNull();
     expect(result?.summary).toBe("テスト要約");
-    expect(result?.stance).toBe("for");
-    expect(result?.role).toBe("general_citizen");
+    expect(result?.final_text).toBe("この施策には賛成です。");
     expect(result?.opinions).toHaveLength(1);
     expect(result?.content_richness.total).toBe(75);
     // 後方互換: 旧メッセージには無い新フィールドが null で補完される
     expect(result?.opinions[0].contextual_quote).toBeNull();
-    expect(result?.opinions[0].bill_sentiment).toBeNull();
   });
 
-  it("新フィールド付きメッセージは contextual_quote / bill_sentiment を保持する", () => {
+  it("新フィールド付きメッセージは contextual_quote を保持する", () => {
     const withNewFields = {
       ...validReport,
       report: {
@@ -45,15 +42,13 @@ describe("extractReportFromMessage", () => {
             title: "意見1",
             content: "内容1",
             source_message_id: null,
-            contextual_quote: "（法案について）賛成だ",
-            bill_sentiment: "期待",
+            contextual_quote: "（施策について）賛成だ",
           },
         ],
       },
     };
     const result = extractReportFromMessage(JSON.stringify(withNewFields));
-    expect(result?.opinions[0].contextual_quote).toBe("（法案について）賛成だ");
-    expect(result?.opinions[0].bill_sentiment).toBe("期待");
+    expect(result?.opinions[0].contextual_quote).toBe("（施策について）賛成だ");
   });
 
   it("JSONでない文字列はnullを返す", () => {
@@ -71,8 +66,7 @@ describe("extractReportFromMessage", () => {
       text: "テスト",
       report: {
         summary: "要約",
-        // stanceが不正な値
-        stance: "invalid_stance",
+        // final_text が欠落している
       },
     };
     const result = extractReportFromMessage(JSON.stringify(invalid));

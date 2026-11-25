@@ -12,15 +12,19 @@ export function BillList({ bills }: BillListProps) {
   if (bills.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">議案が見つかりませんでした</p>
+        <p className="text-muted-foreground">施策が見つかりませんでした</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 md:grid-cols-2">
       {bills.map((bill) => (
-        <Link key={bill.id} href={routes.billDetail(bill.id) as Route}>
+        <Link
+          key={bill.id}
+          href={routes.billDetail(bill.id) as Route}
+          className="h-full"
+        >
           <BillCard bill={bill} />
         </Link>
       ))}

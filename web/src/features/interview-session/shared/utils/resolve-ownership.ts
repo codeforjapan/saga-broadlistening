@@ -23,7 +23,9 @@ export type VerifySessionOwnershipResult =
  */
 export function resolveOwnership(
   authResult: AuthenticatedUserResult,
-  session: { user_id: string } | null
+  // user_id は Epic #54 で nullable になった（イベント経由の匿名セッション）。
+  // 所有者が居ないセッションは誰のものでもないため常に権限なしとして扱う。
+  session: { user_id: string | null } | null
 ): VerifySessionOwnershipResult {
   if (!authResult.authenticated) {
     return { authorized: false, error: authResult.error };

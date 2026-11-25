@@ -7,12 +7,12 @@ import type {
 } from "../shared/types";
 import { toAlphaLocalId } from "./alpha-local-id";
 
-/** getTopicsWithOpinions の戻り（topic + topic_opinion→interview_opinion）の最小形 */
+/** getTopicsWithOpinions の戻り（topic + topic_opinion→opinion_segments）の最小形 */
 export type RawVersionTopic = {
   title: string;
   description: string;
   topic_opinion?:
-    | Array<{ interview_opinion: { id: string } | null } | null>
+    | Array<{ opinion_segments: { id: string } | null } | null>
     | null;
 };
 
@@ -24,8 +24,8 @@ export function toExistingTopics(rows: RawVersionTopic[]): ExistingTopic[] {
   return rows.map((t) => ({
     title: t.title,
     description: t.description,
-    opinion_ids: (t.topic_opinion ?? [])
-      .map((link) => link?.interview_opinion?.id ?? null)
+    opinion_segment_ids: (t.topic_opinion ?? [])
+      .map((link) => link?.opinion_segments?.id ?? null)
       .filter((id): id is string => id !== null),
   }));
 }
@@ -71,26 +71,26 @@ export function buildIncrementalPlan(
 
   // 現在の対象意見集合。前回 version 以降に対象外（公開撤回・モデレーション変化等）に
   // なった意見は引き継がない（新 version に stale な割当を残さない）。
-  const targetIds = new Set(allTargets.map((o) => o.opinion_id));
+  const targetIds = new Set(allTargets.map((o) => o.opinion_segment_id));
 
   const assignedIds = new Set<string>();
   const carriedAssignments: OpinionAssignment[] = [];
   existing.forEach((t, i) => {
-    for (const opinionId of t.opinion_ids) {
+    for (const segmentId of t.opinion_segment_ids) {
       // すでに対象外になった意見は引き継がない。
-      if (!targetIds.has(opinionId)) continue;
+      if (!targetIds.has(segmentId)) continue;
       // 同一意見が複数トピックに重複していても1件に正規化（topic_opinion は本来1意見1トピック）。
-      if (assignedIds.has(opinionId)) continue;
-      assignedIds.add(opinionId);
+      if (assignedIds.has(segmentId)) continue;
+      assignedIds.add(segmentId);
       carriedAssignments.push({
-        opinion_id: opinionId,
+        opinion_segment_id: segmentId,
         topic_local_id: toAlphaLocalId("e", i),
       });
     }
   });
 
   const unassignedOpinions = allTargets.filter(
-    (o) => !assignedIds.has(o.opinion_id)
+    (o) => !assignedIds.has(o.opinion_segment_id)
   );
 
   return {

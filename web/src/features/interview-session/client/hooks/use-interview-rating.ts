@@ -1,42 +1,40 @@
 "use client";
 
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InterviewProgress } from "../../shared/utils/calc-interview-progress";
-import { isLoopFamilyMode } from "../../shared/utils/is-loop-family-mode";
 
 const RATING_WIDGET_THRESHOLD = 65;
 
 interface UseInterviewRatingProps {
-  mode?: InterviewMode;
+  /** テーマが星評価のアンケートを出す設定か。既定はオフ（#277） */
+  enabled: boolean;
   progress: InterviewProgress | null;
   hasRated?: boolean;
 }
 
 /**
  * 評価ウィジェットの表示制御を管理するhook
- * loop / targeted モードでプログレスが閾値に達したら1回だけ表示
- * 既に評価済み（hasRated=true）の場合は表示しない
+ * プログレスが閾値に達したら1回だけ表示
+ * テーマで星評価を出さない設定のときや、既に評価済み（hasRated=true）の場合は表示しない
  */
 export function useInterviewRating({
-  mode,
+  enabled,
   progress,
   hasRated,
 }: UseInterviewRatingProps) {
-  const ratingTriggered = useRef(!!hasRated);
+  const ratingTriggered = useRef(!enabled || !!hasRated);
   const [showRating, setShowRating] = useState(false);
 
   useEffect(() => {
     if (
       !ratingTriggered.current &&
-      isLoopFamilyMode(mode) &&
       progress &&
       progress.percentage >= RATING_WIDGET_THRESHOLD
     ) {
       ratingTriggered.current = true;
       setShowRating(true);
     }
-  }, [progress, mode]);
+  }, [progress]);
 
   const handleRatingDismiss = useCallback(() => {
     setShowRating(false);

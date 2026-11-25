@@ -5,6 +5,11 @@ export type ParsedAssistantMessage = {
   nextStage: "chat" | "summary" | "summary_complete" | null;
   /** report フィールドを含む（＝要約フェーズのレポート提示ターン）か */
   hasReport: boolean;
+  /**
+   * 市民が最終確認・修正して提出する意見本文（report.final_text）。
+   * レポート提示ターン以外・欠落時は null。opinions.final_text の書き込み元になる。
+   */
+  finalText: string | null;
 };
 
 /**
@@ -24,7 +29,7 @@ export function parseAssistantMessageContent(
         text?: unknown;
         quick_replies?: unknown;
         next_stage?: unknown;
-        report?: unknown;
+        report?: { final_text?: unknown } | null;
       };
       const rawQr = raw.quick_replies;
       const quickReplies = Array.isArray(rawQr)
@@ -44,12 +49,22 @@ export function parseAssistantMessageContent(
           quickReplies && quickReplies.length > 0 ? quickReplies : null,
         nextStage,
         hasReport: raw.report != null,
+        finalText:
+          typeof raw.report?.final_text === "string"
+            ? raw.report.final_text
+            : null,
       };
     }
   } catch {
     // JSON でない場合は原文を使う
   }
-  return { text: content, quickReplies: null, nextStage: null, hasReport: false };
+  return {
+    text: content,
+    quickReplies: null,
+    nextStage: null,
+    hasReport: false,
+    finalText: null,
+  };
 }
 
 /** assistant メッセージが要約フェーズのレポート提示ターンかどうか。 */

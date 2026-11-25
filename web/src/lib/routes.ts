@@ -11,8 +11,11 @@ export const routes = {
   home: () => "/" as const,
   terms: () => "/terms" as const,
   privacy: () => "/privacy" as const,
+  developers: () => "/developers" as const,
+  developersOpenDataApi: () => "/developers/open-data-api" as const,
+  interviewDataTerms: () => "/developers/interview-data-terms" as const,
 
-  // ── 議案 ──────────────────────────────────────────
+  // ── 施策 ──────────────────────────────────────────
   billDetail: (billId: string) => `/bills/${billId}` as const,
   billOpinions: (billId: string) => `/bills/${billId}/opinions` as const,
   billTopics: (billId: string) => `/bills/${billId}/topics` as const,
@@ -22,10 +25,24 @@ export const routes = {
       : (`/bills/${billId}/topics/${topicId}` as const),
 
   // ── インタビュー ──────────────────────────────────
+  interviews: () => "/interviews" as const,
   interviewLP: (billId: string) => `/bills/${billId}/interview` as const,
   interviewDisclosure: (billId: string) =>
     `/bills/${billId}/interview/disclosure` as const,
   interviewChat: (billId: string) => `/bills/${billId}/interview/chat` as const,
+
+  // ── インタビュー（テーマ単独。施策に紐づかない抽象テーマ型もここを通る） ──
+  interviewThemeLP: (slug: string) => `/interviews/${slug}` as const,
+  interviewThemeDisclosure: (slug: string) =>
+    `/interviews/${slug}/disclosure` as const,
+  interviewThemeChat: (slug: string) => `/interviews/${slug}/chat` as const,
+  interviewThemeOpinions: (slug: string) =>
+    `/interviews/${slug}/opinions` as const,
+  interviewThemeTopics: (slug: string) => `/interviews/${slug}/topics` as const,
+  interviewThemeSummary: (slug: string) =>
+    `/interviews/${slug}/summary` as const,
+  interviewThemeTopicDetail: (slug: string, topicId: string) =>
+    `/interviews/${slug}/topics/${topicId}` as const,
 
   // ── プレビュー（token 付き） ──────────────────────
   previewBillDetail: (billId: string, token: string) =>
@@ -42,7 +59,4 @@ export const routes = {
   reportComplete: (reportId: string) => `/report/${reportId}/complete` as const,
   legacyReportChatLog: (reportId: string) =>
     `/report/${reportId}/chat-log` as const,
-
-  // ── 国会セッション ────────────────────────────────
-  kokkaiSessionBills: (slug: string) => `/kokkai/${slug}/bills` as const,
 } as const;

@@ -21,6 +21,8 @@ interface InterviewChatInputProps {
   isResponding: boolean;
   error?: Error | null;
   showHint?: boolean;
+  /** 入力も送信もできなくする（チャットの開始前） */
+  disabled?: boolean;
 }
 
 export function InterviewChatInput({
@@ -30,6 +32,7 @@ export function InterviewChatInput({
   placeholder,
   isResponding,
   error,
+  disabled = false,
 }: InterviewChatInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isDesktop = useIsDesktop();
@@ -53,7 +56,7 @@ export function InterviewChatInput({
     <>
       <PromptInput
         onSubmit={onSubmit}
-        className="flex items-end gap-2.5 py-1 pl-6 pr-4 bg-white rounded-[50px] border-mirai-gradient divide-y-0"
+        className="flex items-end gap-2.5 rounded-full border border-border bg-white py-1 pr-2 pl-4 shadow-raised divide-y-0 md:py-2 md:pl-6"
       >
         <PromptInputBody className="flex-1">
           <PromptInputTextarea
@@ -62,13 +65,14 @@ export function InterviewChatInput({
             value={input}
             placeholder={placeholder}
             rows={1}
+            disabled={disabled}
             submitOnEnter={isDesktop}
-            className="!min-h-0 min-w-0 wrap-anywhere text-sm font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-mirai-text-placeholder placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0"
+            className="!min-h-0 min-w-0 wrap-anywhere text-body font-medium leading-[1.5em] tracking-[0.01em] placeholder:text-muted-foreground placeholder:font-medium placeholder:leading-[1.5em] placeholder:tracking-[0.01em] placeholder:no-underline border-none focus:ring-0 bg-transparent shadow-none !py-2 !px-0"
           />
         </PromptInputBody>
         <button
           type="submit"
-          disabled={!input || isResponding}
+          disabled={disabled || !input || isResponding}
           className="flex-shrink-0 w-10 h-10 disabled:opacity-50"
         >
           <Image
@@ -82,7 +86,7 @@ export function InterviewChatInput({
       </PromptInput>
       <PromptInputError status={error ? "error" : undefined} error={error} />
       {/* {showHint && <PromptInputHint />} */}
-      <PromptInputHint>
+      <PromptInputHint className="px-2 pt-1.5 pb-2 text-[11px] md:px-4 md:text-xs">
         個人情報や機密情報は記入しないでください
       </PromptInputHint>
     </>

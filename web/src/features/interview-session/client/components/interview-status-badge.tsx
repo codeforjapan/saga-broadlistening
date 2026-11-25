@@ -9,8 +9,8 @@ const interviewStatusBadgeVariants = cva(
   {
     variants: {
       status: {
-        active: "bg-mirai-badge-yellow text-black",
-        completed: "bg-mirai-gradient text-black",
+        active: "bg-yellow-400 text-black",
+        completed: "bg-primary text-primary-foreground",
       },
     },
   }

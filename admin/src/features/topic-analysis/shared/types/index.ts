@@ -28,7 +28,7 @@ export type IntermediateResults = {
   step1_raw_topics: string[];
   step2_merged_topics: string[];
   step3_classifications: Array<{
-    interview_report_id: string;
+    opinion_id: string;
     opinion_index: number;
     topic_names: string[];
   }>;
@@ -38,7 +38,7 @@ export type IntermediateResults = {
 
 // Flat opinion for pipeline processing
 export type FlatOpinion = {
-  interview_report_id: string;
+  opinion_id: string;
   session_id: string;
   opinion_index: number;
   title: string;
@@ -59,7 +59,7 @@ export type PhaseData = {
   sessions_count?: number;
   opinions_count?: number;
   classifications?: Array<{
-    interview_report_id: string;
+    opinion_id: string;
     opinion_index: number;
     topic_names: string[];
   }>;

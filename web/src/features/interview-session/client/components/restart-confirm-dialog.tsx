@@ -29,16 +29,16 @@ export function RestartConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="px-8 py-12">
+      <DialogContent className="theme-interview px-8 py-12">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-primary text-center">
             最初からやり直しますか？
           </DialogTitle>
-          <div className="h-[1px] bg-mirai-gradient mt-6" />
+          <div className="h-[1px] bg-border mt-6" />
         </DialogHeader>
 
         <div className="flex flex-col gap-6 mt-6">
-          <p className="text-sm font-bold text-gray-800 leading-[22px] text-center">
+          <p className="text-sm font-bold text-foreground leading-[22px] text-center">
             現在の回答内容は破棄されます。
           </p>
         </div>

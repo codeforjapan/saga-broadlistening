@@ -2,9 +2,9 @@
 
 import { AlertTriangle, CheckCircle2, Loader2, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { StanceBadge } from "@/features/interview-reports/server/components/stance-badge";
 import type { IntervieweeSatisfaction } from "../../shared/schemas";
 import type { PersonaSlotState } from "../utils/reduce-multi-simulation-state";
+import { StanceBadge } from "./stance-badge";
 import { TranscriptViewer } from "./transcript-viewer";
 
 interface PersonaResultCardProps {
@@ -182,7 +182,7 @@ function StatusPill({ status }: { status: PersonaSlotState["status"] }) {
   const classes: Record<PersonaSlotState["status"], string> = {
     pending: "bg-muted text-muted-foreground",
     running: "bg-primary/10 text-primary",
-    complete: "bg-stance-for/10 text-stance-for",
+    complete: "bg-green-100 text-green-700",
     error: "bg-destructive/10 text-destructive",
   };
   const label = STATUS_LABEL[status];

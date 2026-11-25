@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { MIN_PUBLIC_REPORTS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { MIN_PUBLIC_OPINIONS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { adminClient } from "@test-utils/utils";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   getInitialPublicReportsByBillId,
@@ -26,9 +27,9 @@ describe("公開レポート loader 統合テスト", () => {
     context = null;
   });
 
-  it("公開済み件数が表示閾値未満なら法案詳細用レポートを返さない", async () => {
+  it("公開済み件数が表示閾値未満なら施策詳細用レポートを返さない", async () => {
     context = await createPublicReportLoaderContext();
-    await createPublicReports(context, MIN_PUBLIC_REPORTS_FOR_DISPLAY - 1);
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
 
     await expect(getPublicReportsByBillId(context.billId)).resolves.toEqual({
       reports: [],
@@ -36,54 +37,40 @@ describe("公開レポート loader 統合テスト", () => {
     });
   });
 
-  it("公開済み件数が表示閾値以上なら法案詳細用に最大3件と総件数を返す", async () => {
+  it("公開済み件数が表示閾値以上なら施策詳細用に最大3件と総件数を返す", async () => {
     context = await createPublicReportLoaderContext();
-    await createPublicReports(context, MIN_PUBLIC_REPORTS_FOR_DISPLAY);
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY);
 
     const result = await getPublicReportsByBillId(context.billId);
 
-    expect(result.totalCount).toBe(MIN_PUBLIC_REPORTS_FOR_DISPLAY);
+    expect(result.totalCount).toBe(MIN_PUBLIC_OPINIONS_FOR_DISPLAY);
     expect(result.reports).toHaveLength(3);
-    expect(result.reports.every((report) => report.stance === "for")).toBe(
-      true
-    );
   });
 
-  it("初期ページは公開済み件数が表示閾値未満なら空の stance counts を返す", async () => {
+  it("初期ページは公開済み件数が表示閾値未満なら空を返す", async () => {
     context = await createPublicReportLoaderContext();
-    await createPublicReports(context, MIN_PUBLIC_REPORTS_FOR_DISPLAY - 1);
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
 
     await expect(
       getInitialPublicReportsByBillId(context.billId)
     ).resolves.toEqual({
       reports: [],
-      stanceCounts: { all: 0, for: 0, against: 0, neutral: 0 },
+      totalCount: 0,
       hasMore: false,
     });
   });
 
-  it("初期ページはスタンス別件数とフィルタ済みレポートを返す", async () => {
+  it("初期ページは総件数と新着順のレポートを返す", async () => {
     context = await createPublicReportLoaderContext();
-    await createPublicReports(context, 12, { stance: "for" });
-    await createPublicReports(context, 5, { stance: "against" });
-    await createPublicReports(context, 3, { stance: null });
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY);
 
     const result = await getInitialPublicReportsByBillId(
       context.billId,
-      "for",
       "newest"
     );
 
-    expect(result.stanceCounts).toEqual({
-      all: MIN_PUBLIC_REPORTS_FOR_DISPLAY,
-      for: 12,
-      against: 5,
-      neutral: 0,
-    });
-    expect(result.reports).toHaveLength(12);
-    expect(result.reports.every((report) => report.stance === "for")).toBe(
-      true
-    );
+    expect(result.totalCount).toBe(MIN_PUBLIC_OPINIONS_FOR_DISPLAY);
+    expect(result.reports).toHaveLength(MIN_PUBLIC_OPINIONS_FOR_DISPLAY);
     expect(result.hasMore).toBe(false);
   });
 
@@ -94,7 +81,6 @@ describe("公開レポート loader 統合テスト", () => {
     const result = await getPublicReportsByBillIdPaginated(
       context.billId,
       PAGE_SIZE,
-      "for",
       "newest"
     );
 
@@ -105,7 +91,7 @@ describe("公開レポート loader 統合テスト", () => {
   it("公開直リンク loader は公開済み件数が表示閾値未満なら null を返す", async () => {
     context = await createPublicReportLoaderContext();
     const target = await createPublicReport(context);
-    await createPublicReports(context, MIN_PUBLIC_REPORTS_FOR_DISPLAY - 2);
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 2);
 
     await expect(getPublicReportById(target.report.id)).resolves.toBeNull();
   });
@@ -120,7 +106,7 @@ describe("公開レポート loader 統合テスト", () => {
   });
 
   it("公開直リンク loader は表示可能なレポートとユーザー文字数を返す", async () => {
-    context = await createPublicReportLoaderContext("統合テスト議案");
+    context = await createPublicReportLoaderContext("統合テスト施策");
     const target = await createPublicReport(context, {
       messages: [
         { role: "user", content: "abc" },
@@ -128,19 +114,58 @@ describe("公開レポート loader 統合テスト", () => {
         { role: "user", content: "de" },
       ],
     });
-    await createPublicReports(context, MIN_PUBLIC_REPORTS_FOR_DISPLAY - 1);
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
 
     const result = await getPublicReportById(target.report.id);
 
-    expect(result?.bill_id).toBe(context.billId);
-    expect(result?.bill.bill_content).toEqual({ title: "統合テスト議案" });
+    expect(result?.origin.policyId).toBe(context.billId);
+    expect(result?.bill?.bill_content).toEqual({ title: "統合テスト施策" });
     expect(result?.characterCount).toBe(5);
   });
 
+  it("会話ログを公開しないテーマ（既定）では、公開直リンク loader が会話ログを返さない", async () => {
+    context = await createPublicReportLoaderContext();
+    const target = await createPublicReport(context, {
+      messages: [
+        { role: "user", content: "abc" },
+        { role: "assistant", content: "ignored" },
+      ],
+    });
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
+
+    const result = await getPublicReportById(target.report.id);
+
+    expect(result?.chatLogPublic).toBe(false);
+    expect(result?.messages).toEqual([]);
+    // 分量は会話ログを出さなくても示す
+    expect(result?.characterCount).toBe(3);
+  });
+
+  it("会話ログを公開するテーマでは、公開直リンク loader が会話ログを返す", async () => {
+    context = await createPublicReportLoaderContext();
+    await adminClient
+      .from("interview_configs")
+      .update({ chat_log_public: true })
+      .eq("id", context.configId)
+      .throwOnError();
+    const target = await createPublicReport(context, {
+      messages: [
+        { role: "user", content: "abc" },
+        { role: "assistant", content: "ignored" },
+      ],
+    });
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
+
+    const result = await getPublicReportById(target.report.id);
+
+    expect(result?.chatLogPublic).toBe(true);
+    expect(result?.messages).toHaveLength(2);
+  });
+
   it("OGP loader は公開済み件数ゲートを満たす場合だけデータを返す", async () => {
-    context = await createPublicReportLoaderContext("OGP 議案");
+    context = await createPublicReportLoaderContext("OGP 施策");
     const target = await createPublicReport(context, { summary: "OGP 要約" });
-    await createPublicReports(context, MIN_PUBLIC_REPORTS_FOR_DISPLAY - 2);
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 2);
 
     await expect(getReportOgData(target.report.id)).resolves.toBeNull();
 
@@ -148,16 +173,31 @@ describe("公開レポート loader 統合テスト", () => {
 
     await expect(getReportOgData(target.report.id)).resolves.toEqual({
       summary: "OGP 要約-1",
-      billName: "OGP 議案",
+      billName: "OGP 施策",
     });
   });
 
+  it("紐づく施策が未公開なら、施策なし（テーマ起点）として返す", async () => {
+    context = await createPublicReportLoaderContext("未公開施策", {
+      publishPolicy: false,
+    });
+    const target = await createPublicReport(context, { summary: "未公開要約" });
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
+
+    const result = await getPublicReportById(target.report.id);
+
+    // 未公開施策へのリンクは 404 になるため、テーマ側にフォールバックさせる
+    expect(result?.origin.policyId).toBeNull();
+    expect(result?.bill).toBeNull();
+    expect(result?.origin.theme.slug).toBeTruthy();
+  });
+
   it("チャットログ loader は非所有者に公開済み件数ゲートを適用する", async () => {
-    context = await createPublicReportLoaderContext("チャットログ議案");
+    context = await createPublicReportLoaderContext("チャットログ施策");
     const target = await createPublicReport(context, {
       messages: [{ role: "user", content: "hello" }],
     });
-    await createPublicReports(context, MIN_PUBLIC_REPORTS_FOR_DISPLAY - 2);
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 2);
 
     await expect(getReportWithMessages(target.report.id)).resolves.toBeNull();
 
@@ -165,8 +205,8 @@ describe("公開レポート loader 統合テスト", () => {
 
     const result = await getReportWithMessages(target.report.id);
 
-    expect(result?.report.bill_id).toBe(context.billId);
+    expect(result?.report.origin.policyId).toBe(context.billId);
     expect(result?.messages).toHaveLength(1);
-    expect(result?.bill.bill_content).toEqual({ title: "チャットログ議案" });
+    expect(result?.bill?.bill_content).toEqual({ title: "チャットログ施策" });
   });
 });

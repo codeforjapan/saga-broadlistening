@@ -23,7 +23,7 @@ describe("createBillShareUrl", () => {
 describe("createShareMessage", () => {
   const baseBill = {
     id: "bill-1",
-    name: "正式法案名称",
+    name: "正式施策名称",
     tags: [],
   } as unknown as BillWithContent;
 
@@ -34,7 +34,7 @@ describe("createShareMessage", () => {
         title: "わかりやすいタイトル",
       } as BillWithContent["bill_content"],
     };
-    expect(createShareMessage(bill)).toBe("わかりやすいタイトル #みらい議会");
+    expect(createShareMessage(bill)).toBe("わかりやすいタイトル #CHIKAT");
   });
 
   it("falls back to bill.name when bill_content is undefined", () => {
@@ -42,7 +42,7 @@ describe("createShareMessage", () => {
       ...baseBill,
       bill_content: undefined,
     };
-    expect(createShareMessage(bill)).toBe("正式法案名称 #みらい議会");
+    expect(createShareMessage(bill)).toBe("正式施策名称 #CHIKAT");
   });
 
   it("falls back to bill.name when bill_content.title is null", () => {
@@ -52,11 +52,11 @@ describe("createShareMessage", () => {
         title: null,
       } as unknown as BillWithContent["bill_content"],
     };
-    expect(createShareMessage(bill)).toBe("正式法案名称 #みらい議会");
+    expect(createShareMessage(bill)).toBe("正式施策名称 #CHIKAT");
   });
 
-  it("includes hashtag #みらい議会", () => {
+  it("includes hashtag #CHIKAT", () => {
     const message = createShareMessage(baseBill);
-    expect(message).toContain("#みらい議会");
+    expect(message).toContain("#CHIKAT");
   });
 });

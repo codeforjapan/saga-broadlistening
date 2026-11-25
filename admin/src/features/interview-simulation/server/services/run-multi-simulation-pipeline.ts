@@ -1,13 +1,13 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import type {
-  InterviewMode,
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
   InterviewQuestion as PromptInterviewQuestion,
 } from "@mirai-gikai/shared/interview-prompts/types";
-import type { AiModel } from "@/lib/ai/models";
+import type { LanguageModel } from "ai";
 import { registerNodeTelemetry } from "@/lib/telemetry/register";
 import { PROMPT_KIND } from "../../shared/constants";
 import type {
@@ -19,10 +19,14 @@ import type {
 } from "../../shared/types";
 import { describePersonaSlot } from "../../shared/utils/describe-persona-slot";
 import { extractOriginalStyleAnchors } from "../../shared/utils/extract-original-style-anchors";
-import { getReportDetailForSimulation } from "../loaders/get-report-detail-for-simulation";
+import {
+  canUseReportForSimulation,
+  type SimulationScope,
+} from "../../shared/utils/simulation-scope";
+import { getReportSnapshotForSimulation } from "../loaders/get-report-snapshot-for-simulation";
 import { evaluateIntervieweeSatisfaction } from "./evaluate-interviewee-satisfaction";
 import { generatePersona } from "./generate-persona";
-import { generatePersonaFromBill } from "./generate-persona-from-bill";
+import { generatePersonaFromSubject } from "./generate-persona-from-subject";
 import { planDiverseRoles } from "./plan-diverse-roles";
 import { runSimulatedInterview } from "./run-simulated-interview";
 import { summarizeOverallEvaluation } from "./summarize-overall-evaluation";
@@ -38,21 +42,21 @@ interface ImprovedPromptInputs {
   bill: PromptBillInput;
   interviewConfig: PromptInterviewConfig;
   questions: PromptInterviewQuestion[];
-  mode: InterviewMode;
   estimatedDurationMinutes: number | null;
 }
 
 interface RunMultiSimulationParams {
-  /** 対象法案 ID。report スロットが別法案のレポートを指していないか検証するのに使う */
-  billId: string;
+  /**
+   * ペルソナ素材として使ってよいレポートの範囲。
+   * report スロットが範囲外のレポートを指していないか検証するのに使う。
+   */
+  scope: SimulationScope;
   personaSlots: PersonaSlotInput[];
   /** 全スロット共通の改善版 config */
   improvedPromptInputs: ImprovedPromptInputs;
-  /** 初回ターン enhanced prompt で使う billTitle */
-  billTitle: string;
-  interviewerModel: AiModel;
-  intervieweeModel: AiModel;
-  personaModel: AiModel;
+  interviewerModel?: LanguageModel;
+  intervieweeModel?: LanguageModel;
+  personaModel?: LanguageModel;
   /** ストリーミング進捗コールバック */
   onProgress?: (event: MultiSimulationProgressEvent) => void;
   /** 中断シグナル。末端 LLM 呼び出しまで伝播 */
@@ -62,7 +66,7 @@ interface RunMultiSimulationParams {
 /**
  * 1 スロット分の実行コンテキスト（persona + 元レポート + style anchors）を用意する。
  * - report スロット: DB からレポート詳細を取得 → persona 抽出 + style anchors 抽出
- * - bill スロット: 法案内容から persona を LLM 生成（style anchors なし）
+ * - bill スロット: 施策内容から persona を LLM 生成（style anchors なし）
  */
 async function prepareSlotContext(
   slot: PersonaSlotInput,
@@ -74,30 +78,27 @@ async function prepareSlotContext(
 ) {
   if (slot.kind === "report") {
     emitStatus("レポート取得中...");
-    const detail = await getReportDetailForSimulation(slot.reportId);
-    if (!detail) {
+    const snapshot = await getReportSnapshotForSimulation(slot.reportId);
+    if (!snapshot) {
       throw new Error(
         `対象のレポートが見つかりません (reportId=${slot.reportId})`
       );
     }
-    // 指定された billId と、report から辿った bill_id が一致しているか検証。
-    // 不一致 = UI の想定外 or 別法案のレポート混入なので拒否する。
-    if (detail.snapshot.billId !== params.billId) {
-      throw new Error("選択されたレポートが対象法案と一致しません");
+    // UI が出す候補と一致しない組み合わせ（別施策・別テーマのレポート混入）を拒否する
+    if (!canUseReportForSimulation(params.scope, snapshot)) {
+      throw new Error("選択されたレポートが対象の範囲に含まれていません");
     }
     emitStatus("ペルソナ抽出中...");
     const persona = await generatePersona({
-      original: detail.snapshot,
+      original: snapshot,
       model: params.personaModel,
       traceId,
       signal: params.signal,
     });
-    const styleAnchors = extractOriginalStyleAnchors(
-      detail.snapshot.conversation
-    );
+    const styleAnchors = extractOriginalStyleAnchors(snapshot.conversation);
     return {
       persona,
-      original: detail.snapshot as OriginalInterviewSnapshot | null,
+      original: snapshot as OriginalInterviewSnapshot | null,
       styleAnchors,
     };
   }
@@ -107,7 +108,7 @@ async function prepareSlotContext(
   const effectiveStanceHint = slot.stanceHint ?? plannedHint?.stanceHint;
 
   emitStatus("ペルソナ生成中...");
-  const persona = await generatePersonaFromBill({
+  const persona = await generatePersonaFromSubject({
     bill: params.improvedPromptInputs.bill,
     interviewConfig: params.improvedPromptInputs.interviewConfig,
     stanceHint: effectiveStanceHint,
@@ -237,15 +238,7 @@ export async function runMultiSimulationPipeline(
             bill: params.improvedPromptInputs.bill,
             interviewConfig: params.improvedPromptInputs.interviewConfig,
             questions: params.improvedPromptInputs.questions,
-            mode: params.improvedPromptInputs.mode,
           },
-          initialTurnEnhancement: {
-            billTitle: params.billTitle,
-            firstQuestionId:
-              params.improvedPromptInputs.questions[0]?.id ?? null,
-          },
-          estimatedDurationMinutes:
-            params.improvedPromptInputs.estimatedDurationMinutes,
           onTurnComplete: emit
             ? (turnIndex, turn) =>
                 emit({ type: "turn", personaIndex, turnIndex, turn })
@@ -269,7 +262,7 @@ export async function runMultiSimulationPipeline(
           personaIndex,
           personaSource: slot,
           persona,
-          personaModel: params.personaModel,
+          personaModel: getAiModel("simulation", params.personaModel).modelId,
           original,
           run,
           elapsedMs: Date.now() - slotStartedAt,

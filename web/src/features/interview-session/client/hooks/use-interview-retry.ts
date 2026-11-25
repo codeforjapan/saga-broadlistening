@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { InterviewChatRequestParams } from "@/features/interview-session/shared/types";
 import { logger } from "@/lib/logger";
+import { INTERVIEW_SESSION_NOT_STARTED_MESSAGE } from "../../shared/types/errors";
 
 const MAX_AUTO_RETRIES = 1;
 
@@ -28,6 +29,13 @@ export function useInterviewRetry() {
   ): boolean => {
     console.error("chat error", error);
     logger.debug(retryCount.current, lastFailedRequestParams.current);
+
+    // 別のタブでやり直すなどして進行中のセッションがなくなった（409）。
+    // 再送しても通らないので、ページを読み直して開始画面に戻す（#158）
+    if (error.message.includes(INTERVIEW_SESSION_NOT_STARTED_MESSAGE)) {
+      window.location.reload();
+      return true;
+    }
 
     // 自動リトライ判定（1回まで）
     if (

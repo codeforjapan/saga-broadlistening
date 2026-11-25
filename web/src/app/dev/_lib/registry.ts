@@ -26,12 +26,7 @@ export const previewRegistry: PreviewGroup[] = [
       {
         path: "/dev/features/bills/bill-card",
         label: "BillCard",
-        description: "法案カードコンポーネント",
-      },
-      {
-        path: "/dev/features/bills/bill-status-badge",
-        label: "BillStatusBadge",
-        description: "法案ステータスバッジ全バリアント",
+        description: "施策カードコンポーネント",
       },
     ],
   },
@@ -39,14 +34,9 @@ export const previewRegistry: PreviewGroup[] = [
     name: "Interview",
     items: [
       {
-        path: "/dev/features/interview/consent-modal",
-        label: "ConsentModal",
-        description: "AIインタビュー同意モーダル",
-      },
-      {
         path: "/dev/features/interview/public-consent-modal",
-        label: "PublicConsentModal",
-        description: "インタビュー公開設定モーダル",
+        label: "InterviewSubmitDialog",
+        description: "まとめ確認・属性・公開設定のモーダル（STEP 1〜3）",
       },
       {
         path: "/dev/features/interview/rating-widget",

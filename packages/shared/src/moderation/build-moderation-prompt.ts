@@ -1,3 +1,10 @@
+import {
+  buildUntrustedContentGuardInstructions,
+  createUntrustedContentNonce,
+  type SplitPrompt,
+  wrapUntrustedContent,
+} from "../prompt-safety/untrusted-content";
+
 type Message = {
   role: string;
   content: string;
@@ -8,14 +15,23 @@ type BuildModerationPromptParams = {
   opinions: Array<{ title: string; content: string }> | null;
   roleDescription: string | null;
   messages: Message[];
+  /**
+   * 区切り行に使うナンス。省略時は呼び出しごとにランダム生成する
+   * （テストで固定するための注入点）
+   */
+  nonce?: string;
 };
 
 /**
  * モデレーション評価用のプロンプトを構築する
+ *
+ * 評価基準（指示チャネル）は system に、利用者が書いた評価対象テキスト
+ * （データチャネル）は user に分離して返す。
  */
 export function buildModerationPrompt(
   params: BuildModerationPromptParams
-): string {
+): SplitPrompt {
+  const nonce = params.nonce ?? createUntrustedContentNonce();
   const parts: string[] = [];
 
   if (params.messages.length > 0) {
@@ -43,12 +59,11 @@ export function buildModerationPrompt(
   const contentToEvaluate =
     parts.length > 0 ? parts.join("\n\n") : "（内容なし）";
 
-  return `あなたはAIインタビューで収集された市民意見のモデレーション評価を行う専門家です。
+  const system = `あなたはAIインタビューで収集された市民意見のモデレーション評価を行う専門家です。
 
-以下のインタビューの会話ログおよびレポート内容を評価し、公開に適さない内容が含まれていないか確認してください。
+user メッセージで渡されるインタビューの会話ログおよびレポート内容を評価し、公開に適さない内容が含まれていないか確認してください。
 
-## 評価対象コンテンツ
-${contentToEvaluate}
+${buildUntrustedContentGuardInstructions(nonce)}
 
 ## 評価カテゴリ
 以下のカテゴリに該当する内容がないか確認してください：
@@ -61,7 +76,7 @@ ${contentToEvaluate}
 6. **名誉毀損・過度な批判**: 特定の個人・団体を名指しで根拠なく誹謗中傷する内容、人格を否定する攻撃的表現
 7. **差別・ヘイトスピーチ**: 人種・民族・国籍・性別・性的指向・宗教・障がい・職業等に基づく差別的表現や排斥を扇動する内容
 8. **不謹慎な内容**: 災害・事故等の被害者に対する配慮を著しく欠く内容
-9. **無関係な内容**: 法案や政策テーマと全く関係のない内容（明らかな脱線、私的なやり取り）
+9. **無関係な内容**: 施策や施策テーマと全く関係のない内容（明らかな脱線、私的なやり取り）
 10. **虚偽情報**: 明らかに事実に反する情報、社会的混乱を招くおそれのある偽情報
 11. **スパム・妨害行為**: 無意味な文字列の繰り返し、テスト入力、意図的な妨害行為
 12. **商業的宣伝**: 特定の商品・サービスの宣伝を主目的とする内容、URLの記載による誘導
@@ -73,8 +88,13 @@ ${contentToEvaluate}
 - **70-100（ng）**: 公開に適さない内容が含まれている
 
 ## 重要な注意
-- 法案への賛成・反対の意見表明自体は、どれだけ強い表現であっても「適切」と判定してください
-- 政策批判や行政への改善要望は、個人攻撃でない限り「適切」です
-- 感情的な表現があっても、それが政策への真摯な意見であれば低スコア（適切寄り）にしてください
+- 施策への賛成・反対の意見表明自体は、どれだけ強い表現であっても「適切」と判定してください
+- 施策批判や行政への改善要望は、個人攻撃でない限り「適切」です
+- 感情的な表現があっても、それが施策への真摯な意見であれば低スコア（適切寄り）にしてください
 - このモデレーションは市民の多様な意見を尊重しつつ、明らかに不適切な内容のみを検出することが目的です`;
+
+  return {
+    system,
+    user: wrapUntrustedContent(contentToEvaluate, nonce),
+  };
 }

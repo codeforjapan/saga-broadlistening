@@ -1,11 +1,11 @@
 import "server-only";
 
+import { getAiModel } from "@mirai-gikai/shared/ai/registry";
 import type {
   PromptBillInput,
   InterviewConfig as PromptInterviewConfig,
 } from "@mirai-gikai/shared/interview-prompts/types";
-import { generateObject } from "ai";
-import type { AiModel } from "@/lib/ai/models";
+import { generateObject, type LanguageModel } from "ai";
 import { LLM_MAX_ATTEMPTS, LLM_TIMEOUT_MS } from "../../shared/constants";
 import {
   type DiverseRolesPlan,
@@ -22,7 +22,7 @@ interface PlanDiverseRolesParams {
   interviewConfig: PromptInterviewConfig;
   slotsToPlan: DiversePlanSlotInput[];
   preassignedRoleHints?: string[];
-  model: AiModel;
+  model?: LanguageModel;
   traceId: string;
   signal?: AbortSignal;
 }
@@ -55,7 +55,7 @@ export async function planDiverseRoles({
     const { object } = await withTimeoutRetry(
       (attemptSignal) =>
         generateObject({
-          model,
+          ...getAiModel("simulation", model),
           schema: diverseRolesPlanSchema,
           prompt,
           abortSignal: attemptSignal,
@@ -83,7 +83,7 @@ export async function planDiverseRoles({
       return null;
     }
     // ユーザー指定の stanceHint と planner 出力 stance が矛盾していないか検証。
-    // 下流の generatePersonaFromBill は stanceHint を最優先で使うので実害は
+    // 下流の generatePersonaFromSubject は stanceHint を最優先で使うので実害は
     // ないが、planner 側が指示に追従していない兆候なのでログを残して fallback
     for (let i = 0; i < slotsToPlan.length; i++) {
       const slotHint = slotsToPlan[i]?.stanceHint;

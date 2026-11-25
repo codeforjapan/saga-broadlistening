@@ -8,14 +8,12 @@ import {
 
 function op(id: string, extractedAt: string | null): TargetOpinion {
   return {
-    opinion_id: id,
-    interview_report_id: `r-${id}`,
+    opinion_segment_id: id,
+    opinion_id: `op-${id}`,
     opinion_index: 0,
     title: `t-${id}`,
     content: `c-${id}`,
     contextual_quote: null,
-    bill_sentiment: null,
-    role: null,
     richness: null,
     topic_extracted_at: extractedAt,
   };
@@ -28,17 +26,17 @@ describe("toExistingTopics", () => {
         title: "T1",
         description: "D1",
         topic_opinion: [
-          { interview_opinion: { id: "o1" } },
-          { interview_opinion: { id: "o2" } },
-          { interview_opinion: null },
+          { opinion_segments: { id: "o1" } },
+          { opinion_segments: { id: "o2" } },
+          { opinion_segments: null },
           null,
         ],
       },
       { title: "T2", description: "D2", topic_opinion: null },
     ];
     expect(toExistingTopics(rows)).toEqual([
-      { title: "T1", description: "D1", opinion_ids: ["o1", "o2"] },
-      { title: "T2", description: "D2", opinion_ids: [] },
+      { title: "T1", description: "D1", opinion_segment_ids: ["o1", "o2"] },
+      { title: "T2", description: "D2", opinion_segment_ids: [] },
     ]);
   });
 });
@@ -46,7 +44,9 @@ describe("toExistingTopics", () => {
 describe("selectUnextractedOpinions", () => {
   it("topic_extracted_at が null の意見だけ返す", () => {
     const opinions = [op("a", null), op("b", "2026-01-01T00:00:00Z"), op("c", null)];
-    expect(selectUnextractedOpinions(opinions).map((o) => o.opinion_id)).toEqual(
+    expect(
+      selectUnextractedOpinions(opinions).map((o) => o.opinion_segment_id)
+    ).toEqual(
       ["a", "c"]
     );
   });
@@ -55,8 +55,8 @@ describe("selectUnextractedOpinions", () => {
 describe("buildIncrementalPlan", () => {
   it("既存にeA..・新規にnA..のlocal_idを振り、既存割当を引き継ぎ、未割当を返す", () => {
     const existing = [
-      { title: "既存1", description: "d1", opinion_ids: ["o1", "o2"] },
-      { title: "既存2", description: "d2", opinion_ids: ["o3"] },
+      { title: "既存1", description: "d1", opinion_segment_ids: ["o1", "o2"] },
+      { title: "既存2", description: "d2", opinion_segment_ids: ["o3"] },
     ];
     const acceptedNew = [{ title: "新規1", description: "n1" }];
     const allTargets = [
@@ -75,11 +75,11 @@ describe("buildIncrementalPlan", () => {
       { title: "新規1", description: "n1", local_id: "nA" },
     ]);
     expect(plan.carriedAssignments).toEqual([
-      { opinion_id: "o1", topic_local_id: "eA" },
-      { opinion_id: "o2", topic_local_id: "eA" },
-      { opinion_id: "o3", topic_local_id: "eB" },
+      { opinion_segment_id: "o1", topic_local_id: "eA" },
+      { opinion_segment_id: "o2", topic_local_id: "eA" },
+      { opinion_segment_id: "o3", topic_local_id: "eB" },
     ]);
-    expect(plan.unassignedOpinions.map((o) => o.opinion_id)).toEqual([
+    expect(plan.unassignedOpinions.map((o) => o.opinion_segment_id)).toEqual([
       "o4",
       "o5",
     ]);
@@ -87,24 +87,24 @@ describe("buildIncrementalPlan", () => {
 
   it("対象外になった意見(allTargetsに無い)は引き継がない", () => {
     const existing = [
-      { title: "A", description: "a", opinion_ids: ["o1", "o2"] },
+      { title: "A", description: "a", opinion_segment_ids: ["o1", "o2"] },
     ];
     // o2 は対象外（allTargets に無い）→ 引き継がない
     const plan = buildIncrementalPlan(existing, [], [op("o1", "x")]);
     expect(plan.carriedAssignments).toEqual([
-      { opinion_id: "o1", topic_local_id: "eA" },
+      { opinion_segment_id: "o1", topic_local_id: "eA" },
     ]);
     expect(plan.unassignedOpinions).toEqual([]);
   });
 
   it("意見の重複割当は1件に正規化する", () => {
     const existing = [
-      { title: "A", description: "a", opinion_ids: ["o1"] },
-      { title: "B", description: "b", opinion_ids: ["o1"] },
+      { title: "A", description: "a", opinion_segment_ids: ["o1"] },
+      { title: "B", description: "b", opinion_segment_ids: ["o1"] },
     ];
     const plan = buildIncrementalPlan(existing, [], [op("o1", "x")]);
     expect(plan.carriedAssignments).toEqual([
-      { opinion_id: "o1", topic_local_id: "eA" },
+      { opinion_segment_id: "o1", topic_local_id: "eA" },
     ]);
     expect(plan.unassignedOpinions).toEqual([]);
   });

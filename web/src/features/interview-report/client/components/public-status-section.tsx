@@ -23,7 +23,10 @@ export function PublicStatusSection({
     setIsSubmitting(true);
     try {
       const newStatus = !isPublic;
-      const result = await updatePublicSetting(sessionId, newStatus);
+      // 公開・非公開いずれの切替でも二次利用同意を連動して送る。
+      // 公開への切替は告知付きモーダル（MakePublicModal）で確認済みの同意、
+      // 非公開への切替は同意の撤回（false）にあたる
+      const result = await updatePublicSetting(sessionId, newStatus, newStatus);
       if (result.success) {
         setIsPublic(newStatus);
         setIsModalOpen(false);
@@ -39,20 +42,25 @@ export function PublicStatusSection({
 
   return (
     <>
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex items-center gap-3">
         {isPublic ? (
-          <span className="inline-flex items-center gap-1 bg-mirai-gradient text-black text-sm font-bold px-4 py-1.5 rounded-full">
-            公開
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-sm font-bold text-primary-accent">
+            <span aria-hidden="true" className="size-2 rounded-full bg-decor" />
+            公開中
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 bg-gray-200 text-gray-600 text-sm font-bold px-4 py-1.5 rounded-full">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm font-bold text-muted-foreground">
+            <span
+              aria-hidden="true"
+              className="size-2 rounded-full bg-muted-foreground"
+            />
             非公開
           </span>
         )}
         <Button
           variant="link"
           onClick={() => setIsModalOpen(true)}
-          className={`text-sm ${isPublic ? "text-gray-500" : "text-primary-accent"}`}
+          className={`text-sm ${isPublic ? "text-muted-foreground" : "text-primary-accent"}`}
         >
           {isPublic ? "非公開に変更する" : "公開に変更する"}
         </Button>

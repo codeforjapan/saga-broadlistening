@@ -1,4 +1,3 @@
-import type { InterviewMode } from "@mirai-gikai/shared/interview-prompts/types";
 import { describe, expect, it } from "vitest";
 import { AI_MODELS } from "@/lib/ai/models";
 import { MAX_PERSONA_SLOTS } from "./constants";
@@ -6,18 +5,16 @@ import { multiSimulationRunRequestSchema } from "./schemas";
 import type { PersonaSlotInput } from "./types";
 
 type ValidRequest = {
-  billId: string;
+  interviewConfigId: string;
   personaSlots: PersonaSlotInput[];
   improvedConfig: {
-    mode: InterviewMode;
-    themes: string[] | null;
+    description: string | null;
     estimatedDurationMinutes: number | null;
     questions: Array<{
       id: string;
       question: string;
       quick_replies: string[] | null;
       follow_up_guide: string | null;
-      target_audience?: string | null;
     }>;
   };
   interviewerModel: string;
@@ -27,11 +24,10 @@ type ValidRequest = {
 
 function baseValidRequest(): ValidRequest {
   return {
-    billId: "bill-1",
+    interviewConfigId: "config-1",
     personaSlots: [{ kind: "bill" }],
     improvedConfig: {
-      mode: "loop",
-      themes: ["テーマ A"],
+      description: "テーマ A",
       estimatedDurationMinutes: 30,
       questions: [
         {
@@ -54,6 +50,31 @@ describe("multiSimulationRunRequestSchema", () => {
       baseValidRequest()
     );
     expect(result.success).toBe(true);
+  });
+
+  it("環境設定を使うモデル選択を未指定に正規化する", () => {
+    const result = multiSimulationRunRequestSchema.parse({
+      ...baseValidRequest(),
+      interviewerModel: "__default__",
+      intervieweeModel: "__default__",
+      personaModel: "__default__",
+    });
+    expect(result.interviewerModel).toBeUndefined();
+    expect(result.intervieweeModel).toBeUndefined();
+    expect(result.personaModel).toBeUndefined();
+  });
+
+  it.each([
+    "bedrock:custom-model:0",
+    "gateway:openai/gpt-4o",
+    "openai:gpt-4o",
+    "google:gemini-2.5-flash",
+  ])("明示的な接続先付きモデル %s を変更せずに受理する", (model) => {
+    const result = multiSimulationRunRequestSchema.parse({
+      ...baseValidRequest(),
+      interviewerModel: model,
+    });
+    expect(result.interviewerModel).toBe(model);
   });
 
   it("personaSlots が空だと拒否", () => {
@@ -169,24 +190,27 @@ describe("multiSimulationRunRequestSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("themes 配列が 20 件を超えると拒否", () => {
+  it("description が 4_000 文字を超えると拒否", () => {
     const body = baseValidRequest();
-    body.improvedConfig.themes = Array.from({ length: 21 }, (_, i) => `t${i}`);
+    body.improvedConfig.description = "a".repeat(4_001);
     const result = multiSimulationRunRequestSchema.safeParse(body);
     expect(result.success).toBe(false);
   });
 
-  it("themes 要素が 2_000 文字を超えると拒否", () => {
+  it("interviewConfigId が 100 文字を超えると拒否", () => {
     const body = baseValidRequest();
-    body.improvedConfig.themes = ["a".repeat(2_001)];
+    body.interviewConfigId = "a".repeat(101);
     const result = multiSimulationRunRequestSchema.safeParse(body);
     expect(result.success).toBe(false);
   });
 
-  it("billId が 100 文字を超えると拒否", () => {
-    const body = baseValidRequest();
-    body.billId = "a".repeat(101);
+  it("施策IDを送りつけられても拒否する（範囲はサーバー側で意見募集から決めるため）", () => {
+    const body = {
+      ...baseValidRequest(),
+      policyId: "policy-injected",
+    };
     const result = multiSimulationRunRequestSchema.safeParse(body);
+
     expect(result.success).toBe(false);
   });
 

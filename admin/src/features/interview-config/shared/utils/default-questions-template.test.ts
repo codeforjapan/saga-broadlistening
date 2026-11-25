@@ -28,7 +28,7 @@ describe("DEFAULT_QUESTIONS_TEMPLATE", () => {
     expect(slots).toEqual(["topics", "stance"]);
   });
 
-  it("Q4/Q5/Q7 のフォローアップ指針に3往復ルールが含まれる", () => {
+  it("Q4/Q5/Q7 の観点に3往復ルールが含まれる", () => {
     // index 3=Q4(評価), 4=Q5(具体化), 6=Q7(設計者へ)
     for (const i of [3, 4, 6]) {
       expect(DEFAULT_QUESTIONS_TEMPLATE[i].follow_up_guide).toContain(
@@ -40,7 +40,7 @@ describe("DEFAULT_QUESTIONS_TEMPLATE", () => {
   it("Q6 は運用ハードルを問う質問で、5往復まで許容する独自ルールを持つ", () => {
     const q6 = DEFAULT_QUESTIONS_TEMPLATE[5];
     expect(q6.kind).toBe("fixed");
-    expect(q6.question).toContain("法案");
+    expect(q6.question).toContain("施策");
     expect(q6.question).toContain("ハードル");
     expect(q6.question).toContain("個人・事業者・組織");
     expect(q6.follow_up_guide).toContain("最大5往復");
@@ -156,12 +156,12 @@ describe("buildQuestionsFromTemplate", () => {
     });
     // 固定質問文
     expect(result[0].question).toBe(
-      "今回の法改正のうち、あなたが特に関係がある、または意見を伝えたいテーマを選んでください。"
+      "今回の施策のうち、あなたが特に関係がある、または意見を伝えたいテーマを選んでください。"
     );
     expect(result[1].question).toBe(
-      "この法案について、あなたはどんな立場・関わり方に近いですか？"
+      "この施策について、あなたはどんな立場・関わり方に近いですか？"
     );
-    // 固定フォローアップ指針の特徴文言
+    // 固定の観点の特徴文言
     expect(result[0].follow_up_guide).toContain("Q2に進む");
     expect(result[1].follow_up_guide).toContain("専門知識レベル");
   });

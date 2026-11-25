@@ -1,14 +1,13 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   adminClient,
-  createTestUser,
   cleanupTestUser,
   createTestInterviewData,
-  cleanupTestBill,
+  createTestUser,
   type TestUser,
 } from "@test-utils/utils";
-import type { GetUserFn } from "../utils/verify-session-ownership";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { archiveInterviewSessionCore } from "../services/archive-interview-session-core";
+import type { GetUserFn } from "../utils/verify-session-ownership";
 
 function createGetUser(userId: string): GetUserFn {
   return async () => ({
@@ -25,23 +24,23 @@ const getUnauthenticatedUser: GetUserFn = async () => ({
 describe("archiveInterviewSession 統合テスト", () => {
   let testUser: TestUser;
   let sessionId: string;
-  let billId: string;
+  let cleanupInterviewData: () => Promise<void>;
 
   beforeEach(async () => {
     testUser = await createTestUser();
     const data = await createTestInterviewData(testUser.id);
     sessionId = data.session.id;
-    billId = data.bill.id;
+    cleanupInterviewData = data.cleanup;
   });
 
   afterEach(async () => {
-    await cleanupTestBill(billId);
+    await cleanupInterviewData();
     await cleanupTestUser(testUser.id);
   });
 
   it("セッションオーナーがアーカイブに成功する", async () => {
     const result = await archiveInterviewSessionCore(sessionId, {
-      getUser: createGetUser(testUser.id),
+      deps: { getUser: createGetUser(testUser.id) },
     });
 
     expect(result.success).toBe(true);
@@ -59,7 +58,7 @@ describe("archiveInterviewSession 統合テスト", () => {
 
   it("未認証ユーザーはアーカイブできない", async () => {
     const result = await archiveInterviewSessionCore(sessionId, {
-      getUser: getUnauthenticatedUser,
+      deps: { getUser: getUnauthenticatedUser },
     });
 
     expect(result.success).toBe(false);
@@ -79,7 +78,7 @@ describe("archiveInterviewSession 統合テスト", () => {
     const anotherUser = await createTestUser();
     try {
       const result = await archiveInterviewSessionCore(sessionId, {
-        getUser: createGetUser(anotherUser.id),
+        deps: { getUser: createGetUser(anotherUser.id) },
       });
 
       expect(result.success).toBe(false);
@@ -102,7 +101,7 @@ describe("archiveInterviewSession 統合テスト", () => {
     const nonExistentId = "00000000-0000-0000-0000-000000000000";
 
     const result = await archiveInterviewSessionCore(nonExistentId, {
-      getUser: createGetUser(testUser.id),
+      deps: { getUser: createGetUser(testUser.id) },
     });
 
     expect(result.success).toBe(false);
