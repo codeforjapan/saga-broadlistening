@@ -24,7 +24,7 @@ describe("ChatLogSection", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "🎤すべての会話ログ" })
+      screen.getByRole("heading", { name: "すべての会話ログ" })
     ).toBeInTheDocument();
     expect(screen.getByText("AIからの質問です")).toBeInTheDocument();
     expect(screen.getByText("ユーザーの回答です")).toBeInTheDocument();

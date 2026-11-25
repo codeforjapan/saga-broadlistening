@@ -13,7 +13,7 @@ interface EndInterviewButtonVisibilityParams {
 /**
  * 常設の「終える」ボタンを出すかを判定する純粋関数。
  *
- * - 要約中は締めるために常に出す
+ * - 対話中だけ出す。要約が出たあとはまとめのモーダルで確認して提出する（#274）
  * - 対話中は目安時間まで付き合ってもらう方針のため、目安時間を超過し、
  *   時間超過プロンプトを閉じた後にだけ出す。超過直後はプロンプト側の
  *   終了ボタンが終える手段になるので、同時には出さない。プロンプトは応答待ちの
@@ -27,7 +27,6 @@ export function isEndInterviewButtonVisible({
   isTimeUp,
   timeUpDismissed,
 }: EndInterviewButtonVisibilityParams): boolean {
-  if (stage === "summary") return true;
   if (stage !== "chat") return false;
   if (!hasTimer) return true;
   return isTimeUp && timeUpDismissed;

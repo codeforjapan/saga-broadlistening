@@ -28,6 +28,11 @@ export type BrandConfig = {
   siteDescription: string;
   /** メタデータの keywords（サービス名は自動で先頭に付く） */
   keywords: string[];
+  /**
+   * きかせてのまとめ確認（STEP 2）で選んでもらう「住んでいるエリア」の選択肢。
+   * value は DB（user_profiles.area）に保存するコードなので、一度使い始めたら変えないこと
+   */
+  respondentAreaOptions: ReadonlyArray<{ value: string; label: string }>;
   assets: {
     /**
      * インタビューのAIの聞き手のアイコン（`/` 始まりのローカルパス）。

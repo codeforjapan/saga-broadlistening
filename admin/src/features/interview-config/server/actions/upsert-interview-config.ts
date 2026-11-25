@@ -267,6 +267,8 @@ export async function duplicateInterviewConfig(
         purpose_type: originalConfig.purpose_type,
         opinion_focus: originalConfig.opinion_focus,
         decided_matters: originalConfig.decided_matters,
+        rating_enabled: originalConfig.rating_enabled,
+        chat_log_public: originalConfig.chat_log_public,
       });
       await linkPolicyToInterviewConfig(targetBillId, newConfig.id);
     } catch (error) {

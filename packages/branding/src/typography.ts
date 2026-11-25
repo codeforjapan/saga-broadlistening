@@ -1,5 +1,5 @@
 /**
- * 佐賀市AI公聴基盤 タイポグラフィトークン（要求仕様4章）
+ * タイポグラフィトークン（要求仕様4章）
  *
  * ここが値の唯一の出所。`tokens.css` は
  * `pnpm --filter @mirai-gikai/branding build:css` で本ファイルから生成する。
@@ -10,15 +10,16 @@
  * 両アプリは以下の変数名で書体を公開すること。
  *
  * - `--font-noto-sans-jp`      本文（Noto Sans JP）
- * - `--font-zen-maru-gothic`   見出し（Zen Maru Gothic）
+ * - `--font-zen-maru-gothic`   みてみての見出し（Zen Maru Gothic）
  * - `--font-noto-serif-jp`     引用（Noto Serif JP。web のみ利用）
  */
 
-/** 書体ファミリー。値は各アプリが next/font で定義する変数への参照 */
+/**
+ * 書体ファミリー。値は各アプリが next/font で定義する変数への参照。
+ * 見出しの書体はテーマごとに変えるため themes.ts の `headingFont` にある。
+ */
 export const FONT_FAMILIES = {
   sans: "var(--font-noto-sans-jp), system-ui, sans-serif",
-  heading:
-    "var(--font-zen-maru-gothic), var(--font-noto-sans-jp), system-ui, sans-serif",
   quote: "var(--font-noto-serif-jp), serif",
 } as const;
 

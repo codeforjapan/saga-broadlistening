@@ -1,9 +1,10 @@
 import "server-only";
 
-import { Undo2 } from "lucide-react";
+import { MessageSquare, Undo2 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { HeadingIcon } from "@/components/heading-icon";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/ui/breadcrumb";
 import { getKikaseteBoxByConfigId } from "@/features/interview-config/server/loaders/get-kikasete-box";
 import { ShareArticleButton } from "@/features/interview-report/client/components/share-article-button";
@@ -12,9 +13,9 @@ import { routes } from "@/lib/routes";
 import { getOrigin } from "@/lib/utils/url";
 import { BackToBillButton } from "../../shared/components/back-to-bill-button";
 import { ChatLogSection } from "../../shared/components/chat-log-section";
-import { ReportIntervieweeCard } from "../../shared/components/report-interviewee-card";
-import { ReportMainOpinions } from "../../shared/components/report-main-opinions";
+import { OpinionsList } from "../../shared/components/opinions-list";
 import { ReportProblemButton } from "../../shared/components/report-problem-button";
+import { ReportSummaryCard } from "../../shared/components/report-summary-card";
 import { resolveReportSubject } from "../../shared/utils/public-report-display";
 import { getPublicReportById } from "../loaders/get-public-report-by-id";
 
@@ -60,6 +61,7 @@ export async function PublicReportPage({
   return (
     <VoicesPageFrame
       kikasete={kikasete}
+      background="page"
       // アクションはきかせてボックスの下に置く（デザイン「5d」）
       footer={
         <div className="flex flex-col items-center gap-3 pt-2">
@@ -91,20 +93,23 @@ export async function PublicReportPage({
       </div>
 
       <h1 className="text-[22px] font-bold leading-9 text-foreground">
-        💬インタビューレポート
+        <HeadingIcon icon={MessageSquare} />
+        インタビューレポート
       </h1>
 
-      {/* 回答者カード */}
-      <ReportIntervieweeCard
-        roleTitle={data.role_title}
-        roleDescription={data.role_description}
+      {/* 要約カード（#278） */}
+      <ReportSummaryCard
+        summary={data.summary}
         sessionStartedAt={data.session_started_at}
-        sessionCompletedAt={data.session_completed_at}
         characterCount={data.characterCount}
       />
 
-      {/* 主な意見 */}
-      <ReportMainOpinions opinions={data.opinions} reportId={reportId} />
+      {/* 主な意見。会話ログの該当箇所へのリンクは、会話ログを公開するテーマでだけ出す */}
+      <OpinionsList
+        opinions={data.opinions}
+        reportId={data.chatLogPublic ? reportId : undefined}
+        chatLogFrom={from}
+      />
 
       {/* すべての会話ログ */}
       {data.messages.length > 0 && (

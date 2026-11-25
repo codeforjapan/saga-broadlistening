@@ -1,8 +1,6 @@
 /**
- * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
- *
  * このファイルは自動生成です。直接編集しないでください。
- * 値の変更は packages/branding/src/palette.ts を編集し、
+ * 値の変更は packages/branding/src/palette.ts・brand.themes.ts を編集し、
  * pnpm --filter @mirai-gikai/branding build:css で再生成します。
  */
 
@@ -23,10 +21,12 @@
   --color-green-400: #8cc63f;
   --color-green-500: #7ab32f;
   --color-green-700: #55801a;
-  --color-kikasete-50: #f0fbf7;
-  --color-kikasete-400: #00b98d;
-  --color-kikasete-600: #008566;
-  --color-kikasete-700: #007a5c;
+  --color-emerald-50: #f0fbf7;
+  --color-emerald-100: #e3f6ee;
+  --color-emerald-line: #e5ecea;
+  --color-emerald-400: #00b98d;
+  --color-emerald-600: #008566;
+  --color-emerald-700: #007a5c;
   --color-yellow-400: #ffd644;
   --color-yellow-700: #8a6a00;
   --color-lavender-300: #e6e3fe;
@@ -38,7 +38,6 @@
 
   /* 書体（実体は各アプリの next/font が定義する変数） */
   --font-sans: var(--font-noto-sans-jp), system-ui, sans-serif;
-  --font-heading: var(--font-zen-maru-gothic), var(--font-noto-sans-jp), system-ui, sans-serif;
   --font-quote: var(--font-noto-serif-jp), serif;
 
   /* サイズ・行間スケール（行間は倍率指定。ルビON/OFFで崩れないため） */
@@ -79,12 +78,12 @@
     font-weight: 500;
   }
 
-  /* 見出しのみ丸ゴを適用する（日本語書体は容量が大きいため。要求仕様4.3） */
+  /* 見出しの書体はテーマで変える（brand.themes.ts の headingFont） */
   h1,
   h2,
   h3,
   h4 {
-    font-family: var(--font-heading);
+    font-family: var(--heading-font);
   }
 
   /* ルビは本文の60%（D-16） */
@@ -94,8 +93,11 @@
   }
 }
 
-:root {
-  /* shadcn/ui セマンティック変数 */
+/* テーマ（brand.themes.ts）。クラスのないページは default の値になる。
+   default 以外のテーマも、書かれていない値を default で補ってすべて出力する
+   （テーマを入れ子にしても、親のテーマの値を引き継がないため） */
+:root,
+.theme-default {
   --background: var(--color-base-white);
   --foreground: var(--color-base-ink);
   --card: var(--color-base-white);
@@ -118,7 +120,40 @@
   --border: var(--color-base-surface);
   --input: var(--color-base-ink-muted);
   --ring: var(--color-sky-700);
+  --decor: var(--color-sky-400);
+  --heading-font: var(--font-zen-maru-gothic), var(--font-noto-sans-jp), system-ui, sans-serif;
+  --page-background: var(--color-base-surface);
+}
 
+.theme-interview {
+  --background: var(--color-base-white);
+  --foreground: var(--color-base-ink);
+  --card: var(--color-base-white);
+  --card-foreground: var(--color-base-ink);
+  --popover: var(--color-base-white);
+  --popover-foreground: var(--color-base-ink);
+  --primary: var(--color-emerald-600);
+  --primary-foreground: var(--color-base-white);
+  --primary-accent: var(--color-emerald-700);
+  --secondary: var(--color-emerald-50);
+  --secondary-foreground: var(--color-base-ink);
+  --muted: var(--color-base-surface);
+  --muted-foreground: var(--color-base-ink-muted);
+  --accent: var(--color-lavender-300);
+  --accent-foreground: var(--color-base-ink);
+  --destructive: var(--color-system-destructive);
+  --destructive-foreground: var(--color-base-white);
+  --success: var(--color-system-success);
+  --warning: var(--color-system-warning);
+  --border: var(--color-emerald-line);
+  --input: var(--color-base-ink-muted);
+  --ring: var(--color-emerald-700);
+  --decor: var(--color-emerald-400);
+  --heading-font: var(--font-noto-sans-jp), system-ui, sans-serif;
+  --page-background: linear-gradient(180deg, var(--color-emerald-100) 0, var(--color-emerald-50) 360px, var(--color-base-white) 1200px);
+}
+
+:root {
   /* chart / sidebar（値は移行前のまま。案3-1への割り当ては #14） */
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -159,6 +194,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-decor: var(--decor);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -172,6 +208,12 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-heading: var(--heading-font);
+}
+
+/* ページの地。テーマの pageBackground */
+@utility bg-page {
+  background: var(--page-background);
 }
 
 /* iOS Safari はフォーカスした入力欄の文字が 16px 未満だと自動ズームする。

@@ -71,6 +71,8 @@ export default async function InterviewChatPage({
         estimatedDuration={interviewConfig.estimated_duration}
         sessionStartedAt={session.started_at}
         hasRated={session.rating != null}
+        ratingEnabled={interviewConfig.rating_enabled}
+        chatLogPublic={interviewConfig.chat_log_public}
         initialStage={session.stage}
       />
     );

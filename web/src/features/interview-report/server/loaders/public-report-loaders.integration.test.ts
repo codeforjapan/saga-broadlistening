@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { MIN_PUBLIC_OPINIONS_FOR_DISPLAY } from "@mirai-gikai/shared/report-publication/auto-publish";
+import { adminClient } from "@test-utils/utils";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   getInitialPublicReportsByBillId,
@@ -120,6 +121,45 @@ describe("公開レポート loader 統合テスト", () => {
     expect(result?.origin.policyId).toBe(context.billId);
     expect(result?.bill?.bill_content).toEqual({ title: "統合テスト施策" });
     expect(result?.characterCount).toBe(5);
+  });
+
+  it("会話ログを公開しないテーマ（既定）では、公開直リンク loader が会話ログを返さない", async () => {
+    context = await createPublicReportLoaderContext();
+    const target = await createPublicReport(context, {
+      messages: [
+        { role: "user", content: "abc" },
+        { role: "assistant", content: "ignored" },
+      ],
+    });
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
+
+    const result = await getPublicReportById(target.report.id);
+
+    expect(result?.chatLogPublic).toBe(false);
+    expect(result?.messages).toEqual([]);
+    // 分量は会話ログを出さなくても示す
+    expect(result?.characterCount).toBe(3);
+  });
+
+  it("会話ログを公開するテーマでは、公開直リンク loader が会話ログを返す", async () => {
+    context = await createPublicReportLoaderContext();
+    await adminClient
+      .from("interview_configs")
+      .update({ chat_log_public: true })
+      .eq("id", context.configId)
+      .throwOnError();
+    const target = await createPublicReport(context, {
+      messages: [
+        { role: "user", content: "abc" },
+        { role: "assistant", content: "ignored" },
+      ],
+    });
+    await createPublicReports(context, MIN_PUBLIC_OPINIONS_FOR_DISPLAY - 1);
+
+    const result = await getPublicReportById(target.report.id);
+
+    expect(result?.chatLogPublic).toBe(true);
+    expect(result?.messages).toHaveLength(2);
   });
 
   it("OGP loader は公開済み件数ゲートを満たす場合だけデータを返す", async () => {

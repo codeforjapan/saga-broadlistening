@@ -1,11 +1,12 @@
 /**
- * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
- *
  * ここが色の唯一の出所。`tokens.css` は `pnpm --filter @mirai-gikai/branding build:css`
  * で本ファイルから生成する（`tokens-css.test.ts` が同期を検証する）。
  *
  * 値の根拠は Epic #8 の要求仕様3章。すべて `#FFFFFF` 背景上での使用を前提とする。
  */
+
+import type { ThemeColorToken, ThemeName } from "./theme-types";
+import { resolveTheme } from "./themes";
 
 /** プリミティブパレット。キーが CSS 変数名（`--color-<key>`）になる */
 export const PRIMITIVES = {
@@ -37,15 +38,19 @@ export const PRIMITIVES = {
   "green-700": "#55801a",
 
   /**
-   * Kikasete ＝ 緑（「CHIKAT きかせて」＝AIインタビュー導線の色、Epic #162 で追加）。
-   * デザインの #00B98D は対白 2.5:1 のため枠線・面専用（kikasete-400）。
-   * 白文字を載せるボタン面は AA を満たす kikasete-600（対白 4.6:1）、
-   * 文字・リンクは kikasete-700（対白 5.3:1、kikasete-50 上 5.0:1）を使う。
+   * Emerald ＝ 緑（AIインタビューの導線の色、Epic #162 で追加）。
+   * デザインの #00B98D は対白 2.5:1 のため枠線・面専用（emerald-400）。
+   * 白文字を載せるボタン面は AA を満たす emerald-600（対白 4.6:1）、
+   * 文字・リンクは emerald-700（対白 5.3:1、emerald-50 上 5.0:1）を使う。
    */
-  "kikasete-50": "#f0fbf7",
-  "kikasete-400": "#00b98d",
-  "kikasete-600": "#008566",
-  "kikasete-700": "#007a5c",
+  "emerald-50": "#f0fbf7",
+  /** ページの地のグラデーションの上端（#279） */
+  "emerald-100": "#e3f6ee",
+  /** AIインタビューのカード・区切りの線（#279）。文字には使わない */
+  "emerald-line": "#e5ecea",
+  "emerald-400": "#00b98d",
+  "emerald-600": "#008566",
+  "emerald-700": "#007a5c",
 
   // Yellow（差し色／優先度3）
   "yellow-400": "#ffd644",
@@ -64,44 +69,13 @@ export const PRIMITIVES = {
 
 export type PrimitiveToken = keyof typeof PRIMITIVES;
 
-/**
- * shadcn/ui セマンティック変数へのマッピング（要求仕様3.3）。
- *
- * `--primary-foreground` が `base-ink` である点が最重要。`sky-400` は対白 2.0:1 しかなく、
- * 白文字を載せると WCAG AA を満たさないため、有彩色の面に載せる文字は黒で統一する（D-13）。
- */
-export const SEMANTICS = {
-  background: "base-white",
-  foreground: "base-ink",
-  card: "base-white",
-  "card-foreground": "base-ink",
-  popover: "base-white",
-  "popover-foreground": "base-ink",
-  primary: "sky-400",
-  "primary-foreground": "base-ink",
-  "primary-accent": "sky-800",
-  secondary: "sky-50",
-  "secondary-foreground": "base-ink",
-  muted: "base-surface",
-  "muted-foreground": "base-ink-muted",
-  accent: "lavender-300",
-  "accent-foreground": "base-ink",
-  destructive: "system-destructive",
-  "destructive-foreground": "base-white",
-  success: "system-success",
-  warning: "system-warning",
-  border: "base-surface",
-  input: "base-ink-muted",
-  ring: "sky-700",
-} as const satisfies Record<string, PrimitiveToken>;
-
-export type SemanticToken = keyof typeof SEMANTICS;
-
-/** セマンティックトークンの実際の色（hex）を返す */
-export function resolveSemantic(token: SemanticToken): string {
-  return PRIMITIVES[SEMANTICS[token]];
+/** テーマの色トークンの実際の色（hex）を返す。テーマを省くと default */
+export function resolveSemantic(
+  token: ThemeColorToken,
+  theme: ThemeName = "default"
+): string {
+  return PRIMITIVES[resolveTheme(theme).colors[token]];
 }
-
 
 /**
  * shadcn/ui 標準の chart / sidebar トークン。
@@ -138,7 +112,7 @@ export const SURFACE_ONLY_TOKENS = [
   "green-400",
   "green-500",
   "yellow-400",
-  "kikasete-400",
+  "emerald-400",
 ] as const satisfies readonly PrimitiveToken[];
 
 /** 文字・アイコンに使えるトークン（`base-white` 背景で 4.5:1 以上） */
@@ -148,8 +122,8 @@ export const TEXT_SAFE_TOKENS = [
   "sky-700",
   "sky-800",
   "green-700",
-  "kikasete-600",
-  "kikasete-700",
+  "emerald-600",
+  "emerald-700",
   "lavender-600",
   "yellow-700",
   "system-destructive",

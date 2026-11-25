@@ -579,6 +579,7 @@ export type Database = {
       interview_configs: {
         Row: {
           allowed_provider_keys: string[]
+          chat_log_public: boolean
           chat_model: string
           created_at: string
           decided_matters: string | null
@@ -593,6 +594,7 @@ export type Database = {
           purpose_type:
             | Database["public"]["Enums"]["interview_purpose_type_enum"]
             | null
+          rating_enabled: boolean
           slug: string
           starts_at: string | null
           status: Database["public"]["Enums"]["interview_config_status_enum"]
@@ -601,6 +603,7 @@ export type Database = {
         }
         Insert: {
           allowed_provider_keys?: string[]
+          chat_log_public?: boolean
           chat_model: string
           created_at?: string
           decided_matters?: string | null
@@ -615,6 +618,7 @@ export type Database = {
           purpose_type?:
             | Database["public"]["Enums"]["interview_purpose_type_enum"]
             | null
+          rating_enabled?: boolean
           slug: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["interview_config_status_enum"]
@@ -623,6 +627,7 @@ export type Database = {
         }
         Update: {
           allowed_provider_keys?: string[]
+          chat_log_public?: boolean
           chat_model?: string
           created_at?: string
           decided_matters?: string | null
@@ -637,6 +642,7 @@ export type Database = {
           purpose_type?:
             | Database["public"]["Enums"]["interview_purpose_type_enum"]
             | null
+          rating_enabled?: boolean
           slug?: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["interview_config_status_enum"]
@@ -1637,6 +1643,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_profiles: {
+        Row: {
+          age_group: string | null
+          area: string | null
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age_group?: string | null
+          area?: string | null
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age_group?: string | null
+          area?: string | null
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

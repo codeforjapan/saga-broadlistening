@@ -34,7 +34,8 @@ export function VoiceSummaryPreview({
       {summary.lead && (
         <p className="text-sm leading-relaxed">{summary.lead}</p>
       )}
-      <Button asChild variant="kikasete" size="sm" className="self-start px-4">
+      {/* ボタンだけをAIインタビューの緑にする */}
+      <Button asChild size="sm" className="theme-interview self-start px-4">
         <Link href={href as Route}>
           {linkLabel}
           <ChevronRight aria-hidden="true" />

@@ -81,6 +81,10 @@ export const interviewConfigSchema = z
       .max(40, "決まっていることは40文字以内で入力してください")
       .nullable()
       .optional(),
+    /** インタビュー中に星評価のアンケートを出すか */
+    rating_enabled: z.boolean(),
+    /** 提出完了と公開レポートに会話ログ（会話の原文）を出すか */
+    chat_log_public: z.boolean(),
   })
   .refine(
     (config) =>

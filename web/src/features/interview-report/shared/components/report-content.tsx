@@ -1,122 +1,52 @@
-import type { ReactNode } from "react";
-import { SpeechBubble } from "@/components/ui/speech-bubble";
-import type { ReportReactionData } from "@/features/report-reaction/shared/types";
-import { ShareArticleButton } from "../../client/components/share-article-button";
-import type { ReportOrigin } from "../utils/public-report-display";
-import { BackToBillButton } from "./back-to-bill-button";
 import { ChatLogSection } from "./chat-log-section";
-import { IntervieweeInfo } from "./interviewee-info";
 import type { Opinion } from "./opinions-list";
 import { OpinionsList } from "./opinions-list";
-import { ReportBreadcrumb } from "./report-breadcrumb";
-import { ReportMetaInfo } from "./report-meta-info";
-import { ReportProblemButton } from "./report-problem-button";
+import { ReportSummaryCard } from "./report-summary-card";
 
 interface ReportContentProps {
   reportId: string;
-  /** 意見が寄せられた対象（施策・テーマ）。戻り導線とパンくずに使う */
-  origin: ReportOrigin;
-  /** 施策名（「〇〇に戻る」に使う） */
-  policyName?: string;
   summary: string | null;
-  roleTitle?: string | null;
   sessionStartedAt: string | null;
   characterCount: number;
+  /** 会話ログ。渡さなければ会話ログも、会話ログへのリンクも出さない */
   messages?: Array<{
     id: string;
     role: string;
     content: string;
   }>;
-  roleDescription: string | null;
   opinions: Opinion[];
-  /** リアクションデータ（公開レポートで使用） */
-  reactionData?: ReportReactionData;
-  /** 遷移元のコンテキスト。"complete" の場合、会話ログへのリンクに ?from=complete を付与。"opinions" の場合、戻るボタンがレポート一覧を指す */
+  /** 遷移元のコンテキスト。"complete" の場合、会話ログへのリンクに ?from=complete を付与する */
   from?: "complete" | "opinions";
-  /** 意見リストの後に差し込む追加セクション（有識者登録バナーなど） */
-  children?: ReactNode;
-  /** 共有ボタン用の情報 */
-  share?: {
-    billName: string;
-    shareUrl: string;
-    ogImageUrl: string;
-    shareMessage?: string | null;
-  };
 }
 
+/** レポートの本体（要約カード・主な意見・会話ログ） */
 export function ReportContent({
   reportId,
-  origin,
-  policyName,
   summary,
-  roleTitle,
   sessionStartedAt,
   characterCount,
   messages,
-  roleDescription,
   opinions,
-  reactionData,
   from,
-  children,
-  share,
 }: ReportContentProps) {
+  const showChatLog = messages != null && messages.length > 0;
+
   return (
-    <div className="flex flex-col gap-12">
-      {/* 要約カード */}
-      <div className="flex flex-col items-center gap-12">
-        <SpeechBubble className="px-7 py-5">
-          <p className="text-[18px] font-bold text-black leading-[28px] relative">
-            {summary}
-          </p>
-        </SpeechBubble>
+    <div className="flex flex-col gap-9">
+      <ReportSummaryCard
+        summary={summary}
+        sessionStartedAt={sessionStartedAt}
+        characterCount={characterCount}
+      />
 
-        {/* 立場と日時情報 */}
-        <ReportMetaInfo
-          reportId={reportId}
-          roleTitle={roleTitle}
-          sessionStartedAt={sessionStartedAt}
-          characterCount={characterCount}
-          reactionData={reactionData}
-          from={from}
-        />
-      </div>
-
-      {/* インタビューを受けた人 */}
-      <IntervieweeInfo roleDescription={roleDescription} headingLevel="h3" />
-
-      {/* 主な意見 */}
       <OpinionsList
         opinions={opinions}
-        title="💬主な意見"
-        reportId={reportId}
+        // 「元の回答を見る」は会話ログの中を指すので、会話ログを出すときだけ出す
+        reportId={showChatLog ? reportId : undefined}
         chatLogFrom={from}
       />
 
-      {messages && messages.length > 0 && (
-        <ChatLogSection messages={messages} />
-      )}
-
-      {/* 追加セクション（有識者登録バナーなど） */}
-      {children}
-
-      <div className="flex flex-col gap-3 items-center">
-        {/* 記事を共有するボタン */}
-        {share && (
-          <ShareArticleButton
-            billName={share.billName}
-            shareUrl={share.shareUrl}
-            ogImageUrl={share.ogImageUrl}
-            shareMessage={share.shareMessage}
-          />
-        )}
-        {/* 施策の記事に戻るボタン */}
-        <BackToBillButton origin={origin} from={from} policyName={policyName} />
-        {/* 問題を報告する */}
-        <ReportProblemButton />
-      </div>
-
-      {/* パンくずリスト */}
-      <ReportBreadcrumb origin={origin} />
+      {showChatLog && <ChatLogSection messages={messages} />}
     </div>
   );
 }

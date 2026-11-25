@@ -43,6 +43,10 @@ interface InterviewChatClientProps {
   estimatedDuration?: number | null;
   sessionStartedAt?: string;
   hasRated?: boolean;
+  /** テーマが星評価のアンケートを出す設定か（#277） */
+  ratingEnabled: boolean;
+  /** テーマが会話ログを公開する設定か（#278）。提出前の公開設定の案内を変える */
+  chatLogPublic: boolean;
   /** サーバーが持つセッションのステージ（interview_sessions.stage） */
   initialStage: InterviewStage;
   /** 最初の質問を生成中（サーバーの Suspense の待ち表示）。入力と終了を止める */
@@ -59,6 +63,8 @@ export function InterviewChatClient({
   estimatedDuration,
   sessionStartedAt,
   hasRated,
+  ratingEnabled,
+  chatLogPublic,
   initialStage,
   isPreparing = false,
 }: InterviewChatClientProps) {
@@ -73,7 +79,6 @@ export function InterviewChatClient({
     isLoading,
     error,
     object,
-    streamingReportData,
     currentQuickReplies,
     canRetry,
     handleSubmit,
@@ -89,7 +94,7 @@ export function InterviewChatClient({
     initialStage,
   });
 
-  const { remainingMinutes, isTimeUp, hasTimer } = useInterviewTimer({
+  const { isTimeUp, hasTimer } = useInterviewTimer({
     estimatedDuration,
     sessionStartedAt,
   });
@@ -102,6 +107,7 @@ export function InterviewChatClient({
   );
 
   const { showRating, handleRatingDismiss } = useInterviewRating({
+    enabled: ratingEnabled,
     progress,
     hasRated,
   });
@@ -109,8 +115,6 @@ export function InterviewChatClient({
   const billDetailLink = bill ? getBillDetailLink(bill.id, previewToken) : null;
 
   const showProgressBar = progress !== null;
-  const timerMinutes =
-    hasTimer && stage === "chat" && !timeUpDismissed ? remainingMinutes : null;
   const showTimeUpPrompt =
     isTimeUp &&
     !timeUpDismissed &&
@@ -167,22 +171,45 @@ export function InterviewChatClient({
   // ストリーミング中のメッセージを表示するかどうか
   const showStreamingMessage = object && !isStreamingMessageCommitted;
 
-  // メッセージ内にレポートが存在するかどうか
-  const hasReport = messages.some((m) => m.report != null);
+  // いちばん新しいまとめ。チャットには出さず、モーダルで確認してもらう（#274）
+  const latestReport = useMemo(() => {
+    const message = messages.findLast((m) => m.report != null);
+    return message?.report
+      ? { messageId: message.id, report: message.report }
+      : null;
+  }, [messages]);
+
+  // まとめができた・直ったら、そのつどモーダルを自動で開く。
+  // 要約の入力欄は対話に戻るとアンマウントされるので、開いた記録はここで持つ。
+  // 対話中に開いた画面では、手元にある古いまとめを開いた扱いにして、
+  // 次の要約を作り始める前に古いまとめが開かないようにする
+  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
+  const [autoOpenedReportId, setAutoOpenedReportId] = useState(() =>
+    initialStage === "chat" ? (latestReport?.messageId ?? null) : null
+  );
+  if (
+    stage !== "chat" &&
+    !isLoading &&
+    latestReport &&
+    latestReport.messageId !== autoOpenedReportId
+  ) {
+    setAutoOpenedReportId(latestReport.messageId);
+    setIsSubmitDialogOpen(true);
+  }
 
   return (
-    <InterviewChatSurface className="md:px-12">
+    <InterviewChatSurface>
       {showProgressBar && progress && (
-        <div className="px-4 pb-1">
+        <div className="pb-1">
           <InterviewProgressBar
             percentage={progress.percentage}
-            currentTopic={progress.currentTopic}
-            remainingMinutes={timerMinutes}
+            stageLabel={progress.stageLabel}
           />
         </div>
       )}
-      <Conversation className="min-h-0 flex-1 overflow-y-auto">
-        <ConversationContent className="flex flex-col gap-4">
+      {/* 会話の上端はぼかして消す（スクロールで文字が途中で切れて見えないように） */}
+      <Conversation className="min-h-0 flex-1 overflow-y-auto [mask-image:linear-gradient(to_bottom,transparent_0,black_24px)] md:[mask-image:linear-gradient(to_bottom,transparent_0,black_32px)]">
+        <ConversationContent className="flex flex-col gap-4 px-0">
           {/* 初期表示メッセージ */}
           {messages.length === 0 && !object && !isPreparing && (
             <div className="flex flex-col gap-4">
@@ -218,7 +245,6 @@ export function InterviewChatClient({
                 }}
                 openLinksInNewTab={index === 0}
                 isStreaming={false}
-                report={message.report}
               />
             );
           })}
@@ -233,7 +259,6 @@ export function InterviewChatClient({
                 parts: [{ type: "text" as const, text: object.text ?? "" }],
               }}
               isStreaming={isLoading}
-              report={streamingReportData}
             />
           )}
 
@@ -283,11 +308,10 @@ export function InterviewChatClient({
       )}
 
       {/* 入力エリア */}
-      <div className="px-6 pt-2">
+      <div className="pt-2">
         {showEndInterviewButton && (
           <div className="flex justify-end pb-2">
             <EndInterviewButton
-              isSummaryStage={stage === "summary"}
               onEnd={handleEnd}
               disabled={isLoading || isPreparing}
             />
@@ -297,7 +321,10 @@ export function InterviewChatClient({
           <InterviewSummaryInput
             sessionId={sessionId}
             target={target}
-            hasReport={hasReport}
+            latestReport={latestReport}
+            isSubmitDialogOpen={isSubmitDialogOpen}
+            onSubmitDialogOpenChange={setIsSubmitDialogOpen}
+            chatLogPublic={chatLogPublic}
             isComplete={stage === "summary_complete"}
             input={input}
             onInputChange={setInput}
@@ -313,7 +340,7 @@ export function InterviewChatClient({
             input={input}
             onInputChange={setInput}
             onSubmit={handleChatSubmit}
-            placeholder="AIの質問に回答する"
+            placeholder="ここに入力してください"
             isResponding={isLoading}
             disabled={isPreparing}
           />

@@ -11,8 +11,10 @@
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PRIMITIVES, SEMANTICS, SHADCN_UI_TOKENS } from "./palette";
+import { PRIMITIVES, SHADCN_UI_TOKENS } from "./palette";
 import { SHADOWS } from "./shadows";
+import { THEME_NAMES, type Theme } from "./theme-types";
+import { resolveTheme } from "./themes";
 import {
   BODY_FONT_WEIGHT,
   FONT_FAMILIES,
@@ -26,13 +28,24 @@ export function renderTokensCss(): string {
     .map(([name, value]) => `  --color-${name}: ${value};`)
     .join("\n");
 
-  const semanticVars = Object.entries(SEMANTICS)
-    .map(([name, primitive]) => `  --${name}: var(--color-${primitive});`)
-    .join("\n");
+  const themeVars = (theme: Theme) =>
+    [
+      ...Object.entries(theme.colors).map(
+        ([name, primitive]) => `  --${name}: var(--color-${primitive});`
+      ),
+      `  --heading-font: ${theme.headingFont};`,
+      `  --page-background: ${theme.pageBackground};`,
+    ].join("\n");
 
-  const semanticThemeVars = Object.keys(SEMANTICS)
+  const semanticThemeVars = Object.keys(resolveTheme("default").colors)
     .map((name) => `  --color-${name}: var(--${name});`)
     .join("\n");
+
+  const themeBlocks = THEME_NAMES.map((name) => {
+    const selector =
+      name === "default" ? ":root,\n.theme-default" : `.theme-${name}`;
+    return `${selector} {\n${themeVars(resolveTheme(name))}\n}`;
+  }).join("\n\n");
 
   const uiVars = Object.entries(SHADCN_UI_TOKENS)
     .map(([name, value]) => `  --${name}: ${value};`)
@@ -68,10 +81,8 @@ export function renderTokensCss(): string {
     .join("\n");
 
   return `/**
- * 佐賀市AI公聴基盤 デザイントークン（案3-1 水色基調）
- *
  * このファイルは自動生成です。直接編集しないでください。
- * 値の変更は packages/branding/src/palette.ts を編集し、
+ * 値の変更は packages/branding/src/palette.ts・brand.themes.ts を編集し、
  * pnpm --filter @mirai-gikai/branding build:css で再生成します。
  */
 
@@ -98,12 +109,12 @@ ${shadowVars}
     font-weight: ${BODY_FONT_WEIGHT};
   }
 
-  /* 見出しのみ丸ゴを適用する（日本語書体は容量が大きいため。要求仕様4.3） */
+  /* 見出しの書体はテーマで変える（brand.themes.ts の headingFont） */
   h1,
   h2,
   h3,
   h4 {
-    font-family: var(--font-heading);
+    font-family: var(--heading-font);
   }
 
   /* ルビは本文の60%（D-16） */
@@ -113,10 +124,12 @@ ${shadowVars}
   }
 }
 
-:root {
-  /* shadcn/ui セマンティック変数 */
-${semanticVars}
+/* テーマ（brand.themes.ts）。クラスのないページは default の値になる。
+   default 以外のテーマも、書かれていない値を default で補ってすべて出力する
+   （テーマを入れ子にしても、親のテーマの値を引き継がないため） */
+${themeBlocks}
 
+:root {
   /* chart / sidebar（値は移行前のまま。案3-1への割り当ては #14） */
 ${uiVars}
 }
@@ -125,6 +138,12 @@ ${uiVars}
   /* セマンティック変数をユーティリティクラスとして公開する */
 ${semanticThemeVars}
 ${uiThemeVars}
+  --font-heading: var(--heading-font);
+}
+
+/* ページの地。テーマの pageBackground */
+@utility bg-page {
+  background: var(--page-background);
 }
 
 /* iOS Safari はフォーカスした入力欄の文字が 16px 未満だと自動ズームする。

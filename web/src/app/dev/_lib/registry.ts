@@ -35,8 +35,8 @@ export const previewRegistry: PreviewGroup[] = [
     items: [
       {
         path: "/dev/features/interview/public-consent-modal",
-        label: "PublicConsentModal",
-        description: "インタビュー公開設定モーダル",
+        label: "InterviewSubmitDialog",
+        description: "まとめ確認・属性・公開設定のモーダル（STEP 1〜3）",
       },
       {
         path: "/dev/features/interview/rating-widget",

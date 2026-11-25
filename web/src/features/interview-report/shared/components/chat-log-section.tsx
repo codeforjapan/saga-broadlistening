@@ -1,4 +1,5 @@
-import { UserRound } from "lucide-react";
+import { MessagesSquare, UserRound } from "lucide-react";
+import { HeadingIcon } from "@/components/heading-icon";
 import { ChatAiAvatar } from "@/features/interview-session/shared/components/chat-ai-avatar";
 import { getMessageDisplayText } from "../utils/get-message-display-text";
 import { splitByQuote } from "../utils/split-by-quote";
@@ -55,8 +56,11 @@ export function ChatLogSection({
 
   return (
     <section id="chat-log" className="flex flex-col gap-4 scroll-mt-24">
-      <h2 className="text-xl font-bold text-foreground">🎤すべての会話ログ</h2>
-      <div className="bg-white rounded-2xl p-6">
+      <h2 className="text-xl font-bold text-foreground">
+        <HeadingIcon icon={MessagesSquare} />
+        すべての会話ログ
+      </h2>
+      <div className="rounded-2xl border border-border bg-white p-6">
         <div className="flex flex-col gap-4">
           {messages.map((message) => (
             <ChatMessage

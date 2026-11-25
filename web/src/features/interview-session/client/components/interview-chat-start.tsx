@@ -1,20 +1,23 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ChikatServiceLogo } from "@/components/chikat-logo";
 import { Button } from "@/components/ui/button";
 import { ensureAnonymousSupabaseUser } from "@/features/chat/client/utils/ensure-anonymous-supabase-user";
 import type { InterviewTarget } from "@/features/interview-config/shared/types/interview-target";
-import { formatEstimatedDuration } from "@/features/interview-config/shared/utils/format-estimated-duration";
 import { getInterviewLPLink } from "@/features/interview-config/shared/utils/interview-links";
 import { routes } from "@/lib/routes";
+import { cn } from "@/lib/utils";
 import { startInterviewSession } from "../../server/actions/start-interview-session";
 import { ChatAiAvatar } from "../../shared/components/chat-ai-avatar";
+import { INTERVIEW_MESSAGE_TEXT_CLASS } from "../../shared/constants/interview-message-text";
+import { INTERVIEW_STAGE_LABELS } from "../../shared/utils/calc-interview-progress";
 import { buildChatStartNotice } from "../../shared/utils/chat-start-notice";
 import { InterviewChatSurface } from "./interview-chat-surface";
+import { InterviewProgressBar } from "./interview-progress-bar";
 
 interface InterviewChatStartProps {
   /** 参加導線の起点。「詳しく」のリンクと、プレビューのトークンに使う */
@@ -32,6 +35,7 @@ interface InterviewChatStartProps {
  * チャットの開始画面（#158、デザイン「4b」）。チャット中と同じ白い面に冒頭の案内3行を出し、
  * 「はじめる」で同意を記録してセッションを作る。作成後はページを再描画して最初の質問を出す。
  * 案内の余白・文字・アイコンはチャット中の発話（InterviewMessage）にそろえる（#245）。
+ * 上端はチャット中と同じ進捗の表示にし、所要時間の見出しは出さない（#273）。
  */
 export function InterviewChatStart({
   target,
@@ -50,7 +54,6 @@ export function InterviewChatStart({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const notice = buildChatStartNotice({ themeName, estimatedDuration });
-  const durationLabel = formatEstimatedDuration(estimatedDuration);
 
   const handleStart = () => {
     setError(null);
@@ -73,20 +76,23 @@ export function InterviewChatStart({
 
   return (
     // ヘッダーの「保存して中断」は、この属性があるあいだ隠す（interview-header-actions）
-    <InterviewChatSurface data-interview-chat-start="" className="md:px-12">
-      <header className="flex items-center gap-3 border-b px-4 pb-4">
-        <ChikatServiceLogo variant="kikasete" className="h-5" />
-        {durationLabel && (
-          <span className="ml-auto text-xs text-muted-foreground">
-            {durationLabel}
-          </span>
-        )}
-      </header>
+    <InterviewChatSurface data-interview-chat-start="">
+      <div className="pb-1">
+        <InterviewProgressBar
+          percentage={0}
+          stageLabel={INTERVIEW_STAGE_LABELS.intro}
+        />
+      </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pt-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4">
         <div className="flex flex-col gap-1">
           <ChatAiAvatar />
-          <div className="flex flex-col gap-3 text-body text-foreground">
+          <div
+            className={cn(
+              "flex flex-col gap-3 text-foreground",
+              INTERVIEW_MESSAGE_TEXT_CLASS
+            )}
+          >
             {notice.map((line) => (
               <p key={line.map((segment) => segment.text).join("")}>
                 {line.map((segment) => {
@@ -95,7 +101,7 @@ export function InterviewChatStart({
                       <Link
                         key={segment.text}
                         href={themeHref as Route}
-                        className="text-kikasete-700 underline underline-offset-4"
+                        className="text-primary-accent underline underline-offset-4"
                       >
                         {segment.text}
                       </Link>
@@ -112,11 +118,12 @@ export function InterviewChatStart({
         </div>
 
         <div className="flex flex-col gap-2 md:items-end">
-          <div className="flex flex-col-reverse gap-2 md:flex-row">
+          {/* スマホは「はじめる」を上に横幅いっぱい、PC は「詳しく」を左・「はじめる」を右に並べる */}
+          <div className="flex flex-col-reverse gap-2.5 md:flex-row md:gap-3">
             <Button
               asChild
               variant="outline"
-              className="h-11 border-kikasete-400 text-kikasete-700"
+              className="h-12 border-decor px-6 text-base text-primary-accent"
             >
               <Link href={aboutHref as Route}>
                 このインタビューについて詳しく
@@ -124,12 +131,18 @@ export function InterviewChatStart({
             </Button>
             <Button
               type="button"
-              variant="kikasete"
-              className="h-11 px-8"
+              className="h-12 px-8 text-base"
               disabled={isPending}
               onClick={handleStart}
             >
-              {isPending ? "準備しています…" : "はじめる"}
+              {isPending ? (
+                "準備しています…"
+              ) : (
+                <>
+                  はじめる
+                  <ArrowRight className="size-5" />
+                </>
+              )}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">

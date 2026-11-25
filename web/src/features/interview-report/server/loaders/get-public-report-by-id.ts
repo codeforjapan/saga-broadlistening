@@ -41,7 +41,13 @@ export type PublicReportData = InterviewReport & {
   } | null;
   opinions: PublicReportOpinion[];
   characterCount: number;
+  /**
+   * 会話ログ。テーマが会話ログを公開しない設定（#278）なら空にし、
+   * 画面にもページのデータにも会話の原文を含めない
+   */
   messages: InterviewMessage[];
+  /** テーマが会話ログを公開する設定か */
+  chatLogPublic: boolean;
 };
 
 /**
@@ -89,6 +95,7 @@ export const getPublicReportById = cache(
     ]);
 
     const { interview_sessions: _, ...reportData } = report;
+    const chatLogPublic = session.interview_configs?.chat_log_public === true;
 
     return {
       ...reportData,
@@ -106,8 +113,10 @@ export const getPublicReportById = cache(
           }
         : null,
       opinions: segments,
+      // 分量は会話ログを出さなくても示す
       characterCount: countUserMessageCharacters(messages),
-      messages,
+      messages: chatLogPublic ? messages : [],
+      chatLogPublic,
     };
   }
 );

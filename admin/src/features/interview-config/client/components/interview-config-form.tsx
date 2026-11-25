@@ -43,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ThumbnailUpload } from "@/features/bills-edit/client/components/thumbnail-upload";
 import { routes } from "@/lib/routes";
@@ -125,6 +126,8 @@ export function InterviewConfigForm({
       purpose_type: config?.purpose_type ?? null,
       opinion_focus: config?.opinion_focus ?? "",
       decided_matters: config?.decided_matters ?? "",
+      rating_enabled: config?.rating_enabled ?? false,
+      chat_log_public: config?.chat_log_public ?? false,
       policy_ids: linkedPolicyIds,
     },
   });
@@ -600,6 +603,48 @@ export function InterviewConfigForm({
                       />
                     )}
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="rating_enabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start justify-between gap-4 rounded-md border p-3">
+                    <div className="space-y-1">
+                      <FormLabel>星評価のアンケートを出す</FormLabel>
+                      <FormDescription>
+                        インタビューの途中で、満足度の星評価（1〜5）を聞きます。
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="chat_log_public"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start justify-between gap-4 rounded-md border p-3">
+                    <div className="space-y-1">
+                      <FormLabel>会話ログを公開する</FormLabel>
+                      <FormDescription>
+                        提出完了の画面と公開レポートに、インタビューの会話の原文を出します。オフのときは、回答者に「会話の原文は公開されません」と案内します。
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />

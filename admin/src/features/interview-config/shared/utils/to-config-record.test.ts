@@ -15,6 +15,8 @@ describe("toConfigRecord", () => {
         chat_model: chatModel,
         participation_mode: "public",
         allowed_provider_keys: [],
+        rating_enabled: false,
+        chat_log_public: false,
       })
     ).toEqual({
       name: "市民意見",
@@ -26,6 +28,8 @@ describe("toConfigRecord", () => {
       thumbnail_url: null,
       participation_mode: "public",
       allowed_provider_keys: [],
+      rating_enabled: false,
+      chat_log_public: false,
       purpose_type: null,
       opinion_focus: null,
       decided_matters: null,
@@ -40,6 +44,8 @@ describe("toConfigRecord", () => {
         status: "draft",
         participation_mode: "public",
         allowed_provider_keys: [],
+        rating_enabled: false,
+        chat_log_public: false,
         purpose_type: "verify",
         opinion_focus: " どの路線をどう変えるか ",
       })
@@ -56,6 +62,8 @@ describe("toConfigRecord", () => {
       status: "draft" as const,
       participation_mode: "public" as const,
       allowed_provider_keys: [],
+      rating_enabled: false,
+      chat_log_public: false,
     };
     expect(
       toConfigRecord({ ...base, decided_matters: " 見直すこと " })
@@ -73,6 +81,8 @@ describe("toConfigRecord", () => {
         status: "draft",
         participation_mode: "public",
         allowed_provider_keys: ["saga_super_app"],
+        rating_enabled: false,
+        chat_log_public: false,
       }).allowed_provider_keys
     ).toEqual([]);
   });
@@ -85,6 +95,8 @@ describe("toConfigRecord", () => {
         status: "draft",
         participation_mode: "external_identity",
         allowed_provider_keys: ["saga_super_app"],
+        rating_enabled: false,
+        chat_log_public: false,
       }).allowed_provider_keys
     ).toEqual(["saga_super_app"]);
   });
@@ -98,7 +110,23 @@ describe("toConfigRecord", () => {
         chat_model: "openai/gpt-5.2",
         participation_mode: "public",
         allowed_provider_keys: [],
+        rating_enabled: false,
+        chat_log_public: false,
       }).chat_model
     ).toBe("openai/gpt-5.2");
+  });
+
+  it("星評価と会話ログの切り替えをそのまま保存する", () => {
+    expect(
+      toConfigRecord({
+        name: "市民意見",
+        slug: "citizen-voices",
+        status: "draft",
+        participation_mode: "public",
+        allowed_provider_keys: [],
+        rating_enabled: true,
+        chat_log_public: true,
+      })
+    ).toMatchObject({ rating_enabled: true, chat_log_public: true });
   });
 });

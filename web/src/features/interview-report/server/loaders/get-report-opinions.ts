@@ -1,7 +1,7 @@
 import "server-only";
 
-import type { PublicReportOpinion } from "./get-public-report-by-id";
 import { findOpinionSegmentsByOpinionId } from "../repositories/interview-report-repository";
+import type { PublicReportOpinion } from "./get-public-report-by-id";
 
 /**
  * 意見IDから論点単位の意見（opinion_segments）を取得する。
