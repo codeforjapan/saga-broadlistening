@@ -10,6 +10,8 @@ import {
 } from "./consent-check-list-item";
 
 interface InterviewPublicConsentStepProps {
+  /** テーマが会話ログを公開する設定か（#278）。公開されるものの案内を変える */
+  chatLogPublic: boolean;
   onBack: () => void;
   onSubmit: (isPublic: boolean) => void;
   isSubmitting: boolean;
@@ -18,6 +20,7 @@ interface InterviewPublicConsentStepProps {
 
 /** STEP 3：公開設定（#276）。公開を許可するか選んで提出する */
 export function InterviewPublicConsentStep({
+  chatLogPublic,
   onBack,
   onSubmit,
   isSubmitting,
@@ -51,10 +54,16 @@ export function InterviewPublicConsentStep({
         許可しますか？
       </DialogTitle>
       <div className="mt-4 space-y-3">
-        <ConsentCheckListItem>
-          公開を許可すると、あなたの意見のまとめが、名前を出さずに掲載されることがあります。
-          <strong className="font-bold">会話の原文は公開されません。</strong>
-        </ConsentCheckListItem>
+        {chatLogPublic ? (
+          <ConsentCheckListItem>
+            公開を許可すると、あなたの意見のまとめとインタビューの原文が、名前を出さずに掲載されることがあります。
+          </ConsentCheckListItem>
+        ) : (
+          <ConsentCheckListItem>
+            公開を許可すると、あなたの意見のまとめが、名前を出さずに掲載されることがあります。
+            <strong className="font-bold">会話の原文は公開されません。</strong>
+          </ConsentCheckListItem>
+        )}
         <ConsentCheckListItem>
           さまざまな意見が公開されることで、より深い施策議論が実現できます。
         </ConsentCheckListItem>

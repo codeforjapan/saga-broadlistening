@@ -18,6 +18,8 @@ export type InterviewReportWithSessionInfo = InterviewReport & {
   interview_config_id: string;
   session_started_at: string;
   session_completed_at: string | null;
+  /** テーマが会話ログ（会話の原文）を公開する設定か（#278） */
+  chatLogPublic: boolean;
 };
 
 /**
@@ -79,5 +81,6 @@ export async function getInterviewReportById(
     interview_config_id: session.interview_config_id,
     session_started_at: session.started_at,
     session_completed_at: session.completed_at,
+    chatLogPublic: session.interview_configs?.chat_log_public === true,
   };
 }

@@ -43,6 +43,10 @@ interface InterviewChatClientProps {
   estimatedDuration?: number | null;
   sessionStartedAt?: string;
   hasRated?: boolean;
+  /** テーマが星評価のアンケートを出す設定か（#277） */
+  ratingEnabled: boolean;
+  /** テーマが会話ログを公開する設定か（#278）。提出前の公開設定の案内を変える */
+  chatLogPublic: boolean;
   /** サーバーが持つセッションのステージ（interview_sessions.stage） */
   initialStage: InterviewStage;
   /** 最初の質問を生成中（サーバーの Suspense の待ち表示）。入力と終了を止める */
@@ -59,6 +63,8 @@ export function InterviewChatClient({
   estimatedDuration,
   sessionStartedAt,
   hasRated,
+  ratingEnabled,
+  chatLogPublic,
   initialStage,
   isPreparing = false,
 }: InterviewChatClientProps) {
@@ -101,6 +107,7 @@ export function InterviewChatClient({
   );
 
   const { showRating, handleRatingDismiss } = useInterviewRating({
+    enabled: ratingEnabled,
     progress,
     hasRated,
   });
@@ -317,6 +324,7 @@ export function InterviewChatClient({
             latestReport={latestReport}
             isSubmitDialogOpen={isSubmitDialogOpen}
             onSubmitDialogOpenChange={setIsSubmitDialogOpen}
+            chatLogPublic={chatLogPublic}
             isComplete={stage === "summary_complete"}
             input={input}
             onInputChange={setInput}

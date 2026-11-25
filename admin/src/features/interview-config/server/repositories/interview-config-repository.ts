@@ -246,11 +246,18 @@ async function findInterviewConfigIdsByPolicyIds(
   return [...new Set(data.map((row) => row.interview_config_id))];
 }
 
-/** 目的・意見がほしい点・決まっていること（AIインタビューの設計に使う項目） */
+/**
+ * 目的・意見がほしい点・決まっていること（AIインタビューの設計に使う項目）と、
+ * 星評価・会話ログを出すかの切り替え
+ */
 type InterviewDesignFields = Partial<
   Pick<
     InterviewConfigInsert,
-    "purpose_type" | "opinion_focus" | "decided_matters"
+    | "purpose_type"
+    | "opinion_focus"
+    | "decided_matters"
+    | "rating_enabled"
+    | "chat_log_public"
   >
 >;
 

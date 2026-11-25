@@ -78,6 +78,8 @@ export default async function ThemeChatPage({ params }: ThemeChatPageProps) {
         estimatedDuration={config.estimated_duration}
         sessionStartedAt={session.started_at}
         hasRated={session.rating != null}
+        ratingEnabled={config.rating_enabled}
+        chatLogPublic={config.chat_log_public}
         initialStage={session.stage}
       />
     );

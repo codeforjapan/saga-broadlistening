@@ -22,6 +22,7 @@ interface ReportContentProps {
   roleTitle?: string | null;
   sessionStartedAt: string | null;
   characterCount: number;
+  /** 会話ログ。渡さなければ会話ログも、会話ログへのリンクも出さない */
   messages?: Array<{
     id: string;
     role: string;
@@ -60,6 +61,8 @@ export function ReportContent({
   children,
   share,
 }: ReportContentProps) {
+  const showChatLog = messages != null && messages.length > 0;
+
   return (
     <div className="flex flex-col gap-12">
       {/* 要約カード */}
@@ -87,13 +90,12 @@ export function ReportContent({
       {/* 主な意見 */}
       <OpinionsList
         opinions={opinions}
-        reportId={reportId}
+        // 「元の回答を見る」は会話ログの中を指すので、会話ログを出すときだけ出す
+        reportId={showChatLog ? reportId : undefined}
         chatLogFrom={from}
       />
 
-      {messages && messages.length > 0 && (
-        <ChatLogSection messages={messages} />
-      )}
+      {showChatLog && <ChatLogSection messages={messages} />}
 
       {/* 追加セクション（有識者登録バナーなど） */}
       {children}

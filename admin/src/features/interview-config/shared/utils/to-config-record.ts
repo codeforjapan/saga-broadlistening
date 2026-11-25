@@ -19,5 +19,7 @@ export function toConfigRecord(validatedData: InterviewConfigInput) {
     purpose_type: validatedData.purpose_type ?? null,
     opinion_focus: validatedData.opinion_focus?.trim() || null,
     decided_matters: validatedData.decided_matters?.trim() || null,
+    rating_enabled: validatedData.rating_enabled,
+    chat_log_public: validatedData.chat_log_public,
   };
 }

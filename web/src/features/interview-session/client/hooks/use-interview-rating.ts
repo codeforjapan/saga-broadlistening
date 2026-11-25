@@ -6,6 +6,8 @@ import type { InterviewProgress } from "../../shared/utils/calc-interview-progre
 const RATING_WIDGET_THRESHOLD = 65;
 
 interface UseInterviewRatingProps {
+  /** テーマが星評価のアンケートを出す設定か。既定はオフ（#277） */
+  enabled: boolean;
   progress: InterviewProgress | null;
   hasRated?: boolean;
 }
@@ -13,13 +15,14 @@ interface UseInterviewRatingProps {
 /**
  * 評価ウィジェットの表示制御を管理するhook
  * プログレスが閾値に達したら1回だけ表示
- * 既に評価済み（hasRated=true）の場合は表示しない
+ * テーマで星評価を出さない設定のときや、既に評価済み（hasRated=true）の場合は表示しない
  */
 export function useInterviewRating({
+  enabled,
   progress,
   hasRated,
 }: UseInterviewRatingProps) {
-  const ratingTriggered = useRef(!!hasRated);
+  const ratingTriggered = useRef(!enabled || !!hasRated);
   const [showRating, setShowRating] = useState(false);
 
   useEffect(() => {
